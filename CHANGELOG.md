@@ -1,11 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-beta.8 — 2026-10-26
 
 ### Idle models leave memory
 - Models you have not used for 30 minutes are now unloaded, dictation's speech model included, so AudioSmith gives the memory back to your Mac. They load again by themselves when next used: the first dictation after a long pause may take about a second longer, and the pill says “Loading model…” while it waits. Nothing you record is lost.
 - Settings → Models & network → Memory: “Unload idle models” offers after 5, 15, 30 or 60 minutes, or Never. If you had never changed it, it moves from Never to 30 minutes once; a choice you made is kept.
 - A model is never unloaded while a job uses it, during a dictation or during a live call; the 30 minutes count from its last use.
+
+### Fixes
+- Setup: "Download models later" did nothing (issue #1): the wizard put the recommended pack back on the next frame, so the wizard went on with it. The choice now sticks.
+- Dub: a line that is not translated yet opens in the editor on its text. It used to open empty, so the text seemed to vanish when clicked (issue #2). Done without a change no longer saves the source as the translation.
 
 ### For contributors
 - The app's Go code (package main) moved from the repository root to `app/` (mygo.json `"main": "./app"`); the files it embeds moved to the `assets` package (`assets/`, starter voices now in `assets/starter-voices`). Run it with `go run ./app`, test it with `go test ./app`; `go tool mygo build`, `mygo dev` and `mygo vet .` work as before.
@@ -45,7 +49,6 @@
 - Errors that were dropped silently in background work (cancelling jobs, export records, notifications, files the app writes or removes…) are logged.
 
 ### Fixes
-- Setup: "Download models later" did nothing (issue #1): the wizard put the recommended pack back on the next frame, so the wizard went on with it. The choice now sticks.
 - Studio and Audiobook script editors: the last character of a line was cut in half at the right edge on the Mac (a Chinese comma or full stop measured half as wide on its own as within its line). Lines now wrap where they are drawn.
 - Importing a video from a link shows its real progress (percent, size, time left) on the page, in the footer and on the sidebar card, with the video's title; Stop on the card and Cancel in the footer really stop it (yt-dlp's helper process kept downloading before), and activity cards no longer show an empty bar.
 - A copy built on the Mac says, in Settings → About → Software updates, why it cannot update itself, with a link to the download page.
