@@ -1,7 +1,7 @@
 {
   "name": "AudioSmith",
   "identifier": "dev.hehehai.audiosmith",
-  "version": "0.4.0-beta.7",
+  "version": "0.4.0-beta.8",
   "copyright": "Copyright © 2026 hehehai and the AudioSmith contributors. Licensed under the GNU AGPL-3.0.",
   "main": "./app",
   "out": "build",
