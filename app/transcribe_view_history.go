@@ -56,6 +56,9 @@ func (a *app) trComposer(c *ui.Context) {
 				}
 				a.trRecordButtons(c, busy)
 			})
+			if a.toolCompact(c) {
+				return
+			}
 			ui.Row(c.Key("tr-model-line")).Gap(px(t, 6)).AlignItems(ui.Center).MinWidth(0).Children(func() {
 				iconMark(c, icons.Box, tok(t).Text3, "")
 				ui.Text(c, a.trModelLine()).FontSize(px(t, fsCaption)).TextColor(tok(t).Text3).SingleLine().Ellipsis("…").MinWidth(0)
@@ -76,6 +79,9 @@ func (a *app) trComposer(c *ui.Context) {
 			a.transcribeFile(path)
 		}
 	})
+	if a.toolCompact(c) {
+		return
+	}
 	caption(c, i18n.T("Dictate into any app with %s: the text is typed where your cursor is. Set it up in Settings → Dictation.",
 		dictation.GlyphsOf(a.prefs.Dictation.Shortcut))).TextColor(tok(t).Text3)
 }
