@@ -3,8 +3,8 @@ package main
 // The pieces of a tool page (0.5 F2: Dub, Speech to text, Voice
 // isolator; after ElevenLabs' tool pages): the page's column, the
 // composer card on top (a drop zone over a row of options and the round
-// submit), the list under it (search, filter chips, a header and rows
-// that open the item, with their ⋯ menu) and a file chip. An item's page
+// submit) and a file chip; the list under it is the row kit's
+// (ui_list.go). An item's page
 // has the page header's ‹ and its list's name (ui_page_header.go). In
 // the current tokens: no new colours.
 
@@ -96,108 +96,6 @@ func fileChip(c *ui.Context, key string, ic icons.Icon, path string, remove func
 		ui.Text(c, filepath.Base(path)).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Tooltip(path)
 		if iconButton(c.Key(key+"-x"), icons.Close, i18n.T("Remove the file")).Clicked() {
 			remove()
-		}
-	})
-}
-
-// listColumn is a column of a tool's list: its title and width (DIPs at
-// 100 %; 0 grows); wide columns hide when the list is narrow.
-type listColumn struct {
-	title string
-	w     float32
-	wide  bool
-}
-
-// listHead is the header of a tool's list: the columns' titles over a
-// hairline, room for the rows' icon and ⋯.
-func listHead(c *ui.Context, narrow bool, cols ...listColumn) {
-	t := c.Theme()
-	k := tok(t)
-	ui.Row(c.Key("list-head")).Height(px(t, 32)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(0, px(t, sp2)).
-		BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Shrink(0).Children(func() {
-		for i, col := range cols {
-			if col.wide && narrow {
-				continue
-			}
-			tx := ui.Text(c.Key(i), col.title).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Ellipsis("…")
-			if col.w == 0 {
-				tx.Grow(1).MinWidth(0).Margin(0, 0, 0, px(t, 32+sp3))
-			} else {
-				tx.Width(px(t, col.w)).Shrink(0)
-			}
-		}
-		ui.Box(c).Width(px(t, 28)).Shrink(0)
-	})
-}
-
-// listRow is a row of a tool's list: cells (the icon, the title and the
-// columns, as listCell lays them out) in a button that opens the item,
-// then actions (its ⋯ menu). It reports a click on the row.
-func listRow(c *ui.Context, key, label string, cells, actions func()) bool {
-	t := c.Theme()
-	k := tok(t)
-	clicked := false
-	row := ui.Row(c.Key(key)).MinHeight(px(t, 52)).Gap(px(t, sp1)).AlignItems(ui.Center).Padding(0, px(t, sp1), 0, 0).
-		BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Shrink(0)
-	if row.Hovered() {
-		row.Background(k.Hover)
-	}
-	row.Children(func() {
-		b := ui.ButtonBase(c.Key("open")).Grow(1).MinWidth(0).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, 6), px(t, sp2)).Label(label)
-		b.Children(cells)
-		clicked = b.Clicked()
-		if actions != nil {
-			actions()
-		}
-	})
-	return clicked
-}
-
-// listThumb is a row's leading square: bmp when there is one, else ic.
-func listThumb(c *ui.Context, ic icons.Icon, bmp *ui.Bitmap) {
-	t := c.Theme()
-	k := tok(t)
-	d := px(t, 32)
-	ui.Box(c).Size(d, d).Radius(px(t, radiusControl)).Background(k.Subtle).Center().Clip().Shrink(0).Children(func() {
-		if bmp != nil {
-			ui.Image(c, bmp).Size(d, d).Fit(ui.Cover)
-			return
-		}
-		ui.Icon(c, ic.Linear).Size(px(t, 16), px(t, 16)).TextColor(k.Text2)
-	})
-}
-
-// listTitle is a row's title over a grey line (sub, "" none).
-func listTitle(c *ui.Context, title, sub string) {
-	t := c.Theme()
-	k := tok(t)
-	ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
-		ui.Text(c, orDash(title)).SingleLine().Ellipsis("…").MinWidth(0)
-		if sub != "" {
-			ui.Text(c, sub).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0)
-		}
-	})
-}
-
-// listCell is a row's column: s in w DIPs, secondary grey.
-func listCell(c *ui.Context, s string, w float32) {
-	t := c.Theme()
-	ui.Text(c, s).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).SingleLine().Ellipsis("…").Width(px(t, w)).Shrink(0)
-}
-
-// listStatus is a row's status column: a spinner and a bar while it runs
-// (frac < 0: no bar), else s in col.
-func listStatus(c *ui.Context, s string, running bool, frac float64, col ui.Color, w float32) {
-	t := c.Theme()
-	ui.Column(c).Width(px(t, w)).Shrink(0).Gap(px(t, 4)).Children(func() {
-		ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).MinWidth(0).Children(func() {
-			if running {
-				ui.Spinner(c).Size(px(t, 12), px(t, 12))
-			}
-			ui.Text(c, s).FontSize(px(t, fsCaption)).TextColor(col).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(s)
-		})
-		if running && frac >= 0 {
-			ui.Progress(c, frac).Height(px(t, 3)).Label(s)
 		}
 	})
 }

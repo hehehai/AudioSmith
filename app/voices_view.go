@@ -125,8 +125,9 @@ func (a *app) voicesPage(c *ui.Context) {
 }
 
 // voiceDateW is the Created column's width: a whole Chinese date
-// ("2026年10月31日") fits (the Mac check, #121: 92 cut it to "2026年10月3…").
-const voiceDateW = 108
+// ("2026年10月31日") fits after its icon (the Mac check, #121: 92 cut it
+// to "2026年10月3…").
+const voiceDateW = 126
 
 // voicesTable is the saved voices' table, or its empty states.
 func (a *app) voicesTable(c *ui.Context, narrow bool) {
@@ -166,19 +167,23 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 		return
 	}
 	playing := a.savedPlaying(v)
-	st := voiceRowState{selected: e != nil && e.id == v.ID, playing: playing}
+	st := rowState{selected: e != nil && e.id == v.ID, playing: playing}
 	id := v.ID
 	if voiceRow(c, "voice-"+v.ID, v.Name, st, func() {
 		voiceNameCell(c, v.Name, voiceLine(v), a.portrait(v), playing, func() { voiceMarks(c, v) })
-		voiceCell(c, mineKind(v), 76)
+		metaCell(c, icons.Tag, i18n.T("Kind"), mineKind(v), 92)
 		if !narrow {
-			voiceCell(c, voiceLangName(v.Language), 84)
-			voiceCell(c, i18n.Date(v.CreatedAt), voiceDateW)
+			lang := ""
+			if v.Language != "" {
+				lang = langName(v.Language) // with its flag, as Discover's
+			}
+			metaCell(c, noIcon, i18n.T("Language"), lang, 100)
+			metaCell(c, icons.CalendarMinimalistic, i18n.T("Created"), i18n.Date(v.CreatedAt), voiceDateW)
 			uses := ""
 			if n := a.mine.uses[v.ID]; n > 0 {
 				uses = i18n.N(n, "%d time", "%d times", n)
 			}
-			voiceCell(c, uses, 64)
+			metaCell(c, icons.Repeat, i18n.T("Times used"), uses, 80)
 		}
 	}, func() {
 		switch {
@@ -243,9 +248,9 @@ func (a *app) voiceRowMenu(c *ui.Context, v *core.Voice, tip string) {
 func (a *app) renameRow(c *ui.Context, v *core.Voice) {
 	t := c.Theme()
 	s := &a.mine
-	ui.Row(c.Key("rename-"+v.ID)).MinHeight(px(t, 52)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(0, px(t, sp2)).
-		BorderWidth(0, 0, 1, 0).BorderColor(tok(t).Line).Children(func() {
-		ui.Avatar(c, v.Name, a.portrait(v)).Size(px(t, 32), px(t, 32)).Shrink(0)
+	listEditRow(c, "rename-"+v.ID, func() {
+		ui.Avatar(c, v.Name, a.portrait(v)).Size(px(t, listThumbD), px(t, listThumbD)).Shrink(0)
+	}, func() {
 		in := ui.TextInput(c.Key("rename"), &s.renameText).Label(i18n.T("Profile name")).Grow(1).MinWidth(0).AutoFocus()
 		ok := strings.TrimSpace(s.renameText) != ""
 		if (in.Submitted() || ui.Button(c.Key("rename-ok"), i18n.T("Save name")).Disabled(!ok).Clicked()) && ok {
@@ -385,14 +390,6 @@ func mineKind(v *core.Voice) string {
 // transcript.
 func voiceLine(v *core.Voice) string {
 	return strings.Join(strings.Fields(firstOf(v.Style, v.Design, v.RefText, strings.Join(v.Tags, ", "))), " ")
-}
-
-// voiceLangName names a voice's language ("" none).
-func voiceLangName(code string) string {
-	if code == "" {
-		return ""
-	}
-	return languageName(code)
 }
 
 // voiceMarks are a voice's Verified, Consent included and Locked marks:

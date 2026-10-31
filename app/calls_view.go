@@ -157,7 +157,7 @@ func (a *app) callRow(c *ui.Context, r store.CallRecord) {
 	b := ui.ButtonBase(c.Key("call-"+r.ID)).Padding(px(t, sp2), px(t, 10)).Radius(px(t, radiusControl)).Label(i18n.T("Open %s", r.Title))
 	switch {
 	case sel:
-		b.Background(k.Pressed)
+		b.Background(k.Selected) // as the row kit's open row (ui_list.go)
 	case b.Hovered():
 		b.Background(k.Hover)
 	}

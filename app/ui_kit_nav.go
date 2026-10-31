@@ -113,7 +113,8 @@ func entryCard(c *ui.Context, key string, ic icons.Icon, title, body string, act
 }
 
 // ghostRows is the empty state of a list: rows of grey bars (an avatar,
-// a name, a column), each fainter than the one above, then ic, title and
+// a name, a column) shaped as the row kit's (ui_list.go: no lines between
+// them), each fainter than the one above, then ic, title and
 // body ("" none) under them, as a hint of what the list will hold.
 func ghostRows(c *ui.Context, rows int, ic icons.Icon, title, body string) ui.Element {
 	t := c.Theme()
@@ -122,9 +123,9 @@ func ghostRows(c *ui.Context, rows int, ic icons.Icon, title, body string) ui.El
 	return ui.Column(c).AlignItems(ui.Stretch).Shrink(0).Children(func() {
 		for i := range rows {
 			fade := 1 - float32(i)/float32(rows)
-			ui.Row(c.Key(i)).Height(px(t, 48)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(0, px(t, sp2)).
-				BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Opacity(fade).Children(func() {
-				ui.Box(c).Size(px(t, 28), px(t, 28)).Radius(px(t, radiusControl)).Background(bar).Shrink(0)
+			ui.Row(c.Key(i)).Height(px(t, listRowH)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(0, px(t, sp2)).
+				Radius(px(t, radiusControl)).Opacity(fade).Children(func() {
+				ui.Box(c).Size(px(t, listThumbD), px(t, listThumbD)).Radius(px(t, radiusControl)).Background(bar).Shrink(0)
 				ui.Column(c).Gap(px(t, 6)).Grow(1).Children(func() {
 					ui.Box(c).Height(px(t, 8)).Width(px(t, float32(150-20*(i%3)))).Radius(px(t, 4)).Background(bar)
 					ui.Box(c).Height(px(t, 6)).Width(px(t, float32(90+25*(i%2)))).Radius(px(t, 3)).Background(bar)

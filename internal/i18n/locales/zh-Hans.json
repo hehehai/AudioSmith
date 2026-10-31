@@ -3930,5 +3930,9 @@
   "Writing a draft…": "正在写草稿…",
   "You opened this sample before": "你打开过这个示例",
   "the draft had no lines for voices": "草稿里没有角色台词",
+  "%s: %s": "%s：%s",
+  "Gender and age": "性别与年龄",
+  "Times used": "使用次数",
+  "Use cases": "用途",
   "All statuses": "全部状态"
 }

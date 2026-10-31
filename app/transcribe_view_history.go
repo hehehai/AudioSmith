@@ -159,7 +159,6 @@ func (a *app) transcriptStatus(c *ui.Context) {
 // trListView: the search and the transcripts (dictations too), the one
 // being made on top; ghost rows when there are none.
 func (a *app) trListView(c *ui.Context) {
-	t := c.Theme()
 	list := a.shownTranscripts()
 	if len(a.trList) == 0 && a.trJob == nil {
 		sub := i18n.T("Transcribe a file or a recording.")
@@ -171,15 +170,11 @@ func (a *app) trListView(c *ui.Context) {
 	}
 	narrow := a.toolNarrow(c)
 	ui.Column(c.Key("tr-table")).Shrink(0).Children(func() {
-		listHead(c, narrow, listColumn{title: i18n.T("Title")}, listColumn{title: i18n.T("Language"), w: 110, wide: true},
-			listColumn{title: i18n.T("Length"), w: 64, wide: true}, listColumn{title: i18n.T("Created"), w: 110})
 		if a.trJob != nil {
 			a.trJobRow(c, narrow)
 		}
 		if len(list) == 0 && a.trJob == nil {
-			ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() {
-				caption(c, i18n.T("No matching transcripts"))
-			})
+			listNoMatch(c, i18n.T("No matching transcripts"))
 		}
 		for _, tr := range list {
 			a.trListRow(c, tr, narrow)
@@ -194,14 +189,14 @@ func (a *app) trJobRow(c *ui.Context, narrow bool) {
 	k := tok(t)
 	j := a.trJob
 	c.After(500 * time.Millisecond)
-	listRow(c, "tr-job", i18n.T("Transcribing %s", j.title), func() {
+	listRow(c, listRowSpec{key: "tr-job", label: i18n.T("Transcribing %s", j.title)}, func() {
 		listThumb(c, transcribeIcon, nil)
 		listTitle(c, j.title, j.stage+" · "+formatDuration(time.Since(j.started).Seconds()))
 		if !narrow {
-			listCell(c, langName(a.prefs.Transcribe.Language), 110)
-			listCell(c, "", 64)
+			metaCell(c, noIcon, i18n.T("Language"), langName(a.prefs.Transcribe.Language), 112)
+			metaCell(c, icons.ClockCircle, i18n.T("Length"), "", 76)
 		}
-		listStatus(c, i18n.T("Transcribing"), true, max(j.fraction, 0), k.Text2, 110)
+		listStatus(c, i18n.T("Transcribing"), true, max(j.fraction, 0), k.Text2, 120)
 	}, func() {
 		if iconButton(c.Key("tr-cancel"), icons.CloseCircle, i18n.T("Cancel")).Disabled(j.cancelling).Clicked() {
 			a.cancelTranscription()
@@ -218,14 +213,18 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 		ic = micIcon
 	}
 	title := transcriptTitle(tr)
-	open := listRow(c, "tr-item-"+id, title, func() {
+	del := func() {
+		a.selectTranscript(id)
+		a.trConfirm = id
+	}
+	open := listRow(c, listRowSpec{key: "tr-item-" + id, label: title, del: del}, func() {
 		listThumb(c, ic, nil)
 		listTitle(c, title, strings.TrimSpace(tr.Preferred()))
 		if !narrow {
-			listCell(c, langName(tr.Language), 110)
-			listCell(c, clock(tr.Duration), 64)
+			metaCell(c, noIcon, i18n.T("Language"), langName(tr.Language), 112)
+			metaCell(c, icons.ClockCircle, i18n.T("Length"), clock(tr.Duration), 76)
 		}
-		listCell(c, ago(tr.CreatedAt), 110)
+		metaCell(c, icons.CalendarMinimalistic, i18n.T("Created"), ago(tr.CreatedAt), 120)
 	}, func() {
 		moreMenu(c.Key("tr-row-more-"+id), i18n.T("Transcript actions"), func(m *ui.Menu) {
 			if m.Item(i18n.T("Open")).Chosen() {
@@ -244,8 +243,7 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 			}
 			m.Separator()
 			if m.Item(i18n.T("Delete…")).Chosen() {
-				a.selectTranscript(id)
-				a.trConfirm = id
+				del()
 			}
 		})
 	})

@@ -114,18 +114,11 @@ func (a *app) newProjectMenu(m *ui.Menu) {
 	}
 }
 
-// projTable is the rows under their columns' titles; withType shows
-// the type column (the Projects page lists every kind).
+// projTable is the rows (the row kit's, no column titles); withType
+// shows each row's type (the Projects page lists every kind).
 func (a *app) projTable(c *ui.Context, items []projItem, withType bool) {
 	narrow := a.toolNarrow(c)
 	ui.Column(c.Key("pj-table")).Shrink(0).Children(func() {
-		cols := []listColumn{{title: i18n.T("Name")}}
-		if withType {
-			cols = append(cols, listColumn{title: i18n.T("Type"), w: 80, wide: true})
-		}
-		cols = append(cols, listColumn{title: i18n.T("Updated"), w: 110, wide: true}, listColumn{title: i18n.T("Length"), w: 100, wide: true},
-			listColumn{title: i18n.T("Status"), w: 130})
-		listHead(c, narrow, cols...)
 		for _, it := range items {
 			a.projRow(c, it, withType, narrow)
 		}
@@ -145,7 +138,8 @@ func (a *app) projRow(c *ui.Context, it projItem, withType, narrow bool) {
 	if it.running {
 		c.After(500 * time.Millisecond) // the progress moves
 	}
-	open := listRow(c, "pj-row-"+it.key(), it.title, func() {
+	spec := listRowSpec{key: "pj-row-" + it.key(), label: it.title, del: func() { s.confirm, s.confirmOpen = it, true }}
+	open := listRow(c, spec, func() {
 		var bmp *ui.Bitmap
 		if it.kind == projDub {
 			bmp = a.coverBitmap(a.dubCovers[it.id])
@@ -154,10 +148,10 @@ func (a *app) projRow(c *ui.Context, it projItem, withType, narrow bool) {
 		listTitle(c, it.title, it.sub)
 		if !narrow {
 			if withType {
-				listCell(c, projKindLabel(it.kind), 80)
+				metaCell(c, icons.Tag, i18n.T("Type"), projKindLabel(it.kind), 88)
 			}
-			listCell(c, ago(it.updated), 110)
-			listCell(c, orDash(it.length), 100)
+			metaCell(c, icons.CalendarMinimalistic, i18n.T("Updated"), ago(it.updated), 112)
+			metaCell(c, icons.ClockCircle, i18n.T("Length"), it.length, 104)
 		}
 		col := k.Text2
 		if it.failed {
@@ -193,12 +187,8 @@ func (a *app) projMenu(c *ui.Context, it projItem) {
 
 // projRename is a row being renamed: the name's field, Save, Cancel.
 func (a *app) projRename(c *ui.Context, it projItem) {
-	t := c.Theme()
-	k := tok(t)
 	s := &a.projects
-	ui.Row(c.Key("pj-rename-"+it.key())).MinHeight(px(t, 52)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(0, px(t, sp2)).
-		BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Children(func() {
-		listThumb(c, projKindIcon(it.kind), nil)
+	listEditRow(c, "pj-rename-"+it.key(), func() { listThumb(c, projKindIcon(it.kind), nil) }, func() {
 		in := ui.TextInput(c.Key("rename"), &s.renameText).Label(i18n.T("Project name")).Grow(1).MinWidth(0).AutoFocus()
 		ok := strings.TrimSpace(s.renameText) != ""
 		if (in.Submitted() || ui.Button(c.Key("rename-ok"), i18n.T("Save name")).Disabled(!ok).Clicked()) && ok {

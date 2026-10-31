@@ -126,3 +126,9 @@ arrow-up                # the composer's submit
 stars                   # smart routing
 # 0.5 F2 (thread #115): the tool pages.
 link                    # a link in a composer
+# Lists (thread #124): small icons before a row's meta values.
+clock-circle            # a length
+calendar-minimalistic   # a date
+user-rounded            # a voice's gender and age
+tag                     # a kind, a use case
+repeat                  # how often a voice was used

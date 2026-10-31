@@ -293,17 +293,18 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 			p := archetypePreview(arch)
 			playing := p.ok() && a.pl.Playing(p.id)
 			name := arch.Name.In(loc)
-			st := voiceRowState{selected: g.detail == arch.ID, playing: playing}
+			st := rowState{selected: g.detail == arch.ID, playing: playing}
 			if voiceRow(c, "arch-"+arch.ID, name, st, func() {
 				voiceNameCell(c, name, arch.Description.In(loc), nil, playing, func() {
 					if g.favs.Has(arch.ID) {
 						iconMark(c, icons.Star, tok(c.Theme()).Text3, i18n.T("Favorite"))
 					}
 				})
-				voiceCell(c, archLanguage(arch), 96)
+				metaCell(c, noIcon, i18n.T("Language"), archLanguage(arch), 100) // its flag leads
 				if !narrow {
-					voiceCell(c, archGenderAge(arch, loc), 104)
-					voiceCell(c, archUses(arch, loc), 120)
+					metaCell(c, icons.UserRounded, i18n.T("Gender and age"), archGenderAge(arch, loc), 120)
+					more := len(archUseNames(arch, loc)) - 1
+					metaCellExtra(c, icons.Tag, "", archUse(arch, loc), 136, func() { countPill(c, more) }).Tooltip(i18n.T("%s: %s", i18n.T("Use cases"), archUses(arch, loc)))
 				}
 			}, func() {
 				if p.ok() && previewToggle(c, "play", playing).Clicked() {
