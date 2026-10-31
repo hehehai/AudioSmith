@@ -77,6 +77,7 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 	t := c.Theme()
 	k := tok(t)
 	headerInset = 0
+	headerPanel, headerPanelNext = headerPanelNext, 0
 	if a.railMode() {
 		// The window controls (the traffic lights) reach past the rail:
 		// the pages' headers move over to keep clear of them.

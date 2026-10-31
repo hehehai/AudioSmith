@@ -102,7 +102,7 @@ func (a *app) dubPage(c *ui.Context) {
 			})
 		}).ClipX()
 		a.dubSide.view(a, c, "dub-side", i18n.T("Step settings"), inline, shown, width, func() {
-			ui.Column(c).Padding(px(t, sp4), px(t, sp4), px(t, sp5)).Gap(px(t, sp3)).Bind(&a.dubSideFocus).Children(func() { a.dubStepPanel(c) })
+			ui.Column(c).Padding(panelLead(t, 20), px(t, sp4), px(t, sp5)).Gap(px(t, sp3)).Bind(&a.dubSideFocus).Children(func() { a.dubStepPanel(c) })
 		})
 	})
 	ui.Box(c).Height(1).Background(k.Line).Shrink(0)

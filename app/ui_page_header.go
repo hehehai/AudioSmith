@@ -119,7 +119,7 @@ func pageNarrow(c *ui.Context) bool {
 	if headerNav.pageW != nil {
 		w = headerNav.pageW(c)
 	}
-	return w < px(t, headerNarrowW)
+	return w-headerPanel < px(t, headerNarrowW)
 }
 
 // pageHeader is a page's header with its title and tools (trailing,
@@ -146,7 +146,9 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 		}
 	}()
 	narrow := pageNarrow(c)
-	ui.Row(c.Key("page-header")).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).
+	headerRow = ui.Row(c.Key("page-header"))
+	headerSides = [2]float32{}
+	headerRow.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).
 		Gap(px(t, sp2)).DragWindow().Role(ui.RoleGroup).Label(i18n.T("Page header")).Children(func() {
 		ui.Row(c.Key("head-left")).Grow(1).Shrink(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			if h.parent != "" && h.up == "" {
@@ -210,6 +212,37 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 			}
 		})
 	})
+}
+
+// headerRow is this pass's page header, which the page's floating panels,
+// built after it, keep clear of (headerAvoid); headerSides is how much of
+// it they cover on its left and right.
+var (
+	headerRow   ui.Element
+	headerSides [2]float32
+)
+
+// headerPanel is how much of the page's width its floating panels take,
+// shown or coming in, as the last frame saw it: the header goes narrow
+// for it (pageNarrow). headerPanelNext is this frame's, which
+// sidebarFrame hands over.
+var headerPanel, headerPanelNext float32
+
+// headerAvoid moves the page header's ends clear of a floating panel
+// over its left or right, visible wide now (as it slides), and room wide
+// once in place.
+func headerAvoid(c *ui.Context, left bool, visible, room float32) {
+	headerPanelNext += room
+	if !headerRow.Valid() {
+		return
+	}
+	t := c.Theme()
+	side := 1
+	if left {
+		side = 0
+	}
+	headerSides[side] += visible
+	headerRow.Padding(0, px(t, sp4)+headerSides[1], 0, px(t, sp6)+headerInset+headerSides[0])
 }
 
 // headerSearch is the header's search field; narrow and empty, a

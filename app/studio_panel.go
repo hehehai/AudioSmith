@@ -43,7 +43,7 @@ const (
 // scroll. drawer adds a close button (the panel over the script).
 func (a *app) studioPanel(c *ui.Context, drawer bool) {
 	t := c.Theme()
-	ui.Row(c).Padding(px(t, sp3), px(t, sp5), 0).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).Children(func() {
+	ui.Row(c).Padding(panelLead(t, 34), px(t, sp5), 0).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 		// A segmented control, not underlined tabs (user, 10-31).
 		ui.Segmented(c.Key("studio-tabs"), &a.ttsUI.tab, i18n.T("Settings"), i18n.T("History")).Label(i18n.T("Text to speech panel")).Shrink(0)
 		ui.Box(c).Grow(1)

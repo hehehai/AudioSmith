@@ -174,7 +174,7 @@ func (a *app) archetypeDetail(c *ui.Context, arch gallery.Archetype) {
 	p := archetypePreview(arch)
 	playing := p.ok() && a.pl.Playing(p.id)
 	saved := a.savedFrom(arch.ID)
-	ui.Column(c.Key("arch-detail-"+arch.ID)).Padding(px(t, sp4), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
+	ui.Column(c.Key("arch-detail-"+arch.ID)).Padding(panelLead(t, 28), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
 		kind := i18n.T("Designed voice")
 		if !arch.Designed() {
 			kind = i18n.T("Built-in voice")

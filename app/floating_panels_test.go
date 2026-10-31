@@ -25,9 +25,10 @@ func mineWithVoices(t *testing.T) (*app, *ui.Tester, core.Voice, core.Voice) {
 	return a, tt, v1, v2
 }
 
-// Opening a voice's details leaves the table alone; the panel floats a
-// gap from the window's bottom and right, under the header, and slides
-// in: off to the right at first, in place after the motion.
+// Opening a voice's details leaves the table alone; the panel runs from
+// the window's top to a gap from its bottom, flush with its right edge,
+// and slides in: off to the right at first, in place after the motion.
+// The header's tools stand left of it all along.
 func TestFloatingPanelOverPage(t *testing.T) {
 	a, tt, v1, v2 := mineWithVoices(t)
 	before, ok := tt.Find("Use") // a row's last button
@@ -41,6 +42,9 @@ func TestFloatingPanelOverPage(t *testing.T) {
 	if !ok {
 		t.Fatal("no panel while it slides in")
 	}
+	if s, ok := findHeaderTool(tt, "Search voices"); !ok || s.X+s.W > mid.X {
+		t.Errorf("the header's search under the sliding panel: %v %+v %+v", ok, s, mid)
+	}
 	tt.Advance(400 * time.Millisecond)
 	r, _ := tt.Find("Voice details")
 	if !(mid.X > r.X) {
@@ -52,8 +56,13 @@ func TestFloatingPanelOverPage(t *testing.T) {
 	}
 	th := ui.LightTheme()
 	gap := px(th, sp3) - 0.5
-	if r.Y < pageTop || 720-(r.Y+r.H) < gap || 1100-(r.X+r.W) < gap {
-		t.Errorf("panel %+v: not under the header with gaps", r)
+	if r.Y > 0.5 || 720-(r.Y+r.H) < gap || abs32(1100-(r.X+r.W)) > 0.5 {
+		t.Errorf("panel %+v: not from the top, flush right, a gap from the bottom", r)
+	}
+	for _, l := range []string{"Search voices", "More tools"} {
+		if s, ok := findHeaderTool(tt, l); !ok || s.X+s.W > r.X {
+			t.Errorf("%s under the panel: %v %+v", l, ok, s)
+		}
 	}
 	// Another voice: the content changes, the panel stays put.
 	a.openVoiceEditor(v2.ID)
@@ -121,7 +130,8 @@ func TestFloatingPanelReduceMotion(t *testing.T) {
 }
 
 // At 820×520 @125 % the panels fit in the window: Mine's, Discover's,
-// the Studio's (over the script) and a story's inspector.
+// the Studio's (over the script). There the header could not stand
+// beside them: they keep under it.
 func TestFloatingPanelNarrow(t *testing.T) {
 	a, tt, v1, _ := mineWithVoices(t)
 	tt.SetSize(820, 520)
@@ -132,7 +142,7 @@ func TestFloatingPanelNarrow(t *testing.T) {
 		tt.Frame()
 		tt.Advance(400 * time.Millisecond)
 		r, ok := tt.Find(label)
-		if !ok || r.X < 40 || r.X+r.W > 820 || r.Y+r.H > 520-12 {
+		if !ok || r.X < 40 || r.X+r.W > 820 || r.Y+r.H > 520-12 || r.Y < pageTop {
 			t.Errorf("%s: %v %+v", label, ok, r)
 		}
 	}

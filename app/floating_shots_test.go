@@ -106,6 +106,11 @@ func snapshotsFloating(t *testing.T, out string) {
 	w.a.wfNew("narration-normalize")
 	w.a.wfSel = w.a.wf.InputNode().ID
 	shoot("05-workflows")
+	// A narrower window: the steps' rail is a drawer on the left.
+	shoot = floatSetup(t, w.a, w.tt, out, floatCfg{"900-zh", 900, 620, 1, false})
+	w.a.wfRailOpen = true
+	shoot("09-workflows-rail")
+	w.a.wfRailOpen = false
 	i18n.SetLocale("en")
 	d := newDubTest(t, 3)
 	shoot = floatSetup(t, d.a, d.tt, out, floatLight)
