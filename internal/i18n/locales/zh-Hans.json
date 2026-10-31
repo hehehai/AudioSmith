@@ -3113,7 +3113,6 @@
   "Use this number": "使用这个号码",
   "Use this one": "使用这个",
   "Use user scope (all my projects, private to me, kept in ~/.claude.json): AudioSmith serves the whole Mac. Use project scope (.mcp.json, shared through the repository) only if I ask for it, and never with the key.": "用 user 作用域（对我的所有项目生效，仅我自己可见，保存在 ~/.claude.json）：AudioSmith 服务的是整台 Mac。只有我要求时才用 project 作用域（.mcp.json，会随仓库共享），并且绝不写入密钥。",
-  "Use voice": "使用音色",
   "Use without saving": "不保存直接使用",
   "Used only for what each row says; audio never leaves this Mac.": "只用于每一行说明的用途；音频不会离开这台 Mac。",
   "Uses %s": "使用 %s",
