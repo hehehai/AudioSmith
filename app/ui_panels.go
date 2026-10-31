@@ -5,7 +5,7 @@ package main
 // window's top (like the sidebar: #127; the page header's tools move
 // left of it, its first row stands level with the header's title) to a
 // gap from its bottom; the corner towards the page at the bottom is
-// rounded, with a hairline and a soft shadow. Where the header would not
+// rounded, with a hairline and a small soft shadow. Where the header would not
 // fit beside it, it keeps under the header. It slides in from the edge
 // as it fades in, and slides out before it goes. An inspector (a voice's, a
 // take's details) leaves the page's layout alone: the list under it keeps
@@ -132,7 +132,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	r := px(t, radiusCard)
 	card := ui.Column(c.Key(p.key+"-float")).Absolute().Bottom(gap).Width(w).
 		Background(k.Bg).BorderColor(k.Line).Clip().
-		Shadow(0, 8, 28, 0, ui.RGBA(0, 0, 0, 0.16)).Label(p.label)
+		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.08)).Label(p.label)
 	switch {
 	case full && p.left:
 		card.Top(-top).Left(0).Radius(0, 0, r, 0).BorderWidth(0, 1, 1, 0)
