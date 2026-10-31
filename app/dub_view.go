@@ -17,8 +17,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
-	"github.com/hehehai/AudioSmith/internal/services"
-	"github.com/hehehai/AudioSmith/internal/settings"
 )
 
 var (
@@ -49,10 +47,6 @@ func (a *app) dubPage(c *ui.Context) {
 		c.After(100 * time.Millisecond) // the playhead moves
 		a.dubVideoSync(false)
 	}
-	title := i18n.T("Dubbing")
-	if a.dub != nil && a.dub.Title != "" {
-		title = i18n.T("Dubbing") + " · " + a.dub.Title
-	}
 	width := px(t, inspectorWidth+20)
 	inline, shown := a.dubSide.layout(a, c, width, px(t, 480))
 	w := a.pageWidth(c)
@@ -67,12 +61,12 @@ func (a *app) dubPage(c *ui.Context) {
 	if embed {
 		shown = false
 	}
-	pageHeader(c, title, func() { a.dubHeaderActions(c, shown, embed) })
-	if a.dub == nil {
-		a.dubEmpty(c)
-		a.dubConfirmDialog(c)
-		return
-	}
+	// The breadcrumb names the dub (视频配音 › title); this row leads back
+	// to the list and holds the editor's actions.
+	backRow(c, "dub-back", pageTitle("/dub"), func() {
+		a.dubCommitEdit()
+		a.navigate("/dub")
+	}, func() { a.dubHeaderActions(c, shown, embed) })
 	a.dubStepper(c)
 	ui.Box(c).Height(1).Background(k.Line).Shrink(0)
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
@@ -142,42 +136,9 @@ func (a *app) dubStepPanel(c *ui.Context) {
 	}
 }
 
-// dubHeaderActions: Projects ▾, New dub, the step panel's toggle, and ⋯
-// (Create Story, Delete, Batch).
+// dubHeaderActions: the step panel's toggle, and ⋯ (Create Story,
+// Delete, Batch).
 func (a *app) dubHeaderActions(c *ui.Context, shown, embed bool) {
-	projects := i18n.T("Projects")
-	var b ui.Element
-	if a.dubNarrow {
-		b = iconButton(c.Key("dub-projects"), icons.FolderWithFiles, projects)
-	} else {
-		b = dropButton(c.Key("dub-projects"), icons.FolderWithFiles, projects)
-	}
-	b.Menu(func(m *ui.Menu) {
-		if len(a.dubList) == 0 {
-			m.Item(i18n.T("No dubs yet")).Disabled(true)
-		}
-		for _, r := range a.dubList {
-			id := r.ID
-			label := firstOf(r.Title, i18n.T("Untitled dub")) + " · " + dubPhaseText(dub.Phase(r.Phase))
-			if m.Item(label).Checked(a.dub != nil && a.dub.ID == id).Chosen() {
-				a.openDub(id)
-			}
-		}
-	})
-	if a.dub != nil {
-		newDub := i18n.T("New dub")
-		if a.dubNarrow {
-			b = iconButton(c.Key("dub-new"), icons.AddCircle, newDub)
-		} else {
-			b = ghostIconButton(c.Key("dub-new"), icons.AddCircle, newDub).Label(newDub)
-		}
-		if b.Clicked() {
-			a.dubStopPlayer()
-			a.dub = nil
-			a.updateSettings(func(s *settings.Settings) { s.Dubbing.Open = "" })
-			return
-		}
-	}
 	if a.dub != nil && !embed {
 		a.dubSide.toggle(c.Key("dub-panel"), icons.PanelRight, shown, i18n.T("Show the step settings"), i18n.T("Hide the step settings"))
 	}
@@ -194,103 +155,6 @@ func (a *app) dubHeaderActions(c *ui.Context, shown, embed bool) {
 		if m.Item(i18n.T("Batch dubbing")).Chosen() {
 			a.navigate("/batch")
 		}
-	})
-}
-
-// dubEmpty is the page without a project: drop a file or paste a link.
-func (a *app) dubEmpty(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
-	ui.Scroll(c.Key("dub-empty")).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp4), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).AlignItems(ui.Center).Children(func() {
-			zone := ui.Column(c.Key("dub-drop")).FillWidth().MaxWidth(px(t, 560)).Padding(px(t, sp6)).Gap(px(t, sp3)).AlignItems(ui.Center).
-				Radius(px(t, radiusCard)).Border(1, k.Line)
-			if files := zone.DroppedFiles(); len(files) > 0 {
-				a.dubDropped(files)
-			}
-			if zone.FileDragOver() {
-				zone.Border(2, k.Accent)
-			}
-			zone.Children(func() {
-				ui.Icon(c, dubIcon.Linear).Size(px(t, 36), px(t, 36)).TextColor(k.Text3)
-				ui.Text(c, i18n.T("Video and audio dubbing")).FontSize(px(t, fsSection)).FontWeight(600).TextAlign(ui.Center)
-				caption(c, i18n.T("Drop a video or audio file here")).TextAlign(ui.Center)
-				ui.Text(c, "MP4 · MOV · M4V · MKV · WEBM · MP3 · WAV · M4A · FLAC").FontSize(px(t, fsMicro)).TextColor(k.Text3).TextAlign(ui.Center)
-				if primaryButton(c.Key("dub-choose"), i18n.T("Choose file…")).Clicked() {
-					a.chooseDubSource()
-				}
-				ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).FillWidth().MaxWidth(px(t, 480)).Children(func() {
-					ui.TextInput(c.Key("dub-url"), &a.dubURL).Placeholder(i18n.T("…or paste a YouTube or video link")).Label(i18n.T("Video link")).Grow(1).MinWidth(0)
-					if ui.Button(c.Key("dub-url-go"), i18n.T("Import")).Disabled(strings.TrimSpace(a.dubURL) == "").Clicked() {
-						a.dubImportURL()
-					}
-				})
-				ui.Column(c).FillWidth().MaxWidth(px(t, 480)).Children(func() {
-					collapsible(c.Key("dub-url-more"), i18n.T("Link options"), &a.dubURLMore, nil, func() {
-						ui.Checkbox(c.Key("dub-captions"), &a.dubCaptions, i18n.T("Use the video's captions when it has them (written by people)"))
-						ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
-							label := i18n.T("Sign-in cookies (cookies.txt)…")
-							if a.dubCookies != "" {
-								label = shortPath(a.dubCookies)
-							}
-							if ui.Button(c.Key("dub-cookies"), label).Shrink(1).MinWidth(0).Clicked() {
-								a.dubChooseCookies()
-							}
-							if a.dubCookies != "" && iconButton(c.Key("dub-cookies-x"), icons.Close, i18n.T("Remove the cookies")).Clicked() {
-								a.dubCookies = ""
-							}
-							infoTip(c.Key("dub-cookies-tip"), i18n.T("Cookies are used for this download only and never saved."))
-						})
-					})
-				})
-				if a.dubErr != "" {
-					ui.Column(c).FillWidth().Children(func() {
-						notice(c, "dub-url-err", noticeError, a.dubErr, "", func() {
-							if a.dubErrCode == dub.CodeNoYtDlp && ui.Button(c.Key("dub-url-settings"), i18n.T("Open Settings → Dubbing")).Clicked() {
-								a.navigate("/settings/dubbing")
-							}
-						}, nil)
-					})
-				}
-			})
-			ui.Row(c).Gap(px(t, sp2)).Wrap().Justify(ui.Center).Children(func() {
-				for i, s := range []string{i18n.T("Upload & transcribe"), i18n.T("Translate"), i18n.T("Generate the dub")} {
-					if i > 0 {
-						iconMark(c, icons.AltArrowRight, k.Text3, "")
-					}
-					ui.Text(c, strconv.Itoa(i+1)+" · "+s).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-				}
-			})
-			if len(a.dubList) > 0 {
-				ui.Column(c.Key("dub-recent")).FillWidth().MaxWidth(px(t, 560)).Gap(px(t, 2)).Children(func() {
-					sectionTitle(c, i18n.T("Recent dubs"))
-					for _, r := range a.dubList[:min(len(a.dubList), 8)] {
-						id := r.ID
-						row := ui.Row(c.Key("recent-"+id)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, 6), px(t, sp2)).Radius(px(t, radiusControl))
-						if row.Hovered() {
-							row.Background(k.Hover)
-						}
-						row.Children(func() {
-							iconMark(c, dubIcon, k.Text2, "")
-							ui.Column(c).Grow(1).MinWidth(0).Children(func() {
-								truncText(c, firstOf(r.Title, i18n.T("Untitled dub")))
-								meta := []string{dubPhaseText(dub.Phase(r.Phase))}
-								if r.Duration > 0 {
-									meta = append(meta, tlClock(r.Duration))
-								}
-								for _, l := range r.Languages {
-									meta = append(meta, dubLangName(l))
-								}
-								truncText(c, strings.Join(meta, " · ")).FontSize(px(t, fsMicro)).TextColor(k.Text2)
-							})
-							if ghostButton(c.Key("open"), i18n.T("Open")).Clicked() {
-								a.openDub(id)
-							}
-						})
-					}
-				})
-			}
-		})
 	})
 }
 
@@ -412,25 +276,7 @@ func (a *app) dubBanners(c *ui.Context) {
 		}, func() { a.dubSet(func(p *dub.Project) { p.Run = nil }) })
 	}
 	if a.dubErr != "" {
-		notice(c, "b-error", noticeError, a.dubErr, "", func() {
-			if a.dubNeed != nil {
-				e := *a.dubNeed
-				if secondaryIconButton(c.Key("b-download"), icons.DownloadMinimalistic, i18n.T("Download")).Label(i18n.T("Download")).Clicked() {
-					a.download(e)
-					a.dubErr, a.dubNeed = "", nil
-				}
-			}
-			switch a.dubErrCode {
-			case services.DubCodeNoTranslator:
-				if ui.Button(c.Key("b-llm"), i18n.T("Set up writing help")).Clicked() {
-					a.navigate("/settings/writing")
-				}
-			case dub.CodeNoYtDlp:
-				if ui.Button(c.Key("b-ytdlp"), i18n.T("Open Settings → Dubbing")).Clicked() {
-					a.navigate("/settings/dubbing")
-				}
-			}
-		}, func() { a.dubErr, a.dubErrCode, a.dubNeed = "", "", nil })
+		a.dubErrorNotice(c) // dub_list.go
 	}
 	busy := a.dubBusy()
 	if p.Settings.Review && !busy {

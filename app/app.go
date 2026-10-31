@@ -59,6 +59,7 @@ type app struct {
 	familyShared                      // family_shared.go (thread #76): the shared settings, moving the models
 	homeState                         // home_view.go (0.5 F1): the Home page
 	toolPagesState                    // tool_pages.go (0.5 F1): Dictation, Developers
+	isolateState                      // isolate.go (0.5 F2): the Voice isolator
 }
 
 func newApp(eng *engineHost, lib *library) *app {
@@ -76,6 +77,7 @@ func newApp(eng *engineHost, lib *library) *app {
 	a.openDictation()      // dictation.go
 	a.openLongform(lib)    // M3: longform.go (thread #18)
 	a.openDubs(lib)        // M4: dub.go (thread #19)
+	a.openIsolations(lib)  // 0.5 F2: isolate.go
 	a.openTools(lib)       // M5: tools.go (thread #20)
 	a.openWorkflows(lib)   // M6: workflow.go (thread #21)
 	a.openWatermark(lib)   // watermark_app.go (thread #14)

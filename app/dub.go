@@ -112,6 +112,8 @@ type dubState struct {
 	dubDescOpen  bool
 	dubCardAbove bool // the source's card is drawn above the step's panel (narrow)
 
+	dubListState // dub_list.go (0.5 F2): the composer and the list
+
 	ytdlp ytdlpState
 	batch batchState
 	// dubEngine replaces the engine's executors (tests: dubtest's fake).
@@ -135,6 +137,8 @@ func (a *app) openDubs(lib *library) {
 	a.dubJobs = map[string]jobs.Job{}
 	a.dubDismissed = map[string]bool{}
 	a.dubTL.zoom = 1
+	a.dubWant = -1
+	a.dubCovers = map[string]string{}
 	host := a.eng
 	router := a.llmRouter
 	ytdlpPath := func() string { return lib.settings.Get().Dubbing.YtDlp }
@@ -214,7 +218,8 @@ func (a *app) closeDubs() {
 
 // --- the projects ------------------------------------------------------------------
 
-// loadDubs reads the Dub page's projects, and reopens the last one.
+// loadDubs reads the Dub page's projects, then (in the background) the
+// covers of the latest.
 func (a *app) loadDubs() {
 	svc := a.dubSvc
 	a.background(func() {
@@ -225,33 +230,60 @@ func (a *app) loadDubs() {
 				return
 			}
 			a.dubList, a.dubLoaded = l, true
-			if a.dub == nil && len(l) > 0 && a.dubLastOpen() != "" {
-				for _, r := range l {
-					if r.ID == a.dubLastOpen() {
-						a.openDub(r.ID)
-					}
+			a.loadDubCovers(l[:min(len(l), 40)])
+		})
+	})
+}
+
+// loadDubCovers reads the covers of dubs (their projects say them).
+func (a *app) loadDubCovers(l []store.DubRecord) {
+	svc := a.dubSvc
+	a.background(func() {
+		covers := map[string]string{}
+		for _, r := range l {
+			if p, err := svc.Get(context.Background(), r.ID); err == nil {
+				if path := a.dubCoverPath(p); path != "" {
+					covers[r.ID] = path
 				}
+			}
+		}
+		a.post(func() {
+			for id, path := range covers {
+				a.dubCovers[id] = path
 			}
 		})
 	})
 }
 
-// dubLastOpen is the project open when the app last quit.
-func (a *app) dubLastOpen() string { return a.prefs.Dubbing.Open }
-
-// openDub opens a project on the Dub page.
+// openDub opens a dub's editor (/dub/{id}).
 func (a *app) openDub(id string) {
-	a.navigate("/dub")
-	if a.dub != nil && a.dub.ID == id {
+	a.navigate("/dub/" + id)
+	a.dubLoad(id)
+}
+
+// dubLoad makes dub id the open project, reading it in the background
+// (nothing to do when it is open or being read).
+func (a *app) dubLoad(id string) {
+	if a.dub != nil && a.dub.ID == id || a.dubOpening == id {
+		if a.dub != nil && a.dub.ID == id && a.dubWant >= 0 {
+			a.dubStep, a.dubWant = a.dubWant, -1
+		}
 		return
 	}
+	a.dubOpening = id
 	svc := a.dubSvc
 	a.background(func() {
 		p, err := svc.Get(context.Background(), id)
 		active, _ := svc.Active(context.Background(), id)
 		a.post(func() {
+			if a.dubOpening == id {
+				a.dubOpening = ""
+			}
 			if err != nil {
 				a.toastWarn(i18n.T("Could not open the dub: %v", err))
+				if a.router.Path() == "/dub/"+id {
+					a.navigate("/dub")
+				}
 				return
 			}
 			a.dubShow(p, active)
@@ -273,6 +305,9 @@ func (a *app) dubShow(p *dub.Project, active []jobs.Job) {
 	}
 	a.dubLang = p.Primary()
 	a.dubStep = a.dubAutoStep()
+	if a.dubWant >= 0 {
+		a.dubStep, a.dubWant = a.dubWant, -1
+	}
 	a.dubTL = timelineState{zoom: 1}
 	a.dubPeaks, a.dubPeaksFor = nil, ""
 	a.dubExport = dubExportState{}
@@ -301,7 +336,8 @@ func (a *app) dubAutoStep() int {
 	return dubStepExport
 }
 
-// newDub starts a project from a file (or an empty one for a URL).
+// newDub makes a project of src and opens its editor without running
+// anything (the composer's dubCreate starts it too).
 func (a *app) newDub(src dub.Source) {
 	p := newDubProject(src, a.prefs.Dubbing, a.dubDefaultModel())
 	svc := a.dubSvc
@@ -314,6 +350,7 @@ func (a *app) newDub(src dub.Source) {
 			}
 			a.dubShow(created, nil)
 			a.dubPutRecord(created)
+			a.navigate("/dub/" + created.ID)
 			a.dubProbe(created.ID) // what the source is, before anything runs
 		})
 	})
@@ -346,6 +383,9 @@ func (a *app) dubPutRecord(p *dub.Project) {
 	}
 	r := store.DubRecord{ID: p.ID, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt, Title: p.Title, Source: p.Source.Path,
 		Languages: p.Targets, Phase: string(p.Phase()), Duration: p.Source.Duration}
+	if path := a.dubCoverPath(p); path != "" && a.dubCovers != nil {
+		a.dubCovers[p.ID] = path
+	}
 	if i := slices.IndexFunc(a.dubList, func(x store.DubRecord) bool { return x.ID == p.ID }); i >= 0 {
 		a.dubList[i] = r
 	} else {
@@ -362,13 +402,16 @@ func (a *app) dubChanged(ev services.DubChanged) {
 			a.dubStopPlayer()
 			a.dub = nil
 		}
+		if a.router.Path() == "/dub/"+ev.ID {
+			a.navigate("/dub") // its editor was shown
+		}
 		a.batchDeleted(ev.ID)
 		return
 	}
 	p := ev.Project
 	if i := slices.IndexFunc(a.dubList, func(r store.DubRecord) bool { return r.ID == p.ID }); i >= 0 && p.Batch == "" &&
 		a.dubList[i].Phase == string(dub.PhaseGenerating) && p.Phase() == dub.PhaseDone {
-		a.notify(core.SeveritySuccess, i18n.T("Dub finished"), firstOf(p.Title, p.Source.Name), "/dub")
+		a.notify(core.SeveritySuccess, i18n.T("Dub finished"), firstOf(p.Title, p.Source.Name), "/dub/"+p.ID)
 	}
 	a.dubPutRecord(p)
 	a.batchChanged(p)

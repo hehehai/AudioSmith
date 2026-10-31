@@ -72,6 +72,8 @@ func (a *app) activityKind(j jobs.Job) string {
 		return "export"
 	case strings.HasPrefix(o, services.TranscriptOwner):
 		return "transcribe"
+	case strings.HasPrefix(o, services.IsolateOwner):
+		return "isolate"
 	case strings.HasPrefix(o, voiceWorkOwner):
 		return "voice"
 	case j.Kind == services.KindRender, strings.HasPrefix(o, "take:"):
@@ -105,6 +107,11 @@ func (a *app) activityTitle(kind string, done bool) string {
 			return i18n.T("Voice work done")
 		}
 		return i18n.T("Working on a voice")
+	case kind == "isolate":
+		if done {
+			return i18n.T("Voices isolated")
+		}
+		return i18n.T("Isolating voices")
 	case strings.HasPrefix(kind, services.OwnerLongform):
 		name := ""
 		if r := a.lfRenders[id]; r != nil {
@@ -237,6 +244,8 @@ func (a *app) jobCard(c activity.Card, run jobs.Job) actCard {
 		ic = transcribeIcon
 	case kind == "voice":
 		ic = voicesIcon
+	case kind == "isolate":
+		ic = isolateIcon
 	case strings.HasPrefix(kind, services.OwnerLongform):
 		ic = storiesIcon
 		if r := a.lfRenders[kind[len(services.OwnerLongform):]]; r != nil && r.rec.Kind == core.ProjectAudiobook {
@@ -297,6 +306,8 @@ func (a *app) openActivity(kind string) {
 		a.navigate("/transcripts")
 	case kind == "voice":
 		a.navigate("/voices")
+	case kind == "isolate":
+		a.navigate("/isolate")
 	case strings.HasPrefix(kind, services.OwnerLongform):
 		if r := a.lfRenders[id]; r != nil {
 			a.navigate("/" + lfRoute(r.rec.Kind))

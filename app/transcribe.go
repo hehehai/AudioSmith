@@ -50,10 +50,9 @@ type transcribeState struct {
 	trQuery   string
 	trFound   []core.Transcript // search results; nil when not searching
 	trSearch  int               // bumps with each search: older answers are dropped
-	trListUI  ui.ListState
-	trSel     string           // the transcript shown; "" = the new-transcript panel
-	trDetail  *core.Transcript // the whole transcript shown (word timings)
-	trJob     *trJob           // the transcription running
+	trSel     string            // the transcript shown; "" = the new-transcript panel
+	trDetail  *core.Transcript  // the whole transcript shown (word timings)
+	trJob     *trJob            // the transcription running
 	trErr     string
 	trRetry   *services.TranscribeRequest
 	trNeed    *catalog.Entry // a model the last attempt found missing
@@ -65,16 +64,16 @@ type transcribeState struct {
 	trEditBuf string // its text
 	trOrig    bool   // the original shows under the clean-up
 	trClean   *trCleaning
-	trExport  bool       // the export menu is open
-	trConfirm string     // id the delete confirmation asks about
-	trDevice  string     // the recorder's device label (bound to its Select)
-	trShown   int        // segments shown (long transcripts show more on demand)
-	trSide    panelState // the history list: beside the page, or a drawer
-	trNarrow  bool       // the page is narrow: actions show as icons
-	trTight   bool       // the header is short of room: its buttons show icons
-	trRename  string     // the speaker label being renamed ("" none)
-	trRenOpen bool       // its popover is open
-	trRenBuf  string     // the name typed
+	trExport  bool   // the export menu is open
+	trConfirm string // id the delete confirmation asks about
+	trDevice  string // the recorder's device label (bound to its Select)
+	trShown   int    // segments shown (long transcripts show more on demand)
+	trPend    string // the composer's file ("" none)
+	trNarrow  bool   // the page is narrow: actions show as icons
+	trTight   bool   // the header is short of room: its buttons show icons
+	trRename  string // the speaker label being renamed ("" none)
+	trRenOpen bool   // its popover is open
+	trRenBuf  string // the name typed
 }
 
 // trPage is how many more segments "Show more" shows.
@@ -183,6 +182,9 @@ func (a *app) transcriptChanged(ev core.TranscriptChanged) {
 		if a.trSel == t.ID {
 			a.trSel, a.trDetail, a.trEdit = "", nil, -1
 		}
+		if a.router.Path() == "/transcripts/"+t.ID {
+			a.navigate("/transcripts")
+		}
 	case i >= 0:
 		a.trList[i] = briefTranscript(t)
 	default:
@@ -233,9 +235,12 @@ func (a *app) searchTranscripts() {
 	})
 }
 
-// selectTranscript shows a transcript ("" = the new-transcript panel),
+// selectTranscript shows a transcript at /transcripts/{id} ("" = none),
 // reading the whole of it (word timings) in the background.
 func (a *app) selectTranscript(id string) {
+	if id != "" {
+		a.navigate("/transcripts/" + id) // transcribe_view.go: the transcript's page
+	}
 	if a.trSel == id && (id == "" || a.trDetail != nil) {
 		return
 	}

@@ -295,8 +295,13 @@ func (a *app) homeItems(n int) []homeItem {
 		}
 		id := tr.ID
 		out = append(out, homeItem{key: "tr:" + id, title: transcriptTitle(tr), kind: i18n.T("Transcript"), icon: transcribeIcon, at: tr.CreatedAt, open: func() {
-			a.navigate("/transcripts")
 			a.selectTranscript(id)
+		}})
+	}
+	for _, x := range a.isoList { // the Voice isolator's (F2)
+		id := x.ID
+		out = append(out, homeItem{key: "iso:" + id, title: x.Title, kind: i18n.T("Voice isolator"), icon: isolateIcon, at: x.CreatedAt, open: func() {
+			a.navigate("/isolate/" + id)
 		}})
 	}
 	slices.SortStableFunc(out, func(x, y homeItem) int { return y.at.Compare(x.at) })

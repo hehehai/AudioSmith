@@ -92,7 +92,7 @@ func (a *app) homeSubmit() {
 		h.text = ""
 		a.dubURL = u
 		a.navigate("/dub")
-		a.dubImportURL() // dub_source.go: a new dub of the link, or why not
+		a.dubSubmit() // dub_list.go: a new dub of the link, started; or why not
 		return
 	}
 	if h.smart && a.homeSmartReady() {
@@ -110,7 +110,7 @@ func (a *app) homeOpenFile(path string) bool {
 	switch dest {
 	case homeDub:
 		a.navigate("/dub")
-		a.dubSourceFile(path) // a new dub of it (dub_source.go)
+		a.dubStartFile(path) // a new dub of it, started (dub_list.go)
 	case homeTranscribe:
 		a.navigate("/transcripts")
 		a.transcribeFile(path)

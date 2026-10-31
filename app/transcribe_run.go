@@ -179,6 +179,9 @@ func (a *app) transcriptJobUpdated(u jobs.Job) {
 			a.selectTranscript("")
 			full := res.Transcript
 			a.trSel, a.trDetail = full.ID, &full
+			if a.router.Path() == "/transcripts" { // the list shows: the transcript opens
+				a.navigate("/transcripts/" + full.ID)
+			}
 			if res.AlignError != nil {
 				a.trWarn = i18n.T("Word timings are missing: %s", jobErrorText(res.AlignError))
 			}
