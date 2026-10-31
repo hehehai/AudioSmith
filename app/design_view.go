@@ -13,60 +13,6 @@ import (
 	vd "github.com/hehehai/AudioSmith/internal/voicedesign"
 )
 
-// designPage is /design.
-func (a *app) designPage(c *ui.Context) {
-	t := c.Theme()
-	d := &a.design
-	d.reparse()
-	a.syncLinked()
-	title := i18n.T("Design")
-	if v := a.findVoice(d.linked); v != nil {
-		title = i18n.T("Design · %s", v.Name)
-	}
-	pageHeaderBar(c, pageHead{title: title, parent: i18n.T("New voice"), up: "/voices/new", tools: func(bool) {
-		if ghostIconButton(c.Key("design-new"), icons.AddCircle, i18n.T("New design")).Label(i18n.T("New design")).Clicked() {
-			script := d.script
-			d.reset()
-			d.script = script
-		}
-		if iconButton(c.Key("design-gallery"), icons.Widget, i18n.T("Discover voices")).Tooltip(i18n.T("Start from a voice in Discover voices")).Clicked() {
-			a.navigate("/gallery")
-		}
-	}})
-	k := tok(t)
-	recipe := func() {
-		a.designDescribe(c)
-		a.designPresets(c)
-		a.designDetails(c) // the seed is inside
-		a.designSavedVoices(c)
-	}
-	main := func() {
-		a.designTarget(c)
-		a.designScript(c)
-		a.designSaveForm(c)
-	}
-	if a.pageWidth(c) < px(t, 380+480) {
-		// Too narrow for two columns: one, the recipe first.
-		ui.Scroll(c.Key("design-main")).Grow(1).MinHeight(0).Children(func() {
-			ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).Children(func() {
-				recipe()
-				ui.Box(c).Height(1).Background(k.Line)
-				main()
-			})
-		})
-		return
-	}
-	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Scroll(c.Key("design-recipe")).Width(px(t, 380)).Shrink(0).Children(func() {
-			ui.Column(c).Padding(px(t, sp1), px(t, sp5), px(t, sp5), px(t, sp6)).Gap(px(t, sp4)).Children(recipe)
-		})
-		ui.Box(c).Width(1).Background(k.Line)
-		ui.Scroll(c.Key("design-main")).Grow(1).MinWidth(0).Children(func() {
-			ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6), px(t, sp5)).Gap(px(t, sp4)).MaxWidth(px(t, 720)).Children(main)
-		})
-	})
-}
-
 // designDescribe is the description box and what the parser made of it.
 func (a *app) designDescribe(c *ui.Context) {
 	t := c.Theme()
@@ -74,7 +20,7 @@ func (a *app) designDescribe(c *ui.Context) {
 	loc := i18n.Locale()
 	k := tok(t)
 	sectionHeading(c, i18n.T("Describe the voice"))
-	ui.TextArea(c.Key("design-description"), &d.description).Lines(3, 8).
+	ui.TextArea(c.Key("design-description"), &d.description).Lines(2, 6).
 		Placeholder(i18n.T("e.g. a warm elderly British storyteller, slightly raspy")).Label(i18n.T("Describe the voice"))
 	d.reparse()
 	res := d.parsed
@@ -101,11 +47,11 @@ func (a *app) designDescribe(c *ui.Context) {
 		caption(c, i18n.T("Couldn't map: %s", res.UnmatchedText()))
 	}
 	if e, ok := voiceCatalog().ByLabel(d.model); ok {
-		if eng, ok := vd.EngineFor(e.Family, e.Repo); ok && eng.Vocabulary == vd.VocabFreeform && d.description != "" {
+		if eng, ok := vd.EngineFor(e.Family, e.Repo); ok && eng.Vocabulary == vd.VocabFreeform && d.description != "" && d.detailsOpen {
 			caption(c, i18n.T("This model reads your description as written; the details below are extra cues."))
 		}
 	}
-	if d.description != "" || !d.attrs.IsAuto() {
+	if d.preset == "" && d.attrs.Summary("en") != d.parsed.Attrs.Canonical().Summary("en") { // picks beyond the description
 		ui.Row(c).Children(func() {
 			if ghostIconButton(c.Key("design-reset"), icons.Restart, i18n.T("Reset to description")).Label(i18n.T("Reset to description")).
 				Tooltip(i18n.T("Drop your picks: the description alone decides")).Clicked() {
@@ -133,7 +79,7 @@ func (a *app) designPresets(c *ui.Context) {
 	t := c.Theme()
 	d := &a.design
 	loc := i18n.Locale()
-	sectionTitle(c, i18n.T("Starting points"))
+	caption(c, i18n.T("Or start from a preset:"))
 	ui.Row(c.Key("design-presets")).Gap(px(t, sp1)).Wrap().Children(func() {
 		for _, p := range gallery.Presets() {
 			on := d.preset == p.ID && d.attrs.Summary("en") == p.Attrs.Summary("en")
@@ -146,24 +92,23 @@ func (a *app) designPresets(c *ui.Context) {
 					a.applyPreset(p)
 				} else {
 					d.preset, d.attrs = "", vd.Attributes{}
+					if d.description == p.Description.In(loc) {
+						d.description = ""
+					}
 				}
 			}
 		}
 	})
 }
 
-// designDetails are the attribute pickers.
+// designDetails are the attribute pickers and the seed.
 func (a *app) designDetails(c *ui.Context) {
 	t := c.Theme()
 	d := &a.design
 	loc := i18n.Locale()
 	summary := d.attrs.Summary(loc)
-	collapsible(c.Key("design-details"), i18n.T("Details"), &d.detailsOpen, func() {
-		if !d.detailsOpen {
-			truncText(c, summary).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).MaxWidth(px(t, 220))
-		}
-	}, func() {
-		ui.Column(c).Gap(px(t, sp2)).Children(func() {
+	{
+		ui.Column(c.Key("design-details")).Gap(px(t, sp2)).Children(func() {
 			caption(c, summary)
 			for _, cat := range vd.Categories {
 				info, _ := vd.Info(cat)
@@ -200,7 +145,7 @@ func (a *app) designDetails(c *ui.Context) {
 			}
 			a.designSeed(c)
 		})
-	})
+	}
 }
 
 func (a *app) designCleared(cs []vd.Cleared) {
@@ -259,6 +204,27 @@ func (a *app) designSavedVoices(c *ui.Context) {
 	})
 }
 
+// designModelDefault picks the draft's model when it has none it can
+// use: the recommended designer first (presets: Qwen3-TTS VoiceDesign).
+// It reports whether any model can design.
+func (a *app) designModelDefault() bool {
+	d := &a.design
+	ms := designModels()
+	if len(ms) == 0 {
+		return false
+	}
+	if !slices.ContainsFunc(ms, func(m catalog.Entry) bool { return m.Label == d.model }) {
+		d.model = ms[0].Label
+		for _, r := range voiceCatalog().Recommended(catalog.WorkflowDesign, i18n.Locale()) {
+			if slices.ContainsFunc(ms, func(m catalog.Entry) bool { return m.ID == r.ID }) {
+				d.model = r.Label
+				break
+			}
+		}
+	}
+	return true
+}
+
 // designTarget is the model picker and what it will be sent.
 func (a *app) designTarget(c *ui.Context) {
 	t := c.Theme()
@@ -272,16 +238,7 @@ func (a *app) designTarget(c *ui.Context) {
 		})
 		return
 	}
-	if !slices.ContainsFunc(ms, func(m catalog.Entry) bool { return m.Label == d.model }) {
-		d.model = ms[0].Label
-		// The recommended designer first (presets: Qwen3-TTS VoiceDesign).
-		for _, r := range voiceCatalog().Recommended(catalog.WorkflowDesign, i18n.Locale()) {
-			if slices.ContainsFunc(ms, func(m catalog.Entry) bool { return m.ID == r.ID }) {
-				d.model = r.Label
-				break
-			}
-		}
-	}
+	a.designModelDefault()
 	e, _ := voiceCatalog().ByLabel(d.model)
 	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
 		ui.Text(c, i18n.T("Model")).FontWeight(600)
@@ -321,67 +278,5 @@ func (a *app) designTarget(c *ui.Context) {
 			caption(c, i18n.T("What %s will hear", modelRef(e))).TextColor(tok(t).Text3).SingleLine().Ellipsis("…").MinWidth(0)
 			infoTip(c.Key("design-sent"), i18n.T("Sent to %s", modelRef(e))+": "+voice)
 		})
-	})
-}
-
-// designScript is the line to preview and the preview.
-func (a *app) designScript(c *ui.Context) {
-	t := c.Theme()
-	d := &a.design
-	sectionHeading(c, i18n.T("Script"))
-	ui.TextArea(c.Key("design-script"), &d.script).Lines(3, 8).Placeholder(i18n.T("What should this voice say?")).Label(i18n.T("Script"))
-	j := a.voiceJob("design", "")
-	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-		ui.Icon(c, icons.Global.Linear).Size(px(t, 16), px(t, 16)).TextColor(tok(t).Text2)
-		ui.Autocomplete(c.Key("design-language"), &d.language, voiceLanguages()).Placeholder(i18n.T("Auto")).Label(i18n.T("Language")).
-			Tooltip(i18n.T("Language")).Width(px(t, 140)).Shrink(1).MinWidth(px(t, 80))
-		ui.Spacer(c)
-		_, ok := voiceCatalog().ByLabel(d.model)
-		gen := ui.Button
-		if j == nil || j.take == nil {
-			gen = primaryButton // until there is a preview to save
-		}
-		if gen(c.Key("design-generate"), i18n.T("Generate preview")).
-			Disabled(!ok || j.running() || strings.TrimSpace(d.script) == "").Clicked() {
-			a.designGenerate()
-		}
-	})
-	switch {
-	case j == nil:
-	case j.running():
-		ui.Progress(c, j.fraction).Label(j.status)
-		caption(c, j.status)
-	case j.err != "":
-		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, icons.DangerCircle.Linear).Size(px(t, 14), px(t, 14)).TextColor(t.Danger).Shrink(0)
-			ui.Text(c, j.err).FontSize(px(t, fsCaption)).TextColor(t.Danger).Grow(1).MinWidth(0).Selectable()
-			if j.needDownload != nil && secondaryIconButton(c.Key("design-download"), icons.DownloadMinimalistic, i18n.T("Download")).Label(i18n.T("Download")).Clicked() {
-				a.download(*j.needDownload)
-			}
-		})
-	default:
-		a.clipCard(c, j.take, true)
-	}
-}
-
-// designSaveForm saves the draft as a voice.
-func (a *app) designSaveForm(c *ui.Context) {
-	t := c.Theme()
-	d := &a.design
-	ui.Box(c).Height(1).Background(tok(t).Line)
-	sectionHeading(c, i18n.T("Save as voice profile"))
-	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-		ui.TextInput(c.Key("design-name"), &d.saveName).Placeholder(i18n.T("Name")).Label(i18n.T("Profile name")).Grow(1).MinWidth(0).MaxWidth(px(t, 320))
-		label := i18n.T("Save as voice")
-		if v := a.findVoice(d.linked); v != nil && v.Name == strings.TrimSpace(d.saveName) {
-			label = i18n.T("Update voice")
-		}
-		save := ui.Button
-		if j := a.voiceJob("design", ""); j != nil && j.take != nil {
-			save = primaryButton // the preview is there: saving is next
-		}
-		if save(c.Key("design-save"), label).Disabled(strings.TrimSpace(d.saveName) == "").Clicked() {
-			a.designSave()
-		}
 	})
 }

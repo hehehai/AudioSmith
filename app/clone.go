@@ -1,6 +1,7 @@
 package main
 
-// A voice from a clip (/voices/new): upload or record a reference, keep
+// A voice from a clip (Quick clone, /voices/new/clone; its steps are
+// clone_steps.go): upload or record a reference, keep
 // its best part, transcribe it, clean its noise, then save it as a voice
 // (name + portrait), use it once without saving, or replace the reference
 // of a saved voice. The engine does the work (voice_engine.go); clone.go
@@ -33,6 +34,8 @@ const (
 // cloneState is the reference flow's view state.
 type cloneState struct {
 	replaceFor string // voice whose reference this replaces; "" = a new voice
+	step       int    // the guided page's step (clone_steps.go)
+	savedID    string // the voice saved (the last step)
 	gen        int    // bumps with each clip: results for older ones are dropped
 	srcName    string // the file picked, or "Recording"
 	work       string // the working WAV (mono) in referencesDir

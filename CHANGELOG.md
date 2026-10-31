@@ -28,6 +28,15 @@
 - Home shows only ‹ ›: its question is the title. Settings has ‹ › beside its name to go back through the sections you opened.
 - In a narrow window a page's search is a magnifier that opens it, and its less used tools go into ⋯.
 
+### Voices: browse, open, use — and make your own step by step
+- **Discover** shows the use cases as chips (Narration, Conversation, Characters, Ads) after Language, Gender and Age; while nothing filters, 「Recommended」 gives six strong voices for your language, then 「All」 lists every voice as a table: name and description, language, gender and age, use, ▶, 「Use」 and ⋯ (save to My voices, Stories, Audiobook, Design, favorite).
+- ▶ plays a voice's preview right in its row (one at a time, the row shows it). A click on a row opens the voice's **details** at the right (over the list in a narrow window): a large preview, 「Try a line」 said by the model that speaks it, and 「Use in Text to speech」, 「Use as a story character」, 「Narrate an audiobook」, 「Save to My voices」.
+- **Mine** is a table too: name, kind, language, created, how often used; filter All / Cloned / Designed / Saved (from Discover). ⋯ renames, duplicates, exports a .asvoice or deletes (with Undo). A saved voice's details hold what the profile editor had — the reference and its quality, settings, lock, ownership, where it is used, export — under the same preview, hand-offs and 「Try a line」.
+- **New voice** offers two large cards with what each needs (Quick clone: 10 seconds or more of clear speech, 30 is best), and the voices you made lately.
+- **Quick clone** is one guided page: Add a recording → Check (the part kept, its quality and cleaning, the transcript) → Name and save → Done, with 「Listen」 and 「Use in Text to speech」.
+- **Design a voice** starts with the description; the presets are chips under it and fill it. 「Generate candidates」 makes three takes of it with different seeds: listen, pick one, name it and save; then 「Use in Text to speech」. Details and the model fold away below.
+- The Studio's voice picker ends with 「Browse the voice library ›」.
+
 ## 0.4.0-beta.8 — 2026-10-26
 
 ### Idle models leave memory

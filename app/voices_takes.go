@@ -137,6 +137,7 @@ func (a *app) voiceJobUpdated(u jobs.Job) {
 // voiceTakeCreated finishes a voice page's take: a sample is attached to
 // its voice; "try" and design previews play.
 func (a *app) voiceTakeCreated(t core.Take) {
+	a.mine.usesFor = "" // My voices' “used” counts read again
 	j := a.voiceJobs[t.ID]
 	if j == nil {
 		return
@@ -147,6 +148,10 @@ func (a *app) voiceTakeCreated(t core.Take) {
 		a.attachSample(j.voiceID, t)
 	case "reference":
 		a.refTakeCreated(j.voiceID, t) // voice_reference.go
+	case "candidate": // Design's candidates (design_flow.go): the first plays
+		if j.voiceID == "cand-0" && !a.pl.Playing(a.pl.Current()) {
+			a.play(&t)
+		}
 	default:
 		a.play(&t)
 	}

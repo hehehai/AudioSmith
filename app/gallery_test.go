@@ -42,11 +42,7 @@ func TestGalleryPage(t *testing.T) {
 	g.text = ""
 	tt.Frame()
 	chars := gallery.Default().Search(gallery.Query{Category: "characters"}).Total
-	if err := tt.Click("Use"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if err := tt.Click("Characters & kids  " + itoa(chars)); err != nil {
+	if err := tt.Click("Characters & kids " + itoa(chars)); err != nil { // a use case chip
 		t.Fatalf("%v: %q", err, tt.Texts())
 	}
 	tt.Frame()
@@ -91,7 +87,9 @@ func TestGalleryPage(t *testing.T) {
 		t.Errorf("reset: %d", g.page.Total)
 	}
 
-	// Favorites persist.
+	// Favorites persist (the star is in the voice's detail).
+	a.openArchetype(first.ID)
+	tt.Frame()
 	if err := tt.Click("Add to favorites"); err != nil {
 		t.Fatal(err)
 	}
@@ -127,10 +125,11 @@ func TestGalleryPage(t *testing.T) {
 	}
 	a.pl.Stop()
 
-	// Use voice: a designed voice with its persona, seed, the bundled
-	// reference (heard saying its text: nothing to make, nothing to
-	// check) and preview, in Design.
-	if err := tt.Click("Use voice"); err != nil {
+	// Save to My voices: a designed voice with its persona, seed, the
+	// bundled reference (heard saying its text: nothing to make, nothing
+	// to check) and preview.
+	tt.Click("More actions")
+	if err := tt.ChooseMenuItem("Save to My voices"); err != nil {
 		t.Fatal(err)
 	}
 	if len(a.voices) != 1 {
@@ -147,15 +146,13 @@ func TestGalleryPage(t *testing.T) {
 	if b, _, err := wav.ReadFile(a.voicePath(&v, v.RefAudio)); err != nil || b.Seconds() < 8 {
 		t.Fatalf("reference: %v", err)
 	}
-	if a.router.Path() != "/voices/new/design" || a.design.linked != v.ID {
-		t.Errorf("design: %s %s", a.router.Path(), a.design.linked)
+	if a.router.Path() != "/voices/discover" {
+		t.Errorf("save moved to %s", a.router.Path())
 	}
-	// Using it again finds it; Use in Studio picks it there, on the clone
+	// Using it finds it; 「使用」 picks it in the Studio, on the clone
 	// model the Studio speaks designed voices with: its reference as it is.
-	a.navigate("/gallery")
 	tt.Frame()
-	tt.Click("More actions")
-	if err := tt.ChooseMenuItem("Use in Studio"); err != nil {
+	if err := tt.Click("Use"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -186,7 +183,7 @@ func TestGalleryBuiltinVoice(t *testing.T) {
 	a.gallery.text = "af_heart"
 	tt.Frame()
 	sent := len(eng.sent)
-	if err := tt.Click("Use voice"); err != nil {
+	if err := tt.Click("Use"); err != nil { // the row's 「使用」
 		t.Fatal(err)
 	}
 	if len(eng.sent) != sent || len(a.voices) != 1 {

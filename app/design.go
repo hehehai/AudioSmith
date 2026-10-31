@@ -1,6 +1,6 @@
 package main
 
-// Voice Design (/design): a voice from a description and attribute picks
+// Voice Design (/voices/new/design; the guided page is design_flow.go): a voice from a description and attribute picks
 // (internal/voicedesign), with a seed for its identity, lowered to what
 // the chosen model takes, previewed through TakeService and saved as a
 // designed voice profile.
@@ -32,11 +32,16 @@ type designState struct {
 	preset      string // the starting point last chosen
 	detailsOpen bool
 	savedOpen   bool
+	// The guided page (design_flow.go): the candidates, the one picked
+	// (-1 none), the voice saved from it.
+	cands   []designCand
+	picked  int
+	savedID string
 }
 
 // reset starts a new design: a random seed, the default line.
 func (d *designState) reset() {
-	*d = designState{seed: float64(vd.NewSeed()), script: i18n.T("Hello! This is the voice you designed. How does it sound?"), detailsOpen: true}
+	*d = designState{seed: float64(vd.NewSeed()), script: i18n.T("Hello! This is the voice you designed. How does it sound?"), picked: -1}
 }
 
 // recipe is the draft's recipe.
@@ -108,11 +113,12 @@ func clearedText(cs []vd.Cleared) string {
 	return i18n.T("Cleared %s: it can't go with your pick.", strings.Join(parts, ", "))
 }
 
-// applyPreset replaces the recipe with a starting point's; the
-// description goes.
+// applyPreset replaces the recipe with a starting point's: its
+// description fills the prompt (0.5 F4), its attributes the details.
 func (a *app) applyPreset(p gallery.Preset) {
 	d := &a.design
-	d.description, d.parsedFor, d.parsed = "", "", vd.Result{}
+	d.description = p.Description.In(i18n.Locale())
+	d.parsedFor, d.parsed = d.description, vd.Parse(d.description)
 	d.attrs, d.preset = p.Attrs.Canonical(), p.ID
 	if p.Demo && p.Script.En != "" {
 		d.script = p.Script.In(p.Language)
@@ -192,10 +198,9 @@ func (a *app) designSave() {
 		files.RemoveReference = voiceRecipe(old).Key() != voiceRecipe(&cur).Key() || old.CreatedWith != cur.CreatedWith
 		v = cur
 	}
-	j := a.voiceJob("design", "")
-	if j != nil && j.take != nil && j.take.Model == e.Repo && j.take.Seed == r.Seed && a.designTakeKey(j.take) == a.designKey() {
-		files.Sample = a.takeStore.AudioPath(*j.take)
-		v.SampleText = j.take.Text
+	if tk := a.designSample(); tk != nil && tk.Model == e.Repo && tk.Seed == r.Seed {
+		files.Sample = a.takeStore.AudioPath(*tk)
+		v.SampleText = tk.Text
 	}
 	svc, ready := a.lib.svc.Voices, a.engState == engineReady
 	a.background(func() {
@@ -206,7 +211,7 @@ func (a *app) designSave() {
 				return
 			}
 			a.voiceChanged(core.VoiceChanged{Voice: saved})
-			d.linked = saved.ID
+			d.linked, d.savedID = saved.ID, saved.ID // the page's last step: the hand-offs
 			a.toast(i18n.T("Voice profile saved"))
 			if saved.Sample == "" && ready {
 				a.renderSample(&saved)

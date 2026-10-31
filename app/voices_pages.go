@@ -4,13 +4,16 @@ package main
 // with two tabs, Discover (/voices/discover, the gallery's view) and Mine
 // (/voices/mine, My voices' view); New voice (/voices/new) offers its two
 // flows as cards, Quick clone (/voices/new/clone) and Design a voice
-// (/voices/new/design), the clone and design views. The views are as they
-// were (F4 redesigns them): the hosts give their headers the page's
-// title and the tabs (headerHost, ui_layout.go). The old paths (/gallery,
+// (/voices/new/design), guided flows (clone_view.go, design_view.go; 0.5
+// F4). Voices' host gives the tabs' headers the page's title and the
+// tabs (headerHost, ui_layout.go). The old paths (/gallery,
 // /voices, /clone, /design) go here (routeAlias, shell_routes.go).
 
 import (
+	"slices"
+
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
@@ -106,7 +109,10 @@ func (a *app) newVoiceButton(c *ui.Context) func(narrow bool) {
 	}
 }
 
-// newVoicePage is New voice: the two ways to make a voice, as cards.
+// newVoicePage is New voice (/voices/new): the two ways to make a
+// voice as large cards — a title, two lines, what it needs, and a
+// full-width button (Quick clone's the page's primary) — then the voices
+// made last, with links to them.
 func (a *app) newVoicePage(c *ui.Context) {
 	t := c.Theme()
 	pageHeader(c, i18n.T("New voice"), func() {
@@ -115,29 +121,102 @@ func (a *app) newVoicePage(c *ui.Context) {
 		}
 	})
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 860)).Children(func() {
-			caption(c, i18n.T("Make a voice of your own: from a recording of someone, or from a description.")).Wrap()
+		ui.Column(c).Padding(px(t, sp3), px(t, sp6), px(t, sp6)).Gap(px(t, sp5)).MaxWidth(px(t, 900)).Children(func() {
 			ui.Row(c.Key("nv-cards")).Gap(px(t, sp4)).Wrap().AlignItems(ui.Stretch).Children(func() {
-				entryCard(c, "nv-clone", cloneIcon, i18n.T("Quick clone"),
-					i18n.T("A voice from 10–30 seconds of someone speaking, recorded or from a file (with their consent)."), func() {
-						if primaryButton(c.Key("nv-clone-go"), i18n.T("Clone a voice")).Clicked() {
+				flowCard(c, "nv-clone", cloneIcon, i18n.T("Quick clone"),
+					i18n.T("Clone a voice from a recording of someone speaking: a file, or record it here. Use it only with their consent."),
+					i18n.T("10 seconds or more of clear speech, 30 seconds is best"), func() {
+						if primaryButton(c.Key("nv-clone-go"), i18n.T("Clone a voice")).FillWidth().Clicked() {
 							a.startClone("")
 						}
-					}).Grow(1).Basis(px(t, 260)).MinWidth(px(t, 220))
-				entryCard(c, "nv-design", designIcon, i18n.T("Design a voice"),
-					i18n.T("A voice from a description: gender, age, accent, style. Try it, then save the one you like."), func() {
-						if ui.Button(c.Key("nv-design-go"), i18n.T("Design a voice")).Clicked() {
-							a.navigate("/voices/new/design")
+					})
+				flowCard(c, "nv-design", designIcon, i18n.T("Design a voice"),
+					i18n.T("Describe a voice — gender, age, accent, style — or start from a preset. Listen to a few candidates and keep the one you like."),
+					i18n.T("A description or a preset; no recording needed"), func() {
+						if ui.Button(c.Key("nv-design-go"), i18n.T("Start designing")).FillWidth().Clicked() {
+							a.startDesign()
 						}
-					}).Grow(1).Basis(px(t, 260)).MinWidth(px(t, 220))
+					})
 			})
+			a.recentVoices(c)
 			a.newVoiceTips(c)
 		})
 	})
 }
 
-// newVoiceTips: where the voices go, and the gallery for those who need
-// none of their own.
+// flowCard is a large card of New voice: ic, title, body, what the flow
+// needs (a check mark and a line), and action (its full-width button) at
+// its foot.
+func flowCard(c *ui.Context, key string, ic icons.Icon, title, body, needs string, action func()) {
+	t := c.Theme()
+	k := tok(t)
+	ui.Column(c.Key(key)).Padding(px(t, sp5)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
+		Grow(1).Basis(px(t, 280)).MinWidth(px(t, 220)).Children(func() {
+		ui.Box(c).Size(px(t, 40), px(t, 40)).Radius(px(t, radiusControl)).Background(k.Bg).Border(1, k.Line).Center().Children(func() {
+			ui.Icon(c, ic.Linear).Size(px(t, 20), px(t, 20)).TextColor(k.Text)
+		})
+		ui.Column(c).Gap(px(t, 4)).Grow(1).Children(func() {
+			ui.Text(c, title).FontSize(px(t, fsSection)).FontWeight(600).Role(ui.RoleHeading)
+			ui.Text(c, body).FontSize(px(t, fsCaption)).TextColor(k.Text2)
+		})
+		ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, icons.CheckCircle.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text3).Shrink(0)
+			ui.Text(c, needs).FontSize(px(t, fsCaption)).TextColor(k.Text2).MinWidth(0)
+		})
+		ui.Row(c).Padding(px(t, sp1), 0, 0).Children(action)
+	})
+}
+
+// madeHere are the voices made in this app (cloned or designed, not
+// saved from Discover or imported), newest first, at most n.
+func (a *app) madeHere(n int) []*core.Voice {
+	var out []*core.Voice
+	for i := range a.voices {
+		v := &a.voices[i]
+		if v.Origin == "" && (v.Kind == core.VoiceCloned || v.Kind == core.VoiceDesigned) {
+			out = append(out, v)
+		}
+	}
+	slices.SortStableFunc(out, func(x, y *core.Voice) int { return y.CreatedAt.Compare(x.CreatedAt) })
+	return out[:min(len(out), n)]
+}
+
+// recentVoices is 「最近做的音色」: a short list; a row opens the voice.
+func (a *app) recentVoices(c *ui.Context) {
+	t := c.Theme()
+	vs := a.madeHere(5)
+	if len(vs) == 0 {
+		return
+	}
+	ui.Column(c.Key("nv-recent")).Gap(px(t, sp1)).Children(func() {
+		ui.Row(c).AlignItems(ui.Center).Children(func() {
+			sectionRow(c, "nv-recent-title", i18n.T("Voices you made lately"), "")
+			ui.Spacer(c)
+			if ghostButton(c.Key("nv-recent-all"), i18n.T("All my voices")+" ›").Clicked() {
+				a.voiceKind = kindAll
+				a.navigate("/voices/mine")
+			}
+		})
+		for _, v := range vs {
+			playing := a.savedPlaying(v)
+			id := v.ID
+			if voiceRow(c, "recent-"+v.ID, v.Name, voiceRowState{playing: playing}, func() {
+				voiceNameCell(c, v.Name, mineKind(v)+" · "+i18n.Date(v.CreatedAt), a.portrait(v), playing, nil)
+			}, func() {
+				if previewToggle(c, "play", playing).Clicked() {
+					a.previewSaved(v)
+				}
+				if ghostButton(c.Key("open-"+id), i18n.T("Open")+" ›").FontSize(px(t, fsCaption)).Clicked() {
+					a.openVoiceEditor(id)
+				}
+			}) {
+				a.openVoiceEditor(id)
+			}
+		}
+	})
+}
+
+// newVoiceTips: the gallery, for those who need no voice of their own.
 func (a *app) newVoiceTips(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)

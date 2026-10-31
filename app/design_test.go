@@ -48,6 +48,7 @@ func TestDesignPage(t *testing.T) {
 		t.Errorf("default designer %q", d.model)
 	}
 	d.model = "OmniVoice"
+	d.detailsOpen = true // 细节与模型: the model, what it hears, the seed
 	tt.Frame()
 	if !tt.HasText("Describe the voice") || !strings.Contains(strings.Join(tt.Texts(), "|"), "Sent to “Multilingual all-rounder”") {
 		t.Fatalf("design page: %q", tt.Texts())
@@ -94,11 +95,12 @@ func TestDesignPage(t *testing.T) {
 		t.Errorf("dropped note missing: %q", tt.Texts())
 	}
 
-	// Generate (after the licence).
+	// Generate candidates (after the licence): three takes, the first
+	// with the draft's seed.
 	d.seed = 777
 	d.script = "Good evening."
 	tt.Frame()
-	tt.Click("Generate preview")
+	tt.Click("Generate candidates")
 	tt.Frame()
 	if !a.licenceOpen {
 		t.Fatal("no licence dialog for OmniVoice")
@@ -106,23 +108,39 @@ func TestDesignPage(t *testing.T) {
 	acceptLicences(t, a)
 	a.licenceOpen = false
 	tt.Frame()
-	tt.Click("Generate preview")
-	req := eng.last(t)
-	if req.Model != omni || req.Seed == nil || *req.Seed != 777 || !strings.Contains(req.Voice, "british accent") || req.Text != "Good evening." {
-		t.Fatalf("request %+v", req.SynthesizeParams)
+	n := len(eng.sent)
+	tt.Click("Generate candidates")
+	if len(eng.sent) != n+designCandidates || len(d.cands) != designCandidates {
+		t.Fatalf("candidates: %d sent, %d candidates", len(eng.sent)-n, len(d.cands))
 	}
-	writeTestWAV(t, req.Output.Path, 24000, 1.5)
-	seed := int64(777)
-	eng.succeed(req.ID, proto.SynthesizeResult{Output: req.Output.Path, SampleRate: 24000, AudioSeconds: 1.5, Seconds: 1, Seed: &seed})
+	for i, req := range eng.sent[n:] {
+		if req.Model != omni || req.Seed == nil || !strings.Contains(req.Voice, "british accent") || req.Text != "Good evening." {
+			t.Fatalf("request %d %+v", i, req.SynthesizeParams)
+		}
+		if i == 0 && *req.Seed != 777 || i > 0 && *req.Seed == 777 {
+			t.Errorf("candidate %d seed %d", i, *req.Seed)
+		}
+		writeTestWAV(t, req.Output.Path, 24000, 1.5)
+		eng.succeed(req.ID, proto.SynthesizeResult{Output: req.Output.Path, SampleRate: 24000, AudioSeconds: 1.5, Seconds: 1, Seed: req.Seed})
+	}
 	tt.Frame()
-	if j := a.voiceJob("design", ""); j == nil || j.take == nil || !tt.HasText("Latest take") {
-		t.Fatalf("preview: %+v %q", j, tt.Texts())
+	if a.designStep() != designPickStep || !tt.HasText("Candidate 3") || tt.HasText("Save voice") {
+		t.Fatalf("pick step: %d %q", a.designStep(), tt.Texts())
+	}
+	// Pick the second: its seed becomes the draft's.
+	second := d.cands[1].seed
+	a.pickCandidate(1)
+	a.pickCandidate(0) // …then the first after all
+	tt.Frame()
+	if int64(d.seed) != 777 || a.designStep() != designSaveStep || second == 777 {
+		t.Fatalf("picked: seed %v step %d", d.seed, a.designStep())
 	}
 
-	// Save: the preview becomes the voice's sample.
+	// Save: the picked candidate becomes the voice's sample; then the
+	// hand-offs.
 	d.saveName = "Old Gent"
 	tt.Frame()
-	if err := tt.Click("Save as voice"); err != nil {
+	if err := tt.Click("Save voice"); err != nil {
 		t.Fatal(err)
 	}
 	v := a.findVoice(d.linked)
@@ -136,13 +154,22 @@ func TestDesignPage(t *testing.T) {
 		t.Errorf("attrs %+v", attrs)
 	}
 	tt.Frame()
-	if !tt.HasText("Design · Old Gent") || !tt.HasText("Update voice") {
-		t.Errorf("linked: %q", tt.Texts())
+	if a.designStep() != designDoneStep || !tt.HasText("Saved to My voices") || !tt.HasText("Use in Text to speech") {
+		t.Errorf("done: %q", tt.Texts())
 	}
-	// Generating while linked records the voice.
-	tt.Click("Generate preview")
+	// Generating again while linked records the voice.
+	tt.Click("Generate again")
 	if req := eng.last(t); req.Cmd != "synthesize" {
 		t.Fatal(req)
+	}
+	tt.Frame()
+	if !tt.HasText("Design · Old Gent") {
+		t.Errorf("linked: %q", tt.Texts())
+	}
+	a.pickCandidate(0)
+	tt.Frame()
+	if !tt.HasText("Update voice") {
+		t.Errorf("update: %q", tt.Texts())
 	}
 	// A new seed unlinks the draft.
 	tt.Click("New seed")
@@ -158,10 +185,10 @@ func TestDesignPage(t *testing.T) {
 		t.Errorf("open in design: %s %v", d.linked, d.seed)
 	}
 
-	// Starting points replace the recipe and drop the description.
+	// A preset chip replaces the recipe: its description fills the prompt.
 	tt.Frame()
 	tt.Click("Narrator")
-	if d.description != "" || d.attrs.Age != "middle_aged" || d.preset != "narrator" {
+	if d.description != "Calm, low and warm: audiobooks and long reads." || d.attrs.Age != "middle_aged" || d.preset != "narrator" {
 		t.Errorf("preset: %+v", d)
 	}
 }
@@ -182,15 +209,16 @@ func TestDesignModels(t *testing.T) {
 	a.navigate("/design")
 	d.model = vdm.Label
 	d.description = "a cheerful young woman, bright voice"
+	d.detailsOpen = true
 	tt.Frame()
 	texts := strings.Join(tt.Texts(), "|")
 	if !strings.Contains(texts, "This model reads your description as written") || !strings.Contains(texts, "a cheerful young woman, bright voice") {
 		t.Errorf("freeform: %q", texts)
 	}
 	// It isn't downloaded here: the error offers the download.
-	tt.Click("Generate preview")
+	tt.Click("Generate candidates")
 	tt.Frame()
-	j := a.voiceJob("design", "")
+	j := a.candJob(0)
 	if j == nil || j.needDownload == nil || !tt.HasText("Download") {
 		t.Fatalf("not downloaded: %+v %q", j, tt.Texts())
 	}

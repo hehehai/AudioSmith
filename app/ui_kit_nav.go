@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
@@ -158,4 +159,67 @@ func selectorRowFace(c *ui.Context, name, sub string, img *ui.Bitmap, warn bool)
 		}
 	})
 	ui.Icon(c, icons.AltArrowRight.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2).Shrink(0)
+}
+
+// stepper is a guided flow's step indicator (New voice's clone and
+// design, 0.5 F4): numbered steps joined by hairlines, the current one in
+// ink, those done with a check. A done step is a button back to it when
+// back is not nil.
+func stepper(c *ui.Context, key string, labels []string, cur int, back func(i int)) {
+	t := c.Theme()
+	k := tok(t)
+	ui.Row(c.Key(key)).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Role(ui.RoleGroup).Label(i18n.T("Steps")).Shrink(0).Children(func() {
+		for i, label := range labels {
+			if i > 0 {
+				ui.Box(c).Size(px(t, 24), 1).Background(k.Line).Shrink(0)
+			}
+			done, on := i < cur, i == cur
+			face := func(hover bool) {
+				d := px(t, 22)
+				dot := ui.Box(c).Size(d, d).Radius(d / 2).Center().Shrink(0)
+				col := k.Text2
+				switch {
+				case on:
+					dot.Background(k.Ink)
+				case done:
+					dot.Background(k.Pressed)
+					col = k.Text
+				default:
+					dot.Border(1, k.Line)
+				}
+				dot.Children(func() {
+					switch {
+					case done:
+						ui.Icon(c, icons.Check.Linear).Size(px(t, 12), px(t, 12)).TextColor(col)
+					case on:
+						ui.Text(c, itoa(i+1)).FontSize(px(t, fsMicro)).FontWeight(600).TextColor(k.OnInk)
+					default:
+						ui.Text(c, itoa(i+1)).FontSize(px(t, fsMicro)).TextColor(col)
+					}
+				})
+				tx := ui.Text(c, label).FontSize(px(t, fsCaption)).SingleLine()
+				switch {
+				case on:
+					tx.FontWeight(600)
+				case done && hover:
+					tx.TextColor(k.Text).Underline()
+				default:
+					tx.TextColor(k.Text2)
+				}
+			}
+			if done && back != nil {
+				b := ui.ButtonBase(c.Key(i)).Gap(px(t, 6)).AlignItems(ui.Center).Label(i18n.T("Back to “%s”", label))
+				b.Children(func() { face(b.Hovered()) })
+				if b.Clicked() {
+					back(i)
+				}
+				continue
+			}
+			row := ui.Row(c.Key(i)).Gap(px(t, 6)).AlignItems(ui.Center)
+			if on {
+				row.Role(ui.RoleGroup).Label(i18n.T("Step %d of %d: %s", i+1, len(labels), label))
+			}
+			row.Children(func() { face(false) })
+		}
+	})
 }

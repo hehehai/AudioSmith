@@ -226,16 +226,17 @@ func (a *app) cloneSaveFiles(v core.Voice, files core.VoiceFiles, gen int) {
 				a.toastWarn(i18n.T("Could not save the voice profile: %v", err))
 				return
 			}
-			if s.replaceFor != "" {
-				a.toast(i18n.T("Reference replaced"))
-			} else {
-				a.toast(i18n.T("Voice profile saved"))
-			}
+			replaced := s.replaceFor != ""
 			a.voiceChanged(core.VoiceChanged{Voice: saved})
 			a.encodePrompt(saved, a.preset())
 			a.resetClone("") // the next visit to Clone starts with an empty form
-			a.navigate("/voices")
-			a.openVoiceEditor(saved.ID)
+			if replaced {
+				a.toast(i18n.T("Reference replaced"))
+				a.openVoiceEditor(saved.ID)
+				return
+			}
+			// The last step: the hand-offs (clone_steps.go).
+			a.clone.step, a.clone.savedID = cloneDone, saved.ID
 		})
 	})
 }

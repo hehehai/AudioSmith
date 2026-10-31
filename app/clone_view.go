@@ -12,36 +12,44 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-// clonePage is /clone (the sidebar's Clone, also /voices/new): a voice
-// from a clip.
+// clonePage is Quick clone (/voices/new/clone): a guided page with a
+// step indicator (clone_steps.go) — 添加录音, 检查, 命名保存, then 完成
+// with the hand-offs.
 func (a *app) clonePage(c *ui.Context) {
 	t := c.Theme()
 	s := &a.clone
-	title := i18n.T("Clone a voice")
+	title := i18n.T("Quick clone")
 	if v := a.findVoice(s.replaceFor); v != nil {
 		title = i18n.T("Replace the reference of “%s”", v.Name)
 	}
 	pageHeaderBar(c, pageHead{title: title, parent: i18n.T("New voice"), up: "/voices/new", tools: func(bool) {
-		if ghostButton(c.Key("clone-back"), i18n.T("Cancel")).Clicked() {
+		if s.step != cloneDone && ghostButton(c.Key("clone-back"), i18n.T("Cancel")).Clicked() {
 			a.micCancel(&s.mic)
-			a.navigate("/voices")
+			a.navigate("/voices/new")
 		}
 	}})
 	if s.busy != "" || s.mic.phase != "" {
 		c.After(100 * time.Millisecond) // the timer, the level
 	}
+	s.syncStep()
 	page := ui.Scroll(c.Key("clone-scroll")).Grow(1).MinHeight(0)
-	if files := page.DroppedFiles(); files != nil {
+	if files := page.DroppedFiles(); files != nil && s.step != cloneDone {
 		a.cloneDropped(files)
 	}
 	page.Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 780)).Children(func() {
-			if !s.hasClip() {
+		ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 780)).Children(func() {
+			a.cloneStepper(c)
+			switch s.step {
+			case cloneAdd:
 				a.cloneSources(c)
-			} else {
+			case cloneCheck:
 				a.cloneClip(c)
-				a.cloneDetails(c)
+				a.cloneTranscript(c)
+				a.cloneCheckFoot(c)
+			case cloneName:
 				a.cloneSaveForm(c)
+			default:
+				a.cloneDoneView(c)
 			}
 		})
 	})
@@ -52,7 +60,7 @@ func (a *app) cloneSources(c *ui.Context) {
 	t := c.Theme()
 	s := &a.clone
 	k := tok(t)
-	caption(c, i18n.T("Use 5–15 seconds of clean speech: one speaker, no music, little room echo."))
+	caption(c, i18n.T("10 seconds or more of clear speech, 30 seconds is best: one speaker, no music, little room echo. The best part is kept."))
 	if s.busy != "" {
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c)
@@ -250,8 +258,8 @@ func (a *app) trimWave(c *ui.Context, s *cloneState) {
 	})
 }
 
-// cloneDetails are the transcript, the style hint and the language.
-func (a *app) cloneDetails(c *ui.Context) {
+// cloneTranscript is the transcript and the transcription's state.
+func (a *app) cloneTranscript(c *ui.Context) {
 	t := c.Theme()
 	s := &a.clone
 	ui.Field(c, i18n.T("Transcript"), func() {
@@ -282,7 +290,12 @@ func (a *app) cloneDetails(c *ui.Context) {
 			}
 		}
 	})
-	// Optional: a style hint and the language (detected otherwise).
+}
+
+// cloneAdvanced is the optional style hint and language (detected
+// otherwise), folded.
+func (a *app) cloneAdvanced(c *ui.Context) {
+	s := &a.clone
 	var changes []string
 	if strings.TrimSpace(s.style) != "" {
 		changes = append(changes, i18n.T("Style"))
@@ -317,17 +330,26 @@ func (a *app) styleField(c *ui.Context, key string, style *string) {
 	})
 }
 
-// cloneSaveForm is the name and portrait, and what to do with the clip.
+// cloneSaveForm is step 3: the name and portrait, the advanced options,
+// and what to do with the clip (save it; use it once; or replace a
+// voice's reference).
 func (a *app) cloneSaveForm(c *ui.Context) {
 	t := c.Theme()
 	s := &a.clone
 	problem := a.cloneProblem()
-	ui.Box(c).Height(1).Background(tok(t).Line)
+	back := func() {
+		if ghostButton(c.Key("clone-prev"), "‹ "+i18n.T("Back")).Clicked() {
+			s.step = cloneCheck
+		}
+	}
 	if s.replaceFor != "" {
 		banner(c, icons.InfoCircle, tok(t).Text2, i18n.T("Saving replaces this voice's reference. Its lock and its ownership verification are cleared, because the new clip may be another speaker."), nil)
-		ui.Row(c).Gap(px(t, sp2)).Justify(ui.End).AlignItems(ui.Center).Children(func() {
+		a.cloneAdvanced(c)
+		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+			back()
+			ui.Spacer(c)
 			if problem != "" {
-				caption(c, problem).Grow(1).MinWidth(0)
+				caption(c, problem).Shrink(1).MinWidth(0)
 			}
 			if primaryButton(c.Key("clone-replace"), i18n.T("Replace reference")).Disabled(problem != "" || s.saving).Clicked() {
 				a.cloneSave()
@@ -335,22 +357,24 @@ func (a *app) cloneSaveForm(c *ui.Context) {
 		})
 		return
 	}
-	sectionHeading(c, i18n.T("Save as voice profile"))
 	ui.Row(c).Gap(px(t, sp4)).AlignItems(ui.Center).Children(func() {
 		a.portraitPicker(c, "clone-portrait", s.name, s.portraitBmp, a.clonePortrait, func() { s.portrait, s.portraitBmp = nil, nil })
 		ui.Field(c, i18n.T("Profile name"), func() {
-			ui.TextInput(c.Key("clone-name"), &s.name).Placeholder(i18n.T("e.g. My narrator voice")).Label(i18n.T("Profile name"))
+			ui.TextInput(c.Key("clone-name"), &s.name).Placeholder(i18n.T("e.g. My narrator voice")).Label(i18n.T("Profile name")).AutoFocus()
 		}).Grow(1)
 	})
-	ui.Row(c).Gap(px(t, sp2)).Justify(ui.End).AlignItems(ui.Center).Wrap().Children(func() {
+	a.cloneAdvanced(c)
+	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
+		back()
+		ui.Spacer(c)
 		if problem != "" {
-			caption(c, problem).Grow(1).Basis(px(t, 200))
+			caption(c, problem).Shrink(1).MinWidth(0)
 		}
 		if ui.Button(c.Key("clone-once"), i18n.T("Use without saving")).Disabled(problem != "").
 			Tooltip(i18n.T("Use the clip in the Studio once, without adding it to your voices")).Clicked() {
 			a.cloneUseOnce()
 		}
-		if primaryButton(c.Key("clone-save"), i18n.T("Save voice")).Disabled(problem != "" || s.saving).Clicked() {
+		if primaryButton(c.Key("clone-save"), i18n.T("Save voice")).Disabled(problem != "" || s.saving || strings.TrimSpace(s.name) == "").Clicked() {
 			a.cloneSave()
 		}
 	})

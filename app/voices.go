@@ -39,8 +39,8 @@ type voicesState struct {
 
 	// The library page.
 	voiceQuery  string
-	voiceKind   int // 0 all, 1 cloned, 2 designed
-	voiceGrid   ui.GridState
+	voiceKind   int // kindAll, kindCloned, kindDesigned, kindSaved (voices_view.go)
+	mine        mineState
 	deleteVoice string // id the delete confirmation asks about
 	deleteOpen  bool
 	deleteUsage *voiceUsage     // where it is used, once known (voices_delete.go)
@@ -83,12 +83,6 @@ func (a *app) openVoices(lib *library) {
 	a.portraits, a.portraitFor = map[string]*ui.Bitmap{}, map[string]string{}
 	a.voiceJobs = map[string]*voiceJob{}
 	a.voiceWork = map[string]func(jobs.Job){}
-	a.voiceGrid.Key = func(i int) any {
-		if l := a.shownVoices(); i < len(l) {
-			return l[i].ID
-		}
-		return i
-	}
 	core.On(lib.bus, func(ev core.VoiceChanged) { a.post(func() { a.voiceChanged(ev) }) })
 	core.On(lib.bus, func(ev core.TakeCreated) { a.post(func() { a.voiceTakeCreated(ev.Take) }) })
 	core.On(lib.bus, func(u jobs.Updated) {
