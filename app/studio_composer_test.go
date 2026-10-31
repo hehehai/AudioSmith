@@ -68,6 +68,7 @@ func (a *app) acceptLicenceForTest(t *testing.T) {
 // and closes per page (remembered), and Restore recommended clears it.
 func TestStudioAdvanced(t *testing.T) {
 	a, _, tt := newTestApp(t)
+	tt.SetSize(1100, 1000) // OmniVoice's 「高级」 in view
 	tt.Frame()
 	if tt.HasText("Even out volume") || !tt.HasText("Recommended settings") {
 		t.Fatalf("closed: %q", tt.Texts())
@@ -204,7 +205,7 @@ func TestScriptStatsAndDiagnostics(t *testing.T) {
 	}
 	a.text = ""
 	tt.Frame()
-	if !tt.HasText("Type, paste or import a script.") {
+	if !tt.HasText("Get started with") || tt.HasText("Type, paste or import a script.") { // the chips say it (0.5 F3)
 		t.Errorf("readiness: %q", tt.Texts())
 	}
 	a.text = "[pause 1s]"
@@ -322,7 +323,9 @@ func TestOutputPanel(t *testing.T) {
 	addTake(t, a, tk, 1)
 	a.lastClipID = "T1"
 	tt.Frame()
-	for _, want := range []string{"Latest take", "2.5× realtime", "72 KB · 24 kHz · 24-bit · mono",
+	// The Studio's latest take says who spoke it, how long, when (0.5 F3);
+	// the file's details are in its tooltip and in Assets.
+	for _, want := range []string{"Latest take", "af_heart · 1.0 s · ", "Another voice",
 		"Chunk 2 is 0.2 s long where its text needs about 2.5 s: words may be missing.", "Check audio", "Export audio…"} {
 		if !strings.Contains(strings.Join(tt.Texts(), "|"), want) {
 			t.Errorf("lacks %q: %q", want, tt.Texts())

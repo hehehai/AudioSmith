@@ -8,7 +8,12 @@ package main
 //
 // Its parts:
 //
-//	studio_view.go     the page: composer, generate bar, job status, inspector
+//	studio_view.go     the page: script column, generate bar, job status
+//	studio_panel.go    the right panel: 设置 | 历史 (0.5 F3)
+//	studio_history.go  the 历史 tab and a take's hand-offs
+//	studio_examples.go the example chips under an empty script
+//	studio_recommend.go 「✦ 推荐」: voices for the script, by rule
+//	studio_inspector.go the 设置 tab: voice, model, speed, rows, 高级
 //	studio_editor.go   the script editor (markup highlighting, diagnostics, import)
 //	studio_controls.go the insert menu, language picker, Audio quality and Voice controls popovers
 //	studio_output.go   the latest take: details, Check audio, Save as…, drag out
@@ -80,12 +85,18 @@ type studioState struct {
 	script      scriptEditor
 	composer    composerState
 	inspectorUI studioInspectorState // studio_inspector.go
+	ttsUI       studioPanelState     // the right panel, studio_panel.go (0.5 F3)
 	pron        pronState            // Settings → Pronunciation
 	renderState                      // the render the Studio follows: chunk progress, preview
 
 	// savedDraft is the form as last handed to the draft service (or restored).
 	savedDraft studioDraft
 }
+
+// studioFreshScript is a fresh start's script: empty, so the example
+// chips show under it (0.5 F3). The tests written before F3 set the old
+// default (TestMain).
+var studioFreshScript = ""
 
 // newStudioState is the form of a fresh start: the settings' default
 // model and autoplay (the draft, restored next, may change the model).
@@ -103,7 +114,7 @@ func newStudioState(prefs settings.Settings) studioState {
 		autoplay:      prefs.Studio.Autoplay,
 		evenOut:       true,
 		normalize:     true,
-		text:          "Hello from AudioSmith. This voice was generated on your Mac with MLX.",
+		text:          studioFreshScript,
 	}
 	s.loadPreset(first, prefs.Studio.Overrides[first.ID])
 	s.script = newScriptEditor()

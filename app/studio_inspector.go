@@ -28,6 +28,14 @@ func (a *app) inspector(c *ui.Context) {
 	p := a.preset()
 	custom := a.modelLabel == catalog.CustomLabel
 
+	// The voice first (0.5 F3): what most takes change.
+	a.studioVoiceField(c, p)
+	if studioNeedsDescription(p) && !a.studioUsesSavedVoice(p) {
+		ui.Field(c, i18n.T("Voice description"), func() {
+			ui.TextArea(c.Key("description"), &a.voice).Lines(2, 5).Placeholder(i18n.T("e.g. a calm, warm female narrator, mid-thirties")).
+				Label(i18n.T("Voice description"))
+		})
+	}
 	// What the model is for, then what it is (family, quantisation,
 	// size, licence: thread #45 keeps them out of the picker's text).
 	about := p.Description()
@@ -46,7 +54,7 @@ func (a *app) inspector(c *ui.Context) {
 				a.modelLabel = e.Label
 			}
 			a.modelChanged()
-		}, pickerOpts{Custom: true})
+		}, pickerOpts{Custom: true, Row: true})
 		if custom {
 			ui.TextInput(c.Key("repo"), &a.customRepo).Placeholder("owner/model-name").Label(i18n.T("Repo"))
 		}
@@ -54,18 +62,12 @@ func (a *app) inspector(c *ui.Context) {
 			caption(c, i18n.T("Non-commercial use only")).TextColor(t.Warning).Tooltip(p.Licence.Name)
 		}
 	})
-	a.studioVoiceField(c, p)
-	if studioNeedsDescription(p) && !a.studioUsesSavedVoice(p) {
-		ui.Field(c, i18n.T("Voice description"), func() {
-			ui.TextArea(c.Key("description"), &a.voice).Lines(2, 5).Placeholder(i18n.T("e.g. a calm, warm female narrator, mid-thirties")).
-				Label(i18n.T("Voice description"))
-		})
-	}
 	if p.Has(catalog.CapSpeed) {
-		ui.Field(c, i18n.T("Speed  %.2f×", a.speed), func() {
-			snapped(ui.Slider(c.Key("speed"), &a.speed, 0.5, 2).Label(i18n.T("Speed")), &a.speed, 0.05)
-		})
+		a.speedField(c)
 	}
+	ui.Column(c).Gap(px(t, sp1)).Children(func() {
+		a.settingsRows(c, p)
+	})
 	ui.Divider(c)
 	a.advancedSection(c, "studio", a.studioChanges(), false, a.restoreRecommended, func() { a.studioAdvanced(c, p) })
 }
@@ -126,7 +128,7 @@ func (a *app) studioVoiceField(c *ui.Context, e catalog.Entry) {
 	t := c.Theme()
 	k := tok(t)
 	ui.Column(c.Key("voice-field")).Gap(px(t, 6)).Children(func() {
-		ui.Text(c, i18n.T("Voice")).FontWeight(600)
+		a.voiceHeader(c)
 		a.studioVoicePicker(c, e)
 
 		switch v := a.findVoice(a.studioVoice); {
@@ -247,7 +249,7 @@ func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 
 // studioSummary is the generate bar's caption: the model and the voice
 // that will speak, the speed, how many settings differ from the
-// recommended ones. A click shows the inspector.
+// recommended ones. A click shows the panel's settings.
 func (a *app) studioSummary(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
@@ -264,12 +266,12 @@ func (a *app) studioSummary(c *ui.Context) {
 		parts = append(parts, changesLabel(changes))
 	}
 	text := strings.Join(parts, " · ")
-	b := ghostBase(c.Key("studio-summary")).Padding(px(t, 4), px(t, 6)).Label(text).Tooltip(i18n.T("Model and voice: change them in the inspector")).MinWidth(0).Shrink(1)
+	b := ghostBase(c.Key("studio-summary")).Padding(px(t, 4), px(t, 6)).Label(text).Tooltip(i18n.T("Model and voice: change them in Settings")).MinWidth(0).Shrink(1)
 	b.Children(func() {
 		ui.Text(c, text).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
 	})
 	if b.Clicked() {
-		a.composer.panel, a.composer.panelSet = true, true
+		a.showStudioPanel(studioTabSettings)
 	}
 }
 

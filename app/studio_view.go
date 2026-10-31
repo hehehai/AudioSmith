@@ -12,19 +12,15 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
+// studioPage is Text to speech (0.5 F3, after ElevenLabs): on the left
+// the script — its toolbar, the editor, example chips while it is empty,
+// then the latest take and the generate bar at the foot; on the right the
+// panel, 设置 | 历史 (studio_panel.go). The top bar's breadcrumb is the
+// page's title.
 func (a *app) studioPage(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
 	inline, shown := a.studioInspectorShown(c)
-	pageHeader(c, i18n.T("Text to speech"), func() {
-		tip := i18n.T("Show the inspector")
-		if shown {
-			tip = i18n.T("Hide the inspector")
-		}
-		if panelToggle(c.Key("inspector-toggle"), icons.PanelRight, shown, tip).Clicked() {
-			a.composer.panel, a.composer.panelSet = !shown, true
-		}
-	})
 	if c.Shortcut(ui.Alt, ui.KeySlash) { // wherever the focus is, the script editor's too
 		a.composer.insertOpen = !a.composer.insertOpen
 	}
@@ -32,49 +28,33 @@ func (a *app) studioPage(c *ui.Context) {
 		a.composer.undoToast = ""
 		c.ToastAction(msg, i18n.T("Undo"), a.undoScript)
 	}
-	_, winH := c.Size()
+	if strings.TrimSpace(a.text) == "" {
+		a.ttsUI.use = "" // an example's use lasts as long as its text
+	}
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Scroll(c.Key("composer-scroll")).Grow(1).MinWidth(0).Children(func() {
-			// As tall as the page at least, so the script fills it; the
-			// page scrolls when the window is too short for all of it.
-			ui.Column(c).MinHeight(winH-pageTop-2).Padding(px(t, sp1), px(t, sp6), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
-				a.composerToolbar(c)
-				a.scriptView(c)
-				a.statsLine(c)
-				a.generateBar(c)
-				if a.job != nil {
-					a.jobStatus(c)
-				} else if a.jobError != "" {
-					a.jobProblem(c)
-				}
-				if cl := a.lastClip(); cl != nil {
-					a.outputPanel(c, cl, true)
-				}
-			})
-		}).ClipX()
+		a.scriptColumn(c, shown)
 		if shown && inline {
 			ui.Box(c).Width(1).Background(k.Line)
-			ui.Scroll(c.Key("inspector")).Width(px(t, inspectorWidth)).Shrink(0).Children(func() {
-				ui.Column(c).Padding(px(t, sp2), px(t, sp5), px(t, sp5)).Gap(px(t, sp4)).Children(func() {
-					a.inspector(c)
-				})
+			ui.Column(c.Key("studio-panel")).Width(px(t, studioPanelWidth)).Shrink(0).Children(func() {
+				a.studioPanel(c, false)
 			})
 		}
 	})
 	if shown && !inline {
-		// Too narrow for both: the inspector slides over the composer.
+		// Too narrow for both: the panel slides over the script.
 		ui.Overlay(c, func() {
-			_, h := c.Size()
-			panel := ui.Scroll(c.Key("inspector-drawer")).Absolute().Right(0).Top(pageTop).Width(px(t, inspectorWidth)).
-				Height(h-pageTop-1).Background(k.Bg).BorderWidth(0, 0, 0, 1).BorderColor(k.Line).
-				Shadow(-8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Inspector"))
+			w, h := c.Size()
+			pw := min(px(t, studioPanelWidth), w-px(t, 40))
+			panel := ui.Column(c.Key("studio-drawer")).Absolute().Right(0).Top(titleBarHeight).Width(pw).
+				Height(h-titleBarHeight-1).Background(k.Bg).BorderWidth(0, 0, 0, 1).BorderColor(k.Line).
+				Shadow(-8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Text to speech panel"))
 			panel.Children(func() {
-				ui.Column(c).Padding(px(t, sp4), px(t, sp5), px(t, sp5)).Gap(px(t, sp4)).Children(func() {
-					a.inspector(c)
-				})
+				a.studioPanel(c, true)
 			})
 			if panel.PressedOutside() || panel.OverlayShortcut(0, ui.KeyEscape) {
-				a.composer.panel, a.composer.panelSet = false, true
+				if !a.voicePickers.open[studioVoiceKey] && !a.pickerOpen["model"] {
+					a.composer.panel, a.composer.panelSet = false, true
+				}
 			}
 		})
 	}
@@ -82,9 +62,51 @@ func (a *app) studioPage(c *ui.Context) {
 	a.autosaveStudio()
 }
 
-// studioInspectorShown says whether the Studio's inspector shows, and
-// whether beside the composer (inline) or over it: beside when the page
-// leaves the composer room, which the toggle can change.
+// scriptColumn is the left column: toolbar, script (and chips), then the
+// latest take, what keeps Generate back or the job's progress, and the bar.
+func (a *app) scriptColumn(c *ui.Context, panelShown bool) {
+	t := c.Theme()
+	ui.Column(c.Key("script-column")).Grow(1).MinWidth(0).Children(func() {
+		ui.Column(c).Padding(px(t, sp2), px(t, sp6), 0).Shrink(0).Children(func() {
+			a.composerToolbar(c, panelShown)
+		})
+		sc := ui.Scroll(c.Key("composer-scroll")).Grow(1).MinHeight(0)
+		// The script fills what the scroll shows (last frame's height);
+		// the column scrolls when the chips leave it too little.
+		fill := sc.Bounds().H
+		if fill != a.ttsUI.scriptFill || fill == 0 {
+			// The first frame on the page has no height yet: one more
+			// frame, or a window in the background keeps the short one.
+			a.ttsUI.scriptFill = fill
+			c.AnimationFrame()
+		}
+		sc.Children(func() {
+			ui.Column(c).MinHeight(fill).Padding(0, px(t, sp6), px(t, sp3)).Gap(px(t, sp4)).Children(func() {
+				a.scriptView(c)
+				if strings.TrimSpace(a.text) == "" {
+					a.exampleChips(c)
+				}
+			})
+		}).ClipX()
+		st := a.scriptStats()
+		ui.Column(c.Key("script-foot")).Padding(0, px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Shrink(0).Children(func() {
+			if cl := a.lastClip(); cl != nil {
+				a.takePanel(c, cl, true, true)
+			}
+			if a.job != nil {
+				a.jobStatus(c)
+			} else if a.jobError != "" {
+				a.jobProblem(c)
+			}
+			a.readinessLine(c, st)
+			a.generateBar(c, st, panelShown)
+		})
+	})
+}
+
+// studioInspectorShown says whether the panel shows, and whether beside
+// the script (inline) or over it: beside when the page leaves the script
+// room, which the toggle can change.
 func (a *app) studioInspectorShown(c *ui.Context) (inline, shown bool) {
 	t := c.Theme()
 	w, _ := c.Size()
@@ -92,7 +114,7 @@ func (a *app) studioInspectorShown(c *ui.Context) (inline, shown bool) {
 	if a.railMode() {
 		side = px(t, railWidth)
 	}
-	inline = w-side-px(t, inspectorWidth) >= px(t, 480)
+	inline = w-side-px(t, studioPanelWidth) >= px(t, 440)
 	shown = inline
 	if a.composer.panelSet {
 		shown = a.composer.panel
@@ -100,8 +122,8 @@ func (a *app) studioInspectorShown(c *ui.Context) (inline, shown bool) {
 	return inline, shown
 }
 
-// studioNarrow is true when the composer is narrow: its bars show icons
-// without their labels.
+// studioNarrow is true when the script column is narrow: its toolbar
+// shows icons without their labels.
 func (a *app) studioNarrow(c *ui.Context) bool {
 	t := c.Theme()
 	w, _ := c.Size()
@@ -111,28 +133,34 @@ func (a *app) studioNarrow(c *ui.Context) bool {
 	}
 	inline, shown := a.studioInspectorShown(c)
 	if shown && inline {
-		w -= px(t, inspectorWidth)
+		w -= px(t, studioPanelWidth)
 	}
 	return w-side < px(t, 500)
 }
 
-// composerToolbar: insert menu, import, and the script's language.
-func (a *app) composerToolbar(c *ui.Context) {
+// composerToolbar: insert menu, import, pronunciation; on the right the
+// panel's toggle.
+func (a *app) composerToolbar(c *ui.Context, panelShown bool) {
 	t := c.Theme()
-	ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
+	narrow := a.studioNarrow(c)
+	ui.Row(c.Key("script-toolbar")).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 		a.insertMenu(c)
 		imp := i18n.T("Import script…")
-		var b ui.Element
-		if a.studioNarrow(c) {
-			b = iconButton(c.Key("import"), icons.Import, imp)
-		} else {
-			b = ghostIconButton(c.Key("import"), icons.Import, imp).Label(imp)
-		}
-		if b.Tooltip(i18n.T("TXT, Markdown, DOCX, EPUB, SRT or VTT, inserted at the caret")).Clicked() {
+		if labelOrIcon(c.Key("import"), icons.Import, imp, narrow).Tooltip(i18n.T("TXT, Markdown, DOCX, EPUB, SRT or VTT, inserted at the caret")).Clicked() {
 			a.importScript()
 		}
+		pron := i18n.T("Pronunciation…")
+		if labelOrIcon(c.Key("pronunciation"), icons.TextSquare, pron, narrow).Tooltip(i18n.T("How words are said: your pronunciation dictionary")).Clicked() {
+			a.navigate("/settings/pronunciation")
+		}
 		ui.Spacer(c)
-		a.languagePicker(c)
+		tip := i18n.T("Show settings and history")
+		if panelShown {
+			tip = i18n.T("Hide settings and history")
+		}
+		if panelToggle(c.Key("inspector-toggle"), icons.PanelRight, panelShown, tip).Clicked() {
+			a.composer.panel, a.composer.panelSet = !panelShown, true
+		}
 	})
 }
 
@@ -163,11 +191,8 @@ func typicalRTF(family string) float64 {
 	return 2
 }
 
-// statsLine: characters, estimated length, chunks, and the readiness or
-// slow-generation line.
-func (a *app) statsLine(c *ui.Context) {
-	t := c.Theme()
-	st := a.scriptStats()
+// statsText is the bar's caption: characters, estimated length, chunks.
+func (a *app) statsText(st scriptStats) (string, float64) {
 	speed := 1.0
 	if a.preset().Has(catalog.CapSpeed) && a.speed > 0 {
 		speed = a.speed
@@ -176,20 +201,24 @@ func (a *app) statsLine(c *ui.Context) {
 	if a.preset().Has(catalog.CapDuration) && a.duration > 0 {
 		seconds = a.duration
 	}
-	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-		parts := i18n.T("%d characters", st.chars)
-		if st.chunks > 0 {
-			parts += " · " + i18n.T("≈ %s of audio", formatDuration(seconds))
-		}
-		if st.chunks > 1 {
-			parts += " · " + i18n.N(st.chunks, "%d chunk", "%d chunks", st.chunks)
-		}
-		ui.Text(c, parts).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).SingleLine().Ellipsis("…").MinWidth(0)
-		if n := len(st.diags); n > 0 {
-			a.markupNotes(c, st)
-		}
-	})
+	parts := i18n.T("%d characters", st.chars)
+	if st.chunks > 0 {
+		parts += " · " + i18n.T("≈ %s of audio", formatDuration(seconds))
+	}
+	if st.chunks > 1 {
+		parts += " · " + i18n.N(st.chunks, "%d chunk", "%d chunks", st.chunks)
+	}
+	return parts, seconds
+}
+
+// readinessLine says what keeps Generate back (with Download when the
+// model is missing), or warns of a long render.
+func (a *app) readinessLine(c *ui.Context, st scriptStats) {
+	t := c.Theme()
 	if msg, warn := a.readiness(st); msg != "" {
+		if st.chars == 0 && !warn {
+			return // the empty script's placeholder and chips say it
+		}
 		color := tok(t).Text2
 		if warn {
 			color = t.Warning
@@ -205,6 +234,7 @@ func (a *app) statsLine(c *ui.Context) {
 		})
 		return
 	}
+	_, seconds := a.statsText(st)
 	if rtf := typicalRTF(a.preset().Family); seconds/rtf > 90 {
 		ui.Text(c.Key("slow"), i18n.T("A long render: about %s of audio may take %s or more. It plays from the first chunk while the rest renders.",
 			formatDuration(seconds), formatDuration(seconds/rtf))).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2)
@@ -242,14 +272,29 @@ func (a *app) readiness(st scriptStats) (msg string, warn bool) {
 // studioNeedsReferenceText says what the Studio needs before model e
 // (which only clones voices) can generate.
 func studioNeedsReferenceText(e catalog.Entry) string {
-	return i18n.T("%s only clones voices: under Voice in the inspector, pick a saved voice or a clip to clone.", modelRef(e))
+	return i18n.T("%s only clones voices: under Voice in Settings, pick a saved voice or a clip to clone.", modelRef(e))
 }
 
-func (a *app) generateBar(c *ui.Context) {
+// generateBar is the script's foot: the stats on the left (and, while
+// the panel is hidden, the model and voice that will speak), Generate on
+// the right.
+func (a *app) generateBar(c *ui.Context, st scriptStats, panelShown bool) {
 	t := c.Theme()
-	ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
-		a.studioSummary(c)
-		ui.Spacer(c)
+	k := tok(t)
+	ui.Row(c.Key("generate-bar")).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp3), 0, 0).
+		BorderWidth(1, 0, 0, 0).BorderColor(k.Line).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).AlignItems(ui.Start).Children(func() {
+			ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+				text, _ := a.statsText(st)
+				ui.Text(c, text).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
+				if len(st.diags) > 0 {
+					a.markupNotes(c, st)
+				}
+			})
+			if !panelShown {
+				a.studioSummary(c)
+			}
+		})
 		if a.job != nil {
 			if ui.Button(c.Key("cancel"), i18n.T("Cancel")).Clicked() {
 				a.cancel()

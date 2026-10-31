@@ -127,6 +127,7 @@ func (a *app) homeOpenFile(path string) bool {
 func (a *app) homeToStudio(text string) {
 	oplog.Info("home.route", "to", "studio", "source", "text")
 	a.text = text // the editor takes it (syncScript)
+	a.ttsUI.use = ""
 	a.navigate("/studio")
 }
 

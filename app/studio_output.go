@@ -184,6 +184,12 @@ func (a *app) checkResults(c *ui.Context, t *core.Take) {
 // History's selected one (detailed: the recipe follows). A flat card:
 // play, the waveform, what the take is, and its actions as icons.
 func (a *app) outputPanel(c *ui.Context, t *core.Take, latest bool) {
+	a.takePanel(c, t, latest, false)
+}
+
+// takePanel is outputPanel; studio adds Text to speech's hand-offs (0.5
+// F3): 「换个音色」 beside the actions, and the rest in ⋯ (takeHandoffs).
+func (a *app) takePanel(c *ui.Context, t *core.Take, latest, studio bool) {
 	th := c.Theme()
 	k := tok(th)
 	card(c.Key("out-"+t.ID)).Padding(px(th, sp3), px(th, sp4)).Gap(px(th, sp2)).Children(func() {
@@ -219,11 +225,23 @@ func (a *app) outputPanel(c *ui.Context, t *core.Take, latest bool) {
 				}
 				ui.Text(c, title).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
 				meta := renderedIn(t) + " · " + fileDetails(t)
-				if latest {
+				switch {
+				case studio:
+					meta = a.takeVoiceName(t) + " · " + i18n.T("%.1f s", t.AudioSeconds) + " · " + ago(t.CreatedAt)
+				case latest:
 					meta = clipMeta(t) + " · " + fileDetails(t)
 				}
-				truncText(c, meta).FontSize(px(th, fsCaption)).TextColor(k.Text2)
+				m := truncText(c, meta).FontSize(px(th, fsCaption)).TextColor(k.Text2)
+				if studio {
+					m.Tooltip(clipMeta(t) + "\n" + fileDetails(t))
+				}
 			})
+			if studio {
+				if labelOrIcon(c.Key("revoice"), icons.UserSpeakRounded, i18n.T("Another voice"), a.studioNarrow(c)).
+					Tooltip(i18n.T("Regenerate with another voice")).Clicked() {
+					a.revoice(t)
+				}
+			}
 			a.starButton(c, t)
 			checked := t.Render != nil && t.Render.QCDone
 			check := iconToggle(c.Key("check"), icons.Pulse2, a.checkOpen[t.ID] && checked, i18n.T("Check audio")).
@@ -240,6 +258,10 @@ func (a *app) outputPanel(c *ui.Context, t *core.Take, latest bool) {
 			}
 			path := a.takeStore.AudioPath(*t)
 			moreMenu(c.Key("take-more"), "", func(m *ui.Menu) {
+				if studio {
+					a.takeHandoffs(m, t, false)
+					return
+				}
 				if m.Item(i18n.T("Show in Finder")).Chosen() {
 					mygo.Shell.ShowItemInFolder(path)
 				}

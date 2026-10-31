@@ -118,7 +118,7 @@ func TestModelSwitchShowsItsControls(t *testing.T) {
 	a.setAdvancedOpen("studio", true)
 	tt.Frame()
 	// Kokoro: speed in view, no sampling.
-	if !tt.HasText("Speed  1.00×") || !tt.HasText("Pin the seed") || tt.HasText("Temperature  0.70") {
+	if !tt.HasText("1.00×") || !tt.HasText("Pin the seed") || tt.HasText("Temperature  0.70") {
 		t.Errorf("Kokoro's controls: %q", tt.Texts())
 	}
 	if tt.HasText("Auto-detect") {
@@ -132,7 +132,7 @@ func TestModelSwitchShowsItsControls(t *testing.T) {
 		t.Errorf("voice %q language %q after switching", a.voice, a.language)
 	}
 	// The recommended sampling (presets), shown; a change is the model's.
-	if !tt.HasText("Auto-detect") || tt.HasText("Speed  1.00×") || !tt.HasText("Temperature  0.70") || !tt.HasText("Top P  0.80") || !tt.HasText("Recommended settings") {
+	if !tt.HasText("Auto-detect") || tt.HasText("1.00×") || !tt.HasText("Temperature  0.70") || !tt.HasText("Top P  0.80") || !tt.HasText("Recommended settings") {
 		t.Errorf("controls for Qwen Base: %q", tt.Texts())
 	}
 	a.temperature = 0.5

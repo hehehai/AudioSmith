@@ -12,18 +12,102 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/catalog"
+	"github.com/hehehai/AudioSmith/internal/gallery"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 )
 
-// studioVoicePicker is the inspector's voice picker for model e.
+// studioVoicePicker is the settings' voice row and its picker for model
+// e. Opened by 「✦ 推荐」, recommended voices head it
+// (studio_recommend.go); opened by 「换个音色」, a voice picked
+// generates the take again at once.
 func (a *app) studioVoicePicker(c *ui.Context, e catalog.Entry) {
 	cur, opts, acts := a.studioVoiceChoices(e)
-	o := voicePickerOpts{label: i18n.T("Voice"), text: a.studioVoiceLabel(e), voice: a.findVoice(a.studioVoice), width: 300}
-	if v, ok := a.voicePicker(c, studioVoiceKey, cur, opts, o); ok {
+	st := &a.ttsUI
+	if st.recommend {
+		recs := a.recommendVoices(e, opts)
+		if st.regen { // another voice: not the one it has
+			recs = slices.DeleteFunc(recs, func(r voiceOption) bool { return r.value == "rec:"+cur })
+		}
+		for _, r := range recs {
+			if orig, ok := strings.CutPrefix(r.value, "rec:"); ok {
+				acts[r.value] = acts[orig]
+			} else if id, ok := strings.CutPrefix(r.value, "rec-model:"); ok {
+				acts[r.value] = func() {
+					if m, ok := catalog.Builtin().ByID(id); ok {
+						a.selectModel(m)
+					}
+				}
+			}
+		}
+		if len(recs) == 0 {
+			recs = []voiceOption{{value: "rec-none", label: i18n.T("No voice to recommend"), group: i18n.T("Recommended for this script"), warn: true}}
+		}
+		opts = append(recs, opts...)
+	}
+	o := voicePickerOpts{label: i18n.T("Voice"), text: a.studioVoiceLabel(e), voice: a.findVoice(a.studioVoice), width: 300,
+		row: true, sub: a.studioVoiceAbout(e)}
+	if st.regen {
+		o.title = i18n.T("Pick another voice: the take is made again with it.")
+	}
+	v, ok := a.voicePicker(c, studioVoiceKey, cur, opts, o)
+	if ok {
 		if act := acts[v]; act != nil {
 			act()
+			if st.regen && !strings.HasPrefix(v, "rec-model:") && !isActionValue(opts, v) {
+				st.regen = false
+				a.generate()
+			}
 		}
 	}
+	if !a.voicePickers.open[studioVoiceKey] {
+		st.recommend, st.regen = false, false
+	}
+}
+
+// isActionValue reports whether value is an action row of opts.
+func isActionValue(opts []voiceOption, value string) bool {
+	for _, op := range opts {
+		if op.value == value {
+			return op.action
+		}
+	}
+	return false
+}
+
+// studioVoiceAbout is the voice row's second line: a saved voice's kind,
+// a curated speaker's description, else its gender and language.
+func (a *app) studioVoiceAbout(e catalog.Entry) string {
+	if v := a.findVoice(a.studioVoice); v != nil {
+		if id, ok := strings.CutPrefix(v.Origin, "gallery:"); ok {
+			if ar, ok := gallery.Default().ByID(id); ok && ar.Description.In(i18n.Locale()) != "" {
+				return ar.Description.In(i18n.Locale())
+			}
+		}
+		return voiceKindLabel(v)
+	}
+	sp, _ := splitVoice(a.voice, e.AllVoiceIDs())
+	if sp == "" {
+		return ""
+	}
+	if ar, ok := speakerArchetype(e, sp); ok {
+		return ar.Description.In(i18n.Locale())
+	}
+	var parts []string
+	for _, vo := range e.Voices {
+		if vo.ID != sp {
+			continue
+		}
+		switch vo.Gender {
+		case "female":
+			parts = append(parts, i18n.T("Female voice"))
+		case "male":
+			parts = append(parts, i18n.T("Male voice"))
+		}
+		if l := e.SpeakerLanguage(sp); l != "" {
+			parts = append(parts, langPlain(l))
+		}
+	}
+	return strings.Join(parts, " · ")
 }
 
 // studioVoiceChoices are the Studio's voice rows for model e, the chosen

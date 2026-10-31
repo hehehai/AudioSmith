@@ -38,6 +38,8 @@ type pickerOpts struct {
 	// Dialogue, when set (Stories), adds the whole-dialogue models
 	// (model_picker_dialogue.go).
 	Dialogue *pickerDialogue
+	// Row draws it as a selector row, with › (Text to speech, 0.5 F3).
+	Row bool
 }
 
 // whyNotFor says why model e cannot do workflow w ("" = it can).
@@ -160,7 +162,11 @@ func (a *app) modelPicker(c *ui.Context, key string, w catalog.Workflow, cur cat
 				ui.Text(c, about).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
 			}
 		})
-		ui.Icon(c, icons.AltArrowDown.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2).Shrink(0)
+		chev := icons.AltArrowDown
+		if o.Row {
+			chev = icons.AltArrowRight
+		}
+		ui.Icon(c, chev.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2).Shrink(0)
 	})
 	if btn.Clicked() {
 		a.pickerOpen[key] = !a.pickerOpen[key]

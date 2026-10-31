@@ -26,6 +26,9 @@ func TestMain(m *testing.M) {
 	// Settings as tall as the window: tests that look at a whole section
 	// make the window taller (snapshots keep the app's height: pinSnapshots).
 	settingsH = 1 << 14
+	// The Studio's script before 0.5 F3 (empty since): the tests written
+	// before it count on it; F3's own tests empty it.
+	studioFreshScript = "Hello from AudioSmith. This voice was generated on your Mac with MLX."
 	os.Exit(m.Run())
 }
 
