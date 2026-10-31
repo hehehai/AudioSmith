@@ -140,3 +140,22 @@ func ghostRows(c *ui.Context, rows int, ic icons.Icon, title, body string) ui.El
 		})
 	})
 }
+
+// selectorRowFace is the inside of a selector row (Text to speech's
+// Voice, 0.5 F3): a portrait (or the name's initial) in a circle, the
+// name over sub, and › at the end. The caller's button is the row.
+func selectorRowFace(c *ui.Context, name, sub string, img *ui.Bitmap, warn bool) {
+	t := c.Theme()
+	k := tok(t)
+	ui.Avatar(c, name, img).Size(px(t, 28), px(t, 28)).Shrink(0)
+	ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
+		tx := ui.Text(c, name).SingleLine().Ellipsis("…").MinWidth(0)
+		if warn {
+			tx.TextColor(t.Warning)
+		}
+		if sub != "" {
+			ui.Text(c, sub).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
+		}
+	})
+	ui.Icon(c, icons.AltArrowRight.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2).Shrink(0)
+}

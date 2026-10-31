@@ -10,6 +10,13 @@
 - Models, Engine, Logs and Integrations are in Settings only. ⌘1…⌘8 are now Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories, Audiobook; ⌘F searches the library on the Projects page.
 - Old links (audiosmith://gallery, /history, /tools, /engine…) open where those pages are now; the Local API and MCP are unchanged.
 
+### Text to speech: the script on the left, Settings | History on the right
+- The script fills the left of the page, without a box; Insert, Import script… and Pronunciation… are above it. While it is empty, chips under it — Tell a story, Product narration, Podcast intro, News bulletin, Guided meditation, Audiobook excerpt — fill it with an example in the voice's language (Chinese, English or Japanese), else the interface's. A fresh start has an empty script.
+- At its foot, the character count and estimated length, and Generate (⌘↩). The latest take sits just above, with 「Another voice」.
+- On the right, two tabs. **Settings**: the voice and the model as rows that open their pickers (the voice's previews are still there), 「✦ Recommend」, which lists voices for the script's language and use first (and the model for a language the current one has no voice in), the speed, the language and "Play when ready" as rows, and Advanced at the foot. **History**: this page's takes, newest first — play, the first words, the voice, the length, when — with ⋯ Export…, Reuse settings, Regenerate with another voice, Save as project (Audiobook or Story, for long scripts) and Delete. Assets still lists every take.
+- 「Regenerate with another voice」 loads the take and opens the voice picker, recommended voices first: the voice you pick makes it again.
+- The page's title row is gone: the top bar's breadcrumb names the page. In a narrow window the panel opens over the script from the toolbar's toggle, or from the model and voice named under the count.
+
 ## 0.4.0-beta.8 — 2026-10-26
 
 ### Idle models leave memory

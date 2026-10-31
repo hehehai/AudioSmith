@@ -222,11 +222,9 @@ func (a *app) scriptView(c *ui.Context) {
 	st.Theme = scriptTheme(t)
 	st.Placeholder = i18n.T("Type or paste the text to speak…")
 	st.Label = i18n.T("Script")
-	box := ui.Column(c.Key("script-box")).Grow(1).MinHeight(px(t, 120)).Radius(px(t, radiusCard)).Border(1, tok(t).Line).Background(editor.DefaultTheme(t).Background).
-		Padding(px(t, sp2), px(t, sp1))
-	if box.FocusWithin() {
-		box.Border(1, tok(t).G[5])
-	}
+	// No box (0.5 F3): the script is the page, as ElevenLabs' is.
+	box := ui.Column(c.Key("script-box")).Grow(1).MinHeight(px(t, 120)).Background(editor.DefaultTheme(t).Background).
+		Padding(px(t, sp2), 0)
 	box.Children(func() {
 		editor.View(c.Key("script"), st).Grow(1).MinHeight(0)
 	})

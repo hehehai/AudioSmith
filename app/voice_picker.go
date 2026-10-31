@@ -38,6 +38,12 @@ type voicePickerOpts struct {
 	voice  *core.Voice // … and its portrait
 	locked bool
 	width  float32 // the list's least width in DIPs (0: 280)
+	// row draws the trigger as a selector row (Text to speech's settings,
+	// 0.5 F3): a portrait or the initial, the name over sub, and ›.
+	row bool
+	sub string
+	// title, when set, heads the open list (why it opened: 换音色重新生成).
+	title string
 }
 
 // voicePickerState is the pickers' view state, by picker key.
@@ -84,10 +90,13 @@ func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o 
 		label = i18n.T("None")
 	}
 	open := vp.open[key] && !o.locked
-	// The trigger looks as ui.Select's does.
+	// The trigger looks as ui.Select's does, or as a selector row.
 	b := ui.ButtonBase(c.Key(key)).Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).Background(t.Surface).
 		TextColor(t.Text).Border(1, t.Border).AlignItems(ui.Center).MinWidth(t.Space(35)).Label(o.label).Tooltip(label).
 		Disabled(o.locked).Role(ui.RolePopUpButton).Expanded(open)
+	if o.row {
+		b.Padding(px(t, 7), px(t, 10)).Gap(px(t, sp2)).Radius(px(t, radiusControl))
+	}
 	switch {
 	case o.locked:
 	case b.Pressed():
@@ -96,6 +105,14 @@ func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o 
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
+		if o.row {
+			var img *ui.Bitmap
+			if voice != nil {
+				img = a.portrait(voice)
+			}
+			selectorRowFace(c, label, o.sub, img, warn)
+			return
+		}
 		if voice != nil {
 			ui.Avatar(c, voice.Name, a.portrait(voice)).Size(px(t, 18), px(t, 18))
 		}
@@ -162,6 +179,9 @@ func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o 
 		width := o.width
 		if width == 0 {
 			width = 280
+		}
+		if o.title != "" {
+			ui.Text(c, o.title).FontSize(px(t, fsCaption)).FontWeight(600).Padding(px(t, 6), px(t, sp2), px(t, 4)).MaxWidth(px(t, width))
 		}
 		ui.Scroll(c.Key(key + "-scroll")).MaxHeight(h * 0.6).MinHeight(0).Shrink(1).Children(func() {
 			ui.Column(c.Key(key + "-list")).MinWidth(px(t, width)).Gap(px(t, 1)).Children(func() {
