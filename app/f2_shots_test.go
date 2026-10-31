@@ -68,7 +68,7 @@ func snapshotsF2(t *testing.T, out string) {
 
 		// Dub.
 		shoot("01-dub-empty", func() { a.navigate("/dub") })
-		for _, name := range []string{"产品发布会.mp4", "Interview.wav", "播客第 12 期.m4a"} {
+		for _, name := range []string{"产品发布会.wav", "Interview.wav", "播客第 12 期.wav"} {
 			src := filepath.Join(t.TempDir(), name)
 			copyTestFile(t, d.src, src)
 			a.dubStartFile(src)
@@ -76,6 +76,8 @@ func snapshotsF2(t *testing.T, out string) {
 		// One more, running: its download at 37 %.
 		a.dubURL = "https://www.youtube.com/watch?v=aaaaaaaaaaa"
 		id := a.dubList[0].ID
+		ex := eng.executors[services.KindDubTranscribe]
+		delete(eng.executors, services.KindDubTranscribe) // it shows running; nothing runs it
 		job, _ := eng.host.sched.Submit(context.Background(), jobs.Spec{Kind: services.KindDubTranscribe, Lane: jobs.LaneGPU, Owner: services.DubOwner + id})
 		eng.update(job, func(j *jobs.Job) { j.State = jobs.StateRunning; j.Progress.Fraction = 0.37 })
 		a.dubURL = ""
@@ -83,6 +85,7 @@ func snapshotsF2(t *testing.T, out string) {
 		shoot("03-dub-composer-file", func() { a.dubPend = "/Users/me/Movies/发布会彩排.mov" })
 		a.dubPend = ""
 		eng.cancelled(job)
+		eng.executors[services.KindDubTranscribe] = ex
 		shoot("04-dub-editor", func() { a.openDub(a.dubList[1].ID) })
 
 		// Speech to text.
@@ -99,12 +102,13 @@ func snapshotsF2(t *testing.T, out string) {
 		shoot("07-stt-detail", func() { a.selectTranscript("t1") })
 
 		// Voice isolator: the models missing, then three results.
+		removeModel(t, a, isoSeparator().ID)
 		shoot("08-isolate-empty", func() { a.navigate("/isolate") })
 		fakeOnDisk(t, a, isoSeparator())
 		fakeOnDisk(t, a, isoDenoiser())
 		a.isoEngine = isoFakeEngine(nil)
 		eng.executors[services.KindIsolate] = a.isoSvc.Executor()
-		for _, name := range []string{"现场版.mp3", "采访原声.mov", "嘈杂的会议.wav"} {
+		for _, name := range []string{"现场版.wav", "采访原声.wav", "嘈杂的会议.wav"} {
 			src := filepath.Join(t.TempDir(), name)
 			copyTestFile(t, d.src, src)
 			a.isoStart(src)

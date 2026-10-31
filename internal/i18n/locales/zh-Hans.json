@@ -3715,7 +3715,6 @@
   "nav\u0004Voices": "音色",
   "setups for agents and SDKs (this skill comes from there), the Local API, and tools: A/B voices, Convert (a recording in another voice), Rate fit, Direction, File probe, Watermark check.": "代理和 SDK 的接入设置（本技能就来自那里）、本地 API，以及工具：音色 A/B、变声（把录音换成另一个音色）、语速适配、演绎指导、文件检测、水印检测。",
   "the start page: what the user types, drops or links there opens in the right tool; the latest work.": "起始页：用户在这里输入、拖入或粘贴链接，内容会在合适的工具里打开；还显示最近的作品。",
-  "the voice alone, without music or noise (coming in this version).": "只保留人声，去掉音乐和噪声（本版本即将推出）。",
   "tile\u0004Audiobook": "有声书",
   "tile\u0004Clone": "克隆",
   "tile\u0004Design": "设计",
@@ -3811,5 +3810,6 @@
   "Voices isolated": "人声分离完成",
   "Voices, denoised": "降噪后的人声",
   "stem\u0004Voices": "人声",
-  "action\u0004Dub": "配音"
+  "action\u0004Dub": "配音",
+  "the voices of an audio or video file alone, its music and effects, and the voices denoised.": "把音频或视频里的人声单独分出来，以及音乐和音效、降噪后的人声。"
 }

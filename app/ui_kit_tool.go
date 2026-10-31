@@ -51,7 +51,7 @@ func toolComposer(c *ui.Context, key string, drop func([]string), zone, foot fun
 		box.Border(1, k.Accent)
 	}
 	box.Children(func() {
-		z := ui.Column(c.Key("zone")).Gap(px(t, sp2)).Padding(px(t, sp4), px(t, sp4)).Radius(px(t, radiusControl)).Background(k.Subtle).AlignItems(ui.Center).MinHeight(px(t, 120)).Justify(ui.Center)
+		z := ui.Column(c.Key("zone")).Gap(px(t, sp2)).Padding(px(t, sp3), px(t, sp4)).Radius(px(t, radiusControl)).Background(k.Subtle).AlignItems(ui.Center).MinHeight(px(t, 88)).Justify(ui.Center)
 		if over {
 			z.Background(k.AccentSoft)
 		}
@@ -61,10 +61,22 @@ func toolComposer(c *ui.Context, key string, drop func([]string), zone, foot fun
 	return box
 }
 
-// composerPrompt is a drop zone's text: ic, a line and a caption under it.
-func composerPrompt(c *ui.Context, ic icons.Icon, title, sub string) {
+// toolCompact reports whether a tool page is short of room (narrow or
+// low): its composer drops the icon and the caption of its drop zone.
+func (a *app) toolCompact(c *ui.Context) bool {
+	_, h := c.Size()
+	return a.toolNarrow(c) || h < px(c.Theme(), 640)
+}
+
+// composerPrompt is a drop zone's text: ic, a line and a caption under
+// it (the line alone when compact).
+func composerPrompt(c *ui.Context, ic icons.Icon, title, sub string, compact bool) {
 	t := c.Theme()
 	k := tok(t)
+	if compact {
+		ui.Text(c, title).FontWeight(600).TextAlign(ui.Center)
+		return
+	}
 	ui.Icon(c, ic.Linear).Size(px(t, 24), px(t, 24)).TextColor(k.Text3)
 	ui.Text(c, title).FontWeight(600).TextAlign(ui.Center)
 	if sub != "" {

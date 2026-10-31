@@ -79,7 +79,12 @@ func (a *app) topBar(c *ui.Context, inset float32) {
 	narrow := a.pageWidth(c) < px(t, 640)
 	ui.Row(c.Key("topbar")).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+inset).Gap(px(t, sp3)).
 		DragWindow().BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Children(func() {
-		ui.Row(c.Key("crumbs")).Grow(1).Basis(0).MinWidth(0).Gap(px(t, 6)).AlignItems(ui.Center).Role(ui.RoleGroup).Label(i18n.T("Breadcrumb")).Children(func() {
+		// Narrow, the search is an icon: the breadcrumb takes the room.
+		grow := float32(1)
+		if narrow {
+			grow = 3
+		}
+		ui.Row(c.Key("crumbs")).Grow(grow).Basis(0).MinWidth(0).Gap(px(t, 6)).AlignItems(ui.Center).Role(ui.RoleGroup).Label(i18n.T("Breadcrumb")).Children(func() {
 			cs := a.pageCrumbs(a.router.Path())
 			for i, cr := range cs {
 				if i > 0 {

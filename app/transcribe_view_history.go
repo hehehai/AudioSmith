@@ -49,14 +49,14 @@ func (a *app) trComposer(c *ui.Context) {
 		case a.trPend != "":
 			fileChip(c, "tr-pend", icons.FileText, a.trPend, func() { a.trPend = "" })
 		default:
-			composerPrompt(c, transcribeIcon, i18n.T("Drop audio or video here"), i18n.T("WAV, MP3, M4A, FLAC, OGG, AAC — or a video"))
+			composerPrompt(c, transcribeIcon, i18n.T("Drop audio or video here"), i18n.T("WAV, MP3, M4A, FLAC, OGG, AAC — or a video"), a.toolCompact(c))
 			ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Justify(ui.Center).Children(func() {
-				if ghostIconButton(c.Key("tr-upload"), icons.Import, i18n.T("Upload")).Label(i18n.T("Choose a file")).Clicked() {
+				if ghostIconButton(c.Key("tr-upload"), icons.UploadMinimalistic, i18n.T("Upload")).Label(i18n.T("Choose a file")).Clicked() {
 					a.chooseTranscribeFile()
 				}
 				a.trRecordButtons(c, busy)
 			})
-			ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).MinWidth(0).Children(func() {
+			ui.Row(c.Key("tr-model-line")).Gap(px(t, 6)).AlignItems(ui.Center).MinWidth(0).Children(func() {
 				iconMark(c, icons.Box, tok(t).Text3, "")
 				ui.Text(c, a.trModelLine()).FontSize(px(t, fsCaption)).TextColor(tok(t).Text3).SingleLine().Ellipsis("…").MinWidth(0)
 			})

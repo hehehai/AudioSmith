@@ -72,8 +72,8 @@ func (a *app) isoComposer(c *ui.Context) {
 			fileChip(c, "iso-pend", icons.FileText, a.isoPend, func() { a.isoPend = "" })
 			return
 		}
-		composerPrompt(c, isolateIcon, i18n.T("Drop audio or video here"), i18n.T("Get the voices alone, the music and effects, and the voices denoised."))
-		if ghostIconButton(c.Key("iso-choose"), icons.Import, i18n.T("Upload")).Label(i18n.T("Choose a file")).Clicked() {
+		composerPrompt(c, isolateIcon, i18n.T("Drop audio or video here"), i18n.T("Get the voices alone, the music and effects, and the voices denoised."), a.toolCompact(c))
+		if ghostIconButton(c.Key("iso-choose"), icons.UploadMinimalistic, i18n.T("Upload")).Label(i18n.T("Choose a file")).Clicked() {
 			a.isoChoose()
 		}
 	}, func() {
@@ -162,7 +162,7 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 		if !narrow {
 			d := "—"
 			if x.Duration > 0 {
-				d = tlClock(x.Duration)
+				d = clock(x.Duration)
 			}
 			listCell(c, d, 64)
 			listCell(c, ago(x.CreatedAt), 110)

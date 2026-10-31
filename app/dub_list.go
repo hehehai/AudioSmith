@@ -57,10 +57,13 @@ func (a *app) dubComposer(c *ui.Context) {
 		if a.dubPend != "" {
 			fileChip(c, "dub-pend", dubIcon, a.dubPend, func() { a.dubPend = "" })
 		} else {
-			composerPrompt(c, icons.Import, i18n.T("Drop a video or audio file here"), "MP4 · MOV · M4V · MKV · WEBM · MP3 · WAV · M4A · FLAC")
-			if ghostIconButton(c.Key("dub-choose"), icons.Import, i18n.T("Choose file…")).Label(i18n.T("Choose file…")).Clicked() {
+			composerPrompt(c, icons.UploadMinimalistic, i18n.T("Drop a video or audio file here"), "MP4 · MOV · M4V · MKV · WEBM · MP3 · WAV · M4A · FLAC", a.toolCompact(c))
+			if ghostIconButton(c.Key("dub-choose"), icons.UploadMinimalistic, i18n.T("Choose file…")).Label(i18n.T("Choose file…")).Clicked() {
 				a.chooseDubSource()
 			}
+		}
+		if a.dubPend != "" {
+			return // a file goes first: no link with it
 		}
 		ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).FillWidth().MaxWidth(px(t, 520)).Children(func() {
 			ui.Icon(c, icons.Link.Linear).Size(px(t, 16), px(t, 16)).TextColor(k.Text3).Shrink(0)
@@ -334,7 +337,11 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 		c.After(500 * time.Millisecond) // the progress moves
 	}
 	open := listRow(c, "dub-row-"+id, title, func() {
-		listThumb(c, dubIcon, a.coverBitmap(a.dubCovers[id]))
+		ic := dubIcon
+		if ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(r.Source), ".")); slices.Contains(homeAudioExts, ext) {
+			ic = icons.Soundwave // sound alone
+		}
+		listThumb(c, ic, a.coverBitmap(a.dubCovers[id]))
 		sub := ago(r.UpdatedAt)
 		if src := dubSourceLabel(r.Source); src != "" {
 			sub = src + " · " + sub
@@ -348,7 +355,7 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 			listCell(c, strings.Join(langs, ", "), 130)
 			d := "—"
 			if r.Duration > 0 {
-				d = tlClock(r.Duration)
+				d = clock(r.Duration)
 			}
 			listCell(c, d, 64)
 		}
