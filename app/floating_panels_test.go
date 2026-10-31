@@ -26,7 +26,7 @@ func mineWithVoices(t *testing.T) (*app, *ui.Tester, core.Voice, core.Voice) {
 }
 
 // Opening a voice's details leaves the table alone; the panel floats a
-// gap from the window's bottom and right, under the header, and slides
+// gap from the window's bottom, against its right edge, under the header, and slides
 // in: off to the right at first, in place after the motion.
 func TestFloatingPanelOverPage(t *testing.T) {
 	a, tt, v1, v2 := mineWithVoices(t)
@@ -52,8 +52,9 @@ func TestFloatingPanelOverPage(t *testing.T) {
 	}
 	th := ui.LightTheme()
 	gap := px(th, sp3) - 0.5
-	if r.Y < pageTop || 720-(r.Y+r.H) < gap || 1100-(r.X+r.W) < gap {
-		t.Errorf("panel %+v: not under the header with gaps", r)
+	// Against the window's right edge, a gap above its bottom (user, 10-31).
+	if r.Y < pageTop || 720-(r.Y+r.H) < gap || r.X+r.W != 1100 {
+		t.Errorf("panel %+v: not under the header, at the right edge, a gap above the bottom", r)
 	}
 	// Another voice: the content changes, the panel stays put.
 	a.openVoiceEditor(v2.ID)

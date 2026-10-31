@@ -1,8 +1,9 @@
 package main
 
 // The kit's side panels: floating cards over the page (#126). A panel
-// sits at the right of the page's body, a gap from its edges, rounded,
-// with a hairline and a soft shadow; it slides in from the edge as it
+// sits at the right of the page's body against the window's edge, a gap
+// above its bottom, rounded on the page's side, with a hairline and a
+// small soft shadow; it slides in from the edge as it
 // fades in, and slides out before it goes. An inspector (a voice's, a
 // take's details) leaves the page's layout alone: the list under it keeps
 // its width and stays usable where the panel does not cover it. A tool
@@ -112,13 +113,17 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	if p.lane && !p.left {
 		lane = ui.Box(c).Shrink(0)
 	}
+	// Against the window's edge (no gap, square corners there; user,
+	// 10-31), rounded on the page's side, a gap above the window's bottom,
+	// with a small soft shadow.
+	r := px(t, radiusCard)
 	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(px(t, sp2)).Bottom(gap).Width(w).
-		Radius(px(t, radiusCard)).Background(k.Bg).Border(1, k.Line).Clip().
-		Shadow(0, 8, 28, 0, ui.RGBA(0, 0, 0, 0.16)).Label(p.label)
+		Background(k.Bg).BorderColor(k.Line).Clip().
+		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.08)).Label(p.label)
 	if p.left {
-		card.Left(gap)
+		card.Left(0).Radius(0, r, r, 0).BorderWidth(1, 1, 1, 0)
 	} else {
-		card.Right(gap)
+		card.Right(0).Radius(r, 0, 0, r).BorderWidth(1, 0, 1, 1)
 	}
 	in := open && !st.closing
 	if !st.mounted && !first {
