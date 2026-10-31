@@ -257,7 +257,7 @@ func (a *app) voiceRow(c *ui.Context, key string, op *voiceOption, chosen, highl
 			playing := a.pl.Playing(op.preview.id)
 			ic := icons.Play
 			if playing {
-				ic = icons.Stop
+				ic = icons.Pause
 			}
 			pb := iconButton(c.Key("play"), ic, previewTip(op.label, playing)).Size(px(t, 24), px(t, 24)).Shrink(0)
 			if playing {

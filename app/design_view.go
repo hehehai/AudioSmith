@@ -190,7 +190,7 @@ func (a *app) designSavedVoices(c *ui.Context) {
 					truncText(c, v.Name).Grow(1)
 					label, ic := i18n.T("Preview"), icons.Play
 					if a.voicePlaying(v) {
-						label, ic = i18n.T("Stop"), icons.Stop
+						label, ic = i18n.T("Stop"), icons.Pause
 					}
 					if iconButton(c.Key("play"), ic, label).Clicked() {
 						a.playVoice(v)

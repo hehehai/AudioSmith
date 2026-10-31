@@ -177,7 +177,7 @@ func (a *app) cloneClip(c *ui.Context) {
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Wrap().Children(func() {
 			label, ic := i18n.T("Play the part kept"), icons.Play
 			if a.pl.Playing("clone-sel") {
-				label, ic = i18n.T("Stop"), icons.Stop
+				label, ic = i18n.T("Stop"), icons.Pause
 			}
 			if iconButton(c.Key("clone-play"), ic, label).Clicked() {
 				if a.pl.Playing("clone-sel") {

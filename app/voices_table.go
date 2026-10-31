@@ -110,10 +110,11 @@ func voiceCell(c *ui.Context, s string, w float32) {
 	ui.Text(c, orDash(s)).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).SingleLine().Ellipsis("…").Width(px(t, w)).Shrink(0).Tooltip(s)
 }
 
-// previewToggle is a row's ▶ (■ while it plays).
+// previewToggle is a row's ▶ (the pause glyph, labelled Stop, while it
+// plays).
 func previewToggle(c *ui.Context, key string, playing bool) ui.Element {
 	if playing {
-		return iconButton(c.Key(key), icons.Stop, i18n.T("Stop"))
+		return iconButton(c.Key(key), icons.Pause, i18n.T("Stop"))
 	}
 	return iconButton(c.Key(key), icons.Play, i18n.T("Preview"))
 }
