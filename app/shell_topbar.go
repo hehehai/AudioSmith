@@ -100,7 +100,7 @@ func (a *app) topBar(c *ui.Context, inset float32) {
 					}
 					continue
 				}
-				b := ghostBase(c.Key("crumb-"+cr.path)).Padding(px(t, 2), px(t, 4)).Label(cr.title).MinWidth(0).Shrink(1)
+				b := ghostBase(c.Key("crumb-"+cr.path)).Padding(px(t, 2), px(t, 4)).Label(cr.title).Shrink(0) // the page shown gives way first
 				b.Children(func() {
 					col := k.Text2
 					if b.Hovered() {
