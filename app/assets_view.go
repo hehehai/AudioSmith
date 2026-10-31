@@ -153,9 +153,11 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 		}
 		row.Children(func() {
 			if assetPlayable(as.path) {
-				if playButton(c.Key("play"), a.assetPlaying(as), false, 32).Clicked() {
-					a.playAsset(as)
-				}
+				ui.Box(c).Size(px(t, 32), px(t, 32)).Radius(px(t, radiusControl)).Background(k.Subtle).Center().Shrink(0).Children(func() {
+					if playToggle(c.Key("play"), a.assetPlaying(as), i18n.T("Play"), i18n.T("Pause")).Clicked() {
+						a.playAsset(as)
+					}
+				})
 			} else {
 				listThumb(c, assetIcon(as.kind), nil)
 			}
@@ -169,7 +171,7 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 				}
 			}
 			if !narrow {
-				src := ghostBase(c.Key("source")).Width(px(t, 120)).Shrink(0).Padding(px(t, 3), px(t, 4)).Label(i18n.T("Open in %s", pageTitle(as.tool)))
+				src := ghostBase(c.Key("source")).Width(px(t, 120)).Shrink(0).Justify(ui.Start).Padding(px(t, 3), px(t, 4)).Label(i18n.T("Open in %s", pageTitle(as.tool)))
 				src.Children(func() {
 					ui.Icon(c, assetIcon(as.kind).Linear).Size(px(t, 13), px(t, 13)).TextColor(k.Text3)
 					ui.Text(c, pageTitle(as.tool)).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)

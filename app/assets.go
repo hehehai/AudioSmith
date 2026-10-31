@@ -118,7 +118,11 @@ func (a *app) assets() []asset {
 	var out []asset
 	for i := range a.takes {
 		tk := &a.takes[i]
-		out = append(out, asset{key: "take:" + tk.ID, kind: assetSpeech, title: oneLine(tk.Text), sub: clipMeta(tk),
+		sub := modelName(tk.Model)
+		if tk.Voice != "" {
+			sub += " · " + tk.Voice
+		}
+		out = append(out, asset{key: "take:" + tk.ID, kind: assetSpeech, title: oneLine(tk.Text), sub: sub,
 			path: a.takeStore.AudioPath(*tk), dur: tk.AudioSeconds, at: tk.CreatedAt, tool: "/studio", take: tk, text: tk.Text,
 			open: func() { a.reuse(tk) }, del: func() { a.deleteClip(tk) }})
 	}

@@ -164,9 +164,9 @@ func (a *app) lfEntryPage(c *ui.Context, p *lfPage) {
 func (a *app) lfComposer(c *ui.Context, p *lfPage) {
 	t := c.Theme()
 	book := p.kind == core.ProjectAudiobook
-	ph, create := i18n.T("Describe a story in a sentence, or paste a script…"), i18n.T("New story")
+	ph, create := i18n.T("Describe a story in a sentence, or paste a script…"), i18n.X("create", "New story")
 	if book {
-		ph, create = i18n.T("Paste a manuscript, or drop a TXT, Markdown, EPUB or DOCX file…"), i18n.T("New audiobook")
+		ph, create = i18n.T("Paste a manuscript, or drop a TXT, Markdown, EPUB or DOCX file…"), i18n.X("create", "New audiobook")
 	}
 	toolComposer(c, "lf-composer", func(files []string) { a.lfCreateFrom(p, files[0]) }, func() {
 		box := ui.TextArea(c.Key("lf-entry-text"), &p.entryText).Placeholder(ph).Label(ph).Lines(3, 8).FillWidth().MinHeight(0)
@@ -237,8 +237,8 @@ func lfTitleFrom(text string) string {
 	if len(r) == 0 {
 		return ""
 	}
-	if len(r) > 24 {
-		return string(r[:24]) + "…"
+	if len(r) > 40 {
+		return string(r[:40]) + "…"
 	}
 	return line
 }

@@ -55,10 +55,11 @@ func (a *app) useTemplate(key string) {
 func (a *app) templateCards(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
-	ui.Row(c.Key("pj-templates")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).Children(func() {
+	compact := a.toolCompact(c) // a short or narrow window: the titles only
+	ui.Row(c.Key("pj-templates")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).AlignItems(ui.Stretch).Children(func() {
 		for _, s := range projTemplates() {
 			b := ui.ButtonBase(c.Key("sample-" + s.key)).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
-				Grow(1).Basis(px(t, 160)).MinWidth(px(t, 140)).Label(s.title)
+				AlignItems(ui.Stretch).Justify(ui.Start).Grow(1).Basis(px(t, 160)).MinWidth(px(t, 140)).Label(s.title)
 			if b.Hovered() {
 				b.Background(k.Hover)
 			}
@@ -71,7 +72,9 @@ func (a *app) templateCards(c *ui.Context) {
 					}
 				})
 				ui.Text(c, s.title).FontWeight(600).MaxLines(2).Ellipsis("…")
-				ui.Text(c, s.about).FontSize(px(t, fsCaption)).TextColor(k.Text2).MaxLines(2).Ellipsis("…")
+				if !compact {
+					ui.Text(c, s.about).FontSize(px(t, fsCaption)).TextColor(k.Text2).MaxLines(2).Ellipsis("…")
+				}
 			})
 			if b.Clicked() {
 				a.useTemplate(s.key)

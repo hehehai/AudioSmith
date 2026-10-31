@@ -97,10 +97,10 @@ func (a *app) projectsPage(c *ui.Context) {
 
 // newProjectMenu is 「+ 新建」's menu: a kind of project to make.
 func (a *app) newProjectMenu(m *ui.Menu) {
-	if m.Item(i18n.T("New story")).Chosen() {
+	if m.Item(i18n.X("create", "New story")).Chosen() {
 		a.lfEntryNew("/stories")
 	}
-	if m.Item(i18n.T("New audiobook")).Chosen() {
+	if m.Item(i18n.X("create", "New audiobook")).Chosen() {
 		a.lfEntryNew("/audiobook")
 	}
 	if m.Item(i18n.T("New dub")).Chosen() {
@@ -217,7 +217,7 @@ func (a *app) projCards(c *ui.Context, items []projItem) {
 	k := tok(t)
 	ui.Row(c.Key("pj-cards")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).Children(func() {
 		for _, it := range items {
-			b := ui.ButtonBase(c.Key("pj-card-"+it.key())).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).
+			b := ui.ButtonBase(c.Key("pj-card-"+it.key())).Column().AlignItems(ui.Stretch).Justify(ui.Start).Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).
 				Border(1, k.Line).Background(k.Bg).Grow(1).Basis(px(t, 220)).MinWidth(px(t, 180)).MaxWidth(px(t, 320)).Label(it.title)
 			if b.Hovered() {
 				b.Background(k.Hover)

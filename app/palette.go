@@ -88,8 +88,8 @@ func (a *app) paletteQuick() []paletteRow {
 			a.chooseTranscribeFile()
 		}},
 		{key: "q-voice", group: g, icon: cloneIcon, title: i18n.T("New voice"), sub: i18n.T("Quick clone or design"), run: func() { a.navigate("/voices/new") }},
-		{key: "q-story", group: g, icon: storiesIcon, title: i18n.T("New story"), sub: pageTitle("/stories"), run: func() { a.lfEntryNew("/stories") }},
-		{key: "q-book", group: g, icon: audiobookIcon, title: i18n.T("New audiobook"), sub: pageTitle("/audiobook"), run: func() { a.lfEntryNew("/audiobook") }},
+		{key: "q-story", group: g, icon: storiesIcon, title: i18n.X("create", "New story"), sub: pageTitle("/stories"), run: func() { a.lfEntryNew("/stories") }},
+		{key: "q-book", group: g, icon: audiobookIcon, title: i18n.X("create", "New audiobook"), sub: pageTitle("/audiobook"), run: func() { a.lfEntryNew("/audiobook") }},
 	}
 }
 
@@ -232,7 +232,7 @@ func (a *app) palette(c *ui.Context) {
 			kbd(c, "Esc")
 		})
 		ui.Divider(c)
-		ui.Scroll(c).MaxHeight(min(px(t, 420), h*0.6)).Children(func() {
+		ui.Scroll(c.Key("palette-rows")).MaxHeight(min(px(t, 420), h*0.6)).ClipY().Children(func() {
 			ui.Column(c).Padding(px(t, 6)).Children(func() {
 				group := ""
 				for i, r := range rows {

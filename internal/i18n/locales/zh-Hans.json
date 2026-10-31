@@ -1739,7 +1739,6 @@
   "New": "新建",
   "New API key made. Copy it now: it is not shown again.": "已生成新的 API 密钥。请现在拷贝：之后不再显示。",
   "New Zealand": "新西兰",
-  "New audiobook": "新建有声书",
   "New call": "新通话",
   "New design": "新设计",
   "New dub": "新建配音",
@@ -3877,5 +3876,7 @@
   "asset kind\u0004Speech": "语音",
   "asset kind\u0004Stems": "分离",
   "project kind\u0004Dub": "配音",
-  "project kind\u0004Isolation": "人声分离"
+  "project kind\u0004Isolation": "人声分离",
+  "create\u0004New story": "新建故事",
+  "create\u0004New audiobook": "新建有声书"
 }
