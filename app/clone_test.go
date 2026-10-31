@@ -31,7 +31,7 @@ func TestCloneFlowUpload(t *testing.T) {
 	tt.Frame()
 	tt.Click("Clone a voice")
 	tt.Frame()
-	if a.router.Path() != "/clone" || !tt.HasText("Drop a clip here, or click to choose") || !tt.HasText("Record") {
+	if a.router.Path() != "/voices/new/clone" || !tt.HasText("Drop a clip here, or click to choose") || !tt.HasText("Record") {
 		t.Fatalf("clone page: %s %q", a.router.Path(), tt.Texts())
 	}
 	// A 30 s clip: by energy, its best 15 s start at 12 s, at once.
@@ -126,7 +126,7 @@ func TestCloneFlowUpload(t *testing.T) {
 	if v.RefOriginal == "" || v.RefCheck == nil || v.RefCheck.Grade == "" || !slices.Contains(v.RefCheck.Cleaned, "tidied") {
 		t.Errorf("original %q, check %+v", v.RefOriginal, v.RefCheck)
 	}
-	if a.router.Path() != "/voices" || a.edit == nil || a.edit.id != v.ID {
+	if a.router.Path() != "/voices/mine" || a.edit == nil || a.edit.id != v.ID {
 		t.Errorf("after save: %s %+v", a.router.Path(), a.edit)
 	}
 	// Saved: the Clone page starts afresh next time (no clip, no name or

@@ -86,9 +86,9 @@ func snapshotsWindow(t *testing.T, out string) {
 		eng.update(exp, func(j *jobs.Job) { j.State = jobs.StateQueued })
 		a.toasts = nil
 		save("activity")
-		a.actPinned = true
+		a.noticesOpen = true // the bell's popover (shell_topbar.go)
 		save("activity-open")
-		a.actPinned = false
+		a.noticesOpen = false
 		a.navigate("/tasks")
 		save("tasks")
 		eng.cancelled(exp)

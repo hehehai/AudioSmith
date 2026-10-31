@@ -80,8 +80,8 @@ func (a *app) callsPage(c *ui.Context) {
 	if !histInline && a.callHistOn {
 		ui.Overlay(c, func() {
 			w, h := c.Size()
-			d := ui.Column(c.Key("calls-history-drawer")).Absolute().Left(w-pw).Top(titleBarHeight).Width(px(t, callsHistoryWidth)).
-				Height(h-titleBarHeight-1).Background(k.Bg).BorderWidth(0, 1, 0, 0).BorderColor(k.Line).
+			d := ui.Column(c.Key("calls-history-drawer")).Absolute().Left(w-pw).Top(pageTop).Width(px(t, callsHistoryWidth)).
+				Height(h-pageTop-1).Background(k.Bg).BorderWidth(0, 1, 0, 0).BorderColor(k.Line).
 				Shadow(8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Recent calls"))
 			d.Children(func() { a.callHistory(c) })
 			if d.PressedOutside() || d.OverlayShortcut(0, ui.KeyEscape) {

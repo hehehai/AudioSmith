@@ -6,28 +6,28 @@ import (
 	"time"
 )
 
-// The sidebar's views and sections, the ⌘ numbers and the palette agree
-// (the ActNow family's window layout): Models, Engine, Logs and
-// Integrations are not in the sidebar, Tools is an icon at its foot.
+// The sidebar's places, tools and foot, the ⌘ numbers and the palette
+// agree (0.5 F1): Models, Engine, Logs and Integrations are not in the
+// sidebar, More's pages are a menu (TestMoreMenu).
 func TestSidebarGroups(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	tt.Frame()
-	for _, title := range []string{"Create", "Voices", "Automate",
-		"Studio", "Stories", "Audiobook", "Dub", "Design", "Clone", "Discover voices", "My voices", "Projects", "History", "Transcribe",
-		"Workflows", "Batch", "Calls", "Tools", "Settings (⌘,)", "Show or hide the logs panel (⇧⌘L)", "Notifications", "Search the library"} {
+	for _, title := range []string{"Tools", "Home", "Voices", "Projects", "Assets",
+		"Text to speech", "New voice", "Stories", "Audiobook", "Dub", "Speech to text", "Voice isolator", "Dictation", "More",
+		"Developers", "Settings", "Tasks and notifications", "Search everything…"} {
 		if !tt.HasText(title) {
-			t.Errorf("sidebar lacks %q", title)
+			t.Errorf("window lacks %q", title)
 		}
 	}
-	for _, title := range []string{"Library", "Utilities", "System", "Integrations", "Models", "Engine", "Logs", "Engine ready"} {
+	for _, title := range []string{"Create", "Automate", "Integrations", "Models", "Engine", "Logs", "Engine ready", "Search the library"} {
 		if tt.HasText(title) {
 			t.Errorf("sidebar has %q", title)
 		}
 	}
-	if navGroups[0].id != "" || len(navGroups[0].pages) > 5 {
-		t.Errorf("views %+v", navGroups[0])
+	if navGroups[0].id != "" || len(navGroups[0].pages) != 4 {
+		t.Errorf("places %+v", navGroups[0])
 	}
-	if len(shortcutPages) != 9 {
+	if len(shortcutPages) != 8 {
 		t.Fatalf("%d shortcut pages", len(shortcutPages))
 	}
 	cmds := a.commands()
@@ -40,24 +40,23 @@ func TestSidebarGroups(t *testing.T) {
 		if cmds[i].keys != pageKeys(p.path) {
 			t.Errorf("%s: keys %q", p.path, cmds[i].keys)
 		}
-		if n := 0; true {
-			for _, c := range cmds {
-				if c.id == "go"+p.path {
-					n++
-				}
-			}
-			if n != 1 {
-				t.Errorf("%s: %d palette entries", p.path, n)
+		n := 0
+		for _, c := range cmds {
+			if c.id == "go"+p.path {
+				n++
 			}
 		}
+		if n != 1 {
+			t.Errorf("%s: %d palette entries", p.path, n)
+		}
 	}
-	if pageKeys("/history") != "" || pageKeys("/transcripts") != "⌘9" {
-		t.Errorf("keys: history %q transcripts %q", pageKeys("/history"), pageKeys("/transcripts"))
+	if pageKeys("/assets") != "" || pageKeys("/transcripts") != "⌘6" {
+		t.Errorf("keys: assets %q transcripts %q", pageKeys("/assets"), pageKeys("/transcripts"))
 	}
 	// The sheet lists the new numbers.
 	a.sheetOpen = true
 	tt.Frame()
-	if !tt.HasText("Studio, Stories, Audiobook, Dub") || tt.HasText("Studio, History, Models, Engine, Logs") {
+	if !tt.HasText("Home, Text to speech, Voices, Projects") || !tt.HasText("Dub, Speech to text, Stories, Audiobook") {
 		t.Errorf("sheet: %q", tt.Texts())
 	}
 }
@@ -74,7 +73,7 @@ func TestSidebarRail(t *testing.T) {
 	if !a.prefs.Appearance.Rail || !a.settings.Get().Appearance.Rail {
 		t.Fatal("rail not saved")
 	}
-	if tt.HasText("Create") {
+	if tt.HasText("Tools") {
 		t.Error("the rail shows section titles")
 	}
 	if err := tt.Click("Projects"); err != nil {
@@ -87,17 +86,17 @@ func TestSidebarRail(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.prefs.Appearance.Rail || !tt.HasText("Create") {
+	if a.prefs.Appearance.Rail || !tt.HasText("Tools") {
 		t.Fatal("the sidebar did not come back")
 	}
 	// Close a section: its pages go, and the settings remember it.
-	*a.sectionOpen("Automate") = false
+	*a.sectionOpen("Tools") = false
 	tt.Frame()
 	tt.Frame()
-	if tt.HasText("Batch") {
+	if tt.HasText("Voice isolator") {
 		t.Error("closed section still shows its pages")
 	}
-	if !slices.Contains(a.settings.Get().Appearance.ClosedSections, "Automate") {
+	if !slices.Contains(a.settings.Get().Appearance.ClosedSections, "Tools") {
 		t.Errorf("closed sections %v", a.settings.Get().Appearance.ClosedSections)
 	}
 	// The resized width is saved.

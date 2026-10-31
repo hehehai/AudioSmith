@@ -240,43 +240,6 @@ func voiceKindText(k core.VoiceKind) string {
 
 // --- the area's pages in the router (shell_pages.go) ---------------------
 
-// voicesRoute builds the voice area's page for r and reports whether it
-// was one: /voices, /clone (or /voices/new), /design, /gallery.
-func (a *app) voicesRoute(c *ui.Context, r *ui.Route) bool {
-	switch {
-	case r.Match("/voices"):
-		r.Title(i18n.T("My voices"))
-		a.voicesPage(c)
-	case r.Match("/clone"), r.Match("/voices/new"): // the sidebar's Clone; /voices/new as before
-		r.Title(i18n.T("Clone a voice"))
-		a.clonePage(c)
-	case r.Match("/design"):
-		r.Title(i18n.T("Design"))
-		a.designPage(c)
-	case r.Match("/gallery"):
-		r.Title(i18n.T("Discover voices"))
-		a.galleryPage(c)
-	default:
-		return false
-	}
-	return true
-}
-
-// voicePageTitle translates the titles of the area's pages.
-func voicePageTitle(path string) (string, bool) {
-	switch path {
-	case "/voices":
-		return i18n.T("My voices"), true
-	case "/design":
-		return i18n.T("Design"), true
-	case "/gallery":
-		return i18n.T("Discover voices"), true
-	case "/clone":
-		return i18n.T("Clone"), true
-	}
-	return "", false
-}
-
 var (
 	voicesIcon  = icons.UserSpeakRounded
 	designIcon  = icons.MagicStick3

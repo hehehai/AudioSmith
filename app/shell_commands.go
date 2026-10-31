@@ -140,7 +140,11 @@ func (a *app) runCommand(cmd command) {
 // does the same thing once.
 func (a *app) shortcuts(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyEnter) {
-		a.generate()
+		if a.currentPage() == "home" && !a.settingsOpen {
+			a.homeSubmit() // Home's composer: ⌘↩ sends, as Enter does
+		} else {
+			a.generate()
+		}
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyK) {
 		a.openPalette()
@@ -167,14 +171,11 @@ func (a *app) shortcuts(c *ui.Context) {
 	}
 }
 
-// focusSearch puts the keyboard in the sidebar's search field (⌘F); on
-// the icon rail, which has none, it opens the palette.
+// focusSearch puts the keyboard in the library's search field (⌘F), at
+// the top of the Projects page.
 func (a *app) focusSearch() {
-	if a.railMode() {
-		a.openPalette()
-		return
-	}
 	a.settingsOpen = false
+	a.navigate("/projects")
 	a.searchFocus = true
 }
 
@@ -294,9 +295,8 @@ func (a *app) shortcutSheet(c *ui.Context) {
 			{i18n.T("Navigation"), [][2]string{
 				{"⌘F", i18n.T("Search the library")},
 				{"⌘K", i18n.T("Command palette")},
-				{"⌘1 … ⌘4", i18n.T("Studio, Stories, Audiobook, Dub")},
-				{"⌘5 … ⌘7", i18n.T("Discover voices, My voices, Design")},
-				{"⌘8  ⌘9", i18n.T("Projects, Transcribe")},
+				{"⌘1 … ⌘4", i18n.T("Home, Text to speech, Voices, Projects")},
+				{"⌘5 … ⌘8", i18n.T("Dub, Speech to text, Stories, Audiobook")},
 				{"⌘,", i18n.T("Settings")},
 				{"⌘[  ⌘]", i18n.T("Back, forward")},
 				{"⌘E", i18n.T("Engine quick switch")},
@@ -339,7 +339,7 @@ func (a *app) buildMenu() {
 		return func(*mygo.MenuItem, *mygo.Window) { a.post(fn) }
 	}
 	goItems := []*mygo.MenuItem{}
-	groups := append(slices.Clone(navGroups), navGroup{"Others", otherPages})
+	groups := append(slices.Clone(navGroups), navGroup{"More", morePages}, navGroup{"Foot", footPages}, navGroup{"Others", otherPages})
 	for gi, g := range groups {
 		if gi > 0 {
 			goItems = append(goItems, mygo.Separator())
@@ -417,15 +417,13 @@ func (a *app) openURL(raw string) {
 		path = "/" + u.Host + u.Path
 	}
 	path = "/" + strings.Trim(path, "/")
-	switch sec := section(path); {
-	case slices.ContainsFunc(pages, func(p navPage) bool { return p.path == sec }): // every page
-		if _, ok := settingsPageAlias(path); ok { // an integration's setup: Settings
-			sec = path
+	switch {
+	case knownPath(path): // a page, an old one (shell_routes.go) or a Settings section
+		if to, ok := routeAlias(path); ok {
+			path = to
 		}
-		a.navigate(sec)
-	case sec == "/settings":
-		if path == "/settings" {
-			path = "/settings/" + a.lastSettings
+		if section(path) != "/settings" && !strings.HasPrefix(path, "/voices/") && path != "/calls/setup" && path != "/integrations/twilio" {
+			path = section(path)
 		}
 		a.navigate(path)
 	default:

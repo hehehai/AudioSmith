@@ -60,6 +60,9 @@ func newTestAppIn(t *testing.T, dir string) (*app, *fakeEngine, *ui.Tester) {
 	lib := openTestLibraryWith(t, dir, libraryOptions{Sched: eng.host.sched, Async: inline})
 	useLocalModels(t, lib)
 	a := newApp(eng.host, lib)
+	// The app opens at Home (0.5 F1); the tests written before it start
+	// in the Studio, as the app did (TestHomeStart checks Home).
+	a.router.Replace("/studio")
 	eng.a = a
 	a.connectEngine(eng.host)
 	a.autoplay = false
@@ -149,6 +152,6 @@ func tallSettings(tt *ui.Tester) { tt.SetSize(1100, 3000) }
 // openModels opens Settings → Models & network over the logs page,
 // whose texts are none of the models' (the Studio's model picker is).
 func openModels(a *app) {
-	a.navigate("/logs")
+	a.navigate("/assets") // not the Studio, whose model picker names models too
 	a.navigate("/models")
 }

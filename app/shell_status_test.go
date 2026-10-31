@@ -28,7 +28,7 @@ func TestNotifications(t *testing.T) {
 	if n := a.unreadNotices(); n != 2 {
 		t.Errorf("%d unread", n)
 	}
-	tt.Click("Notifications")
+	tt.Click("Tasks and notifications") // the top bar's bell
 	if !a.noticesOpen || !tt.HasText("Disk almost full") || !tt.HasText("2 GB left") {
 		t.Fatalf("centre: %q", tt.Texts())
 	}
@@ -75,6 +75,7 @@ func TestLogs(t *testing.T) {
 	// The panel, under another page.
 	a.logsQuery = ""
 	a.navigate("/studio")
+	tt.Frame() // the Settings dialog (Settings → Logs) goes
 	tt.Key(ui.Cmd|ui.Shift, ui.KeyL)
 	if !a.logsPanel || !tt.HasText("weights loaded") || !tt.HasText("Generate") {
 		t.Errorf("panel: %v %q", a.logsPanel, tt.Texts())
@@ -101,8 +102,8 @@ func TestQuickSwitch(t *testing.T) {
 	}
 }
 
-// No status bar: a stopped engine, downloads and jobs are cards at the
-// sidebar's foot; its icons open the logs panel and the notifications.
+// No status bar: a stopped engine, downloads and jobs are cards, counted
+// by the top bar's bell and listed in its popover (0.5 F1).
 func TestActivityCards(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	tt.Frame()
@@ -111,6 +112,11 @@ func TestActivityCards(t *testing.T) {
 	}
 	m := a.model(entry(t, "chatterbox-turbo-8bit"))
 	m.downloading, m.progress = true, hub.Progress{Bytes: 50, TotalBytes: 200}
+	tt.Frame()
+	if !tt.HasText("1 in progress") {
+		t.Errorf("bell: %q", tt.Texts())
+	}
+	a.noticesOpen = true
 	tt.Frame()
 	if !tt.HasText("Downloading “English clone”") || !tt.HasText("25%") {
 		t.Errorf("download card: %q", tt.Texts())
@@ -122,6 +128,7 @@ func TestActivityCards(t *testing.T) {
 	a.settingsOpen = false
 	m.downloading = false
 	a.engState = engineFailed
+	a.noticesOpen = true
 	tt.Frame()
 	if !tt.HasText("Engine stopped") || a.actCards[0].key != "engine" {
 		t.Errorf("engine card: %q", tt.Texts())
@@ -130,10 +137,6 @@ func TestActivityCards(t *testing.T) {
 		t.Error(err)
 	}
 	a.engState = engineReady
-	tt.Click("Show or hide the logs panel (⇧⌘L)")
-	if !a.logsPanel {
-		t.Error("logs toggle")
-	}
 }
 
 // Every unfinished job is on a card, those of a kind on one, and on the
@@ -146,6 +149,7 @@ func TestJobsInCards(t *testing.T) {
 	other, _ := eng.host.sched.Submit(context.Background(), jobs.Spec{Kind: "x.batch", Lane: jobs.LaneCPU, Title: "Batch export", Owner: "project:p1"})
 	eng.progress(take, "generating", 0.5, 1)
 	eng.update(other, func(j *jobs.Job) { j.State = jobs.StateQueued })
+	a.noticesOpen = true // the bell's popover
 	tt.Frame()
 	if len(a.actCards) != 2 || !tt.HasText(i18n.T("Generate take")) || !tt.HasText("2 in progress") {
 		t.Fatalf("cards %+v: %q", a.actCards, tt.Texts())

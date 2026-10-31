@@ -147,7 +147,7 @@ func TestGalleryPage(t *testing.T) {
 	if b, _, err := wav.ReadFile(a.voicePath(&v, v.RefAudio)); err != nil || b.Seconds() < 8 {
 		t.Fatalf("reference: %v", err)
 	}
-	if a.router.Path() != "/design" || a.design.linked != v.ID {
+	if a.router.Path() != "/voices/new/design" || a.design.linked != v.ID {
 		t.Errorf("design: %s %s", a.router.Path(), a.design.linked)
 	}
 	// Using it again finds it; Use in Studio picks it there, on the clone

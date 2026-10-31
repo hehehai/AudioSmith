@@ -112,7 +112,7 @@ func entry(t *testing.T, id string) catalog.Entry {
 func TestNavigation(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	tt.Frame()
-	for i, want := range []string{"studio", "stories", "audiobook", "dub", "gallery", "voices", "design", "projects", "transcripts"} {
+	for i, want := range []string{"home", "studio", "voices", "projects", "dub", "transcripts", "stories", "audiobook"} {
 		tt.Key(ui.Cmd, ui.Key1+ui.Key(i))
 		if a.currentPage() != want {
 			t.Errorf("⌘%d: %s", i+1, a.currentPage())
@@ -123,30 +123,30 @@ func TestNavigation(t *testing.T) {
 		t.Errorf("⌘,: %s %q", a.shownPath(), tt.Texts())
 	}
 	// Settings is a dialog over the page (0.3): the page stays.
-	if a.router.Path() != "/transcripts" {
+	if a.router.Path() != "/audiobook" {
 		t.Errorf("under the settings: %s", a.router.Path())
 	}
 	if err := tt.Click("Close"); err != nil || a.settingsOpen {
 		t.Fatalf("close: %v %v", err, a.settingsOpen)
 	}
 	// The sidebar.
-	if err := tt.Click("History"); err != nil {
+	if err := tt.Click("Assets"); err != nil {
 		t.Fatal(err)
 	}
-	if a.currentPage() != "history" {
+	if a.currentPage() != "assets" {
 		t.Errorf("sidebar: %s", a.router.Path())
 	}
 	// Back.
 	a.router.Back()
 	tt.Frame()
-	if a.router.Path() != "/transcripts" {
+	if a.router.Path() != "/audiobook" {
 		t.Errorf("back: %s", a.router.Path())
 	}
 	// The same page again adds no history.
 	a.showPage("studio")
 	a.showPage("studio")
 	a.router.Back()
-	if a.router.Path() != "/transcripts" {
+	if a.router.Path() != "/audiobook" {
 		t.Errorf("showPage twice pushed twice: %s", a.router.Path())
 	}
 	// Settings remembers its section; going to a page closes it.
@@ -167,26 +167,30 @@ func TestDeepLinks(t *testing.T) {
 	for link, want := range map[string]string{
 		"audiosmith://models":           "/settings/models", // a Settings section
 		"audiosmith://settings/models":  "/settings/models",
-		"audiosmith:///history":         "/history",
+		"audiosmith:///history":         "/assets", // old paths go on (0.5 F1)
 		"audiosmith://studio/":          "/studio",
-		"/settings/engine":              "/settings/models", // part of Models & network
+		"/settings/engine":              "/settings/engine",
+		"/settings/network":             "/settings/models", // part of Models & network
 		"audiosmith://integrations/n8n": "/settings/integrations/n8n",
 		"audiosmith://tasks":            "/tasks",
-		"audiosmith://logs?source=app":  "/logs",
-		"AudioSmith://engine":           "/engine",
+		"audiosmith://logs?source=app":  "/settings/logs",
+		"AudioSmith://engine":           "/settings/engine",
 		"audiosmith://workflows":        "/workflows", // M7a: every sidebar page
 		"audiosmith://dub":              "/dub",
+		"audiosmith://home":             "/home",
+		"audiosmith://voices/new/clone": "/voices/new/clone",
 	} {
 		a.openURL(link)
 		if a.shownPath() != want {
 			t.Errorf("%s → %s, want %s", link, a.shownPath(), want)
 		}
 	}
-	a.openURL("AudioSmith://engine")
+	a.settingsOpen = false
+	a.openURL("audiosmith://dub")
 	a.openURL("audiosmith://nowhere")
 	a.openURL("https://example.com/")
 	tt.Frame()
-	if len(a.toasts) != 0 || a.router.Path() != "/engine" {
+	if len(a.toasts) != 0 || a.router.Path() != "/dub" {
 		t.Errorf("unknown links moved: %s", a.router.Path())
 	}
 }
@@ -209,7 +213,7 @@ func TestPalette(t *testing.T) {
 		t.Fatalf("query %q", a.paletteQuery)
 	}
 	items := a.paletteItems()
-	if len(items) == 0 || items[0].id != "go/models" {
+	if len(items) == 0 || items[0].id != "go/settings/models" {
 		t.Fatalf("items %+v", items)
 	}
 	tt.Key(0, ui.KeyEnter)
@@ -279,7 +283,7 @@ func TestLanguageSwitch(t *testing.T) {
 	a.settingsForm.language = "简体中文"
 	a.updateSettings(func(s *settings.Settings) { s.General.Language = "zh-Hans" })
 	tt.Frame()
-	if i18n.Locale() != "zh-Hans" || !tt.HasText("工作室") || !tt.HasText("设置") || !tt.HasText("创作") {
+	if i18n.Locale() != "zh-Hans" || !tt.HasText("文字转语音") || !tt.HasText("设置") || !tt.HasText("首页") {
 		t.Fatalf("zh: %s %q", i18n.Locale(), tt.Texts())
 	}
 	// Saved: a new app over the same library starts in Chinese.
@@ -295,7 +299,7 @@ func TestLanguageSwitch(t *testing.T) {
 	a.systemLocale = "fr-FR"
 	a.applyLocale()
 	tt.Frame()
-	if i18n.Locale() != "en" || !tt.HasText("Studio") {
+	if i18n.Locale() != "en" || !tt.HasText("Text to speech") {
 		t.Errorf("system fr: %s", i18n.Locale())
 	}
 }

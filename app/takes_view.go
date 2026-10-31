@@ -101,7 +101,7 @@ func (a *app) historyModels() []string {
 func (a *app) historyPage(c *ui.Context) {
 	t := c.Theme()
 	h := &a.history
-	browseHeader(c, i18n.T("History"), i18n.N(len(a.takes), "%d take", "%d takes", len(a.takes)), func() {
+	browseHeader(c, i18n.T("Assets"), i18n.N(len(a.takes), "%d take", "%d takes", len(a.takes)), func() {
 		if iconButton(c.Key("open-folder"), icons.FolderOpen, i18n.T("Open folder")).Tooltip(i18n.T("Open the folder of the takes in Finder")).Clicked() {
 			mygo.Shell.OpenPath(a.takeStore.AudioDir())
 		}
@@ -149,7 +149,7 @@ func (a *app) historyPage(c *ui.Context) {
 		if twoLines {
 			bar += px(t, 40)
 		}
-		ui.Column(c).Absolute().Left(0).Top(titleBarHeight + bar).Right(0).Bottom(0).Center().PassThrough().Children(func() {
+		ui.Column(c).Absolute().Left(0).Top(pageTop + bar).Right(0).Bottom(0).Center().PassThrough().Children(func() {
 			if len(a.takes) == 0 {
 				emptyState(c, icons.History, i18n.T("No takes yet"), i18n.T("What you generate in the studio shows up here."), nil)
 			} else {

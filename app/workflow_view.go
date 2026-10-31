@@ -139,8 +139,8 @@ func (a *app) workflowsPage(c *ui.Context) {
 		ui.Overlay(c, func() {
 			w, h := c.Size()
 			left := w - a.pageWidth(c)
-			d := ui.Scroll(c.Key("wf-rail-drawer")).Absolute().Left(left).Top(titleBarHeight).Width(px(t, wfRailWidth+20)).
-				Height(h-titleBarHeight-1).Background(k.Bg).BorderWidth(0, 1, 0, 0).BorderColor(k.Line).
+			d := ui.Scroll(c.Key("wf-rail-drawer")).Absolute().Left(left).Top(pageTop).Width(px(t, wfRailWidth+20)).
+				Height(h-pageTop-1).Background(k.Bg).BorderWidth(0, 1, 0, 0).BorderColor(k.Line).
 				Shadow(8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Workflows and steps"))
 			d.Children(rail)
 			if d.PressedOutside() || d.OverlayShortcut(0, ui.KeyEscape) {
@@ -150,7 +150,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 	}
 	if panelShown && !panelInline {
 		sidePanel(c, "wf-panel", px(t, wfPanelWidth), false, i18n.T("Step and run"), func() { a.wfPanelOpen = false }, func() {
-			ui.Column(c).Height(func() float32 { _, h := c.Size(); return h - titleBarHeight - 1 }()).Children(panel)
+			ui.Column(c).Height(func() float32 { _, h := c.Size(); return h - pageTop - 1 }()).Children(panel)
 		})
 	}
 	a.wfConfirmDialog(c)

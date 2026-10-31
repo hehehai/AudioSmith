@@ -1,9 +1,9 @@
 package main
 
-// The M5 pages in the shell: Tools (its icon at the sidebar's foot) and
-// the API reference viewer's page, their routes, titles and the palette's
-// entries (one call each from shell*.go). Integrations are a Settings
-// section now (settings_integrations.go).
+// The M5 pages in the shell: the API reference viewer's page, its route,
+// title and the palette's entry (one call each from shell*.go). Tools are
+// Developers' tab (developers_view.go), Integrations a Settings section
+// (settings_integrations.go) and Developers' first tab.
 
 import (
 	"github.com/egoist/mygo"
@@ -13,17 +13,12 @@ import (
 )
 
 var (
-	toolsIcon        = icons.RulerCrossPen
-	integrationsIcon = icons.PlugCircle
+	toolsIcon = icons.RulerCrossPen
 )
 
 // m5PageTitle translates the M5 pages' titles.
 func m5PageTitle(path string) (string, bool) {
 	switch path {
-	case "/tools":
-		return i18n.T("Tools"), true
-	case "/integrations":
-		return i18n.T("Integrations"), true
 	case "/api-reference":
 		return i18n.T("API reference"), true
 	}
@@ -33,9 +28,6 @@ func m5PageTitle(path string) (string, bool) {
 // m5Route builds the M5 pages.
 func (a *app) m5Route(c *ui.Context, r *ui.Route) bool {
 	switch {
-	case r.Match("/tools"):
-		r.Title(i18n.T("Tools"))
-		a.toolsPage(c)
 	case r.Match("/api-reference"):
 		r.Title(i18n.T("API reference"))
 		a.apiReferencePage(c)
@@ -47,7 +39,6 @@ func (a *app) m5Route(c *ui.Context, r *ui.Route) bool {
 
 // m5Commands adds the palette's entries.
 func (a *app) m5Commands(nav string, add func(id, group, title, en, keys string, enabled bool, run func())) {
-	// Tools and Integrations come from the shell's page list (M7a).
 	add("go/api-reference", nav, i18n.T("API reference"), "API reference OpenAPI docs", "", a.apiPort != 0, func() { a.navigate("/api-reference") })
 }
 

@@ -66,7 +66,10 @@ func settingsSections() []settingsSection {
 		{"integrations", i18n.T("Integrations"), "Integrations Local API MCP agents"}, // M5: api_settings.go, settings_integrations.go
 		// M7a (thread #22): settings_*.go, ffmpeg_settings.go.
 		{"audio-tools", i18n.T("Audio tools"), "Audio tools ffmpeg"},
-		{"models", i18n.T("Models & network"), "Models downloads network proxy mirror engine memory"},
+		{"models", i18n.T("Models & network"), "Models downloads network proxy mirror memory"},
+		// 0.5 F1: the Engine and Logs pages (engine_view.go, shell_logs.go).
+		{"engine", i18n.T("Engine"), "Engine processes restart memory GPU workers"},
+		{"logs", i18n.T("Logs"), "Logs log lines diagnostics"},
 		{"privacy", i18n.T("Privacy"), "Privacy history analytics"},
 		{"advanced", i18n.T("Advanced"), "Advanced storage disk data folder reset usage statistics diagnostics self-check"},
 		{"about", i18n.T("About"), "About version updates licence"},
@@ -81,7 +84,6 @@ var settingsAliases = map[string]string{
 	"pronunciation": "studio",
 	"permissions":   "dictation",
 	"api":           "integrations",
-	"engine":        "models",
 	"network":       "models",
 	"storage":       "advanced",
 	"usage":         "advanced",

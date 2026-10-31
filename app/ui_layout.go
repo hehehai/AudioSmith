@@ -15,8 +15,35 @@ import (
 // controls: set each frame by sidebarFrame, non-zero beside the icon rail.
 var headerInset float32
 
+// headerHost lets a page that shows another page's view inside it (the
+// Voices page's tabs, New voice's flows: voices_pages.go) name the header
+// that view builds (title, "" keeps the view's) and add a row under it
+// (below: the tabs; nil none). The host sets it before the view builds
+// and clears it after; the next header takes it.
+var headerHost struct {
+	title string
+	below func()
+}
+
+// hostedHeader is the header's title, and what goes under it, taken from
+// headerHost once.
+func hostedHeader(title string) (string, func()) {
+	h := headerHost
+	headerHost.title, headerHost.below = "", nil
+	if h.title != "" {
+		title = h.title
+	}
+	return title, h.below
+}
+
 func pageHeader(c *ui.Context, title string, trailing func()) {
 	t := c.Theme()
+	title, below := hostedHeader(title)
+	defer func() {
+		if below != nil {
+			below()
+		}
+	}()
 	ui.Row(c).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).Gap(px(t, sp2)).DragWindow().Children(func() {
 		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
 		if trailing != nil {

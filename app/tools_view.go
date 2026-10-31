@@ -11,47 +11,40 @@ import (
 	"github.com/hehehai/AudioSmith/internal/translate"
 )
 
-// toolsPage is /tools.
-func (a *app) toolsPage(c *ui.Context) {
+// toolsBody is the tools (A/B voices, Convert, Rate fit, Direction, File
+// probe, Watermark): Developers' Tools tab (developers_view.go). Too
+// narrow for the six tabs, they are a menu.
+func (a *app) toolsBody(c *ui.Context) {
 	t := c.Theme()
 	tabs := []string{i18n.T("A/B voices"), i18n.T("Convert"), i18n.T("Rate fit"), i18n.T("Direction"), i18n.T("File probe"), i18n.T("Watermark")}
 	narrow := a.pageWidth(c) < px(t, 720)
-	pageHeader(c, i18n.T("Tools"), func() {
-		if !narrow {
+	ui.Row(c).Children(func() {
+		if narrow {
+			dropButton(c.Key("tools-menu"), icons.RulerCrossPen, tabs[min(a.toolTab, len(tabs)-1)]).Label(i18n.T("Tool")).Shrink(0).Menu(func(m *ui.Menu) {
+				for i, l := range tabs {
+					if m.Item(l).Checked(i == a.toolTab).Chosen() {
+						a.toolTab = i
+					}
+				}
+			})
 			return
 		}
-		// Too narrow for the six tabs: the tools in a menu.
-		dropButton(c.Key("tools-menu"), icons.RulerCrossPen, tabs[min(a.toolTab, len(tabs)-1)]).Label(i18n.T("Tool")).Shrink(0).Menu(func(m *ui.Menu) {
-			for i, l := range tabs {
-				if m.Item(l).Checked(i == a.toolTab).Chosen() {
-					a.toolTab = i
-				}
-			}
-		})
+		ui.Segmented(c.Key("tools-tab"), &a.toolTab, tabs...).Label(i18n.T("Tool"))
 	})
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 760)).Children(func() {
-			if !narrow {
-				ui.Row(c).Children(func() {
-					ui.Segmented(c.Key("tools-tab"), &a.toolTab, tabs...).Label(i18n.T("Tool"))
-				})
-			}
-			switch a.toolTab {
-			case 0:
-				a.abTool(c)
-			case 1:
-				a.convertTool(c)
-			case 2:
-				a.rateFitTool(c)
-			case 3:
-				a.directionTool(c)
-			case 5:
-				a.watermarkTool(c) // watermark_app.go (thread #14)
-			default:
-				a.probeTool(c)
-			}
-		})
-	})
+	switch a.toolTab {
+	case 0:
+		a.abTool(c)
+	case 1:
+		a.convertTool(c)
+	case 2:
+		a.rateFitTool(c)
+	case 3:
+		a.directionTool(c)
+	case 5:
+		a.watermarkTool(c) // watermark_app.go (thread #14)
+	default:
+		a.probeTool(c)
+	}
 }
 
 func toolIntro(c *ui.Context, text string) {

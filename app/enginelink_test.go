@@ -102,7 +102,8 @@ func TestEngineCrash(t *testing.T) {
 	eng.update(id, func(j *jobs.Job) {
 		j.State, j.Err = jobs.StateInterrupted, &jobs.Error{Code: jobs.CodeInterrupted, Message: "engine worker exited"}
 	})
-	a.showPage("engine")
+	a.showPage("engine") // Settings → Engine
+	a.noticesOpen = true // the bell's popover: the engine's card
 	tt.Frame()
 	if a.job != nil || a.engState != engineFailed {
 		t.Fatalf("state %v job %v", a.engState, a.job)
@@ -114,7 +115,9 @@ func TestEngineCrash(t *testing.T) {
 	if a.jobError != i18n.T("The engine stopped while it worked. Try again.") {
 		t.Errorf("job error %q", a.jobError)
 	}
-	if err := tt.Click("Restart engine"); err != nil {
+	a.noticesOpen = false
+	tt.Frame()
+	if err := tt.Click("Restart engine"); err != nil { // Settings → Engine's
 		t.Fatal(err)
 	}
 	if eng.restarts != 1 || a.engState != engineStarting {

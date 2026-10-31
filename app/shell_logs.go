@@ -1,8 +1,8 @@
 package main
 
 // Logs: the newest lines of the app, the downloads and (once the
-// supervisor feeds them) the engine workers, as a page (/logs) and as a
-// panel under any page, filtered by source and text. Lines are copied
+// supervisor feeds them) the engine workers, as a Settings section
+// (/settings/logs) and as a panel under any page, filtered by source and text. Lines are copied
 // and selected as shell_logs_select.go says.
 
 import (
@@ -20,9 +20,24 @@ import (
 // logLines is how many lines the logs view shows at most.
 const logLines = 500
 
-func (a *app) logsPage(c *ui.Context) {
-	pageHeader(c, i18n.T("Logs"), nil)
-	a.logsView(c, false)
+// logsSettings is Settings → Logs (the Logs page before 0.5 F1): the
+// panel's switch, then the log, as tall as the section (which does not
+// scroll: settings_dialog.go).
+func (a *app) logsSettings(c *ui.Context) {
+	t := c.Theme()
+	ui.Row(c.Key("logs-head")).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+		caption(c, i18n.T("The newest lines of the app, the engine and the downloads. The panel shows them under any page.")).Wrap().Grow(1).MinWidth(0)
+		label := i18n.T("Show the logs panel")
+		if a.logsPanel {
+			label = i18n.T("Hide the logs panel")
+		}
+		if ui.Button(c.Key("logs-panel-toggle"), label).Tooltip(tip(i18n.T("Show or hide the logs panel"), "⇧⌘L")).Shrink(0).Clicked() {
+			a.logsPanel = !a.logsPanel
+		}
+	})
+	ui.Column(c.Key("logs-box")).Grow(1).MinHeight(px(t, 160)).Radius(px(t, radiusCard)).Border(1, tok(t).Line).Clip().Children(func() {
+		a.logsView(c, false)
+	})
 }
 
 // logSources are the filters of the logs view: "" every source.

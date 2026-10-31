@@ -125,7 +125,7 @@ func TestVoicesEmptyAndReload(t *testing.T) {
 		t.Fatalf("empty: %q", tt.Texts())
 	}
 	tt.Click("Design a voice")
-	if a.router.Path() != "/design" {
+	if a.router.Path() != "/voices/new/design" {
 		t.Errorf("path %s", a.router.Path())
 	}
 	addVoice(t, a, core.Voice{Name: "Kept", Kind: core.VoiceCloned}, 3)
@@ -315,7 +315,7 @@ func TestVoiceFilesUI(t *testing.T) {
 	// Opened from Finder.
 	a.openVoiceFile(out)
 	tt.Frame()
-	if len(a.voices) != 2 || a.edit == nil || a.edit.id == v.ID || a.router.Path() != "/voices" {
+	if len(a.voices) != 2 || a.edit == nil || a.edit.id == v.ID || a.router.Path() != "/voices/mine" {
 		t.Fatalf("import: %d %+v", len(a.voices), a.edit)
 	}
 	if !tt.HasText("Imported “Shared”") {
@@ -329,7 +329,7 @@ func TestVoiceFilesUI(t *testing.T) {
 	clip := filepath.Join(t.TempDir(), "drop.wav")
 	writeSpeech(clip, 6, []span{{0.2, 5.8}})
 	a.voicesDropped([]string{clip})
-	if a.router.Path() != "/clone" || !a.clone.hasClip() {
+	if a.router.Path() != "/voices/new/clone" || !a.clone.hasClip() {
 		t.Errorf("drop clip: %s", a.router.Path())
 	}
 	// A broken file.
@@ -423,7 +423,7 @@ func TestStudioSeam(t *testing.T) {
 	a.voicePickerOpen(studioVoiceKey, true)
 	tt.Frame()
 	tt.Click("Manage voices…")
-	if a.router.Path() != "/voices" {
+	if a.router.Path() != "/voices/mine" {
 		t.Errorf("manage: %s", a.router.Path())
 	}
 	// Use in Studio picks a model that can use the voice.
