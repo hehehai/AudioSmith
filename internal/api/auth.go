@@ -88,6 +88,7 @@ func (s *Server) guard(lan bool, port int) http.Handler {
 				writeError(w, err)
 				return
 			}
+			s.seen()
 		}
 		if isStateChanging(r.Method) && r.URL.Path != "/mcp" { // MCP logs its tools (internal/mcp)
 			start, sw := time.Now(), &statusWriter{ResponseWriter: w}

@@ -90,7 +90,7 @@ func TestIntegrationsPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.shownPath() != "/settings/integrations/claude-code" || !tt.HasText("http://127.0.0.1:4123/mcp") {
+	if a.shownPath() != "/developers/claude-code" || !tt.HasText("http://127.0.0.1:4123/mcp") {
 		t.Fatalf("detail %s", a.shownPath())
 	}
 	a.navigate("/integrations/nope")

@@ -60,6 +60,8 @@ type app struct {
 	homeState                         // home_view.go (0.5 F1): the Home page
 	toolPagesState                    // tool_pages.go (0.5 F1): Dictation, Developers
 	isolateState                      // isolate.go (0.5 F2): the Voice isolator
+	samplesState                      // samples_copy.go (0.5 F6): opening the samples
+	introState                        // intro.go (0.5 F6): the features' 「介绍」 dialogs
 }
 
 func newApp(eng *engineHost, lib *library) *app {

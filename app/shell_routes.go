@@ -2,8 +2,8 @@ package main
 
 // The old paths and where they go now (0.5 F1, plan/ui-overhaul-plan.md
 // §2): the voice pages became Voices' tabs and New voice's flows, History
-// became Assets, Tools became Developers, and Models, Engine, Logs and
-// Integrations are Settings sections. navigate sends every old path on,
+// became Assets, Tools became Developers, Models, Engine and Logs are
+// Settings sections, and Integrations are on Developers (F6). navigate sends every old path on,
 // so links, deep links (audiosmith://gallery), notifications and the
 // agents' pages keep working. navKey is the sidebar item a path lights.
 
@@ -24,13 +24,19 @@ func routeAlias(path string) (string, bool) {
 		return "/assets", true
 	case "/tools":
 		return "/developers/tools", true
-	case "/models", "/engine", "/logs", "/integrations":
+	case "/models", "/engine", "/logs":
 		return "/settings" + path, true
+	case "/integrations":
+		return "/developers", true
+	case "/settings/api":
+		return "/developers/api", true
 	}
-	// An integration's setup: its Settings section (Twilio's is the
+	// An integration's setup: on Developers (0.5 F6; Twilio's is the
 	// Calls setup page).
-	if strings.HasPrefix(path, "/integrations/") && path != "/integrations/twilio" {
-		return "/settings" + path, true
+	for _, pre := range []string{"/integrations/", "/settings/integrations/"} {
+		if slug, ok := strings.CutPrefix(path, pre); ok && slug != "" && path != "/integrations/twilio" {
+			return "/developers/" + slug, true
+		}
 	}
 	return "", false
 }

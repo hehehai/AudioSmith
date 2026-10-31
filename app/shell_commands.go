@@ -355,7 +355,7 @@ func (a *app) openURL(raw string) {
 		if to, ok := routeAlias(path); ok {
 			path = to
 		}
-		if section(path) != "/settings" && !strings.HasPrefix(path, "/voices/") && path != "/calls/setup" && path != "/integrations/twilio" {
+		if section(path) != "/settings" && !strings.HasPrefix(path, "/voices/") && !strings.HasPrefix(path, "/developers/") && path != "/calls/setup" && path != "/integrations/twilio" {
 			path = section(path)
 		}
 		a.navigate(path)

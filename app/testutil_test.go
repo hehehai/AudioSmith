@@ -66,6 +66,7 @@ func newTestAppIn(t *testing.T, dir string) (*app, *fakeEngine, *ui.Tester) {
 	eng.a = a
 	a.connectEngine(eng.host)
 	a.autoplay = false
+	a.noIntros = true // TestIntroDialogs turns them on
 	a.startEngine()
 	eng.ready()
 	t.Cleanup(a.pl.Stop)

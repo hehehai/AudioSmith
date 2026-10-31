@@ -88,7 +88,8 @@ func (a *app) startAPI(dataDir string) {
 	a.apiData = dataDir
 	b := a.newAPIBackend(dataDir)
 	b.cleanTemp()
-	srv := api.New(api.Options{Backend: b, Sched: a.lib.sched, Bus: a.lib.bus, Version: a.version})
+	srv := api.New(api.Options{Backend: b, Sched: a.lib.sched, Bus: a.lib.bus, Version: a.version,
+		Seen: func(time.Time) { a.post(func() {}) }}) // Developers shows it (apiLastRequest)
 	m := mcpsrv.New(mcpsrv.Options{API: srv, Backend: b, Version: a.version})
 	srv.MountMCP(m.Handler())
 	a.apiSrv, a.apiMCP, a.apiBackend = srv, m, b
@@ -99,6 +100,14 @@ func (a *app) startAPI(dataDir string) {
 		a.post(func() { a.apiHasKey = key != "" })
 	})
 	a.applyAPI()
+}
+
+// apiLastRequest is when a client's request last came (zero: none yet).
+func (a *app) apiLastRequest() time.Time {
+	if a.apiSrv == nil {
+		return time.Time{}
+	}
+	return a.apiSrv.LastRequest()
 }
 
 // applyAPI starts, moves or stops the loopback listener to match the

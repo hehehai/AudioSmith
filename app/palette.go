@@ -70,6 +70,7 @@ func (a *app) paletteRows() []paletteRow {
 	}
 	out = append(sorted, a.paletteVoices(q)...)
 	out = append(out, a.paletteProjects(q)...)
+	out = append(out, a.paletteSamples(q)...)
 	out = append(out, a.paletteTakes(q)...)
 	return append(out, a.paletteTail(q)...)
 }
@@ -129,6 +130,23 @@ func (a *app) paletteVoices(q string) []paletteRow {
 		if len(out) == paletteGroupMax {
 			break
 		}
+	}
+	return out
+}
+
+// paletteSamples are the samples whose title or line has q, or all of
+// them for "sample" / 示例.
+func (a *app) paletteSamples(q string) []paletteRow {
+	lq := strings.ToLower(q)
+	all := strings.Contains(strings.ToLower(i18n.T("Samples")), lq) || strings.Contains("samples", lq)
+	var out []paletteRow
+	for _, s := range a.sampleCards() {
+		if s.soon || !all && !strings.Contains(strings.ToLower(s.title+" "+s.about), lq) {
+			continue
+		}
+		key := s.key
+		out = append(out, paletteRow{key: "s-" + key, group: i18n.T("Samples"), icon: s.icon, title: s.title, sub: s.about,
+			run: func() { a.openSample(key) }})
 	}
 	return out
 }

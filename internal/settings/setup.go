@@ -23,6 +23,12 @@ type Setup struct {
 	// names) to the voices they became: each is imported once, so one
 	// the user deleted stays deleted.
 	Starters map[string]string `json:"starters,omitempty"`
+	// Intros are the features whose 「介绍」 dialog showed (0.5 F6: the
+	// first visit to Dub, Speech to text…); Settings → General clears it.
+	Intros []string `json:"intros,omitempty"`
+	// Samples maps a sample opened (its id) to the copy it made, as
+	// "<kind>:<id>" (app/samples.go): opening it again asks.
+	Samples map[string]string `json:"samples,omitempty"`
 }
 
 // Media: the optional ffmpeg build that adds formats AVFoundation lacks

@@ -30,6 +30,14 @@ type projectsState struct {
 	loading bool
 	dirty   bool // something changed: read again when shown
 	grid    ui.GridState
+	// The stories' and books' scripts, lower case, read in the background
+	// for the search (projTextHits): by id, with the time they were saved;
+	// textGen counts the reads. textHits are those with textQ (at hitsGen).
+	texts            map[string]projText
+	textGen, hitsGen int
+	textQ            string
+	textHits         map[string]bool
+	textBusy         bool
 
 	renaming    string // a row's key
 	renameText  string
@@ -37,6 +45,12 @@ type projectsState struct {
 	confirmOpen bool
 	details     map[string]bool // renders' "How it was made" shown (Assets)
 	asked       map[string]bool // renders read for their details
+}
+
+// projText is a project's script for the search.
+type projText struct {
+	at   time.Time
+	text string
 }
 
 // libKey is an item's key: source and id.

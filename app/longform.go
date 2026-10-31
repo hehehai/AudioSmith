@@ -115,10 +115,15 @@ type lfPage struct {
 	// one is open (it renders); the composer's text, narrator and focus,
 	// and the list's search.
 	opened, listing bool
+	onSaved         func(id string) // once, after the next save (a sample's copy, samples_copy.go)
 	entryText       string
 	entryVoice      string
 	entryQuery      string
 	entryFocus      bool
+	// 「帮我写」 (stories_write.go): on, the description becomes a draft
+	// script first; writing while the writing help drafts (stop cancels).
+	helpWrite, writing bool
+	writeStop          func()
 }
 
 func newLfPage(kind core.ProjectKind, model string) *lfPage {

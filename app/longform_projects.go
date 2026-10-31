@@ -163,6 +163,10 @@ func (a *app) saveLfWith(p *lfPage, copy, force, quiet bool) {
 				return
 			}
 			p.project = saved.ID
+			if f := p.onSaved; f != nil {
+				p.onSaved = nil
+				f(saved.ID)
+			}
 			p.doc.Title = doc.Title
 			p.saveName = saved.Title
 			p.savedJSON = docJSON(&p.doc)

@@ -123,7 +123,7 @@ func snapshotsF5(t *testing.T, out string) {
 		shoot("07-audiobook-entry", func() { a.navigate("/audiobook") })
 		shoot("08-story-editor", func() {
 			a.navigate("/stories")
-			a.useTemplate("story")
+			a.openSample("story")
 		})
 		i18n.SetLocale("en")
 	}

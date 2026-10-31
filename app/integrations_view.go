@@ -3,6 +3,7 @@ package main
 import (
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -75,7 +76,7 @@ func (a *app) integrationDetail(c *ui.Context, slug, back string) {
 			ui.Column(c.Key("integ-voices")).Children(func() {
 				banner(c, icons.UserSpeakRounded, tok(t).Text2, i18n.T("Give each agent its own voice under Local API, on the list of integrations."), func() {
 					if ghostButton(c.Key("integ-voices-go"), i18n.T("Open")).Clicked() {
-						a.navigate("/settings/integrations")
+						a.navigate("/developers/api")
 					}
 				})
 			})
@@ -186,4 +187,43 @@ func (a *app) saveBlock(blk integBlock) {
 			a.toast(i18n.T("Saved"))
 		})
 	}()
+}
+
+// integrationList lists the apps and agents; a click opens the setup of
+// one at base/{slug} (Settings → Integrations, or Developers).
+func (a *app) integrationList(c *ui.Context, base string) {
+	t := c.Theme()
+	k := tok(t)
+	settingGroup(c, i18n.T("Apps and agents"), func() {
+		for _, in := range integrations {
+			caps := make([]string, len(in.Caps))
+			for i, cp := range in.Caps {
+				caps[i] = integCaption(cp)
+			}
+			settingBlock(c, "integ-"+in.Slug, func() {
+				b := ui.ButtonBase(c.Key("open")).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, 2), 0).Radius(px(t, radiusControl)).Label(in.Name).Tooltip(strings.Join(caps, " · "))
+				b.Children(func() {
+					ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
+						ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+							ui.Text(c, in.Name).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
+							tagChip(c, integCaption(in.Kind))
+						})
+						caption(c, integAbout(in.Slug)).MaxLines(2).Ellipsis("…")
+					})
+					col := k.Text3
+					if b.Hovered() {
+						col = k.Text
+					}
+					ui.Icon(c, icons.AltArrowRight.Linear).Size(px(t, 14), px(t, 14)).TextColor(col).Shrink(0)
+				})
+				if b.Clicked() {
+					if in.Slug == "twilio" { // M6b: its setup is the Calls page's
+						a.navigate("/calls/setup")
+						return
+					}
+					a.navigate(base + "/" + in.Slug)
+				}
+			})
+		}
+	})
 }
