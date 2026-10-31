@@ -39,7 +39,7 @@ func (a *app) commands() []command {
 		cmds = append(cmds, command{id: id, group: group, title: title, en: en, keys: keys, run: run, enabled: enabled})
 	}
 	for _, p := range pages { // every page: the sidebar's, then the others (shell_pages.go)
-		add("go"+p.path, nav, pageTitle(p.path), p.title, pageKeys(p.path), true, func() { a.navigate(p.path) })
+		add("go"+p.path, nav, pageTitle(p.path), p.title, pageKeys(p.path), true, func() { a.openPage(p.path) })
 	}
 	a.longformCommands(nav, add) // M3: the book's commands (longform_pages.go, thread #18)
 	a.dubCommands(nav, add)      // M4: the dub's commands (dub_pages.go, thread #19)
@@ -172,7 +172,7 @@ func (a *app) shortcuts(c *ui.Context) {
 	}
 	for i, path := range shortcutPages {
 		if c.Shortcut(ui.Cmd, ui.Key1+ui.Key(i)) {
-			a.navigate(path)
+			a.openPage(path)
 		}
 	}
 	if c.Shortcut(ui.Cmd|ui.Shift, ui.KeyL) {
@@ -282,7 +282,7 @@ func (a *app) buildMenu() {
 			if k := pageKeys(p.path); k != "" {
 				acc = "CmdOrCtrl+" + k[len("⌘"):]
 			}
-			goItems = append(goItems, &mygo.MenuItem{Label: pageTitle(p.path), Accelerator: acc, Click: act(func() { a.navigate(p.path) })})
+			goItems = append(goItems, &mygo.MenuItem{Label: pageTitle(p.path), Accelerator: acc, Click: act(func() { a.openPage(p.path) })})
 		}
 	}
 	mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{

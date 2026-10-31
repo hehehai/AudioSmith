@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/jobs"
 	"github.com/hehehai/AudioSmith/internal/services"
+	"github.com/hehehai/AudioSmith/internal/settings"
 )
 
 // The composer makes a dub and starts it at once: the row is on top of
@@ -366,5 +368,28 @@ func isoFakeEngine(calls *[]string) func(string) jobs.Executor {
 			}
 			return nil, &jobs.Error{Code: proto.CodeMethodNotFound, Message: method}
 		})
+	}
+}
+
+// With dictation off, Speech to text does not offer its shortcut (it does
+// nothing then) but says where to turn it on (the Mac check, #121).
+func TestTranscribeDictationHint(t *testing.T) {
+	m := newM2Test(t)
+	a, tt := m.a, m.tt
+	a.updateSettings(func(s *settings.Settings) { s.Dictation.Enabled = true })
+	a.navigate("/transcripts")
+	tt.Frame()
+	if !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasPrefix(s, "Dictate into any app with ") }) {
+		t.Fatalf("on: %q", tt.Texts())
+	}
+	a.updateSettings(func(s *settings.Settings) { s.Dictation.Enabled = false })
+	tt.Frame()
+	if !tt.HasText("Turn on dictation in Settings → Dictation to dictate into any app.") || !tt.HasText("Transcribe a file or a recording.") {
+		t.Fatalf("off: %q", tt.Texts())
+	}
+	if slices.ContainsFunc(tt.Texts(), func(s string) bool {
+		return strings.Contains(s, "dictate anywhere with") || strings.HasPrefix(s, "Dictate into any app with ")
+	}) {
+		t.Errorf("off still offers the shortcut: %q", tt.Texts())
 	}
 }
