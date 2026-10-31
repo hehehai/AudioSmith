@@ -92,7 +92,8 @@ func (a *app) galleryPage(c *ui.Context) {
 	inline := a.panelFits(c, w)
 	arch, open := gallery.Default().ByID(g.detail)
 	ui.Row(c.Key("gallery-body")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		narrow := a.pageWidth(c)-ifThen(open && inline, w, 0) < px(t, 700)
+		avail := a.pageWidth(c) - ifThen(open && inline, w, 0)
+		narrow := avail < px(t, 700)
 		ui.Scroll(c.Key("gallery-scroll")).Grow(1).MinWidth(0).Children(func() {
 			ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).Children(func() {
 				a.galleryFilters(c, page)
@@ -101,7 +102,7 @@ func (a *app) galleryPage(c *ui.Context) {
 					return
 				}
 				if !g.filtered() {
-					a.galleryRecommended(c, narrow)
+					a.galleryRecommended(c, narrow, avail-2*px(t, sp6))
 					sectionRow(c, "all-title", i18n.T("All voices"), itoa(page.Total))
 				}
 				a.galleryTable(c, page.Items, narrow)
@@ -207,48 +208,78 @@ func (a *app) facetMenu(c *ui.Context, f gallery.Facet, values []gallery.FacetCo
 // one, as the page narrows: then only three): avatar, name, a line of
 // description, the language and the first use. A click opens the
 // detail; ▶ previews.
-func (a *app) galleryRecommended(c *ui.Context, narrow bool) {
+func (a *app) galleryRecommended(c *ui.Context, narrow bool, avail float32) {
+	t := c.Theme()
+	sectionRow(c, "rec-title", i18n.T("Recommended"), "")
+	recs := recommended()
+	if narrow {
+		recs = recs[:min(len(recs), 3)] // one column: the first three
+	}
+	// Fixed columns: every card has the same width, a short last row
+	// included (user, 10-31: cards must not widen when fewer are left).
+	cols := recColumns(avail, px(t, recCardMin), px(t, sp2))
+	if narrow {
+		cols = 1
+	}
+	ui.Column(c.Key("rec-grid")).Gap(px(t, sp2)).Children(func() {
+		for r := 0; r < len(recs); r += cols {
+			row := recs[r:min(r+cols, len(recs))]
+			ui.Row(c.Key("rec-row-" + itoa(r))).Gap(px(t, sp2)).Children(func() {
+				for _, arch := range row {
+					a.recCard(c, arch)
+				}
+				for range cols - len(row) {
+					ui.Box(c).Grow(1).Basis(0).MinWidth(0) // keeps the columns' widths
+				}
+			})
+		}
+	})
+}
+
+// recCardMin is a recommended card's narrowest width, DIPs at 100 %.
+const recCardMin = 240
+
+// recColumns is how many recommended cards fit a row avail wide: cards
+// at least min wide, gap apart; 1 to 4.
+func recColumns(avail, least, gap float32) int {
+	return max(1, min(4, int((avail+gap)/(least+gap))))
+}
+
+// recCard is one recommended voice: avatar, name, a line of description,
+// the language and the first use; a click opens the detail, ▶ previews.
+func (a *app) recCard(c *ui.Context, arch gallery.Archetype) {
 	t := c.Theme()
 	k := tok(t)
 	g := &a.gallery
 	loc := i18n.Locale()
-	sectionRow(c, "rec-title", i18n.T("Recommended"), "")
-	ui.Row(c.Key("rec-grid")).Gap(px(t, sp2)).Wrap().Children(func() {
-		recs := recommended()
-		if narrow {
-			recs = recs[:min(len(recs), 3)] // one column: the first three
-		}
-		for _, arch := range recs {
-			p := archetypePreview(arch)
-			playing := p.ok() && a.pl.Playing(p.id)
-			cell := ui.Row(c.Key("rec-" + arch.ID)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusCard)).
-				Grow(1).Basis(px(t, 220)).MinWidth(px(t, 200)).MaxWidth(px(t, 420))
-			switch {
-			case g.detail == arch.ID:
-				cell.Background(k.Selected)
-			case playing:
-				cell.Background(k.AccentSoft)
-			case cell.Hovered():
-				cell.Background(k.Hover)
-			}
-			cell.Children(func() {
-				name := arch.Name.In(loc)
-				b := ui.ButtonBase(c.Key("open")).Grow(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Label(name).Tooltip(i18n.T("Open the voice's details"))
-				b.Children(func() {
-					ui.Avatar(c, name, nil).Size(px(t, 40), px(t, 40)).Shrink(0)
-					ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
-						ui.Text(c, name).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
-						ui.Text(c, arch.Description.In(loc)).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
-						ui.Text(c, archLanguage(arch)+" · "+archUse(arch, loc)).FontSize(px(t, fsMicro)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0)
-					})
-				})
-				if b.Clicked() {
-					a.openArchetype(arch.ID)
-				}
-				if p.ok() && previewToggle(c, "play", playing).Clicked() {
-					a.previewArchetype(arch)
-				}
+	p := archetypePreview(arch)
+	playing := p.ok() && a.pl.Playing(p.id)
+	cell := ui.Row(c.Key("rec-" + arch.ID)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusCard)).
+		Grow(1).Basis(0).MinWidth(0)
+	switch {
+	case g.detail == arch.ID:
+		cell.Background(k.Selected)
+	case playing:
+		cell.Background(k.AccentSoft)
+	case cell.Hovered():
+		cell.Background(k.Hover)
+	}
+	cell.Children(func() {
+		name := arch.Name.In(loc)
+		b := ui.ButtonBase(c.Key("open")).Grow(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Label(name).Tooltip(i18n.T("Open the voice's details"))
+		b.Children(func() {
+			ui.Avatar(c, name, nil).Size(px(t, 40), px(t, 40)).Shrink(0)
+			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
+				ui.Text(c, name).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Text(c, arch.Description.In(loc)).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Text(c, archLanguage(arch)+" · "+archUse(arch, loc)).FontSize(px(t, fsMicro)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0)
 			})
+		})
+		if b.Clicked() {
+			a.openArchetype(arch.ID)
+		}
+		if p.ok() && previewToggle(c, "play", playing).Clicked() {
+			a.previewArchetype(arch)
 		}
 	})
 }
@@ -258,11 +289,7 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 	g := &a.gallery
 	loc := i18n.Locale()
 	ui.Column(c.Key("gallery-table")).Children(func() {
-		voiceTableHead(c, "gallery-head", narrow,
-			voiceCol{title: i18n.T("Name")},
-			voiceCol{title: i18n.T("Language"), w: 96},
-			voiceCol{title: i18n.T("Gender · age"), w: 104, wide: true},
-			voiceCol{title: i18n.T("Use case"), w: 120, wide: true})
+		// No column titles: the rows say what they are (user, 10-31).
 		for _, arch := range items {
 			p := archetypePreview(arch)
 			playing := p.ok() && a.pl.Playing(p.id)
