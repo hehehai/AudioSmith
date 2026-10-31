@@ -82,7 +82,7 @@ func (a *app) voicesTabbed(c *ui.Context, tab string, view func(*ui.Context)) {
 	headerHost.title = i18n.X("nav", "Voices")
 	headerHost.inline = func() {
 		// A segmented control, not underlined tabs (user, 10-31).
-		tabs := ui.Segmented(c.Key("voices-tab"), &sel, i18n.T("Discover"), i18n.T("Mine")).Label(i18n.X("nav", "Voices")).Shrink(0)
+		tabs := headerFit(c, ui.Segmented(c.Key("voices-tab"), &sel, i18n.T("Discover"), i18n.T("Mine"))).Label(i18n.X("nav", "Voices")).Shrink(0)
 		if tabs.Changed() {
 			a.navigate("/voices/" + voicesTabs[sel])
 		}
@@ -100,7 +100,7 @@ func (a *app) newVoiceButton(c *ui.Context) func(narrow bool) {
 		if narrow {
 			b = iconButton(c.Key("voices-new"), icons.AddCircle, label)
 		} else {
-			b = primaryIconButton(c.Key("voices-new"), icons.AddCircle, label)
+			b = primaryIconButton(c.Key("voices-new"), icons.AddCircle, label).Label(label)
 		}
 		if b.Clicked() {
 			a.navigate("/voices/new")
@@ -115,7 +115,7 @@ func (a *app) newVoiceButton(c *ui.Context) func(narrow bool) {
 func (a *app) newVoicePage(c *ui.Context) {
 	t := c.Theme()
 	pageHeader(c, i18n.T("New voice"), func() {
-		if ghostButton(c.Key("nv-mine"), i18n.T("My voices")+" ›").Clicked() {
+		if ghostButton(c.Key("nv-mine"), i18n.T("My voices")+" ›").Label(i18n.T("My voices") + " ›").Clicked() {
 			a.navigate("/voices/mine")
 		}
 	})

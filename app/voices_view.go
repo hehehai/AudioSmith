@@ -80,11 +80,10 @@ func (a *app) voicesPage(c *ui.Context) {
 	t := c.Theme()
 	pageHeaderBar(c, pageHead{
 		title:  i18n.T("My voices"),
-		count:  i18n.N(len(a.voices), "%d voice", "%d voices", len(a.voices)),
 		search: &headSearch{key: "voices-search", value: &a.voiceQuery, placeholder: i18n.T("Search voices")},
 		tools: func(hn bool) {
 			if !hn {
-				ui.Segmented(c.Key("voices-kind"), &a.voiceKind, voiceKinds()...).Label(i18n.T("Kind")).Shrink(0)
+				headerFit(c, ui.Segmented(c.Key("voices-kind"), &a.voiceKind, voiceKinds()...)).Label(i18n.T("Kind")).Shrink(0)
 			}
 			if iconButton(c.Key("voices-import"), icons.Import, i18n.T("Import…")).Tooltip(i18n.T("Import a .asvoice or .ovsvoice file")).Clicked() {
 				a.chooseVoiceFile()
@@ -153,12 +152,6 @@ func (a *app) voicesTable(c *ui.Context, narrow bool) {
 		}
 		return
 	}
-	voiceTableHead(c, "voices-head", narrow,
-		voiceCol{title: i18n.T("Name")},
-		voiceCol{title: i18n.T("Kind"), w: 76},
-		voiceCol{title: i18n.T("Language"), w: 84, wide: true},
-		voiceCol{title: i18n.T("Created"), w: voiceDateW, wide: true},
-		voiceCol{title: i18n.T("Used"), w: 64, wide: true})
 	for i := range vs {
 		v := &vs[i]
 		a.voiceTableRow(c, v, narrow)

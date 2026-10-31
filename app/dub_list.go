@@ -321,8 +321,8 @@ func (a *app) dubListHeader(c *ui.Context) {
 			if narrow {
 				return
 			}
-			dropText(c.Key("dub-status-f"), dubStatusNames()[a.dubFilter], a.dubFilter != 0).Label(i18n.T("Status")).Menu(status)
-			dropText(c.Key("dub-lang-f"), langLabel, a.dubLangF != "").Label(i18n.T("Languages")).Menu(langs)
+			headerSelect(c.Key("dub-status-f"), ifStr(a.dubFilter == 0, i18n.T("All statuses"), dubStatusNames()[a.dubFilter]), a.dubFilter != 0).Label(i18n.T("Status")).Menu(status)
+			headerSelect(c.Key("dub-lang-f"), langLabel, a.dubLangF != "").Label(i18n.T("Languages")).Menu(langs)
 		}
 		head.more = func(m *ui.Menu) {
 			m.Submenu(i18n.T("Status"), status)

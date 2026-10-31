@@ -23,7 +23,7 @@
 //     build needs no network;
 //   - the rest of what the app carries (extra.go): SQLite in MyGo's
 //     SQLite plugin, RapiDoc and the libraries in its bundle, the Solar
-//     icons and the voice previews.
+//     icons, the two Hugeicons and the voice previews.
 //
 // The output is sorted and has no paths of this machine: the same inputs
 // give the same bytes. TestNoticesCurrent (main_test.go) regenerates it in

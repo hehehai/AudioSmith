@@ -14,7 +14,7 @@ import (
 
 // extraComponents is the rest of what the app carries: the native
 // libraries of MyGo's plugins (SQLite), RapiDoc and the libraries in its
-// bundle, the Solar icons, the voice previews and the dictation sounds of
+// bundle, the Solar icons, the two Hugeicons, the voice previews and the dictation sounds of
 // official builds, in that order (each group sorted). Each is listed when the package that embeds it is linked.
 func extraComponents(root string, linked map[string]bool) ([]component, error) {
 	var out []component
@@ -26,6 +26,7 @@ func extraComponents(root string, linked map[string]bool) ([]component, error) {
 		func() ([]component, error) { return pluginLibraries(root, linked) },
 		func() ([]component, error) { return rapiDoc(root, linked) },
 		func() ([]component, error) { return solarIcons(root, linked) },
+		func() ([]component, error) { return hugeicons(root, linked) },
 		func() ([]component, error) { return voicePreviews(root, linked) },
 		func() ([]component, error) { return galleryVoices(root) },
 		func() ([]component, error) { return familySounds(root, linked) },
@@ -192,6 +193,31 @@ func solarIcons(root string, linked map[string]bool) ([]component, error) {
 		name: "Solar icon set", version: "@iconify-json/solar " + m[1], url: "https://icon-sets.iconify.design/solar/", spdx: "CC-BY-4.0",
 		notes: []string{"Only the icons AudioSmith uses, converted to Go source (internal/icons/solar_gen.go, by internal/icons/gen); their shapes are unchanged."},
 		texts: []text{{name: "Attribution", body: "Solar icon set by 480 Design\n(https://www.figma.com/community/file/1166831539721848736),\nlicensed under the Creative Commons Attribution 4.0 International\nlicence (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/\n(the full licence: https://creativecommons.org/licenses/by/4.0/legalcode).\nTaken from the npm package @iconify-json/solar " + m[1] + " (Iconify).\n"}},
+	}}, nil
+}
+
+// hugeicons are internal/icons' Play and Pause (hugeicons.go), from
+// @iconify-json/hugeicons under the MIT licence.
+func hugeicons(root string, linked map[string]bool) ([]component, error) {
+	if !linked[mainModule+"/internal/icons"] {
+		return nil, nil
+	}
+	src, err := readFile(root, "internal/icons/hugeicons.go")
+	if err != nil {
+		return nil, err
+	}
+	m := regexp.MustCompile(`const HugeiconsVersion = "([^"]+)"`).FindStringSubmatch(src)
+	if m == nil {
+		return nil, fmt.Errorf("internal/icons/hugeicons.go: no HugeiconsVersion")
+	}
+	lic, err := readFile(root, "third_party/licenses/texts/MIT-Hugeicons.txt")
+	if err != nil {
+		return nil, err
+	}
+	return []component{{
+		name: "Hugeicons", version: "@iconify-json/hugeicons " + m[1], url: "https://icon-sets.iconify.design/hugeicons/", spdx: "MIT",
+		notes: []string{"Only the icons play and pause (stroke-rounded), copied into Go source (internal/icons/hugeicons.go); the Linear variant is unchanged, the Bold one fills the same shape."},
+		texts: []text{{name: "LICENSE", body: lic}},
 	}}, nil
 }
 

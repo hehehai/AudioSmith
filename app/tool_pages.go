@@ -75,7 +75,7 @@ func (a *app) dictationPage(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
 	pageHeader(c, i18n.T("Dictation"), func() {
-		if ghostButton(c.Key("dict-settings"), i18n.T("Settings…")).Clicked() {
+		if ghostButton(c.Key("dict-settings"), i18n.T("Settings…")).Label(i18n.T("Settings…")).Clicked() {
 			a.navigate("/settings/dictation")
 		}
 	})

@@ -23,7 +23,7 @@ func (a *app) clonePage(c *ui.Context) {
 		title = i18n.T("Replace the reference of “%s”", v.Name)
 	}
 	pageHeaderBar(c, pageHead{title: title, parent: i18n.T("New voice"), up: "/voices/new", tools: func(bool) {
-		if s.step != cloneDone && ghostButton(c.Key("clone-back"), i18n.T("Cancel")).Clicked() {
+		if s.step != cloneDone && ghostButton(c.Key("clone-back"), i18n.T("Cancel")).Label(i18n.T("Cancel")).Clicked() {
 			a.micCancel(&s.mic)
 			a.navigate("/voices/new")
 		}
@@ -177,7 +177,7 @@ func (a *app) cloneClip(c *ui.Context) {
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Wrap().Children(func() {
 			label, ic := i18n.T("Play the part kept"), icons.Play
 			if a.pl.Playing("clone-sel") {
-				label, ic = i18n.T("Stop"), icons.Stop
+				label, ic = i18n.T("Stop"), icons.Pause
 			}
 			if iconButton(c.Key("clone-play"), ic, label).Clicked() {
 				if a.pl.Playing("clone-sel") {

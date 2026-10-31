@@ -5,8 +5,9 @@ package main
 // descriptions, tags), the type menu (All, Suggested, each group of the
 // family's sounds, macOS's system sounds) and the volume button (a menu of
 // VolumeSteps, the current one checked; its icon muted, low or high);
-// under them one line per sound: ▶ (Solar's turntable-music-note
-// line-duotone, in the accent while it plays, a click again stops it),
+// under them one line per sound: ▶ (Hugeicons' play, like every audio
+// playback button; pause in the accent while it plays, a click again
+// stops it),
 // the name and its type in a lighter tone, ✓ on the chosen one. Clicking
 // a name chooses and plays it; the panel stays open while the user tries
 // sounds. The panel is soundPanelW wide; the type and volume buttons share
@@ -274,7 +275,11 @@ func soundRow(c *ui.Context, sp soundPickerSpec, choice, name, kind string) {
 				col = k.Text
 			}
 			p.Children(func() {
-				ui.Icon(c, icons.TurntableMusicNoteLineDuotone.Linear).Size(px(t, 15), px(t, 15)).TextColor(col)
+				ic := icons.Play
+				if playing {
+					ic = icons.Pause
+				}
+				ui.Icon(c, ic.Linear).Size(px(t, 15), px(t, 15)).TextColor(col)
 			})
 			if p.Clicked() {
 				if playing && sp.Stop != nil {
@@ -357,7 +362,19 @@ func (a *app) dictSoundRows(c *ui.Context) {
 					Playing:   a.dictPlayer.Previewing,
 					SetVolume: a.setDictSoundVolume,
 				})
-				if iconButton(c.Key("try-"+ev.ID), icons.TurntableMusicNoteLineDuotone, r.try).Clicked() {
+				// Try: play while that sound plays (a click stops it).
+				var ch string
+				if a.dictPlayer != nil {
+					var left time.Duration
+					if ch, left = a.dictPlayer.Previewing(); ch != "" {
+						c.After(left) // redraw when it ends
+					}
+				}
+				if ch != "" && ch == choice {
+					if iconButton(c.Key("try-"+ev.ID), icons.Pause, r.try).Clicked() {
+						a.dictPlayer.StopPreview()
+					}
+				} else if iconButton(c.Key("try-"+ev.ID), icons.Play, r.try).Clicked() {
 					a.dictPreview(ev, choice)
 				}
 			})

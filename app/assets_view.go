@@ -63,8 +63,8 @@ func (a *app) historyPage(c *ui.Context) {
 			if !narrow {
 				kind := assetKinds[h.kind]
 				on := kind != "" || h.filter == 1 || h.model != ""
-				dropText(c.Key("assets-type"), assetKindLabel(kind), on).Label(i18n.T("Type")).Menu(a.assetTypeMenu)
-				dropText(c.Key("assets-source"), assetSourceLabel(assetSources[h.source]), h.source != 0).Label(i18n.T("Source")).Menu(a.assetSourceMenu)
+				headerSelect(c.Key("assets-type"), assetKindLabel(kind), on).Label(i18n.T("Type")).Menu(a.assetTypeMenu)
+				headerSelect(c.Key("assets-source"), assetSourceLabel(assetSources[h.source]), h.source != 0).Label(i18n.T("Source")).Menu(a.assetSourceMenu)
 			}
 			if iconButton(c.Key("open-folder"), icons.FolderOpen, i18n.T("Open folder")).Tooltip(i18n.T("Open the folder of the takes in Finder")).Clicked() {
 				a.openTakesFolder()

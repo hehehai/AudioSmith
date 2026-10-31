@@ -29,4 +29,6 @@ the network.
   way and update `RAPIDOC-VERSION`; the generator fails until then.
 - `texts/`: canonical texts the generator uses for components that ship none:
   the Apache License 2.0 (SPDX's copy; the voice previews) and SQLite's
-  public-domain dedication (MyGo's SQLite plugin).
+  public-domain dedication (MyGo's SQLite plugin), and the MIT licence of
+  Hugeicons (`MIT-Hugeicons.txt`; the npm package @iconify-json/hugeicons,
+  the icons' Play and Pause, states only "MIT", author Hugeicons).

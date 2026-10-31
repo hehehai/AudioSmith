@@ -36,10 +36,10 @@ func (a *app) twilioPage(c *ui.Context) {
 			caption(c, status).SingleLine()
 		})
 		if a.prefs.Calls.Enabled {
-			if ghostButton(c.Key("tw-off"), i18n.T("Turn off calls")).Clicked() {
+			if ghostButton(c.Key("tw-off"), i18n.T("Turn off calls")).Label(i18n.T("Turn off calls")).Clicked() {
 				a.setCallsOn(false)
 			}
-		} else if primaryButton(c.Key("tw-on"), i18n.T("Turn on calls")).Disabled(a.prefs.Calls.AccountSID == "" || !a.callHasTok).Clicked() {
+		} else if primaryButton(c.Key("tw-on"), i18n.T("Turn on calls")).Label(i18n.T("Turn on calls")).Disabled(a.prefs.Calls.AccountSID == "" || !a.callHasTok).Clicked() {
 			a.setCallsOn(true)
 		}
 		if iconButton(c.Key("tw-calls"), icons.PhoneCallingRounded, i18n.T("Open Calls")).Clicked() {
@@ -411,7 +411,7 @@ func (a *app) twTest(c *ui.Context) {
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			label, ic := i18n.T("Play phone-quality preview"), icons.Play
 			if a.pl.Playing("phone-preview") {
-				label, ic = i18n.T("Stop"), icons.Stop
+				label, ic = i18n.T("Stop"), icons.Pause
 			}
 			if secondaryIconButton(c.Key("tw-preview"), ic, label).Label(label).Disabled(len(labels) == 0 || w.previewBusy).Clicked() {
 				if a.pl.Playing("phone-preview") {
