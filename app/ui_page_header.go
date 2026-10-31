@@ -2,9 +2,10 @@ package main
 
 // The page header (0.5 H): there is no bar shared by the pages; each
 // page's top is a row of its own, which drags the window. On its left
-// the title (an item's page: its list's name, muted, before it), ‹ ›
-// through the window's history (⌘[ ⌘], a mouse's back and forward
-// buttons: MyGo's router), the count of what the page lists and a status;
+// the title (an item's page: its list's name, muted, before it: a click
+// on it goes up), the count of what the page lists and a status (no
+// ‹ › since 10-31, user: ⌘[ ⌘] and a mouse's back and forward buttons
+// still go through the window's history, MyGo's router);
 // on its right the page's tools: a search field, filters, view toggles,
 // icon actions and at most one primary button. In a narrow window the
 // search is a magnifier that opens the field, and the tools the page
@@ -20,15 +21,15 @@ import (
 type pageHead struct {
 	title string
 	// parent is the list an item's page belongs to ("视频配音"), muted
-	// before the title; a click on it, and ‹ when the history has nothing
-	// before, open up (the list's path).
+	// before the title; a click on it
+	// open up (the list's path).
 	parent, up string
-	// upFn, when set, is what the list's name and ‹ do instead (Stories
+	// upFn, when set, is what the list's name does instead (Stories
 	// and Audiobook close the open work: longform_entry.go).
 	upFn   func()
 	count  string // how many items the page lists ("3 项"); "" none
 	sub    string // a status or a short line after the count; "" none
-	bare   bool   // Home: ‹ › only, no title (the page's question is)
+	bare   bool   // Home: no title (the page's question is)
 	search *headSearch
 	// tools builds the page's tools on the right, after the search;
 	// narrow says the window is narrow (pageNarrow): leave out what more
@@ -140,7 +141,6 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 					tx.Shrink(0)
 				}
 			}
-			historyButtons(c, h.up, h.upFn)
 			if h.count != "" {
 				ui.Text(c.Key("head-count"), h.count).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Tooltip(h.count)
 			}
@@ -165,31 +165,6 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				h.primary(narrow)
 			}
 		})
-	})
-}
-
-// historyButtons are ‹ and ›: back and forward through the window's
-// history. On an item's page (up its list's path) ‹ opens the list when
-// the history has nothing before; upFn, when set, is what ‹ does.
-func historyButtons(c *ui.Context, up string, upFn func()) {
-	if headerNav.back == nil {
-		return
-	}
-	t := c.Theme()
-	ui.Row(c.Key("head-history")).Gap(px(t, 2)).Shrink(0).Children(func() {
-		canBack := headerNav.canBack || up != ""
-		if iconButton(c.Key("go-back"), icons.AltArrowLeft, tip(i18n.X("window history", "Back"), "⌘[")).Disabled(!canBack).Clicked() {
-			if upFn != nil {
-				upFn()
-			} else if headerNav.canBack {
-				headerNav.back()
-			} else if headerNav.open != nil {
-				headerNav.open(up)
-			}
-		}
-		if iconButton(c.Key("go-forward"), icons.AltArrowRight, tip(i18n.X("window history", "Forward"), "⌘]")).Disabled(!headerNav.canForward).Clicked() {
-			headerNav.forward()
-		}
 	})
 }
 
