@@ -61,6 +61,44 @@ var headerNav struct {
 	pageW               func(c *ui.Context) float32
 }
 
+// headerControlH is the height of every control in a page header — the
+// search field, filters, segmented controls, icon buttons (square),
+// labelled buttons and the primary button — at the theme's scale: one
+// height and one middle, so the header's tools stand as a row (user,
+// 10-31: they match the search field).
+func headerControlH(t *ui.Theme) float32 { return px(t, 31) }
+
+// inHeader is true while a page header builds its tools (and the
+// controls a host puts after its title): the kit's buttons, menus and
+// toggles then take headerControlH (headerFit). Only the header's build
+// sets it; nothing else reads it.
+var inHeader bool
+
+// headerFit gives e the header controls' height when it is built in a
+// page header (a control of MyGo's own there: ui.Segmented, ui.Button);
+// elsewhere e is left as it is.
+func headerFit(c *ui.Context, e ui.Element) ui.Element {
+	if inHeader {
+		e.Height(headerControlH(c.Theme()))
+		if headerProbe != nil {
+			headerProbe(e)
+		}
+	}
+	return e
+}
+
+// headerProbe, set by tests, sees each control fitted in a header.
+var headerProbe func(e ui.Element)
+
+// iconSide is the side of a square icon button: headerControlH in a page
+// header, else 28 DIPs.
+func iconSide(t *ui.Theme) float32 {
+	if inHeader {
+		return headerControlH(t)
+	}
+	return px(t, 28)
+}
+
 // headerInset is the room the headers leave on their left for the window
 // controls: set each frame by sidebarFrame, non-zero beside the icon rail.
 var headerInset float32
@@ -148,10 +186,16 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				ui.Text(c.Key("head-sub"), h.sub).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 			}
 			if inline != nil {
-				ui.Row(c.Key("head-inline")).Shrink(0).Margin(0, 0, 0, px(t, sp3)).AlignItems(ui.Center).Children(inline)
+				ui.Row(c.Key("head-inline")).Shrink(0).Margin(0, 0, 0, px(t, sp3)).AlignItems(ui.Center).Children(func() {
+					inHeader = true
+					defer func() { inHeader = false }()
+					inline()
+				})
 			}
 		})
 		ui.Row(c.Key("head-tools")).Shrink(0).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
+			inHeader = true
+			defer func() { inHeader = false }()
 			if h.search != nil {
 				headerSearch(c, h.search, narrow)
 			}
@@ -193,7 +237,7 @@ func headerSearch(c *ui.Context, s *headSearch, narrow bool) {
 		w = px(t, 170)
 	}
 	ui.Row(c.Key(s.key + "-wrap")).Width(w).Shrink(1).MinWidth(px(t, 120)).Children(func() {
-		in := searchField(c, s.key, s.value, s.placeholder, 0).Label(label)
+		in := headerFit(c, searchField(c, s.key, s.value, s.placeholder, 0)).Label(label)
 		if headSearchFocus[s.key] {
 			in.Focus()
 			if in.Focused() {
