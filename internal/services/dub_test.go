@@ -192,7 +192,9 @@ func (e *dubEnv) run(t *testing.T, id string, req RunRequest) *dub.Project {
 
 func (e *dubEnv) wait(t *testing.T, id string) jobs.Job {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	// A whole dub (two targets, every stage) can take over 20 s under
+	// -race on a busy CI runner (CI 41215995801): wait a minute.
+	deadline := time.Now().Add(60 * time.Second)
 	for time.Now().Before(deadline) {
 		j, err := e.sched.Get(ctx, id)
 		if err == nil && (j.State.Terminal() || j.State == jobs.StateInterrupted) {
