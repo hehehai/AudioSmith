@@ -242,7 +242,7 @@ func (a *app) openRenderAsset(rec core.Render) {
 		return
 	}
 	p := a.lfPageOf(rec.Kind)
-	p.render = rec.ID
+	p.render, p.opened, p.listing = rec.ID, true, false
 	a.navigate("/" + lfRoute(rec.Kind))
 }
 

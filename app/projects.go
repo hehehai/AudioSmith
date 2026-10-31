@@ -234,11 +234,9 @@ func (a *app) openItem(it store.LibraryItem) {
 		if t := a.findTake(it.ID); t != nil {
 			a.reuse(t)
 		}
-	case "render":
+	case "render": // its project, whose page shows it (assets.go)
 		if r := a.lfRenders[it.ID]; r != nil {
-			p := a.lfPageOf(r.rec.Kind)
-			p.render = r.rec.ID
-			a.navigate("/" + lfRoute(r.rec.Kind))
+			a.openRenderAsset(r.rec)
 		}
 	}
 }
