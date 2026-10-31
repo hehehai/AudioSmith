@@ -30,7 +30,7 @@ func mineWithVoices(t *testing.T) (*app, *ui.Tester, core.Voice, core.Voice) {
 // in: off to the right at first, in place after the motion.
 func TestFloatingPanelOverPage(t *testing.T) {
 	a, tt, v1, v2 := mineWithVoices(t)
-	before, ok := tt.Find("Created")
+	before, ok := tt.Find("Use") // a row's last button
 	if !ok {
 		t.Fatalf("no table: %q", tt.Texts())
 	}
@@ -46,7 +46,7 @@ func TestFloatingPanelOverPage(t *testing.T) {
 	if !(mid.X > r.X) {
 		t.Errorf("no slide: %+v then %+v", mid, r)
 	}
-	after, _ := tt.Find("Created")
+	after, _ := tt.Find("Use")
 	if after != before {
 		t.Errorf("the table moved: %+v → %+v", before, after)
 	}
