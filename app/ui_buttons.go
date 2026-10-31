@@ -260,3 +260,38 @@ func playToggle(c *ui.Context, playing bool, playTip, pauseTip string) ui.Elemen
 	}
 	return iconButton(c, icons.Play, playTip)
 }
+
+// headerSelect is a filter menu in a page header (Type, Source, Status):
+// it stands as tall as the header's search field and wears its look (the
+// field's fill, hairline and corners, the same type size), its value and
+// a chevron; the value is in full ink while a filter is set (user, 10-31:
+// the header's selects match its input).
+func headerSelect(c *ui.Context, label string, on bool) ui.Element {
+	t := c.Theme()
+	k := tok(t)
+	b := ui.ButtonBase(c).Padding(t.Space(1.5), t.Space(2), t.Space(1.5), t.Space(2.5)).Gap(px(t, sp1)).AlignItems(ui.Center).
+		Radius(t.Radius).Background(t.Surface).Border(1, t.Border).Label(label).MinWidth(0).Shrink(1)
+	switch {
+	case b.Pressed():
+		b.Background(k.Pressed)
+	case b.Hovered():
+		b.Background(k.Hover)
+	}
+	b.Children(func() {
+		col := k.Text2
+		if on {
+			col = k.Text
+		}
+		ui.Text(c, label).TextColor(col).SingleLine().Ellipsis("…").MinWidth(0)
+		ui.Icon(c, icons.AltArrowDown.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text3)
+	})
+	return b
+}
+
+// ifStr is a when ok, else b.
+func ifStr(ok bool, a, b string) string {
+	if ok {
+		return a
+	}
+	return b
+}
