@@ -112,28 +112,19 @@ func snapshotsLongform(t *testing.T, out string) {
 		save("audiobook-ready-tall")
 		tt.SetSize(1100, 720)
 
-		// Projects: the list, a render's details, cards, a delete.
+		// Projects: the list, cards, a delete.
 		a.navigate("/projects")
 		tt.Frame()
 		tt.Frame()
-		for _, it := range a.projects.items {
-			if it.Source == "render" {
-				a.projects.details[libKey(it)] = true
-				break
-			}
-		}
 		save("projects")
 		a.projects.cards = 1
 		save("projects-cards")
 		a.projects.cards = 0
-		for _, it := range a.projects.items {
-			if it.Source == "take" {
-				a.projects.selected[libKey(it)] = true
-			}
+		if items := a.projItems("", ""); len(items) > 0 {
+			a.projects.confirm, a.projects.confirmOpen = items[0], true
 		}
-		a.projects.deleteOpen = true
 		save("projects-delete")
-		a.projects.deleteOpen = false
+		a.projects.confirmOpen = false
 		a.toasts = nil
 	}
 }

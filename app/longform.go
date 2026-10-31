@@ -109,6 +109,16 @@ type lfPage struct {
 	ra        readAlong
 	panel     panelState // the inspector: beside the page, or a drawer
 	narrow    bool       // the main column is narrow: rows fold actions into ⋯
+
+	// The way in (longform_entry.go): opened shows the editor though the
+	// document is empty (a new project); listing shows the list though
+	// one is open (it renders); the composer's text, narrator and focus,
+	// and the list's search.
+	opened, listing bool
+	entryText       string
+	entryVoice      string
+	entryQuery      string
+	entryFocus      bool
 }
 
 func newLfPage(kind core.ProjectKind, model string) *lfPage {

@@ -199,12 +199,6 @@ func b1Longform(t *testing.T, s *b1Shooter) {
 	a.navigate("/projects")
 	tt.Frame()
 	tt.Frame()
-	for _, it := range a.projects.items {
-		if it.Source == "render" {
-			a.projects.details[libKey(it)] = true
-			break
-		}
-	}
 	a.toasts = nil
 	save("projects")
 	a.projects.cards = 1

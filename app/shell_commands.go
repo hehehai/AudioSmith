@@ -1,8 +1,8 @@
 package main
 
-// Commands: one registry behind the ⌘K palette, the native menu and the
-// window's shortcuts, plus the "?" sheet listing the shortcuts, and
-// audiosmith:// deep links.
+// Commands: one registry behind the ⌘K palette (palette.go), the native
+// menu and the window's shortcuts, plus the "?" sheet listing the
+// shortcuts, and audiosmith:// deep links.
 
 import (
 	"fmt"
@@ -127,6 +127,7 @@ func (a *app) paletteItems() []command {
 func (a *app) openPalette() {
 	if !a.paletteOpen {
 		a.paletteOpen, a.paletteQuery, a.paletteSel = true, "", 0
+		a.homeReadRecent() // its Recent (palette.go)
 	}
 }
 
@@ -209,77 +210,6 @@ func kbd(c *ui.Context, keys string) ui.Element {
 	k := tok(t)
 	return ui.Text(c, keys).FontSize(px(t, fsMicro)).TextColor(k.Text2).Padding(px(t, 1), px(t, 5)).Radius(px(t, 4)).
 		Background(k.Subtle).Border(1, k.Line).SingleLine().Shrink(0)
-}
-
-// palette is the ⌘K command palette.
-func (a *app) palette(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
-	_, h := c.Size()
-	ui.DialogBase(c, &a.paletteOpen, func(backdrop, panel ui.Element) {
-		backdrop.Background(ui.RGBA(0, 0, 0, 0.2)).Justify(ui.Start).Padding(min(px(t, 90), h*0.12), px(t, sp6), 0)
-		panel.Width(px(t, 560)).MaxWidth(px(t, 560)).Radius(px(t, radiusDialog)).Background(k.Bg).Border(1, k.Line).Clip().
-			Shadow(0, 16, 40, 0, ui.RGBA(0, 0, 0, 0.22)).Label(i18n.T("Command palette"))
-		items := a.paletteItems()
-		a.paletteSel = max(0, min(a.paletteSel, len(items)-1))
-		ui.Row(c).Padding(px(t, 10), px(t, 14)).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, searchIcon.Linear).Size(px(t, 18), px(t, 18)).TextColor(k.Text3)
-			// A text input rather than ui.SearchField, whose placeholder
-			// is not translated; Escape closes the palette.
-			search := ui.TextInputBase(c.Key("palette-search"), &a.paletteQuery).AutoFocus().Grow(1).FontSize(px(t, 15)).
-				Placeholder(i18n.T("Type a command or a page…")).Label(i18n.T("Search commands"))
-			if search.Changed() {
-				a.paletteSel = 0
-			}
-			if search.Shortcut(0, ui.KeyDown) && len(items) > 0 {
-				a.paletteSel = (a.paletteSel + 1) % len(items)
-			}
-			if search.Shortcut(0, ui.KeyUp) && len(items) > 0 {
-				a.paletteSel = (a.paletteSel - 1 + len(items)) % len(items)
-			}
-			if search.Submitted() && len(items) > 0 {
-				a.runCommand(items[a.paletteSel])
-			}
-			kbd(c, "Esc")
-		})
-		ui.Divider(c)
-		ui.Scroll(c).MaxHeight(min(px(t, 380), h*0.6)).Children(func() {
-			ui.Column(c).Padding(px(t, 6)).Children(func() {
-				if len(items) == 0 {
-					ui.Text(c, i18n.T("No matching commands")).TextColor(k.Text2).Padding(px(t, 10))
-				}
-				group := ""
-				for i, cmd := range items {
-					if cmd.group != group {
-						group = cmd.group
-						ui.Text(c, group).FontSize(px(t, fsMicro)).FontWeight(600).TextColor(k.Text3).Padding(px(t, sp2), px(t, 10), px(t, 4))
-					}
-					row := ui.ButtonBase(c.Key("cmd-"+cmd.id)).Padding(px(t, 7), px(t, 10)).Radius(px(t, radiusControl)).Label(cmd.title)
-					if i == a.paletteSel {
-						row.Background(k.Pressed)
-					} else if row.Hovered() {
-						row.Background(k.Hover)
-					}
-					row.Children(func() {
-						ui.Row(c).Grow(1).Gap(px(t, 10)).AlignItems(ui.Center).Children(func() {
-							ic := icons.Command
-							if p := commandIcon(cmd.id); p != nil {
-								ic = *p
-							}
-							ui.Icon(c, ic.Linear).Size(px(t, 16), px(t, 16)).TextColor(k.Text2)
-							ui.Text(c, cmd.title).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
-							if cmd.keys != "" {
-								kbd(c, cmd.keys)
-							}
-						})
-					})
-					if row.Clicked() {
-						a.runCommand(cmd)
-					}
-				}
-			})
-		})
-	})
 }
 
 // shortcutSheet lists the keyboard shortcuts ("?").

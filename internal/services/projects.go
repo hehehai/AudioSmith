@@ -264,6 +264,12 @@ func (l *Library) Export(ctx context.Context, id string) (core.Export, error) {
 	return l.store.Exports().Get(ctx, id)
 }
 
+// Exports lists the export records whose title or path has search ("" =
+// all), newest first; limit 0 = no limit (the Assets page, 0.5 F5).
+func (l *Library) Exports(ctx context.Context, search string, limit int) ([]core.Export, error) {
+	return l.store.Exports().List(ctx, search, limit)
+}
+
 // DeleteExport deletes an export record; the file stays.
 func (l *Library) DeleteExport(ctx context.Context, id string) error {
 	e, err := l.store.Exports().Get(ctx, id)

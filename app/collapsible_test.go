@@ -9,8 +9,9 @@ import "testing"
 func TestCollapsibleSectionsToggle(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	a.navigate("/stories")
-	tt.Frame()
 	p := a.lfStories
+	p.opened = true // a new story's editor
+	tt.Frame()
 	if p.open["scene"] {
 		t.Fatal("Performance starts open")
 	}

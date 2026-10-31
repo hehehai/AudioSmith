@@ -226,10 +226,10 @@ func TestAssetsHeader(t *testing.T) {
 	t.Cleanup(func() { openPath = func(string) {} })
 	a.navigate("/assets")
 	tt.Frame()
-	if !tt.HasText("Assets") || !tt.HasText("2 takes") {
+	if !tt.HasText("Assets") || !tt.HasText("2 items") {
 		t.Fatalf("header: %q", tt.Texts())
 	}
-	if err := tt.Click("Search takes"); err != nil {
+	if err := tt.Click("Search assets"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Type("turtle")
@@ -256,7 +256,7 @@ func TestProjectsHeader(t *testing.T) {
 	if !tt.HasText("Projects") || !tt.HasText("0 items") {
 		t.Fatalf("header: %q", tt.Texts())
 	}
-	if _, ok := tt.Find("Search the library"); !ok {
+	if _, ok := tt.Find("Search projects"); !ok {
 		t.Error("no search in the header")
 	}
 	if err := tt.Click("Cards (⌥2)"); err != nil {
@@ -294,7 +294,7 @@ func TestHeaderNarrow(t *testing.T) {
 	if headSearchOpen["history-search"] {
 		t.Error("the search field shows narrow before it is opened")
 	}
-	if err := tt.Click("Search takes"); err != nil { // the magnifier
+	if err := tt.Click("Search assets"); err != nil { // the magnifier
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -310,7 +310,7 @@ func TestHeaderNarrow(t *testing.T) {
 	if err := tt.Click("More tools"); err != nil {
 		t.Fatal(err)
 	}
-	if m := tt.Menu(); !slices.Contains(m, "Model") {
+	if m := tt.Menu(); !slices.Contains(m, "Type") || !slices.Contains(m, "Source") {
 		t.Errorf("⋯ menu %q", m)
 	}
 	tt.CloseMenu()

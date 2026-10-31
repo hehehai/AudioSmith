@@ -135,6 +135,7 @@ func TestModelPickerDialogue(t *testing.T) {
 	d.Language = "zh"
 
 	// The Studio's and the audiobook's pickers have no section.
+	a.lfBook.opened = true // the editor
 	for _, page := range []struct{ path, key string }{{"/studio", "model"}, {"/audiobook", "lf-model"}} {
 		a.navigate(page.path)
 		tt.Frame()

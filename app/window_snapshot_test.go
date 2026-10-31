@@ -105,7 +105,7 @@ func snapshotsWindow(t *testing.T, out string) {
 		// The sidebar's search, on Projects.
 		a.projects.query = "hello"
 		a.navigate("/projects")
-		a.refreshLibrary()
+		a.refreshProjects()
 		save("search")
 		a.projects.query = ""
 

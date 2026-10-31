@@ -322,10 +322,7 @@ func TestHistoryExportButton(t *testing.T) {
 	t.Cleanup(func() { exportSaveDir = "" })
 	a.showPage("history")
 	tt.Frame()
-	if err := tt.Click("Export audio…"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
+	chooseAway(t, tt, "Asset actions", "Export…") // Assets' ⋯ (0.5 F5)
 	if a.exp == nil || !tt.HasText("Export audio") {
 		t.Fatalf("no dialog: %q", tt.Texts())
 	}

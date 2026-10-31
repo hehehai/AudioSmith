@@ -21,12 +21,17 @@ func (a *app) storiesPage(c *ui.Context) {
 	t := c.Theme()
 	p := a.lfStories
 	a.lfToasts(c)
+	if !a.lfEditing(p) {
+		a.lfEntryPage(c, p) // longform_entry.go (0.5 F5)
+		a.autosaveLf(p)
+		return
+	}
 	locked := a.lfLocked(p)
 	inline, shown := a.lfLayout(c, p)
 	n := len(p.doc.Lines)
-	pageHeaderBar(c, pageHead{title: i18n.T("Stories"), count: i18n.N(n, "%d line", "%d lines", n), tools: func(bool) {
+	pageHeaderBar(c, a.lfEditorHead(p, i18n.N(n, "%d line", "%d lines", n), func(bool) {
 		a.storyHeader(c, p, locked, shown)
-	}})
+	}))
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
 			a.reviewBuffer(c, p, locked)
@@ -44,8 +49,8 @@ func (a *app) storiesPage(c *ui.Context) {
 	a.autosaveLf(p)
 }
 
-// storyHeader is the Stories page's header: Import, Add ▾, the inspector
-// toggle, and ⋯ (the review buffer, the sample, Clear, Audiobook).
+// storyHeader is an open story's header: Import, Add ▾, the inspector
+// toggle, and ⋯ (Save, the review buffer, the sample, Clear, Audiobook).
 func (a *app) storyHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 	imp := i18n.T("Import…")
 	var b ui.Element
@@ -71,9 +76,9 @@ func (a *app) storyHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 			a.addLine(p, true)
 		}
 	})
-	a.lfProjectMenu(c, p, locked)
 	p.panel.toggle(c.Key("st-panel"), icons.PanelRight, shown, i18n.T("Show the inspector"), i18n.T("Hide the inspector"))
 	moreMenu(c.Key("st-more"), "", func(m *ui.Menu) {
+		a.lfSaveItems(m, p) // longform_entry.go
 		if m.Item(i18n.T("Paste or import text")).Checked(a.reviewOpen(p)).Disabled(locked).Chosen() {
 			p.open["review"] = !a.reviewOpen(p)
 		}

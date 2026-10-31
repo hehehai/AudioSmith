@@ -23,6 +23,9 @@ type pageHead struct {
 	// before the title; a click on it, and ‹ when the history has nothing
 	// before, open up (the list's path).
 	parent, up string
+	// upFn, when set, is what the list's name and ‹ do instead (Stories
+	// and Audiobook close the open work: longform_entry.go).
+	upFn       func()
 	count      string // how many items the page lists ("3 项"); "" none
 	sub        string // a status or a short line after the count; "" none
 	bare       bool   // Home: ‹ › only, no title (the page's question is)
@@ -118,8 +121,13 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 					}
 					ui.Text(c, h.parent+" /").FontSize(px(t, fsPageTitle)).TextColor(col).SingleLine()
 				})
-				if b.Clicked() && headerNav.open != nil {
-					headerNav.open(h.up)
+				if b.Clicked() {
+					switch {
+					case h.upFn != nil:
+						h.upFn()
+					case headerNav.open != nil:
+						headerNav.open(h.up)
+					}
 				}
 			}
 			if !h.bare {
@@ -132,7 +140,7 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 					tx.Shrink(0)
 				}
 			}
-			historyButtons(c, h.up)
+			historyButtons(c, h.up, h.upFn)
 			if h.count != "" {
 				ui.Text(c.Key("head-count"), h.count).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Tooltip(h.count)
 			}
@@ -159,8 +167,8 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 
 // historyButtons are ‹ and ›: back and forward through the window's
 // history. On an item's page (up its list's path) ‹ opens the list when
-// the history has nothing before.
-func historyButtons(c *ui.Context, up string) {
+// the history has nothing before; upFn, when set, is what ‹ does.
+func historyButtons(c *ui.Context, up string, upFn func()) {
 	if headerNav.back == nil {
 		return
 	}
@@ -168,7 +176,9 @@ func historyButtons(c *ui.Context, up string) {
 	ui.Row(c.Key("head-history")).Gap(px(t, 2)).Shrink(0).Children(func() {
 		canBack := headerNav.canBack || up != ""
 		if iconButton(c.Key("go-back"), icons.AltArrowLeft, tip(i18n.X("window history", "Back"), "⌘[")).Disabled(!canBack).Clicked() {
-			if headerNav.canBack {
+			if upFn != nil {
+				upFn()
+			} else if headerNav.canBack {
 				headerNav.back()
 			} else if headerNav.open != nil {
 				headerNav.open(up)

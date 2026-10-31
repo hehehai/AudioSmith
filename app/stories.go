@@ -170,7 +170,7 @@ func (a *app) importStoryFrom(p *lfPage, path string) {
 	if p.importing {
 		return
 	}
-	p.importing = true
+	p.importing, p.opened, p.listing = true, true, false
 	a.background(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
