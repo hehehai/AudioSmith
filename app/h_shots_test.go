@@ -93,6 +93,7 @@ func snapshotsH(t *testing.T, out string) {
 		shoot("05-studio", func() { a.navigate("/studio") })
 		shoot("06-dub-list", func() { a.navigate("/dub") })
 		shoot("08-stt", func() { a.navigate("/transcripts") })
+		shoot("09a-isolate-list", func() { a.navigate("/isolate") })
 		shoot("09-isolate-result", func() { a.navigate("/isolate/" + a.isoList[0].ID) })
 		shoot("10-settings", func() { a.navigate("/settings/general") })
 		// The bell's popover, with a job running.

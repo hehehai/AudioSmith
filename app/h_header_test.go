@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -316,5 +317,49 @@ func TestHeaderNarrow(t *testing.T) {
 	// The header keeps its title and ‹ › in the narrow window.
 	if r, ok := tt.Find("Back (⌘[)"); !ok || r.Y > titleBarHeight {
 		t.Errorf("‹ %+v %v", r, ok)
+	}
+}
+
+// The tool lists' search and filters are in the header: Dub's status and
+// language, Speech to text's and the isolator's search.
+func TestToolListHeaders(t *testing.T) {
+	d := newDubTest(t, 3)
+	a, tt := d.a, d.tt
+	for _, name := range []string{"Interview.wav", "Launch.wav"} {
+		src := filepath.Join(t.TempDir(), name)
+		copyTestFile(t, d.src, src)
+		a.dubStartFile(src)
+	}
+	a.navigate("/dub")
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText("2 items") {
+		t.Fatalf("count: %q", tt.Texts())
+	}
+	r, ok := tt.Find("Search dubs")
+	if !ok || r.Y > titleBarHeight {
+		t.Fatalf("search %+v %v", r, ok)
+	}
+	if err := tt.Click("Search dubs"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("launch")
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText("Launch") || tt.HasText("Interview") {
+		t.Errorf("search: %q", tt.Texts())
+	}
+	if err := tt.Click("Status"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Failed"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.dubFilter != 3 || !tt.HasText("No dubs match.") {
+		t.Errorf("status filter %d: %q", a.dubFilter, tt.Texts())
+	}
+	if _, ok := tt.Find("Languages"); !ok {
+		t.Error("no language menu")
 	}
 }

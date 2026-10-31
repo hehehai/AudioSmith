@@ -17,7 +17,11 @@ import (
 
 // isolatePage is /isolate.
 func (a *app) isolatePage(c *ui.Context) {
-	pageHeaderBar(c, pageHead{title: pageTitle("/isolate"), count: listCount(len(a.isoList), a.isoLoaded)})
+	head := pageHead{title: pageTitle("/isolate"), count: listCount(len(a.isoList), a.isoLoaded)}
+	if len(a.isoList) > 0 {
+		head.search = &headSearch{key: "iso-search", value: &a.isoQuery, placeholder: i18n.T("Search isolations")}
+	}
+	pageHeaderBar(c, head)
 	a.toolPage(c, "iso-page", func() {
 		a.isoNeedNotice(c)
 		a.isoComposer(c)
@@ -94,9 +98,6 @@ func (a *app) isoListView(c *ui.Context) {
 		return
 	}
 	narrow := a.toolNarrow(c)
-	ui.Row(c.Key("iso-filters")).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).Children(func() {
-		searchField(c, "iso-search", &a.isoQuery, i18n.T("Search isolations"), 0)
-	})
 	q := strings.ToLower(strings.TrimSpace(a.isoQuery))
 	ui.Column(c.Key("iso-table")).Shrink(0).Children(func() {
 		listHead(c, narrow, listColumn{title: i18n.T("Name")}, listColumn{title: i18n.T("Length"), w: 64, wide: true},

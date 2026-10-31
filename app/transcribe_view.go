@@ -55,11 +55,16 @@ func (a *app) transcribePage(c *ui.Context) {
 	t := c.Theme()
 	a.trNarrow = a.pageWidth(c) < px(t, 560)
 	a.trTight = a.pageWidth(c) < px(t, 760)
-	pageHeaderBar(c, pageHead{title: pageTitle("/transcripts"), count: listCount(len(a.trList), true), tools: func(bool) {
+	head := pageHead{title: pageTitle("/transcripts"), count: listCount(len(a.trList), true)}
+	if len(a.trList) > 0 {
+		head.search = &headSearch{key: "tr-search", value: &a.trQuery, placeholder: i18n.T("Search transcripts"), changed: a.searchTranscripts}
+	}
+	head.tools = func(bool) {
 		if len(a.trList) > 0 && iconButton(c.Key("tr-export-all"), icons.Export, i18n.T("Export all")).Tooltip(i18n.T("Every transcript in one text file")).Clicked() {
 			a.exportAllTranscripts()
 		}
-	}})
+	}
+	pageHeaderBar(c, head)
 	a.toolPage(c, "transcribe-page", func() {
 		a.trNeedNotice(c)
 		a.trComposer(c)

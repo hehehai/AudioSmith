@@ -38,7 +38,7 @@ type dubListState struct {
 
 // dubListPage is /dub: the composer and the list.
 func (a *app) dubListPage(c *ui.Context) {
-	pageHeaderBar(c, pageHead{title: pageTitle("/dub"), count: listCount(len(a.dubList), a.dubLoaded)})
+	a.dubListHeader(c)
 	a.toolPage(c, "dub-list-page", func() {
 		a.dubComposer(c)
 		if a.dubErr != "" {
@@ -270,33 +270,6 @@ func (a *app) dubListView(c *ui.Context) {
 		return
 	}
 	narrow := a.toolNarrow(c)
-	ui.Column(c.Key("dub-filters")).Gap(px(t, sp2)).Shrink(0).Children(func() {
-		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-			searchField(c, "dub-search", &a.dubQuery, i18n.T("Search dubs"), 0)
-		})
-		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Wrap().Children(func() {
-			for i, name := range []string{i18n.T("All"), i18n.T("In progress"), i18n.T("Done"), i18n.T("Failed")} {
-				if chip(c.Key("dub-f-"+itoa(i)), name, "", a.dubFilter == i).Clicked() {
-					a.dubFilter = i
-				}
-			}
-			ui.Box(c).Width(1).Height(px(t, 16)).Background(tok(t).Line).Margin(0, px(t, sp1))
-			label := i18n.T("All languages")
-			if a.dubLangF != "" {
-				label = dubLangName(a.dubLangF)
-			}
-			dropText(c.Key("dub-lang-f"), label, a.dubLangF != "").Menu(func(m *ui.Menu) {
-				if m.Item(i18n.T("All languages")).Checked(a.dubLangF == "").Chosen() {
-					a.dubLangF = ""
-				}
-				for _, l := range a.dubListLangs() {
-					if m.Item(dubLangName(l)).Checked(a.dubLangF == l).Chosen() {
-						a.dubLangF = l
-					}
-				}
-			})
-		})
-	})
 	rows := a.dubShown()
 	ui.Column(c.Key("dub-table")).Shrink(0).Children(func() {
 		listHead(c, narrow, listColumn{title: i18n.T("Name")}, listColumn{title: i18n.T("Languages"), w: 130, wide: true},
@@ -310,6 +283,53 @@ func (a *app) dubListView(c *ui.Context) {
 			a.dubListRow(c, r, narrow)
 		}
 	})
+}
+
+// dubStatusNames are the list's status filters, by a.dubFilter.
+func dubStatusNames() []string {
+	return []string{i18n.T("All"), i18n.T("In progress"), i18n.T("Done"), i18n.T("Failed")}
+}
+
+// dubListHeader is the list's header: 视频配音 ‹ › how many | the search,
+// the status and the language (in ⋯ when narrow).
+func (a *app) dubListHeader(c *ui.Context) {
+	langLabel := i18n.T("All languages")
+	if a.dubLangF != "" {
+		langLabel = dubLangName(a.dubLangF)
+	}
+	status := func(m *ui.Menu) {
+		for i, name := range dubStatusNames() {
+			if m.Item(name).Checked(a.dubFilter == i).Chosen() {
+				a.dubFilter = i
+			}
+		}
+	}
+	langs := func(m *ui.Menu) {
+		if m.Item(i18n.T("All languages")).Checked(a.dubLangF == "").Chosen() {
+			a.dubLangF = ""
+		}
+		for _, l := range a.dubListLangs() {
+			if m.Item(dubLangName(l)).Checked(a.dubLangF == l).Chosen() {
+				a.dubLangF = l
+			}
+		}
+	}
+	head := pageHead{title: pageTitle("/dub"), count: listCount(len(a.dubList), a.dubLoaded)}
+	if len(a.dubList) > 0 {
+		head.search = &headSearch{key: "dub-search", value: &a.dubQuery, placeholder: i18n.T("Search dubs")}
+		head.tools = func(narrow bool) {
+			if narrow {
+				return
+			}
+			dropText(c.Key("dub-status-f"), dubStatusNames()[a.dubFilter], a.dubFilter != 0).Label(i18n.T("Status")).Menu(status)
+			dropText(c.Key("dub-lang-f"), langLabel, a.dubLangF != "").Label(i18n.T("Languages")).Menu(langs)
+		}
+		head.more = func(m *ui.Menu) {
+			m.Submenu(i18n.T("Status"), status)
+			m.Submenu(i18n.T("Languages"), langs)
+		}
+	}
+	pageHeaderBar(c, head)
 }
 
 // dubListLangs are the target languages of the list's dubs.
