@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/jobs"
 )
 
@@ -59,7 +60,7 @@ func TestHomeRouting(t *testing.T) {
 	tt.Frame()
 	a.homeUI.text = "Welcome to the spring sale."
 	tt.Frame()
-	if err := tt.Click("Start (⌘↩)"); err != nil {
+	if err := tt.Click("Start (↩)"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -332,5 +333,69 @@ func TestVoicesTabs(t *testing.T) {
 	tt.Frame()
 	if a.router.Path() != "/voices/new/clone" || a.nav != "/voices/new" {
 		t.Errorf("clone: %s %s", a.router.Path(), a.nav)
+	}
+}
+
+// The composer sends on Enter (and ⌘↩); ⇧Enter makes a new line; an input
+// method's Enter only chooses its candidate.
+func TestHomeEnter(t *testing.T) {
+	a, _, tt := newTestApp(t)
+	tt.SetFocused(true)
+	a.navigate("/home")
+	tt.Frame()
+	if err := tt.Click("What to create"); err != nil { // the box, by its placeholder
+		t.Fatal(err)
+	}
+	tt.Type("Hello")
+	tt.Key(ui.Shift, ui.KeyEnter)
+	tt.Type("world")
+	tt.Frame()
+	if a.router.Path() != "/home" || a.homeUI.text != "Hello\nworld" {
+		t.Fatalf("shift-enter: %s %q", a.router.Path(), a.homeUI.text)
+	}
+	// Composing (Pinyin): Enter confirms, nothing is sent.
+	tt.Compose("ni", 2)
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if a.router.Path() != "/home" {
+		t.Fatalf("enter while composing sent: %s %q", a.router.Path(), a.homeUI.text)
+	}
+	tt.Type("你") // the candidate chosen: committed
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if a.router.Path() != "/studio" || !strings.HasPrefix(a.text, "Hello\nworld") || !strings.HasSuffix(a.text, "你") {
+		t.Fatalf("enter: %s %q", a.router.Path(), a.text)
+	}
+	// ⌘↩ sends too.
+	a.navigate("/home")
+	tt.Frame()
+	tt.Click("What to create")
+	tt.Type("Again")
+	tt.Key(ui.Cmd, ui.KeyEnter)
+	tt.Frame()
+	if a.router.Path() != "/studio" || a.text != "Again" {
+		t.Errorf("cmd-enter: %s %q", a.router.Path(), a.text)
+	}
+}
+
+// Voices opens at Discover without saved voices, at Mine with some, then
+// at the tab shown last.
+func TestVoicesFirstTab(t *testing.T) {
+	a, _, tt := newTestApp(t)
+	tt.Frame()
+	a.voices = nil
+	if p := a.voicesTabPath(); p != "discover" {
+		t.Errorf("no voices: %s", p)
+	}
+	a.voices = []core.Voice{{ID: "v1", Name: "Ann"}}
+	if p := a.voicesTabPath(); p != "mine" {
+		t.Errorf("with voices: %s", p)
+	}
+	a.navigate("/voices/discover")
+	tt.Frame()
+	if p := a.voicesTabPath(); p != "discover" {
+		t.Errorf("last shown: %s", p)
 	}
 }

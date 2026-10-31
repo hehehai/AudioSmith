@@ -140,7 +140,11 @@ func (a *app) runCommand(cmd command) {
 // does the same thing once.
 func (a *app) shortcuts(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyEnter) {
-		a.generate()
+		if a.currentPage() == "home" && !a.settingsOpen {
+			a.homeSubmit() // Home's composer: ⌘↩ sends, as Enter does
+		} else {
+			a.generate()
+		}
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyK) {
 		a.openPalette()

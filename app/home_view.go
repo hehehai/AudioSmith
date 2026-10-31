@@ -30,8 +30,11 @@ type homePage struct {
 	smart   bool   // 「智能分派」: the writing help picks the tool for text
 	routing bool   // the writing help is picking
 	focus   bool   // the composer takes the focus (the mic)
-	tab     int    // 0 Recent, 1 Samples
-	more    bool   // the More tile's menu shows
+	send    bool   // Enter was pressed in the box: send in the next build
+	// composing: an input method composes in the box (Enter is its own)
+	composing bool
+	tab       int  // 0 Recent, 1 Samples
+	more      bool // the More tile's menu shows
 
 	recent   []store.LibraryItem // the library's latest, for Recent
 	readAt   time.Time           // when they were read
@@ -116,13 +119,26 @@ func (a *app) homeComposer(c *ui.Context) {
 		if hp.file != "" {
 			ph[n] = i18n.T("Add a note, or send the file as it is…")
 		}
-		in := ui.TextAreaBase(c.Key("home-text"), &hp.text).Lines(2, 8).Placeholder(ph[n]).Label(i18n.T("What would you like to create?")).Padding(px(t, 4))
+		if hp.send { // Enter in the box (below), before the box takes the text again
+			hp.send = false
+			a.homeSubmit()
+		}
+		in := ui.TextAreaBase(c.Key("home-text"), &hp.text).Lines(2, 8).Placeholder(ph[n]).Label(i18n.T("What to create")).Padding(px(t, 4))
+		// Enter sends, ⌘↩ too; ⇧Enter breaks the line. While an input
+		// method composes (Pinyin), Enter is its own: it only chooses the
+		// candidate. macOS gives fn no key then; composing (as of the last
+		// build, which a composition change brings) guards it too.
+		hp.composing = in.Composing()
+		in.OnTextKey(func(k ui.TextKey) bool {
+			if k.Key != ui.KeyEnter || (k.Mods != 0 && k.Mods != ui.Cmd) || hp.composing {
+				return false
+			}
+			hp.text, hp.send = k.Text(), true
+			return true
+		})
 		if hp.focus {
 			hp.focus = false
 			in.Focus()
-		}
-		if in.Shortcut(ui.Cmd, ui.KeyEnter) {
-			a.homeSubmit()
 		}
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 			if iconButton(c.Key("home-add"), icons.Add, i18n.T("Add a file: a video, a recording, a text or an ebook")).Clicked() {
@@ -148,12 +164,15 @@ func (a *app) homeComposer(c *ui.Context) {
 				ui.Spinner(c).Size(px(t, 16), px(t, 16))
 				caption(c, i18n.T("Choosing a tool…")).SingleLine()
 			}
+			if strings.TrimSpace(hp.text) != "" && !hp.routing {
+				ui.Text(c, i18n.T("↩ send · ⇧↩ new line")).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(1).MinWidth(0)
+			}
 			if iconButton(c.Key("home-mic"), micIcon, i18n.T("Dictate into the box")).Clicked() {
 				hp.focus = true // the text goes where the focus is
 				a.dictToggle()
 			}
 			ready := (strings.TrimSpace(hp.text) != "" || hp.file != "") && !hp.routing
-			if submitButton(c.Key("home-send"), tip(i18n.T("Start"), "⌘↩"), ready).Clicked() {
+			if submitButton(c.Key("home-send"), tip(i18n.T("Start"), "↩"), ready).Tooltip(i18n.T("Send: Enter · New line: Shift-Enter")).Clicked() {
 				a.homeSubmit()
 			}
 		})

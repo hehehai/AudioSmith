@@ -3745,5 +3745,8 @@
   "tile\u0004Speech": "语音",
   "tile\u0004Stories": "故事",
   "tile\u0004Transcribe": "转写",
-  "two tabs: Discover, about 35 curated voices ready to speak, to search and filter; Mine, the saved voices (designed, cloned and gallery voices).": "两个标签：「发现」，约 35 个精选音色，可直接使用，可搜索和筛选；「我的」，保存的音色（设计的、克隆的和从发现里添加的）。"
+  "two tabs: Discover, about 35 curated voices ready to speak, to search and filter; Mine, the saved voices (designed, cloned and gallery voices).": "两个标签：「发现」，约 35 个精选音色，可直接使用，可搜索和筛选；「我的」，保存的音色（设计的、克隆的和从发现里添加的）。",
+  "What to create": "想做的内容",
+  "Send: Enter · New line: Shift-Enter": "回车发送 · Shift+回车换行",
+  "↩ send · ⇧↩ new line": "↩ 发送 · ⇧↩ 换行"
 }

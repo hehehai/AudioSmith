@@ -19,12 +19,16 @@ import (
 var voicesTabs = []string{"discover", "mine"}
 
 // voicesTabPath is the tab the Voices page opens at from the sidebar: the
-// one shown last ("mine" at first: the user's own voices).
+// one shown last in this session; at first Mine when the user has saved
+// voices, Discover otherwise.
 func (a *app) voicesTabPath() string {
-	if a.voicesTab == "" {
+	switch {
+	case a.voicesTab != "":
+		return a.voicesTab
+	case len(a.voices) > 0:
 		return "mine"
 	}
-	return a.voicesTab
+	return "discover"
 }
 
 // voicesRoute builds the voice area's page for r and reports whether it
