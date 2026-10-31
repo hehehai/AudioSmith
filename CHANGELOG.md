@@ -25,7 +25,7 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 ### Start from Home
 - AudioSmith opens on **Home**: 「今天想做点什么？」 and a box. Type, paste a link or drop a file and press Enter (Shift-Enter for a new line): text opens in Text to speech as the script, a video or a link starts a dub, a recording is transcribed, a text file or an ebook becomes an audiobook. A row of tools and your recent work are under it, and five **samples**. With the writing help's model loaded, 「智能分派」 lets it pick between Text to speech, Stories and Audiobook.
 - The sidebar lists places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator, Dictation and ··· More (Workflows, Batch dubbing, Calls). The search is at its top (pages, actions, voices, projects, samples); Developers, Settings and the bell (tasks and notifications) are at its foot.
-- Every page has its own header: its title, ‹ › through the pages you saw (⌘[ ⌘], the mouse's back and forward buttons), how many things it lists, and its own tools with at most one main button. In a narrow window the search becomes a magnifier and the less used tools go into ⋯.
+- Every page has its own header: its title, how many things it lists, and its own tools with at most one main button, all of one height. ⌘[ ⌘] and the mouse's back and forward buttons go through the pages you saw; an item's page shows its list's name before its title, and a click on it goes back to the list. In a narrow window the search becomes a magnifier and the less used tools go into ⋯.
 - **⌘K searches everything.** Empty, it offers quick actions and your latest work; typing groups pages, actions, voices (Enter uses one in Text to speech), projects, samples and takes by their script, and always offers to read what you typed in Text to speech.
 
 ### Every tool starts on its page
@@ -37,8 +37,9 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 - New: **「帮我写」** on Stories. With the writing help's model on this Mac, turn it on and describe a story in a sentence: the writing help drafts a short scene for two or three voices in your description's language — written, without filler words — then the story is made, cast and opened. A progress line shows while it writes, with Cancel.
 
 ### Voices
-- **Discover**: chips for language, gender, age and use; 「Recommended」 then 「All」 as a table. ▶ plays in the row; a click opens the voice's details at the right: a large preview, 「Try a line」, and 「Use in Text to speech」, 「Use as a story character」, 「Narrate an audiobook」, 「Save to My voices」.
-- **Mine** is a table with filters (All, Cloned, Designed, Saved); ⋯ renames, duplicates, exports or deletes (with Undo). A saved voice's details hold what the profile editor had.
+- 「发现 | 我的」 switch in the header.
+- **Discover**: menus for language, gender, age and chips for use; 「Recommended」 cards of one width, then 「All」. ▶ plays in the row; a click opens the voice's details at the right: a large preview, 「Try a line」, and 「Use in Text to speech」, 「Use as a story character」, 「Narrate an audiobook」, 「Save to My voices」.
+- **Mine** lists your voices with filters (All, Cloned, Designed, Saved); ⋯ renames, duplicates, exports or deletes (with Undo). A saved voice's details hold what the profile editor had.
 - **New voice** offers Quick clone (a guided page: add a recording → check → name and save → done) and Design a voice (a description, preset chips, three candidates to pick from).
 
 ### Projects, Assets and the samples
@@ -50,6 +51,12 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 ### Help where you need it
 - The first visit to Dub, Speech to text, Voice isolator, New voice, Stories and Audiobook shows a short introduction: three points and 「开始」. Each shows once; Settings → General → 「重新显示功能介绍」 shows them again.
 - Empty lists show ghost rows that say what will be there.
+
+### Lists, panels and controls
+- Every list — voices, projects, assets, dubs, transcripts, isolations, Text to speech's history, Home's recent work — has the same rows: no column titles and no lines between rows, rounded rows that tint under the pointer, while open and while playing, a click opens the item, ▶ and ⋯ at the row's end, and small icons before the length, date, type, language and use (their tooltips name them). Delete on a selected row asks to delete it.
+- Details and tool panels float at the right of the page, under its header, sliding in and out: a voice's or a take's details no longer narrow the list; Text to speech's, a dub step's and a story's or book's panel keep their room beside the page while it is wide enough and float over it in a narrow window. ✕ or Escape closes them; a click on another row shows that one.
+- Header filters, buttons and switches are as tall as the search field; Developers' and Text to speech's tabs are switches like Voices'.
+- Play and pause are new icons (Hugeicons) everywhere audio plays; a preview shows pause, not stop, while it plays.
 
 ### Developers
 - **Developers** opens on 「接入你的 Agent」: choose 编程代理, MCP or cURL and copy the snippet — a prompt for your coding agent, the MCP server's configuration, or a first request — then see 「等待第一次请求…」 turn into the time of the last request. Under it, links to the API reference, the skill and the Local API's settings, and every app and agent with its setup. The Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark) are its other tabs.
