@@ -113,13 +113,12 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	if p.lane && !p.left {
 		lane = ui.Box(c).Shrink(0)
 	}
-	// Under the page's header, its top level with the page's content
-	// (sp4, as the pages' first rows; user, 10-31: not up to the window's
-	// top), against the window's edge (no gap, square corners there),
+	// Just under the page's header (sp2; user, 10-31: not up to the
+	// window's top, and no more room above it than that), against the window's edge (no gap, square corners there),
 	// rounded on the page's side, a gap above the window's bottom, with a
 	// small soft shadow.
 	r := px(t, radiusCard)
-	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(px(t, sp4)).Bottom(gap).Width(w).
+	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(px(t, sp2)).Bottom(gap).Width(w).
 		Background(k.Bg).BorderColor(k.Line).Clip().
 		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.08)).Label(p.label)
 	if p.left {
