@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -219,6 +220,51 @@ func (s *Transcripts) Update(ctx context.Context, id string, fn func(*core.Trans
 	}
 	s.bus.Publish(core.TranscriptChanged{Transcript: t})
 	return t, nil
+}
+
+// Import saves a transcript made elsewhere (a bundled sample, 0.5 F6) as
+// a new one: a new ID and times; audio (nil none) is kept as its audio,
+// a file with ext (".m4a"). It publishes TranscriptChanged.
+func (s *Transcripts) Import(ctx context.Context, t core.Transcript, ext string, audio io.Reader) (core.Transcript, error) {
+	now := s.now()
+	t.ID, t.CreatedAt, t.UpdatedAt, t.Audio = core.NewID(now), now, now, ""
+	if audio != nil {
+		t.Audio = t.ID + strings.ToLower(ext)
+		if err := writeReaderAtomic(filepath.Join(s.store.AudioDir(), t.Audio), audio); err != nil {
+			return t, err
+		}
+	}
+	if err := s.store.Put(ctx, t); err != nil {
+		if t.Audio != "" {
+			os.Remove(s.store.AudioPath(t))
+		}
+		return t, err
+	}
+	logSave(ctx, "transcript", true, "", t.ID, t.Title, nil)
+	s.bus.Publish(core.TranscriptChanged{Transcript: t})
+	return t, nil
+}
+
+// writeReaderAtomic writes r to path through a temporary file beside it.
+func writeReaderAtomic(path string, r io.Reader) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.part")
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(f, r)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(f.Name(), path)
+	}
+	if err != nil {
+		os.Remove(f.Name())
+	}
+	return err
 }
 
 // Delete removes a transcript and its audio.

@@ -2,46 +2,56 @@
 
 ## Unreleased (0.5.0-beta.1)
 
-### A new start page and a new sidebar
-- AudioSmith opens on **Home**: ask 「今天想做点什么？」, then type, paste a link or drop a file and press Enter (Shift-Enter for a new line). Text opens in Text to speech with it as the script, a video or a link starts a dub of it, a recording is transcribed, a text file or an ebook becomes an audiobook's manuscript. A row of tools and your recent work (speech, dubs, transcripts, stories, books) are under it. With the writing help's model loaded, 「智能分派」 lets it choose between Text to speech, Stories and Audiobook.
-- The sidebar has places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator, Dictation, and ··· More (Workflows, Batch dubbing, Calls). Developers and Settings are at its foot.
-- **Voices** is one page with two tabs, Discover and Mine; **New voice** offers Quick clone and Design a voice. **Assets** is the former History. **Developers** gathers the agents' setups (MCP, Claude Code, Codex, SDKs), the Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark).
-- The search sits at the top of the sidebar, over Home: 「Search ⌘F」 searches everything (pages, actions, voices, projects) in the command palette; ⌘K opens the palette too. A bell beside Settings at the sidebar's foot counts what is going on and lists it with the notifications. It replaces the cards at the sidebar's foot.
-- Models, Engine, Logs and Integrations are in Settings only. ⌘1…⌘8 are now Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories, Audiobook; ⌘F puts the keyboard in the sidebar's search.
-- Old links (audiosmith://gallery, /history, /tools, /engine…) open where those pages are now; the Local API and MCP are unchanged.
+0.5 changes how you work in AudioSmith, not how it looks: colours, type and buttons are the same. You start from one box on Home; every tool starts its work at the top of its own page and lists what it made below; results hand off to the next tool; everything you make is in Assets and every long piece of work in Projects.
 
-### Text to speech: the script on the left, Settings | History on the right
-- The script fills the left of the page, without a box; Insert, Import script… and Pronunciation… are above it. While it is empty, chips under it — Tell a story, Product narration, Podcast intro, News bulletin, Guided meditation, Audiobook excerpt — fill it with an example in the voice's language (Chinese, English or Japanese), else the interface's. A fresh start has an empty script.
-- At its foot, the character count and estimated length, and Generate (⌘↩). The latest take sits just above, with 「Another voice」.
-- On the right, two tabs. **Settings**: the voice and the model as rows that open their pickers (the voice's previews are still there), 「✦ Recommend」, which lists voices for the script's language and use first (and the model for a language the current one has no voice in), the speed, the language and "Play when ready" as rows, and Advanced at the foot. **History**: this page's takes, newest first — play, the first words, the voice, the length, when — with ⋯ Export…, Reuse settings, Regenerate with another voice, Save as project (Audiobook or Story, for long scripts) and Delete. Assets still lists every take.
-- 「Regenerate with another voice」 loads the take and opens the voice picker, recommended voices first: the voice you pick makes it again.
-- The panel's toggle is in the page's header. In a narrow window the panel opens over the script from it, or from the model and voice named under the count.
+### Where things are now
 
-### Dub, Speech to text and the new Voice isolator: start on the page
-- **Dub** opens on a composer: drop a video or an audio file, or paste a link, pick the language to dub into and press 「配音」. The dub starts at once — the source's details, the download and the transcript run in the background — and shows on top of the list under it, with its progress. The list has a search, filters (in progress, done, failed; a language) and each dub's cover, languages, length and status; ⋯ opens, exports or deletes it. A click opens the dub's editor, as before; ‹ in its header, or 视频配音 before its title, goes back to the list. Creating an empty project first is gone.
-- **Speech to text** works the same way: drop or upload a file (or record), choose the language, speakers and Fast or Accurate, and send it; the transcript shows in the list and opens on its own page. A transcript has two new hand-offs: 「配音」 makes a dub of the same file, 「在文字转语音里朗读」 opens its text as the script.
-- New: **Voice isolator**. Drop a song, a video or a noisy recording and get the voices alone, the music and effects, and the voices denoised, on this Mac, with the models dubbing uses (HTDemucs, DeepFilterNet). It runs as a task in the bell; each result plays and saves its three tracks, and goes on to Speech to text or Dub. If its models are missing the page says which, with their size, and downloads them. Results are kept in the data folder and appear in Home's Recent.
+| Before | Now |
+|---|---|
+| Studio | **Text to speech** |
+| History | **Assets** |
+| Voice gallery, My voices | **Voices** — Discover, Mine |
+| Design a voice, Clone a voice | **New voice** — Design a voice, Quick clone |
+| Library | **Projects** (search in it with the sidebar's search or ⌘K) |
+| Models, Engine, Logs | **Settings** → Models & network, Engine, Logs |
+| Integrations, Settings → Integrations, Local API | **Developers** — Overview, Local API (Settings → Integrations points there) |
+| Tools | **Developers** → Tools |
+| Activity cards at the sidebar's foot | the **bell** beside Settings |
+| Top bar and breadcrumbs | each page's own header |
+| Stories' and Audiobook's Project menu | the page's list, and the editor's ⋯ |
 
-### Every page has its own header
-- There is no bar across the top of the window any more. Each page's top row is its own: its title, ‹ › to go back and forward through the pages you saw (also ⌘[ ⌘] and a mouse's back and forward buttons), how many things it lists (「3 项」), and on the right the page's own tools — search, filters, views, actions and at most one main button. Projects: search, category, list or cards, New. Assets: search, All/Starred, the model, and Open folder. Voices: search, the filters and 「+ New voice」, with Discover and Mine just under the header. Text to speech: the panel's toggle.
-- A dub, a transcript or an isolation shows its name with its list's before it (视频配音 / Interview); ‹ goes back. The extra back rows and breadcrumbs are gone.
-- Home shows only ‹ ›: its question is the title. Settings has ‹ › beside its name to go back through the sections you opened.
-- In a narrow window a page's search is a magnifier that opens it, and its less used tools go into ⋯.
+Old links (audiosmith://gallery, /history, /tools, /integrations…) open the new places; the Local API and MCP are unchanged. ⌘1…⌘8 are Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories, Audiobook; ⌘F puts the keyboard in the sidebar's search.
 
-### Voices: browse, open, use — and make your own step by step
-- **Discover** shows the use cases as chips (Narration, Conversation, Characters, Ads) after Language, Gender and Age; while nothing filters, 「Recommended」 gives six strong voices for your language, then 「All」 lists every voice as a table: name and description, language, gender and age, use, ▶, 「Use」 and ⋯ (save to My voices, Stories, Audiobook, Design, favorite).
-- ▶ plays a voice's preview right in its row (one at a time, the row shows it). A click on a row opens the voice's **details** at the right (over the list in a narrow window): a large preview, 「Try a line」 said by the model that speaks it, and 「Use in Text to speech」, 「Use as a story character」, 「Narrate an audiobook」, 「Save to My voices」.
-- **Mine** is a table too: name, kind, language, created, how often used; filter All / Cloned / Designed / Saved (from Discover). ⋯ renames, duplicates, exports a .asvoice or deletes (with Undo). A saved voice's details hold what the profile editor had — the reference and its quality, settings, lock, ownership, where it is used, export — under the same preview, hand-offs and 「Try a line」.
-- **New voice** offers two large cards with what each needs (Quick clone: 10 seconds or more of clear speech, 30 is best), and the voices you made lately.
-- **Quick clone** is one guided page: Add a recording → Check (the part kept, its quality and cleaning, the transcript) → Name and save → Done, with 「Listen」 and 「Use in Text to speech」.
-- **Design a voice** starts with the description; the presets are chips under it and fill it. 「Generate candidates」 makes three takes of it with different seeds: listen, pick one, name it and save; then 「Use in Text to speech」. Details and the model fold away below.
-- The Studio's voice picker ends with 「Browse the voice library ›」.
+### Start from Home
+- AudioSmith opens on **Home**: 「今天想做点什么？」 and a box. Type, paste a link or drop a file and press Enter (Shift-Enter for a new line): text opens in Text to speech as the script, a video or a link starts a dub, a recording is transcribed, a text file or an ebook becomes an audiobook. A row of tools and your recent work are under it, and five **samples**. With the writing help's model loaded, 「智能分派」 lets it pick between Text to speech, Stories and Audiobook.
+- The sidebar lists places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator, Dictation and ··· More (Workflows, Batch dubbing, Calls). The search is at its top (pages, actions, voices, projects, samples); Developers, Settings and the bell (tasks and notifications) are at its foot.
+- Every page has its own header: its title, ‹ › through the pages you saw (⌘[ ⌘], the mouse's back and forward buttons), how many things it lists, and its own tools with at most one main button. In a narrow window the search becomes a magnifier and the less used tools go into ⋯.
+- **⌘K searches everything.** Empty, it offers quick actions and your latest work; typing groups pages, actions, voices (Enter uses one in Text to speech), projects, samples and takes by their script, and always offers to read what you typed in Text to speech.
 
-### Projects, Assets, ⌘K and the way into Stories and Audiobook
-- **Projects** lists every long piece of work in one place: stories, audiobooks, dubs, transcripts and voice isolations, newest first, with their type, when they changed, their length (lines, chapters, minutes) and their state (draft, rendering 3/10, done, failed). Search it, filter it by type, show it as a table or as cards; ⋯ opens, renames, duplicates or deletes (after asking). 「+ New」 makes a story, an audiobook, a dub, a transcript or an isolation. On top, **Samples**: a story for two voices and an audiobook chapter make a project of their script and open it; the product narration opens Text to speech with its script; the dub and the meeting transcript come later. Voices, takes and export records moved out of Projects: they are on Voices and Assets.
-- **Assets** gathers every output and every file you brought in: Text to speech's takes, the stories' and books' renders, the files you exported (books, chapters, dubs, takes), the isolations' three tracks, the recordings you transcribed and the videos and recordings you dubbed or isolated. Filter by type (speech, story, audiobook, dub, stems, imported) and by the tool they came from; the takes' Starred and model filters are under Type. Each row plays inline, names its tool (a click opens it there) and its ⋯ exports or saves a copy, shows it in Finder, **sends it on** — to Speech to text, Dub or Voice isolator (the file waits in that tool's composer), or its script to Text to speech — or deletes it (an export is only taken off the list; the file stays). A render's ⋯ shows how it was made.
-- **⌘K searches everything.** Empty, it offers quick actions (Generate speech, Dub a video, Transcribe a recording, New voice, New story, New audiobook) and your five latest things. Typing groups what it finds: pages, actions, voices (yours and the curated ones; Enter uses one in Text to speech), projects and takes by their script. The last row always reads what you typed aloud in Text to speech; with the writing help's model loaded, another hands it to the writing help to pick the tool. ↑↓, Enter and Esc as before; the sidebar's search opens it.
-- **Stories** and **Audiobook** open on a composer over the list of your stories or books. Describe a story in a sentence or paste a script (Import… and Load sample are there too) and press 「New story」; paste or import a manuscript, pick its narrator and press 「New audiobook」. The project is made at once and opens in the editor you know, whose header reads 故事 / its title: ‹, or 故事 /, saves what changed and goes back to the list (a book that renders stays open behind it). The Project menu is gone: Save and Save a copy are in the editor's ⋯; opening another project from the list saves the one open.
+### Every tool starts on its page
+- **Text to speech**: the script fills the left; chips under an empty script (Tell a story, Product narration, Podcast intro…) fill it with an example in the voice's language. Generate (⌘↩) is at its foot with the latest take. On the right, **Settings** (voice and model pickers, 「✦ Recommend」, speed, language, Advanced) and **History** (this page's takes, with Export…, Reuse settings, Regenerate with another voice, Save as project, Delete).
+- **Dub**: drop a video or a recording, or paste a link, pick the language and press 「配音」. It starts at once and shows on top of the list below with its progress; a click opens the dub's editor.
+- **Speech to text**: drop, upload, link or record, choose the language, speakers and Fast or Accurate, and send. A transcript opens on its own page and hands off to 「配音」 and 「在文字转语音里朗读」.
+- New: **Voice isolator**. Drop a song, a video or a noisy recording and get the voices alone, the music and effects, and the voices denoised, on this Mac (HTDemucs, DeepFilterNet); each track plays, saves and goes on to Speech to text or Dub.
+- **Stories** and **Audiobook** open on a composer over your stories or books: describe a story or paste a script, or paste or import a manuscript and pick the narrator, then 「新建」. The project opens in the editor you know; ‹ saves it and goes back to the list. Save and Save a copy moved into the editor's ⋯.
+- New: **「帮我写」** on Stories. With the writing help's model on this Mac, turn it on and describe a story in a sentence: the writing help drafts a short scene for two or three voices in your description's language — written, without filler words — then the story is made, cast and opened. A progress line shows while it writes, with Cancel.
+
+### Voices
+- **Discover**: chips for language, gender, age and use; 「Recommended」 then 「All」 as a table. ▶ plays in the row; a click opens the voice's details at the right: a large preview, 「Try a line」, and 「Use in Text to speech」, 「Use as a story character」, 「Narrate an audiobook」, 「Save to My voices」.
+- **Mine** is a table with filters (All, Cloned, Designed, Saved); ⋯ renames, duplicates, exports or deletes (with Undo). A saved voice's details hold what the profile editor had.
+- **New voice** offers Quick clone (a guided page: add a recording → check → name and save → done) and Design a voice (a description, preset chips, three candidates to pick from).
+
+### Projects, Assets and the samples
+- **Projects** lists stories, audiobooks, dubs, transcripts and voice isolations, newest first, with type, date, length and state; search (titles, and the scripts of stories, books and transcripts), filter by type, table or cards; ⋯ opens, renames, duplicates or deletes. Isolations show their file's name, not its path.
+- **Assets** gathers every output and every file you brought in — takes, renders, exports, isolated tracks, the recordings and videos you used — filtered by type and by tool. Each row plays inline, opens in its tool, and **sends on** to Speech to text, Dub, Voice isolator or (its text) Text to speech.
+- **Samples** — 两人对话的故事, 一章有声书, 一段产品旁白, 一段配音短片, 一段会议转写 — on Home's 示例 tab, at the top of Projects and in ⌘K. Opening one copies it into your library as a normal project you can edit or delete, and opens it; opening it again asks whether to open your copy or make a new one. The story, the chapter and the narration open with their text in this beta; the dub and the meeting transcript, and the samples' audio, come in the next one.
+
+### Help where you need it
+- The first visit to Dub, Speech to text, Voice isolator, New voice, Stories and Audiobook shows a short introduction: three points and 「开始」. Each shows once; Settings → General → 「重新显示功能介绍」 shows them again.
+- Empty lists show ghost rows that say what will be there.
+
+### Developers
+- **Developers** opens on 「接入你的 Agent」: choose 编程代理, MCP or cURL and copy the snippet — a prompt for your coding agent, the MCP server's configuration, or a first request — then see 「等待第一次请求…」 turn into the time of the last request. Under it, links to the API reference, the skill and the Local API's settings, and every app and agent with its setup. The Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark) are its other tabs.
 
 ## 0.4.0-beta.8 — 2026-10-26
 

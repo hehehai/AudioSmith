@@ -5,6 +5,7 @@ package main
 // save; hand-offs to Speech to text and Dub).
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -160,7 +161,7 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 	}
 	open := listRow(c, "iso-row-"+id, x.Title, func() {
 		listThumb(c, ic, nil)
-		listTitle(c, x.Title, shortPath(x.Input))
+		listTitle(c, x.Title, filepath.Base(x.Input))
 		if !narrow {
 			d := "—"
 			if x.Duration > 0 {
@@ -243,7 +244,7 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(px(t, 760)).Gap(px(t, sp3)).Children(func() {
 				ui.Column(c).Gap(px(t, 2)).Children(func() {
-					meta := []string{shortPath(x.Input)}
+					meta := []string{filepath.Base(x.Input)}
 					if x.Duration > 0 {
 						meta = append(meta, tlClock(x.Duration))
 					}

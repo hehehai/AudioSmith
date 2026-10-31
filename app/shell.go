@@ -331,6 +331,8 @@ func (a *app) view(c *ui.Context) {
 	a.updatePanel(c)    // updates_view.go: over Settings, whose About asks for it
 	a.historyDialog(c)
 	a.palette(c)
+	a.sampleAskDialog(c)   // samples_copy.go
+	a.introDialog(c)       // intro.go: a feature's first visit
 	a.quickSwitchDialog(c) // shell_status.go: ⌘E
 	a.shortcutSheet(c)
 	a.onboarding(c) // M7a: the first-run wizard, under the licence dialog

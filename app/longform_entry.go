@@ -178,6 +178,10 @@ func (a *app) lfComposer(c *ui.Context, p *lfPage) {
 			a.lfCreateFrom(p, files[0])
 		}
 	}, func() {
+		if p.writing {
+			a.storyWriteProgress(c, p) // stories_write.go
+			return
+		}
 		narrow := a.toolNarrow(c)
 		if labelOrIcon(c.Key("lf-entry-import"), icons.Import, i18n.T("Import…"), narrow).Clicked() {
 			a.lfEntryImport(p)
@@ -189,6 +193,9 @@ func (a *app) lfComposer(c *ui.Context, p *lfPage) {
 			ui.Row(c).MaxWidth(px(t, 240)).Shrink(1).MinWidth(0).Children(func() {
 				a.lfVoiceSelect(c, "ab-entry-voice", &p.entryVoice, entryFor(p.doc.Model), i18n.T("Narrator voice"), false)
 			})
+		}
+		if !book && a.storyWriteReady() {
+			a.storyWriteToggle(c, p)
 		}
 		if ghostButton(c.Key("lf-entry-sample"), i18n.T("Load sample")).Clicked() {
 			a.lfCreate(p, func() { a.lfFillSample(p) })
@@ -203,6 +210,10 @@ func (a *app) lfComposer(c *ui.Context, p *lfPage) {
 // lfSubmit makes a project of the composer's text.
 func (a *app) lfSubmit(p *lfPage) {
 	text := strings.TrimSpace(p.entryText)
+	if p.kind == core.ProjectStory && p.helpWrite && text != "" && a.storyWriteReady() {
+		a.storyWrite(p, text) // stories_write.go
+		return
+	}
 	voice := p.entryVoice
 	if a.lfCreate(p, func() {
 		p.doc.Title = lfTitleFrom(text)

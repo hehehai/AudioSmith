@@ -171,7 +171,7 @@ func TestDeepLinks(t *testing.T) {
 		"audiosmith://studio/":          "/studio",
 		"/settings/engine":              "/settings/engine",
 		"/settings/network":             "/settings/models", // part of Models & network
-		"audiosmith://integrations/n8n": "/settings/integrations/n8n",
+		"audiosmith://integrations/n8n": "/developers/n8n",
 		"audiosmith://tasks":            "/tasks",
 		"audiosmith://logs?source=app":  "/settings/logs",
 		"AudioSmith://engine":           "/settings/engine",

@@ -1,55 +1,16 @@
 package main
 
-// The samples to start from (0.5 F5; Projects' top row and Home's
-// Samples tab): a story for two voices and an audiobook chapter make a
-// project of the sample script and open it; the product narration opens
-// Text to speech with its script; the dub and the meeting transcript
-// come with F6 (their cards say 即将推出).
+// The sample cards (0.5 F5; Projects' top row and Home's Samples tab). A
+// card opens its sample (samples.go, samples_copy.go): a copy made into
+// the library, or, until the sample is bundled, the built-in fallback.
 
 import (
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
-
-// projTemplate is a sample card.
-type projTemplate struct {
-	key, title, about string
-	icon              icons.Icon
-	soon              bool // its sample comes later
-}
-
-// projTemplates are the samples, in order.
-func projTemplates() []projTemplate {
-	return []projTemplate{
-		{"story", i18n.T("A story for two voices"), i18n.T("A short scene, cast and performed"), storiesIcon, false},
-		{"chapter", i18n.T("An audiobook chapter"), i18n.T("A chapter narrated with its headings"), audiobookIcon, false},
-		{"narration", i18n.T("A product narration"), i18n.T("Thirty seconds of voice-over"), studioIcon, false},
-		{"dub", i18n.T("A dubbed clip"), i18n.T("A short video dubbed into Chinese"), dubIcon, true},
-		{"meeting", i18n.T("A meeting transcript"), i18n.T("Who said what, with timings"), transcribeIcon, true},
-	}
-}
-
-// useTemplate starts from a sample: makes its project and opens it.
-func (a *app) useTemplate(key string) {
-	switch key {
-	case "story":
-		p := a.lfStories
-		a.lfCreate(p, func() { a.loadSampleStory(p) })
-	case "chapter":
-		p := a.lfBook
-		a.lfCreate(p, func() { a.loadSample(p) })
-	case "narration":
-		for _, ex := range studioExamples() {
-			if ex.key == "product" {
-				a.navigate("/studio")
-				a.fillExample(ex)
-			}
-		}
-	default:
-		a.toast(i18n.T("The sample projects come with the next update."))
-	}
-}
 
 // templateCards are the samples as a row of cards that wraps.
 func (a *app) templateCards(c *ui.Context) {
@@ -57,7 +18,7 @@ func (a *app) templateCards(c *ui.Context) {
 	k := tok(t)
 	compact := a.toolCompact(c) // a short or narrow window: the titles only
 	ui.Row(c.Key("pj-templates")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).AlignItems(ui.Stretch).Children(func() {
-		for _, s := range projTemplates() {
+		for _, s := range a.sampleCards() {
 			b := ui.ButtonBase(c.Key("sample-" + s.key)).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
 				AlignItems(ui.Stretch).Justify(ui.Start).Grow(1).Basis(px(t, 160)).MinWidth(px(t, 140)).Label(s.title)
 			if b.Hovered() {
@@ -65,7 +26,11 @@ func (a *app) templateCards(c *ui.Context) {
 			}
 			b.Children(func() {
 				ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-					ui.Icon(c, s.icon.Linear).Size(px(t, 18), px(t, 18)).TextColor(k.Text2)
+					col := k.Text2
+					if s.bundled != nil && strings.HasPrefix(s.bundled.Cover.Color, "#") {
+						col = ui.Hex(s.bundled.Cover.Color)
+					}
+					ui.Icon(c, s.icon.Linear).Size(px(t, 18), px(t, 18)).TextColor(col)
 					ui.Spacer(c)
 					if s.soon {
 						ui.Text(c, i18n.T("Coming soon")).FontSize(px(t, fsMicro)).TextColor(k.Text3).Padding(px(t, 1), px(t, 6)).Radius(px(t, 8)).Border(1, k.Line).SingleLine()
@@ -77,8 +42,25 @@ func (a *app) templateCards(c *ui.Context) {
 				}
 			})
 			if b.Clicked() {
-				a.useTemplate(s.key)
+				a.openSample(s.key)
 			}
 		}
 	})
+}
+
+// sampleIcon is a sample card's cover icon by its manifest's name.
+func sampleIcon(name string) (icons.Icon, bool) {
+	switch name {
+	case sampleStory:
+		return storiesIcon, true
+	case sampleAudiobook:
+		return audiobookIcon, true
+	case sampleNarration:
+		return studioIcon, true
+	case sampleDub:
+		return dubIcon, true
+	case sampleTranscriptKind:
+		return transcribeIcon, true
+	}
+	return icons.Icon{}, false
 }

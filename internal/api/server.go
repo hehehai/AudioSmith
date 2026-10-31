@@ -33,6 +33,10 @@ type Options struct {
 	Version string
 	// Logf reports server errors; nil = log.Printf.
 	Logf func(format string, args ...any)
+	// Seen is told when a client's request passed the checks (not the
+	// public routes: health, discovery, the spec), at most once a second;
+	// nil = nobody (the Developers page's 「最近一次请求」).
+	Seen func(at time.Time)
 }
 
 // Server is the Local API. Its handlers are goroutine-safe; Start and
@@ -46,6 +50,7 @@ type Server struct {
 	// access classifies each route pattern for the guard.
 	access map[string]access
 
+	last  atomic.Int64 // unix nanoseconds of the last request Seen was told of
 	mcp   atomic.Pointer[http.Handler]
 	key   atomic.Pointer[string]
 	share atomic.Pointer[shareState]
@@ -80,6 +85,27 @@ func New(o Options) *Server {
 func (s *Server) handle(pattern string, a access, h http.HandlerFunc) {
 	s.access[pattern] = a
 	s.mux.HandleFunc(pattern, h)
+}
+
+// LastRequest is when a client's request last passed the checks (zero:
+// none since the start).
+func (s *Server) LastRequest() time.Time {
+	if n := s.last.Load(); n != 0 {
+		return time.Unix(0, n)
+	}
+	return time.Time{}
+}
+
+// seen records a request that passed the checks.
+func (s *Server) seen() {
+	now := time.Now()
+	prev := s.last.Load()
+	if prev != 0 && now.UnixNano()-prev < int64(time.Second) {
+		return
+	}
+	if s.last.CompareAndSwap(prev, now.UnixNano()) && s.o.Seen != nil {
+		s.o.Seen(now)
+	}
 }
 
 // MountMCP serves h at /mcp (the MCP server, internal/mcp).

@@ -153,8 +153,8 @@ func TestOldRoutes(t *testing.T) {
 	for old, want := range map[string]string{
 		"/gallery": "/voices/discover", "/voices": "/voices/mine", "/clone": "/voices/new/clone", "/design": "/voices/new/design",
 		"/history": "/assets", "/tools": "/developers/tools",
-		"/models": "/settings/models", "/engine": "/settings/engine", "/logs": "/settings/logs", "/integrations": "/settings/integrations",
-		"/integrations/mcp": "/settings/integrations/mcp", "/integrations/twilio": "/integrations/twilio",
+		"/models": "/settings/models", "/engine": "/settings/engine", "/logs": "/settings/logs", "/integrations": "/developers",
+		"/integrations/mcp": "/developers/mcp", "/integrations/twilio": "/integrations/twilio",
 	} {
 		a.settingsOpen = false
 		a.navigate(old)

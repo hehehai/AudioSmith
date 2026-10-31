@@ -19,6 +19,7 @@ type toolPagesState struct {
 	dictTry      string // Dictation's box to try it in
 	dictTryFocus bool   // the box takes the focus (Start in it)
 	devTab       int    // Developers' tab: its path's (developers_view.go)
+	devSeg       int    // Developers' 编程代理 | MCP | cURL
 }
 
 // toolPageTitle translates the pages' titles.

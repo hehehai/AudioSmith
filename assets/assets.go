@@ -35,3 +35,9 @@ var VoicePreviews embed.FS
 //
 //go:embed starter-voices
 var StarterVoices embed.FS
+
+// Samples are the sample projects (0.5 F6), at samples/<id>/sample.json
+// and the files it names (samples/README.md).
+//
+//go:embed samples
+var Samples embed.FS

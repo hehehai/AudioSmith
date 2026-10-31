@@ -153,7 +153,7 @@ func (a *app) assets() []asset {
 				path: a.isoSvc.Path(x.ID, s.file), dur: x.Duration, at: x.UpdatedAt, tool: "/isolate", open: openIso})
 		}
 		if x.Input != "" {
-			out = append(out, asset{key: "in:iso:" + x.ID, kind: assetImport, title: filepath.Base(x.Input), sub: shortPath(x.Input),
+			out = append(out, asset{key: "in:iso:" + x.ID, kind: assetImport, title: filepath.Base(x.Input), sub: inFolder(x.Input),
 				path: x.Input, dur: x.Duration, at: x.CreatedAt, tool: "/isolate", open: openIso})
 		}
 	}
@@ -177,7 +177,7 @@ func (a *app) assets() []asset {
 			continue
 		}
 		id := r.ID
-		out = append(out, asset{key: "in:dub:" + id, kind: assetImport, title: filepath.Base(r.Source), sub: shortPath(r.Source),
+		out = append(out, asset{key: "in:dub:" + id, kind: assetImport, title: filepath.Base(r.Source), sub: inFolder(r.Source),
 			path: r.Source, dur: r.Duration, at: r.CreatedAt, tool: "/dub", open: func() { a.openDub(id) }})
 	}
 	slices.SortStableFunc(out, func(x, y asset) int { return y.at.Compare(x.at) })
@@ -193,6 +193,8 @@ func (a *app) exportAsset(e core.Export) (asset, bool) {
 	case "take":
 	case "dub":
 		kind, tool = assetDub, "/dub"
+	case "story": // a sample's audio (samples_copy.go)
+		kind, tool = assetStory, "/stories"
 	case "book", "chapter", "stem":
 		kind, tool = assetBook, "/audiobook"
 		if r := a.lfRenders[e.SourceID]; r != nil && r.rec.Kind == core.ProjectStory {
@@ -371,4 +373,10 @@ func assetIcon(k assetKind) icons.Icon {
 		return icons.Import
 	}
 	return studioIcon
+}
+
+// inFolder is a file's place as its folder's name ("在 Downloads 中"),
+// not its full path.
+func inFolder(path string) string {
+	return i18n.T("In %s", filepath.Base(filepath.Dir(path)))
 }

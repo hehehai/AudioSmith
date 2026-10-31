@@ -9,6 +9,8 @@ package main
 
 import (
 	"context"
+	"maps"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -119,16 +121,79 @@ func (a *app) refreshProjects() {
 	})
 }
 
+// projTextHits are the stories and books whose script has q. The
+// scripts are read in the background when they changed (until then, the
+// hits of what was read).
+func (a *app) projTextHits(q string) map[string]bool {
+	s := &a.projects
+	q = strings.ToLower(strings.TrimSpace(q))
+	if q == "" || a.lib == nil || a.lib.svc.Library == nil {
+		return nil
+	}
+	var stale []store.LibraryItem
+	for _, it := range s.lf {
+		if x, ok := s.texts[it.ID]; !ok || !x.at.Equal(it.Updated) {
+			stale = append(stale, it)
+		}
+	}
+	if len(stale) > 0 && !s.textBusy {
+		s.textBusy = true
+		lib := a.lib.svc.Library
+		a.background(func() {
+			read := map[string]projText{}
+			for _, it := range stale {
+				x := projText{at: it.Updated} // unreadable: not read again until it changes
+				if _, d, err := lib.LoadDoc(context.Background(), it.ID); err == nil {
+					x.text = strings.ToLower(services.StoryScript(d.Lines) + "\n" + d.Script + "\n" + d.ImportText)
+				}
+				read[it.ID] = x
+			}
+			a.post(func() {
+				if s.texts == nil {
+					s.texts = map[string]projText{}
+				}
+				maps.Copy(s.texts, read)
+				s.textGen++
+				s.textBusy = false
+			})
+		})
+	}
+	if s.textQ != q || s.hitsGen != s.textGen {
+		s.textQ, s.hitsGen, s.textHits = q, s.textGen, map[string]bool{}
+		for id, x := range s.texts {
+			if strings.Contains(x.text, q) {
+				s.textHits[id] = true
+			}
+		}
+	}
+	return s.textHits
+}
+
 // projItems are the list's rows of kind ("" all) whose title or source
 // has q, newest change first.
 func (a *app) projItems(kind projKind, q string) []projItem {
 	a.refreshProjects()
 	var out []projItem
+	lq := strings.ToLower(q)
+	hits := a.projTextHits(q)
+	var texts map[string]bool // transcripts whose text has q
+	if q != "" {
+		texts = map[string]bool{}
+		for _, tr := range a.trList {
+			for _, sg := range tr.Segments {
+				if strings.Contains(strings.ToLower(sg.Text), lq) {
+					texts[tr.ID] = true
+					break
+				}
+			}
+		}
+	}
 	add := func(it projItem) {
 		if kind != "" && it.kind != kind {
 			return
 		}
-		if q != "" && !strings.Contains(strings.ToLower(it.title+" "+it.sub), strings.ToLower(q)) {
+		if q != "" && !strings.Contains(strings.ToLower(it.title+" "+it.sub), lq) && !hits[it.id] &&
+			!(it.kind == projTranscript && texts[it.id]) {
 			return
 		}
 		out = append(out, it)
@@ -153,7 +218,7 @@ func (a *app) projItems(kind projKind, q string) []projItem {
 	}
 	for _, x := range a.isoList {
 		st, running, frac, failed := a.isoStatus(x)
-		add(projItem{kind: projIsolate, id: x.ID, title: x.Title, sub: shortPath(x.Input), updated: x.UpdatedAt,
+		add(projItem{kind: projIsolate, id: x.ID, title: x.Title, sub: filepath.Base(x.Input), updated: x.UpdatedAt,
 			length: durText(x.Duration), status: st, running: running, frac: frac, failed: failed})
 	}
 	slices.SortStableFunc(out, func(x, y projItem) int {

@@ -33,6 +33,11 @@ func (a *app) generalSettings(c *ui.Context) {
 		a.sharedScope(c, famset.KeyLanguage) // family_shared_view.go: the ActNow family's
 		a.m2GeneralSettings(c)               // M2: dictation_settings.go
 		a.onboardingRow(c)                   // M7a: onboarding.go
+		settingRow(c, "intros-reset", i18n.T("Show the feature introductions again"), i18n.T("Dub, Speech to text, Voice isolator, New voice, Stories and Audiobook introduce themselves on the next visit."), func() {
+			if ui.Button(c.Key("intros-reset-btn"), i18n.T("Show again")).Disabled(len(a.prefs.Setup.Intros) == 0).Clicked() {
+				a.resetIntros() // intro.go
+			}
+		})
 	})
 }
 
