@@ -101,35 +101,54 @@ func (a *app) historyModels() []string {
 func (a *app) historyPage(c *ui.Context) {
 	t := c.Theme()
 	h := &a.history
-	browseHeader(c, i18n.T("Assets"), i18n.N(len(a.takes), "%d take", "%d takes", len(a.takes)), func() {
-		if iconButton(c.Key("open-folder"), icons.FolderOpen, i18n.T("Open folder")).Tooltip(i18n.T("Open the folder of the takes in Finder")).Clicked() {
-			mygo.Shell.OpenPath(a.takeStore.AudioDir())
-		}
-	})
 	takes := a.historyTakes()
 	sel := a.findTake(h.selected)
 	w := px(t, 360)
 	inline := a.panelFits(c, w)
-	var twoLines bool
-	ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp3)).Children(func() {
-		twoLines = filterBar(c, a.pageWidth(c)-px(t, 2*sp6), 320, func() {
-			if searchField(c, "history-search", &h.query, i18n.T("Search the scripts"), 0).Label(i18n.T("Search takes")).Changed() {
-				a.searchTakes()
-			}
-		}, func() {
-			ui.Segmented(c.Key("history-filter"), &h.filter, i18n.T("All"), i18n.T("Starred")).Label(i18n.T("Show")).Shrink(0)
-			models := append([]string{i18n.T("All models")}, a.historyModels()...)
-			choice := h.model
-			if choice == "" {
-				choice = models[0]
-			}
-			if ui.Select(c.Key("history-model"), &choice, models).Label(i18n.T("Model")).Width(px(t, 180)).Shrink(1).MinWidth(px(t, 110)).Changed() {
-				h.model = choice
-				if choice == models[0] {
-					h.model = ""
+	count := i18n.N(len(a.takes), "%d take", "%d takes", len(a.takes))
+	if len(takes) != len(a.takes) {
+		count = i18n.N(len(takes), "%d found", "%d found", len(takes))
+	}
+	models := append([]string{i18n.T("All models")}, a.historyModels()...)
+	pageHeaderBar(c, pageHead{
+		title: i18n.T("Assets"),
+		count: count,
+		search: &headSearch{key: "history-search", value: &h.query, placeholder: i18n.T("Search the scripts"), label: i18n.T("Search takes"),
+			changed: a.searchTakes},
+		tools: func(narrow bool) {
+			if !narrow {
+				ui.Segmented(c.Key("history-filter"), &h.filter, i18n.T("All"), i18n.T("Starred")).Label(i18n.T("Show")).Shrink(0)
+				choice := h.model
+				if choice == "" {
+					choice = models[0]
+				}
+				if ui.Select(c.Key("history-model"), &choice, models).Label(i18n.T("Model")).Width(px(t, 160)).Shrink(1).MinWidth(px(t, 110)).Changed() {
+					h.model = choice
+					if choice == models[0] {
+						h.model = ""
+					}
 				}
 			}
-		})
+			if iconButton(c.Key("open-folder"), icons.FolderOpen, i18n.T("Open folder")).Tooltip(i18n.T("Open the folder of the takes in Finder")).Clicked() {
+				a.openTakesFolder()
+			}
+		},
+		more: func(m *ui.Menu) {
+			if m.Item(i18n.T("Starred")).Checked(h.filter == 1).Chosen() {
+				h.filter = 1 - h.filter
+			}
+			m.Submenu(i18n.T("Model"), func(m *ui.Menu) {
+				for i, name := range models {
+					on := h.model == name || i == 0 && h.model == ""
+					if m.Item(name).Checked(on).Chosen() {
+						h.model = name
+						if i == 0 {
+							h.model = ""
+						}
+					}
+				}
+			})
+		},
 	})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.List(c, &a.historyList, len(takes)).Grow(1).MinWidth(0).Padding(0, 0, px(t, sp4)).ItemKey(func(i int) any { return takes[i].ID }).Rows(func(r ui.ListRow) {
@@ -145,11 +164,7 @@ func (a *app) historyPage(c *ui.Context) {
 		}
 	})
 	if len(takes) == 0 {
-		bar := px(t, 50)
-		if twoLines {
-			bar += px(t, 40)
-		}
-		ui.Column(c).Absolute().Left(0).Top(pageTop + bar).Right(0).Bottom(0).Center().PassThrough().Children(func() {
+		ui.Column(c).Absolute().Left(0).Top(pageTop).Right(0).Bottom(0).Center().PassThrough().Children(func() {
 			if len(a.takes) == 0 {
 				emptyState(c, icons.History, i18n.T("No takes yet"), i18n.T("What you generate in the studio shows up here."), nil)
 			} else {
@@ -158,6 +173,13 @@ func (a *app) historyPage(c *ui.Context) {
 		})
 	}
 }
+
+// openPath opens a folder or file with the system (Finder); tests
+// replace it.
+var openPath = func(path string) { mygo.Shell.OpenPath(path) }
+
+// openTakesFolder shows the takes' folder in Finder (Assets' header).
+func (a *app) openTakesFolder() { openPath(a.takeStore.AudioDir()) }
 
 // takeRow is a take in the History list: a flat card with the round play
 // button, the waveform, the script, its meta line, star, Reuse, Export…

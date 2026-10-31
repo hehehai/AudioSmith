@@ -23,9 +23,10 @@ func (a *app) storiesPage(c *ui.Context) {
 	a.lfToasts(c)
 	locked := a.lfLocked(p)
 	inline, shown := a.lfLayout(c, p)
-	pageHeader(c, i18n.T("Stories"), func() {
+	n := len(p.doc.Lines)
+	pageHeaderBar(c, pageHead{title: i18n.T("Stories"), count: i18n.N(n, "%d line", "%d lines", n), tools: func(bool) {
 		a.storyHeader(c, p, locked, shown)
-	})
+	}})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
 			a.reviewBuffer(c, p, locked)

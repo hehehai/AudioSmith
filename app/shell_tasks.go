@@ -25,7 +25,7 @@ func (a *app) tasksPage(c *ui.Context) {
 	if n := len(active); n > 0 {
 		note = i18n.N(n, "%d job", "%d jobs", n)
 	}
-	pageHeaderNote(c, i18n.T("Tasks"), note, nil)
+	pageHeaderBar(c, pageHead{title: i18n.T("Tasks"), count: note})
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp5)).MaxWidth(px(t, 760)).Children(func() {
 			caption(c, i18n.T("What AudioSmith is doing: renders, dubs, takes, exports and downloads go on in the background, a few at a time.")).Wrap()

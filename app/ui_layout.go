@@ -1,19 +1,13 @@
 package main
 
-// The kit's layout (ui_kit.go): the page header, cards, collapsible
-// sections, form rows, search and filter bars, empty states.
+// The kit's layout (ui_kit.go): a hosted page's header (the header itself
+// is ui_page_header.go), cards, collapsible sections, form rows, search
+// and filter bars, empty states.
 
 import (
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
-
-// pageHeader is a page's title bar, which drags the window: its title,
-// then on the right what trailing builds (the page's one primary action,
-// icon buttons, moreMenu).
-// headerInset is the room page titles leave on their left for the window
-// controls: set each frame by sidebarFrame, non-zero beside the icon rail.
-var headerInset float32
 
 // headerHost lets a page that shows another page's view inside it (the
 // Voices page's tabs, New voice's flows: voices_pages.go) name the header
@@ -34,22 +28,6 @@ func hostedHeader(title string) (string, func()) {
 		title = h.title
 	}
 	return title, h.below
-}
-
-func pageHeader(c *ui.Context, title string, trailing func()) {
-	t := c.Theme()
-	title, below := hostedHeader(title)
-	defer func() {
-		if below != nil {
-			below()
-		}
-	}()
-	ui.Row(c).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).Gap(px(t, sp2)).DragWindow().Children(func() {
-		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
-		if trailing != nil {
-			trailing()
-		}
-	})
 }
 
 // card is a flat card: the page's background inside a hairline border,
@@ -146,27 +124,6 @@ func searchField(c *ui.Context, key string, value *string, placeholder string, m
 		})
 	})
 	return in
-}
-
-// filterBar is the bar of a page's search field and its filters
-// (segmented controls, selects, a selection button): on one line when
-// the search keeps 240 DIPs beside the filters (filtersW wide, in DIPs at
-// 100 %) in room (the bar's width), else the search on a line of its own
-// and the filters under it. It returns whether it took two lines.
-func filterBar(c *ui.Context, room, filtersW float32, search, filters func()) (twoLines bool) {
-	t := c.Theme()
-	if room-px(t, filtersW+sp2) >= px(t, 240) {
-		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).Children(func() {
-			search()
-			filters()
-		})
-		return false
-	}
-	ui.Column(c).Gap(px(t, sp2)).Shrink(0).Children(func() {
-		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(search)
-		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(filters)
-	})
-	return true
 }
 
 // emptyState is a page's or a list's empty state: a large icon, a title,

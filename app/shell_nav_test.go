@@ -14,7 +14,7 @@ func TestSidebarGroups(t *testing.T) {
 	tt.Frame()
 	for _, title := range []string{"Tools", "Home", "Voices", "Projects", "Assets",
 		"Text to speech", "New voice", "Stories", "Audiobook", "Dub", "Speech to text", "Voice isolator", "Dictation", "More",
-		"Developers", "Settings", "Tasks and notifications", "Search everything…"} {
+		"Developers", "Settings", "Tasks and notifications", "Search everything"} {
 		if !tt.HasText(title) {
 			t.Errorf("window lacks %q", title)
 		}

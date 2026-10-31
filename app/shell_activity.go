@@ -1,8 +1,9 @@
 package main
 
 // The activity cards (the ActNow family's window spec §2): what goes on,
-// instead of a status bar; since 0.5 F1 the top bar's bell counts them
-// and lists them in its popover (shell_topbar.go), the Tasks page in full. In order: a stopped
+// instead of a status bar; since 0.5 F1 the tasks bell counts them
+// and lists them in its popover (shell_bell.go), the Tasks page in
+// full. In order: a stopped
 // engine (red, Restart), dictation and calls under way (Stop, Hang up),
 // the jobs by kind — each story or book render, dub and workflow run its
 // own card, the Studio's takes, exports and transcriptions one card a

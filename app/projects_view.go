@@ -22,36 +22,54 @@ func (a *app) projectsPage(c *ui.Context) {
 	s := &a.projects
 	a.refreshLibrary()
 	narrow := a.pageWidth(c)-px(t, 190) < px(t, 520)
-	// The header (the family's window spec §3.2): ‹ ›, how many (or how many
-	// the sidebar's search found, and Clear search), the views, New, ⋯.
+	// The header: 项目 ‹ › how many (or how many the search found), the
+	// search, the category (when the list of them is not beside the items),
+	// the views, New.
 	total := s.counts[libCategories[min(max(s.category, 0), len(libCategories)-1)]]
 	note := i18n.N(total, "%d item", "%d items", total)
-	searching := strings.TrimSpace(s.query) != ""
-	if searching {
+	if strings.TrimSpace(s.query) != "" {
 		note = i18n.N(len(s.items), "%d found", "%d found", len(s.items))
 	}
-	browseHeader(c, i18n.T("Projects"), note, func() {
-		if searching && ghostButton(c.Key("pj-clear-search"), i18n.T("Clear search")).Shrink(0).Clicked() {
-			s.query = ""
-			clear(s.selected)
-		}
-		if iconToggle(c.Key("pj-view-list"), icons.List, s.cards == 0, tip(i18n.T("List"), "⌥1")).Clicked() {
-			s.cards = 0
-		}
-		if iconToggle(c.Key("pj-view-cards"), galleryIcon, s.cards == 1, tip(i18n.T("Cards"), "⌥2")).Clicked() {
-			s.cards = 1
-		}
-		iconButton(c.Key("pj-new"), icons.AddCircle, i18n.T("New")).Menu(func(m *ui.Menu) {
-			if m.Item(i18n.T("New story")).Chosen() {
-				a.navigate("/stories")
+	pageHeaderBar(c, pageHead{
+		title: i18n.T("Projects"),
+		count: note,
+		search: &headSearch{key: "pj-search", value: &s.query, placeholder: i18n.T("Search the library"),
+			changed: func() { clear(s.selected) }},
+		tools: func(hn bool) {
+			if narrow && !hn {
+				a.libraryCategorySelect(c)
 			}
-			if m.Item(i18n.T("New audiobook")).Chosen() {
-				a.navigate("/audiobook")
+			if iconToggle(c.Key("pj-view-list"), icons.List, s.cards == 0, tip(i18n.T("List"), "⌥1")).Clicked() {
+				s.cards = 0
 			}
-			if m.Item(i18n.T("New dub")).Chosen() {
-				a.navigate("/dub")
+			if iconToggle(c.Key("pj-view-cards"), galleryIcon, s.cards == 1, tip(i18n.T("Cards"), "⌥2")).Clicked() {
+				s.cards = 1
 			}
-		})
+			iconButton(c.Key("pj-new"), icons.AddCircle, i18n.T("New")).Menu(func(m *ui.Menu) {
+				if m.Item(i18n.T("New story")).Chosen() {
+					a.navigate("/stories")
+				}
+				if m.Item(i18n.T("New audiobook")).Chosen() {
+					a.navigate("/audiobook")
+				}
+				if m.Item(i18n.T("New dub")).Chosen() {
+					a.navigate("/dub")
+				}
+			})
+		},
+		more: func(m *ui.Menu) {
+			if !narrow {
+				return
+			}
+			m.Submenu(i18n.T("Category"), func(m *ui.Menu) {
+				for i, cat := range libCategories {
+					if m.Item(categoryLabel(cat) + " · " + strconv.Itoa(s.counts[cat])).Checked(s.category == i).Chosen() {
+						s.category = i
+						clear(s.selected)
+					}
+				}
+			})
+		},
 	})
 	if c.Shortcut(ui.Alt, ui.Key1) {
 		s.cards = 0
@@ -94,38 +112,12 @@ func (a *app) projectsPage(c *ui.Context) {
 	a.libraryDialogs(c)
 }
 
-// libraryToolbar: the search (⌘F; Esc clears it), the category
-// (narrow) and the selection. The views are in the header.
+// libraryToolbar: the selection. The search, the category (narrow) and
+// the views are in the header.
 func (a *app) libraryToolbar(c *ui.Context, narrow bool) {
 	t := c.Theme()
 	s := &a.projects
 	ui.Row(c.Key("pj-toolbar")).Gap(px(t, sp2)).AlignItems(ui.Center).MinHeight(px(t, 30)).Children(func() {
-		in := searchField(c, "pj-search", &s.query, i18n.T("Search")+"  ⌘F", px(t, 320)).Label(i18n.T("Search the library"))
-		if a.searchFocus {
-			a.searchFocus = false
-			in.Focus()
-		}
-		if in.Shortcut(0, ui.KeyEscape) && s.query != "" {
-			s.query = ""
-		}
-		if in.Changed() {
-			clear(s.selected)
-		}
-		if narrow {
-			labels := make([]string, len(libCategories))
-			for i, cat := range libCategories {
-				labels[i] = categoryLabel(cat) + " · " + strconv.Itoa(s.counts[cat])
-			}
-			cur := labels[min(max(s.category, 0), len(labels)-1)]
-			if ui.Select(c.Key("pj-category"), &cur, labels).Label(i18n.T("Category")).Tooltip(i18n.T("Category")).Width(px(t, 180)).Shrink(1).MinWidth(px(t, 90)).Changed() {
-				for i, l := range labels {
-					if l == cur {
-						s.category = i
-					}
-				}
-				clear(s.selected)
-			}
-		}
 		ui.Spacer(c)
 		n := len(s.selected)
 		if n == 0 {
@@ -152,6 +144,26 @@ func (a *app) libraryToolbar(c *ui.Context, narrow bool) {
 			s.deleteOpen = true
 		}
 	})
+}
+
+// libraryCategorySelect is the category as a select, in the header
+// while the list of them is not beside the items.
+func (a *app) libraryCategorySelect(c *ui.Context) {
+	t := c.Theme()
+	s := &a.projects
+	labels := make([]string, len(libCategories))
+	for i, cat := range libCategories {
+		labels[i] = categoryLabel(cat) + " · " + strconv.Itoa(s.counts[cat])
+	}
+	cur := labels[min(max(s.category, 0), len(labels)-1)]
+	if ui.Select(c.Key("pj-category"), &cur, labels).Label(i18n.T("Category")).Tooltip(i18n.T("Category")).Width(px(t, 160)).Shrink(1).MinWidth(px(t, 90)).Changed() {
+		for i, l := range labels {
+			if l == cur {
+				s.category = i
+			}
+		}
+		clear(s.selected)
+	}
 }
 
 // libraryItems is the list or the cards.

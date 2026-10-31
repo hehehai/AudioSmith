@@ -55,6 +55,16 @@ func (a *app) transcribePage(c *ui.Context) {
 	t := c.Theme()
 	a.trNarrow = a.pageWidth(c) < px(t, 560)
 	a.trTight = a.pageWidth(c) < px(t, 760)
+	head := pageHead{title: pageTitle("/transcripts"), count: listCount(len(a.trList), true)}
+	if len(a.trList) > 0 {
+		head.search = &headSearch{key: "tr-search", value: &a.trQuery, placeholder: i18n.T("Search transcripts"), changed: a.searchTranscripts}
+	}
+	head.tools = func(bool) {
+		if len(a.trList) > 0 && iconButton(c.Key("tr-export-all"), icons.Export, i18n.T("Export all")).Tooltip(i18n.T("Every transcript in one text file")).Clicked() {
+			a.exportAllTranscripts()
+		}
+	}
+	pageHeaderBar(c, head)
 	a.toolPage(c, "transcribe-page", func() {
 		a.trNeedNotice(c)
 		a.trComposer(c)
@@ -63,8 +73,8 @@ func (a *app) transcribePage(c *ui.Context) {
 	})
 }
 
-// transcriptPage is /transcripts/{id}: back to the list, then the
-// transcript (transcribe_view_detail.go).
+// transcriptPage is /transcripts/{id}: its header (语音转文字 / title,
+// ‹ back to the list), then the transcript (transcribe_view_detail.go).
 func (a *app) transcriptPage(c *ui.Context, id string) {
 	t := c.Theme()
 	a.trNarrow = a.pageWidth(c) < px(t, 560)
@@ -72,7 +82,7 @@ func (a *app) transcriptPage(c *ui.Context, id string) {
 	if a.trSel != id {
 		a.selectTranscript(id)
 	}
-	backRow(c, "tr-back", pageTitle("/transcripts"), func() { a.navigate("/transcripts") }, nil)
+	pageHeaderBar(c, pageHead{title: a.transcriptTitleOf(id), parent: pageTitle("/transcripts"), up: "/transcripts"})
 	ui.Scroll(c.Key("tr-main")).Grow(1).MinWidth(0).Children(func() {
 		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(px(t, 920)).Gap(px(t, sp3)).Children(func() { a.transcriptDetail(c) })
@@ -80,7 +90,7 @@ func (a *app) transcriptPage(c *ui.Context, id string) {
 	}).ClipX()
 }
 
-// transcriptTitleOf is transcript id's title, for the breadcrumb.
+// transcriptTitleOf is transcript id's title, for its page's header.
 func (a *app) transcriptTitleOf(id string) string {
 	if a.trDetail != nil && a.trDetail.ID == id {
 		return transcriptTitle(*a.trDetail)

@@ -60,15 +60,17 @@ func TestDubComposerFlow(t *testing.T) {
 	if p := a.router.Path(); p != "/dub/"+id {
 		t.Fatalf("row click: %s", p)
 	}
-	if !tt.HasText("Hello there.") || !tt.HasText("Back to Dub") && !tt.HasText("Dub") {
+	if !tt.HasText("Hello there.") || !tt.HasText("Dub /") || !tt.HasText("Interview") {
 		t.Errorf("editor: %q", tt.Texts())
 	}
-	if cs := a.pageCrumbs(a.router.Path()); len(cs) != 2 || cs[0].path != "/dub" || cs[1].title != "Interview" {
-		t.Errorf("breadcrumb %+v", cs)
-	}
-	d.click(t, "Back to Dub")
+	d.click(t, "Back to Dub") // the list's name before the title
 	if p := a.router.Path(); p != "/dub" {
 		t.Fatalf("back: %s", p)
+	}
+	d.click(t, "Interview")
+	d.click(t, "Back (⌘[)") // the header's ‹
+	if p := a.router.Path(); p != "/dub" {
+		t.Fatalf("‹: %s", p)
 	}
 	// Filters: a failed filter hides it; the search finds it.
 	a.dubFilter = 3

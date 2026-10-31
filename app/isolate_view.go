@@ -17,6 +17,11 @@ import (
 
 // isolatePage is /isolate.
 func (a *app) isolatePage(c *ui.Context) {
+	head := pageHead{title: pageTitle("/isolate"), count: listCount(len(a.isoList), a.isoLoaded)}
+	if len(a.isoList) > 0 {
+		head.search = &headSearch{key: "iso-search", value: &a.isoQuery, placeholder: i18n.T("Search isolations")}
+	}
+	pageHeaderBar(c, head)
 	a.toolPage(c, "iso-page", func() {
 		a.isoNeedNotice(c)
 		a.isoComposer(c)
@@ -93,9 +98,6 @@ func (a *app) isoListView(c *ui.Context) {
 		return
 	}
 	narrow := a.toolNarrow(c)
-	ui.Row(c.Key("iso-filters")).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).Children(func() {
-		searchField(c, "iso-search", &a.isoQuery, i18n.T("Search isolations"), 0)
-	})
 	q := strings.ToLower(strings.TrimSpace(a.isoQuery))
 	ui.Column(c.Key("iso-table")).Shrink(0).Children(func() {
 		listHead(c, narrow, listColumn{title: i18n.T("Name")}, listColumn{title: i18n.T("Length"), w: 64, wide: true},
@@ -216,7 +218,11 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 	t := c.Theme()
 	k := tok(t)
 	x, ok := a.isoByID(id)
-	backRow(c, "iso-back", pageTitle("/isolate"), func() { a.navigate("/isolate") }, func() {
+	title := x.Title
+	if !ok {
+		title = a.isoTitleOf(id)
+	}
+	pageHeaderBar(c, pageHead{title: title, parent: pageTitle("/isolate"), up: "/isolate", tools: func(bool) {
 		if !ok {
 			return
 		}
@@ -225,7 +231,7 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 				a.isoConfirm, a.isoConfirmOpen = id, true
 			}
 		})
-	})
+	}})
 	a.isoConfirmDialog(c)
 	if !ok {
 		if a.isoLoaded {
@@ -237,7 +243,6 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(px(t, 760)).Gap(px(t, sp3)).Children(func() {
 				ui.Column(c).Gap(px(t, 2)).Children(func() {
-					sectionHeading(c, x.Title).Tooltip(x.Title)
 					meta := []string{shortPath(x.Input)}
 					if x.Duration > 0 {
 						meta = append(meta, tlClock(x.Duration))

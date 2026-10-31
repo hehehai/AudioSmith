@@ -4,8 +4,9 @@ package main
 // isolator; after ElevenLabs' tool pages): the page's column, the
 // composer card on top (a drop zone over a row of options and the round
 // submit), the list under it (search, filter chips, a header and rows
-// that open the item, with their ⋯ menu), a file chip, and the back row
-// of an item's page. In the current tokens: no new colours.
+// that open the item, with their ⋯ menu) and a file chip. An item's page
+// has the page header's ‹ and its list's name (ui_page_header.go). In
+// the current tokens: no new colours.
 
 import (
 	"path/filepath"
@@ -197,27 +198,6 @@ func listStatus(c *ui.Context, s string, running bool, frac float64, col ui.Colo
 		})
 		if running && frac >= 0 {
 			ui.Progress(c, frac).Height(px(t, 3)).Label(s)
-		}
-	})
-}
-
-// backRow is the row over an item's page: "← name" back to its list,
-// then trailing (the item's actions) on the right.
-func backRow(c *ui.Context, key, name string, back, trailing func()) {
-	t := c.Theme()
-	k := tok(t)
-	ui.Row(c.Key(key)).Height(px(t, 44)).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp4)).Gap(px(t, sp2)).Children(func() {
-		b := ghostBase(c.Key("back")).Gap(px(t, 4)).AlignItems(ui.Center).Padding(px(t, 4), px(t, sp2), px(t, 4), px(t, 6)).Label(i18n.T("Back to %s", name)).Shrink(0)
-		b.Children(func() {
-			ui.Icon(c, icons.AltArrowLeft.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2)
-			ui.Text(c, name).TextColor(k.Text2).SingleLine()
-		})
-		if b.Clicked() {
-			back()
-		}
-		ui.Box(c).Grow(1).MinWidth(0)
-		if trailing != nil {
-			trailing()
 		}
 	})
 }

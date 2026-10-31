@@ -21,7 +21,7 @@ func (a *app) twilioPage(c *ui.Context) {
 	}
 	checks := a.callChecks()
 	ready, _ := callsReady(checks)
-	pageHeader(c, i18n.T("Twilio setup"), func() {
+	pageHeaderBar(c, pageHead{title: i18n.T("Twilio setup"), parent: pageTitle("/calls"), up: "/calls", tools: func(bool) {
 		status, col := i18n.T("Not set up"), tok(t).G[5]
 		switch {
 		case ready && a.callGWAddr != "":
@@ -45,7 +45,7 @@ func (a *app) twilioPage(c *ui.Context) {
 		if iconButton(c.Key("tw-calls"), icons.PhoneCallingRounded, i18n.T("Open Calls")).Clicked() {
 			a.navigate("/calls")
 		}
-	})
+	}})
 	wide := false
 	if b := a.twPageH.Bounds(c); b.W > 0 {
 		wide = b.W/px(t, 1) >= 1040

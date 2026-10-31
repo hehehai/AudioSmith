@@ -163,7 +163,7 @@ func (a *app) isoByID(id string) (services.Isolation, bool) {
 	return services.Isolation{}, false
 }
 
-// isoTitleOf is isolation id's title, for the breadcrumb.
+// isoTitleOf is isolation id's title, for its page's header.
 func (a *app) isoTitleOf(id string) string {
 	if x, ok := a.isoByID(id); ok {
 		return x.Title

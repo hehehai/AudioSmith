@@ -46,14 +46,14 @@ func (a *app) m5Commands(nav string, add func(id, group, title, en, keys string,
 // by the API itself) in a web view.
 func (a *app) apiReferencePage(c *ui.Context) {
 	t := c.Theme()
-	pageHeader(c, i18n.T("API reference"), func() {
+	pageHeaderBar(c, pageHead{title: i18n.T("API reference"), parent: pageTitle("/developers"), up: "/developers", tools: func(bool) {
 		if iconButton(c.Key("ref-browser"), icons.SquareArrowRightUp, i18n.T("Open in the browser")).Disabled(a.apiPort == 0).Clicked() {
 			go mygo.Shell.OpenExternal(a.apiBaseURL() + "/docs")
 		}
 		if iconButton(c.Key("ref-settings"), icons.Settings, i18n.T("Settings…")).Clicked() {
 			a.navigate("/settings/integrations")
 		}
-	})
+	}})
 	if a.apiPort == 0 {
 		emptyState(c, icons.Programming, i18n.T("The Local API is not running."), "", func() {
 			if ui.Button(c.Key("ref-settings-empty"), i18n.T("Settings…")).Clicked() {

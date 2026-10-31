@@ -54,7 +54,7 @@ func (a *app) dubRoute(c *ui.Context, r *ui.Route) bool {
 		r.Title(i18n.T("Dubbing") + " · " + a.dubTitleOf(id))
 		a.dubLoad(id)
 		if a.dub == nil || a.dub.ID != id {
-			a.dubOpeningPage(c)
+			a.dubOpeningPage(c, id)
 			return true
 		}
 		a.dubPage(c)
@@ -78,7 +78,7 @@ func (a *app) dubCommands(nav string, add func(id, group, title, en, keys string
 	add("dub-cancel", dubbing, i18n.T("Stop the dub being made"), "Stop the dub being made", "", a.dubBusy(), a.dubCancel)
 }
 
-// dubTitleOf is dub id's title, for the breadcrumb.
+// dubTitleOf is dub id's title, for its page's header.
 func (a *app) dubTitleOf(id string) string {
 	if a.dub != nil && a.dub.ID == id {
 		return firstOf(a.dub.Title, i18n.T("Untitled dub"))
@@ -92,8 +92,8 @@ func (a *app) dubTitleOf(id string) string {
 }
 
 // dubOpeningPage shows while a dub's editor reads it.
-func (a *app) dubOpeningPage(c *ui.Context) {
-	backRow(c, "dub-back", pageTitle("/dub"), func() { a.navigate("/dub") }, nil)
+func (a *app) dubOpeningPage(c *ui.Context, id string) {
+	pageHeaderBar(c, pageHead{title: a.dubTitleOf(id), parent: pageTitle("/dub"), up: "/dub"})
 	ui.Column(c).Grow(1).Center().Gap(px(c.Theme(), sp2)).Children(func() {
 		ui.Spinner(c)
 		caption(c, i18n.T("Opening the dub…"))

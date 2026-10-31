@@ -35,21 +35,25 @@ func (a *app) galleryPage(c *ui.Context) {
 	g := &a.gallery
 	page := a.galleryResults()
 	narrow := a.pageWidth(c) < px(t, 720)
-	pageHeader(c, i18n.T("Discover voices"), func() {
-		caption(c, i18n.N(page.Total, "%d voice", "%d voices", page.Total)).SingleLine()
-	})
-	ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp3)).Gap(px(t, sp2)).Children(func() {
-		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
-			if searchField(c, "gallery-search", &g.text, i18n.T("Search: narrator, 东北, grandma…"), px(t, 360)).
-				Label(i18n.T("Search Discover voices")).Changed() {
-				g.limit = galleryPageSize
+	pageHeaderBar(c, pageHead{
+		title: i18n.T("Discover voices"),
+		count: i18n.N(page.Total, "%d voice", "%d voices", page.Total),
+		search: &headSearch{key: "gallery-search", value: &g.text, placeholder: i18n.T("Search: narrator, 东北, grandma…"),
+			label:   i18n.T("Search Discover voices"),
+			changed: func() { g.limit = galleryPageSize }},
+		tools: func(hn bool) {
+			if !hn {
+				a.galleryCategorySelect(c, page, narrow)
 			}
-			a.galleryCategorySelect(c, page, narrow)
 			if iconToggle(c.Key("gallery-favs"), icons.Star, g.favOnly, i18n.T("Favorites")).Tooltip(i18n.T("Show only your favorites")).Clicked() {
 				g.favOnly = !g.favOnly
 				g.limit = galleryPageSize
 			}
-		})
+		},
+		more:    func(m *ui.Menu) { a.galleryCategoryMenu(m, page) },
+		primary: a.newVoiceButton(c),
+	})
+	ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp3)).Gap(px(t, sp2)).Children(func() {
 		ui.Row(c.Key("gallery-facets")).Gap(px(t, sp1)).Wrap().AlignItems(ui.Center).Children(func() {
 			for _, f := range galleryFacets {
 				a.facetMenu(c, f, page.Facets[f])
@@ -110,6 +114,24 @@ func (a *app) galleryCategorySelect(c *ui.Context, page gallery.Page, narrow boo
 			}
 		}
 	}
+}
+
+// galleryCategoryMenu is the use cases as a submenu of the header's ⋯
+// (a narrow window).
+func (a *app) galleryCategoryMenu(m *ui.Menu, page gallery.Page) {
+	g := &a.gallery
+	loc := i18n.Locale()
+	counts := galleryCounts(page)
+	m.Submenu(i18n.T("Use"), func(m *ui.Menu) {
+		if m.Item(i18n.T("All uses")).Checked(g.tab <= 0).Chosen() {
+			g.tab, g.limit = 0, galleryPageSize
+		}
+		for i, cat := range gallery.Categories() {
+			if m.Item(cat.Name.In(loc) + "  " + itoa(counts[cat.ID])).Checked(g.tab == i+1).Chosen() {
+				g.tab, g.limit = i+1, galleryPageSize
+			}
+		}
+	})
 }
 
 // facetMenu is one facet as a menu button of its values with counts.

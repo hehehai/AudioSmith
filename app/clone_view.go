@@ -21,12 +21,12 @@ func (a *app) clonePage(c *ui.Context) {
 	if v := a.findVoice(s.replaceFor); v != nil {
 		title = i18n.T("Replace the reference of “%s”", v.Name)
 	}
-	pageHeader(c, title, func() {
+	pageHeaderBar(c, pageHead{title: title, parent: i18n.T("New voice"), up: "/voices/new", tools: func(bool) {
 		if ghostButton(c.Key("clone-back"), i18n.T("Cancel")).Clicked() {
 			a.micCancel(&s.mic)
 			a.navigate("/voices")
 		}
-	})
+	}})
 	if s.busy != "" || s.mic.phase != "" {
 		c.After(100 * time.Millisecond) // the timer, the level
 	}

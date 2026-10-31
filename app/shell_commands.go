@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -70,7 +71,7 @@ func (a *app) commands() []command {
 	})
 
 	view := i18n.T("View")
-	add("search", view, i18n.T("Search the library"), "Search the library find projects voices takes", "⌘F", true, a.focusSearch)
+	add("search", view, i18n.T("Search everything"), "Search everything library find projects voices takes", "⌘F", true, a.focusSearch)
 	add("palette", view, i18n.T("Command palette"), "Command palette", "⌘K", true, a.openPalette)
 	add("switch", view, i18n.T("Engine quick switch"), "Engine quick switch", "⌘E", true, func() { a.switchOpen = true })
 	add("logs-panel", view, i18n.T("Show or hide the logs panel"), "Show or hide the logs panel", "⇧⌘L", true, func() { a.logsPanel = !a.logsPanel })
@@ -150,7 +151,17 @@ func (a *app) shortcuts(c *ui.Context) {
 		a.openPalette()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyF) {
-		a.focusSearch()
+		a.focusSearch() // shell_search.go
+	}
+	if runtime.GOOS != "darwin" {
+		// ⌘[ ⌘] are the router's on the Mac (with a mouse's back and
+		// forward buttons); elsewhere it takes Alt+arrows, and these too.
+		if c.Shortcut(ui.Cmd, ui.KeyBracketLeft) {
+			a.goBack()
+		}
+		if c.Shortcut(ui.Cmd, ui.KeyBracketRight) {
+			a.goForward()
+		}
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyE) {
 		a.switchOpen = true
@@ -169,14 +180,6 @@ func (a *app) shortcuts(c *ui.Context) {
 	if !a.scriptFocused() && c.Shortcut(ui.Shift, ui.KeySlash) { // M1-G: "?" is text in the script editor
 		a.sheetOpen = true
 	}
-}
-
-// focusSearch puts the keyboard in the library's search field (⌘F), at
-// the top of the Projects page.
-func (a *app) focusSearch() {
-	a.settingsOpen = false
-	a.navigate("/projects")
-	a.searchFocus = true
 }
 
 // commandIcon is a command's icon in the palette: its page's for "Go
@@ -293,7 +296,7 @@ func (a *app) shortcutSheet(c *ui.Context) {
 			rows  [][2]string
 		}{
 			{i18n.T("Navigation"), [][2]string{
-				{"⌘F", i18n.T("Search the library")},
+				{"⌘F", i18n.T("Search everything")},
 				{"⌘K", i18n.T("Command palette")},
 				{"⌘1 … ⌘4", i18n.T("Home, Text to speech, Voices, Projects")},
 				{"⌘5 … ⌘8", i18n.T("Dub, Speech to text, Stories, Audiobook")},
@@ -378,7 +381,7 @@ func (a *app) buildMenu() {
 			{Role: mygo.RoleSelectAll, Label: i18n.T("Select All")},
 		}},
 		{Label: i18n.T("View"), Submenu: []*mygo.MenuItem{
-			{Label: i18n.T("Search the library"), Accelerator: "CmdOrCtrl+F", Click: act(a.focusSearch)},
+			{Label: i18n.T("Search everything"), Accelerator: "CmdOrCtrl+F", Click: act(a.focusSearch)},
 			{Label: i18n.T("Command palette"), Accelerator: "CmdOrCtrl+K", Click: act(a.openPalette)},
 			{Label: i18n.T("Engine quick switch"), Accelerator: "CmdOrCtrl+E", Click: act(func() { a.switchOpen = true })},
 			{Label: i18n.T("Show or hide the logs panel"), Click: act(func() { a.logsPanel = !a.logsPanel })},

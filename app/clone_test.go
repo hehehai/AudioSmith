@@ -27,7 +27,7 @@ import (
 func TestCloneFlowUpload(t *testing.T) {
 	a, eng := newVoiceTestApp(t)
 	tt := ui.NewTester(a.view, 1200, 1800)
-	a.navigate("/voices")
+	a.navigate("/voices/new")
 	tt.Frame()
 	tt.Click("Clone a voice")
 	tt.Frame()

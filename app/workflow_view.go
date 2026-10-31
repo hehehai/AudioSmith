@@ -42,9 +42,10 @@ func (a *app) wfLayout(c *ui.Context) (railInline, panelInline bool) {
 func (a *app) workflowsPage(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
-	title := i18n.T("Workflows")
+	// A workflow open: its name, under Workflows.
+	head := pageHead{title: i18n.T("Workflows"), count: listCount(len(a.wfList), true)}
 	if a.wf != nil && a.wf.Name != "" {
-		title += " · " + a.wf.Name
+		head = pageHead{title: a.wf.Name, parent: i18n.T("Workflows"), count: head.count}
 	}
 	railInline, panelInline := a.wfLayout(c)
 	railShown := (railInline && !a.wfRailHide) || (!railInline && a.wfRailOpen)
@@ -59,7 +60,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 	}
 	a.wfPanelFor, a.wfPanelSeen = a.wfSel, a.wfPanel
 	panelShown := a.wf != nil && (panelInline || a.wfPanelOpen)
-	pageHeader(c, title, func() {
+	head.tools = func(bool) {
 		tip := i18n.T("Show workflows and steps")
 		if railShown {
 			tip = i18n.T("Hide workflows and steps")
@@ -81,7 +82,8 @@ func (a *app) workflowsPage(c *ui.Context) {
 			}
 		}
 		a.wfHeaderActions(c)
-	})
+	}
+	pageHeaderBar(c, head)
 	rail := func() {
 		ui.Column(c).Padding(px(t, sp2), px(t, sp3), px(t, sp4)).Gap(px(t, sp2)).Children(func() { a.wfRail(c) })
 	}

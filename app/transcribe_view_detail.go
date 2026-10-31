@@ -31,7 +31,6 @@ func (a *app) transcriptDetail(c *ui.Context) {
 	}
 	ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Gap(px(t, 2)).Grow(1).MinWidth(0).Children(func() {
-			sectionHeading(c, transcriptTitle(*tr)).Tooltip(transcriptTitle(*tr))
 			meta := []string{i18n.DateTime(tr.CreatedAt), langName(tr.Language), clock(tr.Duration), catalog.Builtin().DisplayName(tr.Model)}
 			if tr.Mode == settings.TranscribeFast {
 				meta = append(meta, i18n.T("Fast"))

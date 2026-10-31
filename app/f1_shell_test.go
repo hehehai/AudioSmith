@@ -205,7 +205,7 @@ func TestShortcutOrder(t *testing.T) {
 		}
 	}
 	for _, s := range []string{"Home", "Voices", "Projects", "Assets", "Text to speech", "New voice", "Stories", "Audiobook", "Dub",
-		"Speech to text", "Voice isolator", "Dictation", "More", "Developers", "Settings", "Search everything…"} {
+		"Speech to text", "Voice isolator", "Dictation", "More", "Developers", "Settings"} {
 		if !tt.HasText(s) {
 			t.Errorf("the window lacks %q", s)
 		}
@@ -215,7 +215,7 @@ func TestShortcutOrder(t *testing.T) {
 			t.Errorf("the sidebar shows %q", s)
 		}
 	}
-	// The palette has every page; the top bar's field opens it.
+	// The palette has every page; the sidebar's search opens it.
 	if err := tt.Click("Search everything"); err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +307,7 @@ func TestVoicesTabs(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.router.Path() != "/voices/mine" || !tt.HasText("Clone a voice") {
+	if a.router.Path() != "/voices/mine" || !tt.HasText("Search voices") {
 		t.Fatalf("mine: %s %q", a.router.Path(), tt.Texts())
 	}
 	a.navigate("/voices/discover")
