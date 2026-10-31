@@ -336,7 +336,7 @@ func (a *app) designDoneView(c *ui.Context) {
 			playing := a.savedPlaying(v)
 			label, ic := i18n.T("Listen"), icons.Play
 			if playing {
-				label, ic = i18n.T("Stop"), icons.Stop
+				label, ic = i18n.T("Stop"), icons.Pause
 			}
 			if secondaryIconButton(c.Key("done-play"), ic, label).Label(label).Clicked() {
 				a.previewSaved(v)

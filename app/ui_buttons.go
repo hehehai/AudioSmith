@@ -225,8 +225,8 @@ func moreMenu(c *ui.Context, tip string, build func(m *ui.Menu)) ui.Element {
 	return iconButton(c, icons.MenuDots, tip).Menu(build)
 }
 
-// playButton is the round ink play button of a take or a clip: Pause
-// (or Stop, with stop) while it plays. size is in DIPs at 100 %.
+// playButton is the round ink play button of a take or a clip: the
+// pause glyph while it plays (labelled Stop, with stop). size is in DIPs at 100 %.
 func playButton(c *ui.Context, playing, stop bool, size float32) ui.Element {
 	t := c.Theme()
 	k := tok(t)
@@ -234,7 +234,7 @@ func playButton(c *ui.Context, playing, stop bool, size float32) ui.Element {
 	if playing {
 		label, ic = i18n.T("Pause"), icons.Pause
 		if stop {
-			label, ic = i18n.T("Stop"), icons.Stop
+			label, ic = i18n.T("Stop"), icons.Pause
 		}
 	}
 	b := ui.ButtonBase(c).Size(px(t, size), px(t, size)).Radius(px(t, size/2)).Center().Label(label).Tooltip(label).Shrink(0)

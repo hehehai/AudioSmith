@@ -8,15 +8,19 @@
 // To use another icon, add its base name ("soundwave", without -linear
 // or -bold) to names.txt and generate again. Solar is by 480 Design,
 // under CC BY 4.0; the attribution is in NOTICE and Settings → About.
+//
+// Two icons are Hugeicons instead (hugeicons.go, kept by hand): Play and
+// Pause, the glyphs of every audio playback button, from
+// @iconify-json/hugeicons (MIT, by Hugeicons).
 package icons
 
 //go:generate go run ./gen
 
 import "github.com/egoist/mygo/ui"
 
-// Icon is a Solar icon in its two variants.
+// Icon is an icon in its two variants.
 type Icon struct {
-	Name         string // Solar's base name, "soundwave"
+	Name         string // Solar's base name, "soundwave"; "hugeicons:play" for a Hugeicon
 	Linear, Bold *ui.SVG
 }
 

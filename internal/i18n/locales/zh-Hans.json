@@ -1335,7 +1335,7 @@
   "Iceland": "冰岛",
   "Icons only": "只显示图标",
   "Icons only leaves the pages more room; names show on pointing.": "只显示图标可给页面留出更多空间；指针停留时显示名称。",
-  "Icons: Solar by 480 Design, under CC BY 4.0 (@iconify-json/solar %s).": "图标：Solar，作者 480 Design，以 CC BY 4.0 授权（@iconify-json/solar %s）。",
+  "Icons: Solar by 480 Design, under CC BY 4.0 (@iconify-json/solar %s); play and pause: Hugeicons, under the MIT licence (@iconify-json/hugeicons %s).": "图标：Solar，作者 480 Design，以 CC BY 4.0 授权（@iconify-json/solar %s）；播放和暂停图标：Hugeicons，以 MIT 许可授权（@iconify-json/hugeicons %s）。",
   "If a newer AudioSmith created it, use that version. Nothing was changed.": "如果它是由更新版本的 AudioSmith 创建的，请使用那个版本。没有做任何改动。",
   "If it prints that AudioSmith did not serve the skill, ask me to install it with AudioSmith → %s → Install skill…, then check the folder.": "如果它输出 AudioSmith did not serve the skill，请让我用 AudioSmith → %s → 安装技能… 来安装，然后再检查这个文件夹。",
   "If it prints that AudioSmith did not serve the skill, ask me to save it with AudioSmith → %s → Save skill… and to tell you where the ZIP is.": "如果它输出 AudioSmith did not serve the skill，请让我用 AudioSmith → %s → 保存技能… 存下来，并告诉你 ZIP 在哪里。",
