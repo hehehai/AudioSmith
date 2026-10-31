@@ -30,6 +30,8 @@ type studioPanelState struct {
 	// use is the use case of the example the script was filled with
 	// (studio_examples.go), until the script is emptied.
 	use string
+	// scriptFill is the script scroll's height last frame (studio_view.go).
+	scriptFill float32
 }
 
 const (

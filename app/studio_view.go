@@ -74,6 +74,12 @@ func (a *app) scriptColumn(c *ui.Context, panelShown bool) {
 		// The script fills what the scroll shows (last frame's height);
 		// the column scrolls when the chips leave it too little.
 		fill := sc.Bounds().H
+		if fill != a.ttsUI.scriptFill || fill == 0 {
+			// The first frame on the page has no height yet: one more
+			// frame, or a window in the background keeps the short one.
+			a.ttsUI.scriptFill = fill
+			c.AnimationFrame()
+		}
 		sc.Children(func() {
 			ui.Column(c).MinHeight(fill).Padding(0, px(t, sp6), px(t, sp3)).Gap(px(t, sp4)).Children(func() {
 				a.scriptView(c)
