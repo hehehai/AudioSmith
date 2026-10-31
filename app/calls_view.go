@@ -77,7 +77,7 @@ func (a *app) callsPage(c *ui.Context) {
 		}
 		main()
 		// Too narrow for the column: a floating list from the left.
-		a.floating(c, floatPanel{key: "calls-history-drawer", label: i18n.T("Recent calls"), w: px(t, callsHistoryWidth), left: true, fill: true, lead: panelLead(t, 40),
+		a.floating(c, floatPanel{key: "calls-history-drawer", label: i18n.T("Recent calls"), w: px(t, callsHistoryWidth), left: true, fill: true,
 			close: func() { a.callHistOn = false }}, !histInline && a.callHistOn, func() { a.callHistory(c) })
 	})
 	a.callDialogs(c)

@@ -1,13 +1,10 @@
 package main
 
 // The kit's side panels: floating cards over the page (#126). A panel
-// sits at the right of the page, flush with the window's edge, from the
-// window's top (like the sidebar: #127; the page header's tools move
-// left of it, its first row stands level with the header's title) to a
-// gap from its bottom; the corner towards the page at the bottom is
-// rounded, with a hairline and a small soft shadow. Where the header would not
-// fit beside it, it keeps under the header. It slides in from the edge
-// as it fades in, and slides out before it goes. An inspector (a voice's, a
+// sits at the right of the page's body against the window's edge, a gap
+// above its bottom, rounded on the page's side, with a hairline and a
+// small soft shadow; it slides in from the edge as it
+// fades in, and slides out before it goes. An inspector (a voice's, a
 // take's details) leaves the page's layout alone: the list under it keeps
 // its width and stays usable where the panel does not cover it. A tool
 // panel (the Studio's settings, a dub step's, a story's inspector) keeps
@@ -51,7 +48,6 @@ func (a *app) pageWidth(c *ui.Context) float32 {
 type floatState struct {
 	seen, mounted, closing bool
 	item                   any
-	v                      float32 // its slide's value at the last frame
 }
 
 // floatPanel describes a floating panel.
@@ -61,14 +57,7 @@ type floatPanel struct {
 	left       bool    // at the left of the page, sliding from there
 	lane       bool    // the page keeps a lane for it (a tool panel that fits)
 	fill       bool    // the content fills the panel (it scrolls itself)
-	// under is the height of the rows between the page's header and the
-	// body the panel is built in (the dub's steps).
-	under float32
-	// lead is room over the content, whose first row is then level with
-	// the page header's (panelLead): for content that also shows under
-	// the header, in the page (a drawer's).
-	lead float32
-	item any // what it shows: another item swaps the content
+	item       any     // what it shows: another item swaps the content
 	// close runs once the panel slid out after its ✕ or Escape (nil:
 	// only the host's own controls close it).
 	close func()
@@ -124,28 +113,21 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	if p.lane && !p.left {
 		lane = ui.Box(c).Shrink(0)
 	}
-	// The card runs from the window's top, like the sidebar, when the
-	// page's header still fits beside it (it moves clear of the card);
-	// else it stays under the header. The body starts under the header
-	// and the rows the page puts under it (under).
-	full := a.pageWidth(c)-headerPanelsNext.room-w >= px(t, headerKeepW) // beside the panels built before it
-	top := float32(pageTop) + p.under
+	// Under the page's header, its top level with the page's content
+	// (sp4, as the pages' first rows; user, 10-31: not up to the window's
+	// top), against the window's edge (no gap, square corners there),
+	// rounded on the page's side, a gap above the window's bottom, with a
+	// small soft shadow.
 	r := px(t, radiusCard)
-	card := ui.Column(c.Key(p.key+"-float")).Absolute().Bottom(gap).Width(w).
+	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(px(t, sp4)).Bottom(gap).Width(w).
 		Background(k.Bg).BorderColor(k.Line).Clip().
 		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.08)).Label(p.label)
-	switch {
-	case full && p.left:
-		card.Top(-top).Left(0).Radius(0, 0, r, 0).BorderWidth(0, 1, 1, 0)
-	case full:
-		card.Top(-top).Right(0).Radius(0, 0, 0, r).BorderWidth(0, 0, 1, 1)
-	case p.left:
-		card.Top(px(t, sp2)).Left(0).Radius(0, r, r, 0).BorderWidth(1, 1, 1, 0)
-	default:
-		card.Top(px(t, sp2)).Right(0).Radius(r, 0, 0, r).BorderWidth(1, 0, 1, 1)
+	if p.left {
+		card.Left(0).Radius(0, r, r, 0).BorderWidth(1, 1, 1, 0)
+	} else {
+		card.Right(0).Radius(r, 0, 0, r).BorderWidth(1, 0, 1, 1)
 	}
 	in := open && !st.closing
-	wasIn := st.mounted
 	if !st.mounted && !first {
 		card.Jump("slide", 0) // it comes in; on the page's first build it is there
 	}
@@ -154,21 +136,11 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	if !in {
 		target, anim = 0, ui.Animation{Duration: panelOutDur, Ease: easeInQuad}
 	}
-	now := card.AnimateTo("slide", target, anim)
-	// It shows where the last frame's value puts it, as the page's header
-	// does (headerPanels).
-	v := st.v
-	if first || !wasIn {
-		v = now
-	}
-	st.v = now
-	if v != now {
-		c.AnimationFrame() // and one more frame to catch up
-	}
+	v := card.AnimateTo("slide", target, anim)
 	if lane.Valid() {
-		lane.Width(v * w)
+		lane.Width(v * (w + gap))
 	}
-	if !in && now < 0.001 { // out: gone, and the host closes it
+	if !in && v < 0.001 { // out: gone, and the host closes it
 		st.mounted = false
 		card.Opacity(0)
 		if st.closing {
@@ -180,10 +152,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 		c.AnimationFrame()
 		return
 	}
-	if full {
-		headerAvoid(p.left, now*w, max(target, now)*w) // where the next frame shows it
-	}
-	dx := (1 - v) * w
+	dx := (1 - v) * (w + gap)
 	if p.left {
 		dx = -dx
 	}
@@ -198,58 +167,22 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 		})
 	}
 	card.Children(func() {
-		band := px(t, sp1) // under the header: a card's top margin
-		if full {
-			band = panelBand(c, p.left) + p.lead
-		}
-		if band > 0 {
-			ui.Box(c).Height(band).Shrink(0)
-		}
 		if p.fill {
 			ui.Column(c).Grow(1).MinHeight(0).Children(build)
-		} else {
-			ui.Scroll(c.Key(p.key)).Grow(1).MinHeight(0).Children(build)
+			return
 		}
-		// The band over the content's first row, in the title bar, moves
-		// the window like the page's header beside it.
-		ui.Box(c.Key(p.key + "-drag")).Absolute().Top(0).Left(0).Right(0).Height(panelDragH(c, p.left)).DragWindow()
+		ui.Scroll(c.Key(p.key)).Grow(1).MinHeight(0).Children(build)
 	})
 }
 
-// headerKeepW is the room (DIPs at 100 %) a page header keeps beside a
-// panel that runs from the window's top: its title and narrow tools.
-const headerKeepW = 360
-
-// panelBand is the room a panel leaves over its content at its top: a
-// left one, under the window controls when they reach past the rail.
-func panelBand(c *ui.Context, left bool) float32 {
-	if left && headerInset > 0 {
-		return titleBarHeight - px(c.Theme(), sp3)
-	}
-	return 0
-}
-
-// panelDragH is the height of the band at a panel's top that moves the
-// window: the window's edge, above its content's first row.
-func panelDragH(c *ui.Context, left bool) float32 {
-	return panelBand(c, left) + 4
-}
-
-// panelLead is the room over a panel's first row, rowH DIPs tall at
-// 100 %, that puts its middle on the page header's (the header is
-// titleBarHeight tall at any scale; the row grows with it).
-func panelLead(t *ui.Theme, rowH float32) float32 {
-	return max(px(t, 4), titleBarHeight/2-px(t, rowH)/2)
-}
-
 // laneWidth is what a tool panel w wide takes from the page in its lane.
-func laneWidth(t *ui.Theme, w float32) float32 { return w }
+func laneWidth(t *ui.Theme, w float32) float32 { return w + px(t, sp3) }
 
 // panelHeader is a side panel's title row: the title (15, semibold) and
 // a close icon button.
 func panelHeader(c *ui.Context, title string, close func()) {
 	t := c.Theme()
-	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).DragWindow().Children(func() {
+	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 		sectionHeading(c, title).Grow(1)
 		if iconButton(c.Key("panel-close"), icons.Close, i18n.T("Close")).Clicked() {
 			close()
@@ -288,9 +221,8 @@ func (sp *panelState) toggle(c *ui.Context, ic icons.Icon, shown bool, showTip, 
 }
 
 // view builds the panel at the right of the page's body (call it last
-// in the body's row, under rows under the header): in its lane when
-// inline, else over the page.
-func (sp *panelState) view(a *app, c *ui.Context, key, label string, inline, shown bool, width, under float32, build func()) {
+// in the body's row): in its lane when inline, else over the page.
+func (sp *panelState) view(a *app, c *ui.Context, key, label string, inline, shown bool, width float32, build func()) {
 	hide := func() { sp.open, sp.set = false, true }
-	a.floating(c, floatPanel{key: key, label: label, w: width, lane: inline, under: under, close: hide}, shown, build)
+	a.floating(c, floatPanel{key: key, label: label, w: width, lane: inline, close: hide}, shown, build)
 }

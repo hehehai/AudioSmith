@@ -71,7 +71,7 @@ func (a *app) dubPage(c *ui.Context) {
 		// The workspace fills the page; when the window is too short for
 		// its notices, player, timeline and some lines, it scrolls.
 		_, winH := c.Size()
-		avail := winH - pageTop - px(t, dubStepsH) - px(t, 52) - 4
+		avail := winH - pageTop - px(t, 40) - px(t, 52) - 4
 		// With lines, exactly the scroll's height once it was laid out, so
 		// the list of lines (which scrolls itself, dub_editor.go) reaches
 		// its foot; one more frame after the window's height changes.
@@ -101,8 +101,8 @@ func (a *app) dubPage(c *ui.Context) {
 				a.dubWorkspace(c)
 			})
 		}).ClipX()
-		a.dubSide.view(a, c, "dub-side", i18n.T("Step settings"), inline, shown, width, px(t, dubStepsH)+1, func() {
-			ui.Column(c).Padding(panelLead(t, 20), px(t, sp4), px(t, sp5)).Gap(px(t, sp3)).Bind(&a.dubSideFocus).Children(func() { a.dubStepPanel(c) })
+		a.dubSide.view(a, c, "dub-side", i18n.T("Step settings"), inline, shown, width, func() {
+			ui.Column(c).Padding(px(t, sp4), px(t, sp4), px(t, sp5)).Gap(px(t, sp3)).Bind(&a.dubSideFocus).Children(func() { a.dubStepPanel(c) })
 		})
 	})
 	ui.Box(c).Height(1).Background(k.Line).Shrink(0)
@@ -205,9 +205,6 @@ func (a *app) dubStepState(step int) (done, running, failed bool) {
 	return done, running, failed
 }
 
-// dubStepsH is the steps' row's height, DIPs at 100 %.
-const dubStepsH = 40
-
 // dubStepper is the row of steps: a quiet row where done steps show a
 // check, the current one is on the pressed face, and the rest are grey.
 // When the workspace is narrow only the current step shows its name.
@@ -216,8 +213,7 @@ func (a *app) dubStepper(c *ui.Context) {
 	k := tok(t)
 	names := []string{i18n.T("Source"), i18n.T("Transcribe"), i18n.T("Translate"), i18n.T("Cast"), i18n.T("Generate"), i18n.T("Export")}
 	compact := a.dubNarrow || a.pageWidth(c) < px(t, 760)
-	// Its end keeps clear of a panel from the window's top (headerTook).
-	ui.Row(c.Key("dub-steps")).Height(px(t, dubStepsH)).Gap(px(t, 2)).Padding(px(t, 2), px(t, sp5)+headerTook.sides[1], px(t, sp2), px(t, sp5)).AlignItems(ui.Center).FocusGroup(ui.Horizontal).Shrink(0).ClipX().Children(func() {
+	ui.Row(c.Key("dub-steps")).Gap(px(t, 2)).Padding(px(t, 2), px(t, sp5), px(t, sp2)).AlignItems(ui.Center).FocusGroup(ui.Horizontal).Shrink(0).ClipX().Children(func() {
 		for i, name := range names {
 			done, running, failed := a.dubStepState(i)
 			cur := a.dubStep == i

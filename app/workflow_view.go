@@ -89,7 +89,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 	}
 	panel := func() {
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
-			ui.Row(c).Padding(panelLead(t, 36), px(t, sp3), px(t, sp2)).Gap(px(t, sp1)).AlignItems(ui.Center).DragWindow().Children(func() {
+			ui.Row(c).Padding(px(t, sp2), px(t, sp3)).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 				ui.Segmented(c.Key("wf-panel-tabs"), &a.wfPanel, i18n.T("Step"), i18n.T("Run")).Label(i18n.T("Panel")).Grow(1)
 				if !panelInline && iconButton(c.Key("wf-panel-close"), icons.Close, i18n.T("Close")).Clicked() {
 					a.wfPanelOpen = false
@@ -132,7 +132,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 			a.wfCanvasView(c)
 		})
 		// Too narrow for the rail: a floating list from the left.
-		a.floating(c, floatPanel{key: "wf-rail-drawer", label: i18n.T("Workflows and steps"), w: px(t, wfRailWidth+20), left: true, under: 1, lead: panelLead(t, 28) - px(t, sp2),
+		a.floating(c, floatPanel{key: "wf-rail-drawer", label: i18n.T("Workflows and steps"), w: px(t, wfRailWidth+20), left: true,
 			close: func() { a.wfRailOpen = false }}, railShown && !railInline, rail)
 		// The step and the run: in its lane, or over the canvas.
 		var build func()
@@ -143,7 +143,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 		if !panelInline {
 			esc = func() { a.wfPanelOpen = false }
 		}
-		a.floating(c, floatPanel{key: "wf-panel", label: i18n.T("Step and run"), w: px(t, wfPanelWidth), lane: panelInline, under: 1,
+		a.floating(c, floatPanel{key: "wf-panel", label: i18n.T("Step and run"), w: px(t, wfPanelWidth), lane: panelInline,
 			fill: true, close: esc}, panelShown, build)
 	})
 	a.wfConfirmDialog(c)

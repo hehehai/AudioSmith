@@ -189,7 +189,7 @@ func (a *app) voiceEditor(c *ui.Context) {
 	if e.consent.phase != "" {
 		c.After(100 * time.Millisecond)
 	}
-	ui.Column(c.Key("editor-"+v.ID)).Padding(panelLead(t, 28), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
+	ui.Column(c.Key("editor-"+v.ID)).Padding(px(t, sp4), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
 		id := v.ID
 		desc := firstOf(v.Style, v.Design)
 		detailHead(c, v.Name, voiceKindLabel(v)+" · "+i18n.DateTime(v.CreatedAt), desc, v.Tags, func() {
