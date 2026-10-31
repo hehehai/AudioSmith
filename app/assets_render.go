@@ -16,7 +16,7 @@ import (
 // renderDetails is "How it was made".
 func (a *app) renderDetails(c *ui.Context, id, key string) {
 	t := c.Theme()
-	ui.Column(c.Key("how-"+key)).Gap(px(t, sp1)).Children(func() {
+	ui.Column(c.Key("how-" + key)).Gap(px(t, sp1)).Children(func() {
 		sectionTitle(c, i18n.T("How it was made"))
 		r := a.renderFor(id)
 		if r == nil {
@@ -94,4 +94,3 @@ func productionText(s services.RenderSummary) string {
 	}
 	return strings.Join(parts, " · ")
 }
-

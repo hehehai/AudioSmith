@@ -25,11 +25,11 @@ type pageHead struct {
 	parent, up string
 	// upFn, when set, is what the list's name and ‹ do instead (Stories
 	// and Audiobook close the open work: longform_entry.go).
-	upFn       func()
-	count      string // how many items the page lists ("3 项"); "" none
-	sub        string // a status or a short line after the count; "" none
-	bare       bool   // Home: ‹ › only, no title (the page's question is)
-	search     *headSearch
+	upFn   func()
+	count  string // how many items the page lists ("3 项"); "" none
+	sub    string // a status or a short line after the count; "" none
+	bare   bool   // Home: ‹ › only, no title (the page's question is)
+	search *headSearch
 	// tools builds the page's tools on the right, after the search;
 	// narrow says the window is narrow (pageNarrow): leave out what more
 	// lists, give labelled buttons their icon only.

@@ -23,8 +23,8 @@ import (
 // projectsState is the Projects page's state (0.5 F5, projects_view.go).
 type projectsState struct {
 	query   string
-	filter  int // into projFilters
-	cards   int // 0 list, 1 cards
+	filter  int                 // into projFilters
+	cards   int                 // 0 list, 1 cards
 	lf      []store.LibraryItem // the stories and books (projects_list.go)
 	loaded  bool
 	loading bool

@@ -32,10 +32,10 @@ type historyView struct {
 	results   map[string]bool
 	keepTakes float64 // Settings → Studio
 
-	exports              []core.Export // the export records (assets.go)
-	exLoaded, exLoading  bool
-	dirty                bool // the records changed: read again
-	details              map[string]bool // renders' "How it was made" shown
+	exports             []core.Export // the export records (assets.go)
+	exLoaded, exLoading bool
+	dirty               bool            // the records changed: read again
+	details             map[string]bool // renders' "How it was made" shown
 }
 
 // searchTakes looks the query up in the library's full-text index in

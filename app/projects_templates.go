@@ -57,7 +57,7 @@ func (a *app) templateCards(c *ui.Context) {
 	k := tok(t)
 	ui.Row(c.Key("pj-templates")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).Children(func() {
 		for _, s := range projTemplates() {
-			b := ui.ButtonBase(c.Key("sample-"+s.key)).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
+			b := ui.ButtonBase(c.Key("sample-" + s.key)).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
 				Grow(1).Basis(px(t, 160)).MinWidth(px(t, 140)).Label(s.title)
 			if b.Hovered() {
 				b.Background(k.Hover)
