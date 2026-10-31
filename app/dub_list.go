@@ -264,7 +264,6 @@ func (a *app) dubRowJob(id string) jobs.Job {
 
 // dubListView: the search and filters, then the dubs (ghost rows when none).
 func (a *app) dubListView(c *ui.Context) {
-	t := c.Theme()
 	if len(a.dubList) == 0 {
 		ghostRows(c.Key("dub-ghost"), 4, dubIcon, i18n.T("No dubs yet"), i18n.T("Drop a video above or paste its link: the dub starts at once and shows here."))
 		return
@@ -272,12 +271,8 @@ func (a *app) dubListView(c *ui.Context) {
 	narrow := a.toolNarrow(c)
 	rows := a.dubShown()
 	ui.Column(c.Key("dub-table")).Shrink(0).Children(func() {
-		listHead(c, narrow, listColumn{title: i18n.T("Name")}, listColumn{title: i18n.T("Languages"), w: 130, wide: true},
-			listColumn{title: i18n.T("Length"), w: 64, wide: true}, listColumn{title: i18n.T("Status"), w: 150})
 		if len(rows) == 0 {
-			ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() {
-				caption(c, i18n.T("No dubs match."))
-			})
+			listNoMatch(c, i18n.T("No dubs match."))
 		}
 		for _, r := range rows {
 			a.dubListRow(c, r, narrow)
@@ -357,7 +352,8 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 	if j.ID != "" {
 		c.After(500 * time.Millisecond) // the progress moves
 	}
-	open := listRow(c, "dub-row-"+id, title, func() {
+	del := func() { a.dubConfirm, a.dubConfirmOpen = "delete:"+id, true }
+	open := listRow(c, listRowSpec{key: "dub-row-" + id, label: title, del: del}, func() {
 		ic := dubIcon
 		if ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(r.Source), ".")); slices.Contains(homeAudioExts, ext) {
 			ic = icons.Soundwave // sound alone
@@ -373,12 +369,12 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 			for _, l := range r.Languages {
 				langs = append(langs, dubLangName(l))
 			}
-			listCell(c, strings.Join(langs, ", "), 130)
-			d := "—"
+			metaCell(c, noIcon, i18n.T("Languages"), strings.Join(langs, i18n.T(", ")), 136)
+			d := ""
 			if r.Duration > 0 {
 				d = clock(r.Duration)
 			}
-			listCell(c, d, 64)
+			metaCell(c, icons.ClockCircle, i18n.T("Length"), d, 76)
 		}
 		status, col, frac := dubPhaseText(dub.Phase(r.Phase)), k.Text2, -1.0
 		if j.ID != "" {
@@ -402,7 +398,7 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 			}
 			m.Separator()
 			if m.Item(i18n.T("Delete…")).Chosen() {
-				a.dubConfirm, a.dubConfirmOpen = "delete:"+id, true
+				del()
 			}
 		})
 	})

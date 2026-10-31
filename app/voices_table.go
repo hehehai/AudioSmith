@@ -1,11 +1,10 @@
 package main
 
 // The voice tables of 0.5 F4 (Discover's 全部, Mine; after ElevenLabs'
-// voice library): rows, no column titles and no lines between them
-// (user, 10-31), whose body opens the
+// voice library), on the row kit (ui_list.go): rows whose body opens the
 // voice's detail and whose end holds ▶, 「使用」 and ⋯. A row playing
-// its preview is tinted and its ▶ is a stop; the row whose detail is open
-// is selected. In the current tokens.
+// its preview is tinted and its ▶ is a pause; the row whose detail is
+// open is selected.
 
 import (
 	"github.com/egoist/mygo/ui"
@@ -17,68 +16,19 @@ import (
 // DIPs at 100 %.
 const voiceTableTrail = 148
 
-// voiceRowState is how a voice row shows: selected (its detail is open),
-// playing (its preview plays).
-type voiceRowState struct {
-	selected, playing bool
-}
-
-// voiceRow is a row of a voice table: cells (avatar, name, columns) in a
-// button that opens the voice's detail, then actions. It reports a click
-// on the row's body.
-func voiceRow(c *ui.Context, key, label string, st voiceRowState, cells, actions func()) bool {
-	t := c.Theme()
-	k := tok(t)
-	clicked := false
-	row := ui.Row(c.Key(key)).MinHeight(px(t, 52)).Gap(px(t, sp1)).AlignItems(ui.Center).Padding(0, px(t, sp1), 0, 0).
-		Radius(px(t, radiusControl)).Shrink(0)
-	switch {
-	case st.selected:
-		row.Background(k.Selected)
-	case st.playing:
-		row.Background(k.AccentSoft)
-	case row.Hovered():
-		row.Background(k.Hover)
-	}
-	row.Children(func() {
-		b := ui.ButtonBase(c.Key("open")).Grow(1).MinWidth(0).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, 6), px(t, sp2)).
-			Label(label).Tooltip(i18n.T("Open the voice's details"))
-		b.Children(cells)
-		clicked = b.Clicked()
-		ui.Row(c.Key("acts")).Width(px(t, voiceTableTrail)).Shrink(0).Gap(px(t, 2)).AlignItems(ui.Center).Justify(ui.End).Children(actions)
-	})
-	return clicked
+// voiceRow is a row of a voice table (the row kit's, ui_list.go):
+// cells (avatar, name, meta values) in a button that opens the voice's
+// detail, then actions. It reports a click on the row's body.
+func voiceRow(c *ui.Context, key, label string, st rowState, cells, actions func()) bool {
+	return listRow(c, listRowSpec{key: key, label: label, tip: i18n.T("Open the voice's details"), state: st, trail: voiceTableTrail}, cells, actions)
 }
 
 // voiceNameCell is a row's avatar (portrait or initial) and its name
 // over a grey line; the name in the accent while it plays.
 func voiceNameCell(c *ui.Context, name, sub string, bmp *ui.Bitmap, playing bool, marks func()) {
 	t := c.Theme()
-	k := tok(t)
-	ui.Avatar(c, name, bmp).Size(px(t, 32), px(t, 32)).Shrink(0)
-	ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
-		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).MinWidth(0).Children(func() {
-			tx := ui.Text(c, name).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
-			if playing {
-				tx.TextColor(k.AccentInk)
-			}
-			if marks != nil {
-				marks()
-			}
-			if playing {
-				ui.Text(c, i18n.T("Playing")).FontSize(px(t, fsMicro)).TextColor(k.AccentInk).SingleLine().Shrink(0)
-			}
-		})
-		if sub != "" {
-			ui.Text(c, sub).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
-		}
-	})
-}
-
-// voiceCell is a row's column: s in w DIPs, secondary grey.
-func voiceCell(c *ui.Context, s string, w float32) {
-	t := c.Theme()
-	ui.Text(c, orDash(s)).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).SingleLine().Ellipsis("…").Width(px(t, w)).Shrink(0).Tooltip(s)
+	ui.Avatar(c, name, bmp).Size(px(t, listThumbD), px(t, listThumbD)).Shrink(0)
+	listTitleMarks(c, name, sub, playing, marks)
 }
 
 // previewToggle is a row's ▶ (the pause glyph, labelled Stop, while it

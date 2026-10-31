@@ -57,7 +57,7 @@ func (a *app) studioHistory(c *ui.Context) {
 		ghostRows(c, 4, icons.History, i18n.T("No takes yet"), i18n.T("What you generate here shows up in this list, newest first."))
 		return
 	}
-	ui.Column(c.Key("studio-history")).Gap(px(t, 2)).Children(func() {
+	ui.Column(c.Key("studio-history")).Children(func() {
 		for _, tk := range takes[:min(len(takes), studioHistoryMax)] {
 			a.studioHistoryRow(c, tk)
 		}
@@ -73,27 +73,27 @@ func (a *app) studioHistory(c *ui.Context) {
 	})
 }
 
-// studioHistoryRow is a take of the tab.
+// studioHistoryRow is a take of the tab (the row kit's, dense: the tab
+// is a side panel): ▶, the first words over the voice, length and when,
+// and ⋯. A click on it plays it.
 func (a *app) studioHistoryRow(c *ui.Context, tk *core.Take) {
-	t := c.Theme()
-	k := tok(t)
-	row := ui.Row(c.Key("hist-"+tk.ID)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, 6), px(t, 4)).Radius(px(t, radiusControl))
-	if row.Hovered() || a.pl.Playing(tk.ID) {
-		row.Background(k.Hover)
-	}
-	row.Children(func() {
-		if playButton(c.Key("play"), a.pl.Playing(tk.ID), false, 28).Clicked() {
+	playing := a.pl.Playing(tk.ID)
+	text := scriptStart(tk.Text)
+	spec := listRowSpec{key: "hist-" + tk.ID, label: text, tip: text, dense: true, state: rowState{playing: playing}, lead: func() {
+		if playButton(c.Key("play"), playing, false, 28).Clicked() {
 			a.play(tk)
 		}
-		ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
-			ui.Text(c, scriptStart(tk.Text)).SingleLine().Ellipsis("…").MinWidth(0)
-			meta := a.takeVoiceName(tk) + " · " + i18n.T("%.1f s", tk.AudioSeconds) + " · " + ago(tk.CreatedAt)
-			ui.Text(c, meta).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
-		})
+	}}
+	if listRow(c, spec, func() {
+		meta := a.takeVoiceName(tk) + " · " + i18n.T("%.1f s", tk.AudioSeconds) + " · " + ago(tk.CreatedAt)
+		listTitleMarks(c, text, meta, playing, nil)
+	}, func() {
 		moreMenu(c.Key("hist-more"), "", func(m *ui.Menu) {
 			a.takeHandoffs(m, tk, true)
 		})
-	})
+	}) {
+		a.play(tk)
+	}
 }
 
 // scriptStart is a script's start on one line.

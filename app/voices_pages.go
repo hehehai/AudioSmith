@@ -199,7 +199,7 @@ func (a *app) recentVoices(c *ui.Context) {
 		for _, v := range vs {
 			playing := a.savedPlaying(v)
 			id := v.ID
-			if voiceRow(c, "recent-"+v.ID, v.Name, voiceRowState{playing: playing}, func() {
+			if voiceRow(c, "recent-"+v.ID, v.Name, rowState{playing: playing}, func() {
 				voiceNameCell(c, v.Name, mineKind(v)+" · "+i18n.Date(v.CreatedAt), a.portrait(v), playing, nil)
 			}, func() {
 				if previewToggle(c, "play", playing).Clicked() {

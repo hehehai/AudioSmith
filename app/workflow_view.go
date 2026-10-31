@@ -292,7 +292,7 @@ func (a *app) wfListRow(c *ui.Context, r store.WorkflowRecord) {
 	hovered := row.Hovered()
 	switch {
 	case open:
-		row.Background(k.Pressed)
+		row.Background(k.Selected) // as the row kit's open row (ui_list.go)
 	case hovered:
 		row.Background(k.Hover)
 	}

@@ -78,17 +78,15 @@ func (a *app) historyPage(c *ui.Context) {
 		},
 	})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), 0).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp2), px(t, sp6), 0).Children(func() {
 			if len(all) == 0 {
 				ghostRows(c.Key("assets-ghost"), 5, assetsIcon, i18n.T("Nothing here yet"),
 					i18n.T("What you generate, render, export or isolate shows here, with the files you brought in."))
 				return
 			}
 			narrow := a.toolNarrow(c)
-			listHead(c, narrow, listColumn{title: i18n.T("Name")}, listColumn{title: i18n.T("Source"), w: 120, wide: true},
-				listColumn{title: i18n.T("Length"), w: 56, wide: true}, listColumn{title: i18n.T("Date"), w: 110, wide: true}, listColumn{w: 28})
 			if len(rows) == 0 {
-				ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() { caption(c, i18n.T("Nothing matches.")) })
+				listNoMatch(c, i18n.T("Nothing matches."))
 				return
 			}
 			ui.List(c.Key("assets-list"), &a.historyList, len(rows)).Grow(1).MinHeight(0).Padding(0, 0, px(t, sp4)).
@@ -140,48 +138,37 @@ func (a *app) assetSourceMenu(m *ui.Menu) {
 	}
 }
 
-// assetRow is an asset: ▶, its title over what it is, the tool it came
-// from (a click opens it), length, date, ★ for a take, ⋯.
+// assetRow is an asset (the row kit's): ▶ before it when it plays, its
+// title over what it is, the tool it came from, length, date, ★ for a
+// take, ⋯ (its first item opens it in its tool). A click on it shows a
+// take's details, or plays the asset.
 func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 	t := c.Theme()
 	k := tok(t)
 	h := &a.history
-	ui.Column(c.Key("as-"+as.key)).BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Children(func() {
-		row := ui.Row(c.Key("row")).MinHeight(px(t, 52)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, 4), px(t, sp1), px(t, 4), px(t, sp2))
-		if row.Hovered() || as.take != nil && h.selected == as.take.ID {
-			row.Background(k.Hover)
-		}
-		row.Children(func() {
-			if assetPlayable(as.path) {
-				ui.Box(c).Size(px(t, 32), px(t, 32)).Radius(px(t, radiusControl)).Background(k.Subtle).Center().Shrink(0).Children(func() {
-					if playToggle(c.Key("play"), a.assetPlaying(as), i18n.T("Play"), i18n.T("Pause")).Clicked() {
+	playing := a.assetPlaying(as)
+	ui.Column(c.Key("as-" + as.key)).Shrink(0).Children(func() {
+		spec := listRowSpec{key: "row", label: as.title, tip: as.title, state: rowState{selected: as.take != nil && h.selected == as.take.ID, playing: playing}}
+		if assetPlayable(as.path) {
+			spec.lead = func() {
+				ui.Box(c).Size(px(t, listThumbD), px(t, listThumbD)).Radius(px(t, radiusControl)).Background(k.Subtle).Center().Shrink(0).Children(func() {
+					if playToggle(c.Key("play"), playing, i18n.T("Play"), i18n.T("Pause")).Clicked() {
 						a.playAsset(as)
 					}
 				})
-			} else {
+			}
+		}
+		open := listRow(c, spec, func() {
+			if spec.lead == nil {
 				listThumb(c, assetIcon(as.kind), nil)
 			}
-			b := ui.ButtonBase(c.Key("title")).Grow(1).MinWidth(0).Label(as.title).Tooltip(as.title)
-			b.Children(func() { listTitle(c, as.title, as.sub) })
-			if b.Clicked() {
-				if as.take != nil {
-					h.selected = as.take.ID
-				} else {
-					a.playAsset(as)
-				}
-			}
+			listTitleMarks(c, as.title, as.sub, false, nil)
 			if !narrow {
-				src := ghostBase(c.Key("source")).Width(px(t, 120)).Shrink(0).Justify(ui.Start).Padding(px(t, 3), px(t, 4)).Label(i18n.T("Open in %s", pageTitle(as.tool)))
-				src.Children(func() {
-					ui.Icon(c, assetIcon(as.kind).Linear).Size(px(t, 13), px(t, 13)).TextColor(k.Text3)
-					ui.Text(c, pageTitle(as.tool)).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
-				}).Gap(px(t, 4)).AlignItems(ui.Center)
-				if src.Clicked() && as.open != nil {
-					as.open()
-				}
-				listCell(c, orDash(durText(as.dur)), 56)
-				listCell(c, ago(as.at), 110)
+				metaCell(c, assetIcon(as.kind), i18n.T("Source"), pageTitle(as.tool), 120)
+				metaCell(c, icons.ClockCircle, i18n.T("Length"), durText(as.dur), 72)
+				metaCell(c, icons.CalendarMinimalistic, i18n.T("Date"), ago(as.at), 120)
 			}
+		}, func() {
 			if as.take != nil {
 				a.starButton(c, as.take)
 			} else {
@@ -189,8 +176,15 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 			}
 			moreMenu(c.Key("more"), i18n.T("Asset actions"), func(m *ui.Menu) { a.assetMenu(m, as) })
 		})
+		if open {
+			if as.take != nil {
+				h.selected = as.take.ID
+			} else {
+				a.playAsset(as)
+			}
+		}
 		if as.render != "" && h.details[as.key] {
-			ui.Column(c).Padding(0, px(t, sp2), px(t, sp2), px(t, 32+sp3+sp2)).Children(func() { a.renderDetails(c, as.render, as.key) })
+			ui.Column(c).Padding(0, px(t, sp2), px(t, sp2), px(t, listThumbD+sp3+sp2)).Children(func() { a.renderDetails(c, as.render, as.key) })
 		}
 	})
 }

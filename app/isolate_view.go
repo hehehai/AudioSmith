@@ -93,7 +93,6 @@ func (a *app) isoComposer(c *ui.Context) {
 
 // isoListView: the search and the isolations; ghost rows when none.
 func (a *app) isoListView(c *ui.Context) {
-	t := c.Theme()
 	if len(a.isoList) == 0 {
 		ghostRows(c.Key("iso-ghost"), 4, isolateIcon, i18n.T("No isolations yet"), i18n.T("Drop a song, a video or a noisy recording above: its stems show here."))
 		return
@@ -101,8 +100,6 @@ func (a *app) isoListView(c *ui.Context) {
 	narrow := a.toolNarrow(c)
 	q := strings.ToLower(strings.TrimSpace(a.isoQuery))
 	ui.Column(c.Key("iso-table")).Shrink(0).Children(func() {
-		listHead(c, narrow, listColumn{title: i18n.T("Name")}, listColumn{title: i18n.T("Length"), w: 64, wide: true},
-			listColumn{title: i18n.T("Created"), w: 110, wide: true}, listColumn{title: i18n.T("Status"), w: 130})
 		n := 0
 		for _, x := range a.isoList {
 			if q != "" && !strings.Contains(strings.ToLower(x.Title), q) {
@@ -112,7 +109,7 @@ func (a *app) isoListView(c *ui.Context) {
 			a.isoRow(c, x, narrow)
 		}
 		if n == 0 {
-			ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() { caption(c, i18n.T("Nothing matches.")) })
+			listNoMatch(c, i18n.T("Nothing matches."))
 		}
 	})
 }
@@ -159,16 +156,17 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 	if x.Video {
 		ic = dubIcon
 	}
-	open := listRow(c, "iso-row-"+id, x.Title, func() {
+	del := func() { a.isoConfirm, a.isoConfirmOpen = id, true }
+	open := listRow(c, listRowSpec{key: "iso-row-" + id, label: x.Title, del: del}, func() {
 		listThumb(c, ic, nil)
 		listTitle(c, x.Title, filepath.Base(x.Input))
 		if !narrow {
-			d := "—"
+			d := ""
 			if x.Duration > 0 {
 				d = clock(x.Duration)
 			}
-			listCell(c, d, 64)
-			listCell(c, ago(x.CreatedAt), 110)
+			metaCell(c, icons.ClockCircle, i18n.T("Length"), d, 76)
+			metaCell(c, icons.CalendarMinimalistic, i18n.T("Created"), ago(x.CreatedAt), 120)
 		}
 		col := k.Text2
 		if failed {
@@ -189,7 +187,7 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 			}
 			m.Separator()
 			if m.Item(i18n.T("Delete…")).Chosen() {
-				a.isoConfirm, a.isoConfirmOpen = id, true
+				del()
 			}
 		})
 	})

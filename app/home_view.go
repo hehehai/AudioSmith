@@ -312,8 +312,6 @@ func (a *app) homeItems(n int) []homeItem {
 
 // homeRecent is the Recent tab: rows that open the item, or ghost rows.
 func (a *app) homeRecent(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
 	items := a.homeItems(8)
 	if len(items) == 0 {
 		ghostRows(c, 4, icons.History, i18n.T("Nothing made yet"), i18n.T("What you make in any tool shows here: speech, dubs, transcripts, stories and books."))
@@ -321,21 +319,11 @@ func (a *app) homeRecent(c *ui.Context) {
 	}
 	ui.Column(c.Key("home-recent")).Children(func() {
 		for _, it := range items {
-			row := ui.ButtonBase(c.Key("recent-" + it.key)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusControl)).Label(it.title)
-			if row.Hovered() {
-				row.Background(k.Hover)
-			}
-			row.Children(func() {
-				ui.Box(c).Size(px(t, 30), px(t, 30)).Radius(px(t, radiusControl)).Background(k.Subtle).Center().Shrink(0).Children(func() {
-					ui.Icon(c, it.icon.Linear).Size(px(t, 15), px(t, 15)).TextColor(k.Text2)
-				})
-				ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
-					ui.Text(c, orDash(it.title)).SingleLine().Ellipsis("…").MinWidth(0)
-					ui.Text(c, it.kind).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine()
-				})
-				ui.Text(c, ago(it.at)).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
-			})
-			if row.Clicked() {
+			if listRow(c, listRowSpec{key: "recent-" + it.key, label: it.title}, func() {
+				listThumb(c, it.icon, nil)
+				listTitle(c, it.title, it.kind)
+				metaCell(c, icons.CalendarMinimalistic, i18n.T("Updated"), ago(it.at), 120)
+			}, nil) {
 				it.open()
 			}
 		}
