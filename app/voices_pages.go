@@ -71,7 +71,8 @@ func voicePageTitle(path string) (string, bool) {
 }
 
 // voicesTabbed shows a tab's view under the Voices page's header: its
-// title "Voices", and the tabs under it.
+// title "Voices", and the tabs (发现 | 我的) in the header row, after the
+// count.
 func (a *app) voicesTabbed(c *ui.Context, tab string, view func(*ui.Context)) {
 	t := c.Theme()
 	a.voicesTab = tab
@@ -80,15 +81,13 @@ func (a *app) voicesTabbed(c *ui.Context, tab string, view func(*ui.Context)) {
 		sel = 1
 	}
 	headerHost.title = i18n.X("nav", "Voices")
-	headerHost.below = func() {
-		ui.Row(c.Key("voices-tabs")).Padding(0, px(t, sp6)).Shrink(0).Children(func() {
-			tabs := underlineTabs(c.Key("voices-tab"), &sel, i18n.T("Discover"), i18n.T("Mine")).Label(i18n.X("nav", "Voices")).Grow(1)
-			if tabs.Changed() {
-				a.navigate("/voices/" + voicesTabs[sel])
-			}
-		})
+	headerHost.inline = func() {
+		tabs := underlineTabs(c.Key("voices-tab"), &sel, i18n.T("Discover"), i18n.T("Mine")).Label(i18n.X("nav", "Voices")).BorderWidth(0, 0, 0, 0).Gap(px(t, sp4))
+		if tabs.Changed() {
+			a.navigate("/voices/" + voicesTabs[sel])
+		}
 	}
-	defer func() { headerHost.title, headerHost.below = "", nil }()
+	defer func() { headerHost.title, headerHost.below, headerHost.inline = "", nil, nil }()
 	view(c)
 }
 
