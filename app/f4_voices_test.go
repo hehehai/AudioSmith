@@ -170,7 +170,13 @@ func TestMineTable(t *testing.T) {
 	a.mine.usesFor = ""
 	tt.Frame()
 	tt.Frame()
-	for _, s := range []string{"Name", "Kind", "Language", "Created", "Used", "Narrator", "Grandma", "Heart", "Cloned", "Designed", "Saved", "English", "1 time"} {
+	// No column titles (user, 10-31): the rows' values only.
+	for _, s := range []string{"Name", "Created", "Used"} {
+		if slices.Contains(tt.Texts(), s) {
+			t.Errorf("column title %q shows", s)
+		}
+	}
+	for _, s := range []string{"Narrator", "Grandma", "Heart", "Cloned", "Designed", "Saved", "English", "1 time"} {
 		if !tt.HasText(s) {
 			t.Errorf("no %q: %q", s, tt.Texts())
 		}
