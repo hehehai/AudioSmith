@@ -51,8 +51,6 @@ func (a *app) historyPage(c *ui.Context) {
 	all := a.assets()
 	rows := a.assetsShown(all)
 	sel := a.findTake(h.selected)
-	w := px(t, 360)
-	inline := a.panelFits(c, w)
 	count := i18n.N(len(all), "%d item", "%d items", len(all))
 	if len(rows) != len(all) {
 		count = i18n.N(len(rows), "%d found", "%d found", len(rows))
@@ -96,11 +94,12 @@ func (a *app) historyPage(c *ui.Context) {
 				a.assetRow(c, rows[r.Index], narrow)
 			})
 		})
+		var build func()
 		if sel != nil {
-			sidePanel(c, "details", w, inline, i18n.T("Take details"), func() { h.selected = "" }, func() {
-				a.takeDetails(c, sel)
-			})
+			build = func() { a.takeDetails(c, sel) }
 		}
+		a.floating(c, floatPanel{key: "details", label: i18n.T("Take details"), w: px(t, 360), item: h.selected,
+			close: func() { h.selected = "" }}, sel != nil, build)
 	})
 }
 

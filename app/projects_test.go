@@ -69,7 +69,7 @@ func TestGalleryUseInStories(t *testing.T) {
 	// Narrate an audiobook, from the voice editor's menu.
 	a.openVoiceEditor(a.voices[0].ID)
 	tt.Frame()
-	if err := tt.Click("More actions"); err != nil {
+	if err := tt.Click("More actions for " + a.voices[0].Name); err != nil { // the panel's ⋯
 		t.Fatal(err)
 	}
 	if err := tt.ChooseMenuItem("Narrate an audiobook"); err != nil {

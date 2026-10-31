@@ -102,24 +102,24 @@ func (a *app) voicesPage(c *ui.Context) {
 		primary: a.newVoiceButton(c),
 	})
 	a.loadVoiceUses()
-	w := px(t, voiceDetailW)
-	inline := a.panelFits(c, w)
 	body := ui.Row(c.Key("voices-body")).Grow(1).MinHeight(0).AlignItems(ui.Stretch)
 	if files := body.DroppedFiles(); files != nil {
 		a.voicesDropped(files)
 	}
 	body.Children(func() {
-		narrow := a.pageWidth(c)-ifThen(a.edit != nil && inline, w, 0) < px(t, 720)
+		narrow := a.pageWidth(c) < px(t, 720)
 		ui.Scroll(c.Key("voices-scroll")).Grow(1).MinWidth(0).Children(func() {
 			ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp2)).Children(func() {
 				a.voicesTable(c, narrow)
 			})
 		})
+		var build func()
+		var item any
 		if a.edit != nil {
-			sidePanel(c, "voice-editor", w, inline, i18n.T("Voice details"), func() { a.edit = nil }, func() {
-				a.voiceEditor(c)
-			})
+			build, item = func() { a.voiceEditor(c) }, a.edit.id
 		}
+		a.floating(c, floatPanel{key: "voice-editor", label: i18n.T("Voice details"), w: px(t, voiceDetailW), item: item,
+			close: func() { a.edit = nil }}, a.edit != nil, build)
 	})
 	a.voiceDeleteAlert(c)
 	a.personaDialogs(c)
@@ -203,17 +203,17 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 				a.useVoiceInStudio(v)
 			}
 		}
-		a.voiceRowMenu(c, v)
+		a.voiceRowMenu(c, v, "")
 	}) {
 		a.toggleVoiceDetail(id)
 	}
 }
 
 // voiceRowMenu is a saved voice's ⋯: rename, duplicate, export, Stories
-// and Audiobook, references, delete.
-func (a *app) voiceRowMenu(c *ui.Context, v *core.Voice) {
+// and Audiobook, references, delete; tip names it ("" More actions).
+func (a *app) voiceRowMenu(c *ui.Context, v *core.Voice, tip string) {
 	id := v.ID
-	moreMenu(c.Key("voice-more"), "", func(m *ui.Menu) {
+	moreMenu(c.Key("voice-more"), tip, func(m *ui.Menu) {
 		if m.Item(i18n.T("Rename")).Chosen() {
 			a.mine.renaming, a.mine.renameText = id, v.Name
 		}
@@ -269,7 +269,7 @@ func (a *app) renameRow(c *ui.Context, v *core.Voice) {
 // click).
 func (a *app) toggleVoiceDetail(id string) {
 	if a.edit != nil && a.edit.id == id {
-		a.edit = nil
+		a.dismissPanel("voice-editor")()
 		return
 	}
 	a.openVoiceEditor(id)

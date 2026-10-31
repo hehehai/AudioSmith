@@ -88,11 +88,9 @@ func (a *app) galleryPage(c *ui.Context) {
 		},
 		primary: a.newVoiceButton(c),
 	})
-	w := px(t, voiceDetailW)
-	inline := a.panelFits(c, w)
 	arch, open := gallery.Default().ByID(g.detail)
 	ui.Row(c.Key("gallery-body")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		avail := a.pageWidth(c) - ifThen(open && inline, w, 0)
+		avail := a.pageWidth(c)
 		narrow := avail < px(t, 700)
 		ui.Scroll(c.Key("gallery-scroll")).Grow(1).MinWidth(0).Children(func() {
 			ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).Children(func() {
@@ -108,11 +106,12 @@ func (a *app) galleryPage(c *ui.Context) {
 				a.galleryTable(c, page.Items, narrow)
 			})
 		})
+		var build func()
 		if open {
-			sidePanel(c, "voice-detail", w, inline, i18n.T("Voice details"), func() { g.detail = "" }, func() {
-				a.archetypeDetail(c, arch)
-			})
+			build = func() { a.archetypeDetail(c, arch) }
 		}
+		a.floating(c, floatPanel{key: "voice-detail", label: i18n.T("Voice details"), w: px(t, voiceDetailW), item: g.detail,
+			close: func() { g.detail = "" }}, open, build)
 	})
 }
 
@@ -313,7 +312,7 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 				if useButton(c, "use", i18n.T("Use it in Text to speech")).Disabled(g.using).Clicked() {
 					a.useArchetype(arch, true)
 				}
-				a.archetypeMenu(c, arch)
+				a.archetypeMenu(c, arch, "")
 			}) {
 				a.openArchetype(arch.ID)
 			}
@@ -322,10 +321,10 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 }
 
 // archetypeMenu is a Discover voice's ⋯: save it, Stories, Audiobook,
-// Design without saving, favorite.
-func (a *app) archetypeMenu(c *ui.Context, arch gallery.Archetype) {
+// Design without saving, favorite; tip names it ("" More actions).
+func (a *app) archetypeMenu(c *ui.Context, arch gallery.Archetype, tip string) {
 	g := &a.gallery
-	moreMenu(c.Key("more"), "", func(m *ui.Menu) {
+	moreMenu(c.Key("more"), tip, func(m *ui.Menu) {
 		saved := a.savedFrom(arch.ID) != nil
 		if m.Item(i18n.T("Save to My voices")).Disabled(saved || g.using).Chosen() {
 			a.saveArchetype(arch)
@@ -350,7 +349,7 @@ func (a *app) archetypeMenu(c *ui.Context, arch gallery.Archetype) {
 func (a *app) openArchetype(id string) {
 	g := &a.gallery
 	if g.detail == id {
-		g.detail = ""
+		a.dismissPanel("voice-detail")()
 		return
 	}
 	g.detail = id

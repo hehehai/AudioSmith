@@ -199,7 +199,7 @@ func (a *app) voiceEditor(c *ui.Context) {
 					return svc.SaveFiles(ctx, cur, core.VoiceFiles{RemovePortrait: true})
 				}, "")
 			})
-		}, func() { voiceBadges(c, v) }, func() { a.edit = nil })
+		}, func() { voiceBadges(c, v) }, func() { a.voiceRowMenu(c, v, i18n.T("More actions for %s", v.Name)) }, a.dismissPanel("voice-editor"))
 		a.editorAudio(c, v)
 		handoffRow(c, "editor-handoffs", func() {
 			use := primaryButton

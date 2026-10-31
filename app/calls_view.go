@@ -76,19 +76,10 @@ func (a *app) callsPage(c *ui.Context) {
 			ui.Box(c).Width(1).Background(k.Line)
 		}
 		main()
+		// Too narrow for the column: a floating list from the left.
+		a.floating(c, floatPanel{key: "calls-history-drawer", label: i18n.T("Recent calls"), w: px(t, callsHistoryWidth), left: true, fill: true,
+			close: func() { a.callHistOn = false }}, !histInline && a.callHistOn, func() { a.callHistory(c) })
 	})
-	if !histInline && a.callHistOn {
-		ui.Overlay(c, func() {
-			w, h := c.Size()
-			d := ui.Column(c.Key("calls-history-drawer")).Absolute().Left(w-pw).Top(pageTop).Width(px(t, callsHistoryWidth)).
-				Height(h-pageTop-1).Background(k.Bg).BorderWidth(0, 1, 0, 0).BorderColor(k.Line).
-				Shadow(8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Recent calls"))
-			d.Children(func() { a.callHistory(c) })
-			if d.PressedOutside() || d.OverlayShortcut(0, ui.KeyEscape) {
-				a.callHistOn = false
-			}
-		})
-	}
 	a.callDialogs(c)
 }
 

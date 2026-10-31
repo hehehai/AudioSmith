@@ -49,9 +49,9 @@ func tryLine(lang string) string {
 }
 
 // detailHead is a detail's top: the avatar (or the portrait picker:
-// avatar builds it), the name, a line under it, marks, ✕; then the
+// avatar builds it), the name, a line under it, marks, ⋯ (menu), ✕; then the
 // description and the tags.
-func detailHead(c *ui.Context, name, sub, desc string, tags []string, avatar, marks func(), close func()) {
+func detailHead(c *ui.Context, name, sub, desc string, tags []string, avatar, marks, menu func(), close func()) {
 	t := c.Theme()
 	k := tok(t)
 	ui.Row(c.Key("detail-head")).Gap(px(t, sp3)).AlignItems(ui.Start).Children(func() {
@@ -65,6 +65,8 @@ func detailHead(c *ui.Context, name, sub, desc string, tags []string, avatar, ma
 				ui.Row(c).Gap(px(t, sp2)).Wrap().Children(marks)
 			}
 		})
+		// The row's ⋯, which the floating panel covers (#126).
+		menu()
 		if iconButton(c.Key("detail-close"), icons.Close, i18n.T("Close")).Clicked() {
 			close()
 		}
@@ -192,7 +194,8 @@ func (a *app) archetypeDetail(c *ui.Context, arch gallery.Archetype) {
 					statusMark(c, icons.CheckCircle, t.Success, i18n.T("In My voices"))
 				}
 			},
-			func() { g.detail = "" })
+			func() { a.archetypeMenu(c, arch, i18n.T("More actions for %s", name)) },
+			a.dismissPanel("voice-detail"))
 		line, _ := arch.PreviewLine()
 		if p.ok() {
 			detailPlayer(c, "detail-player", playing, i18n.T("Preview"), line, "", func() { a.previewArchetype(arch) })

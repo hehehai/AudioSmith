@@ -175,7 +175,7 @@ func (a *app) takeDetails(c *ui.Context, tk *core.Take) {
 	t := c.Theme()
 	k := tok(t)
 	ui.Column(c.Key("details-"+tk.ID)).Padding(px(t, sp3), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
-		panelHeader(c, i18n.T("Take details"), func() { a.history.selected = "" })
+		panelHeader(c, i18n.T("Take details"), a.dismissPanel("details"))
 		a.outputPanel(c, tk, false)
 		ui.Row(c).Gap(px(t, sp2)).Children(func() {
 			if primaryButton(c.Key("details-reuse"), i18n.T("Reuse")).Tooltip(i18n.T("Load the whole recipe into the studio, seed included")).Clicked() {

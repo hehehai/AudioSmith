@@ -51,7 +51,7 @@ func (a *app) dubPage(c *ui.Context) {
 	inline, shown := a.dubSide.layout(a, c, width, px(t, 480))
 	w := a.pageWidth(c)
 	if inline && shown {
-		w -= width
+		w -= laneWidth(t, width)
 	}
 	a.dubNarrow = w < px(t, 560)
 	a.dubWorkW = w
@@ -101,7 +101,7 @@ func (a *app) dubPage(c *ui.Context) {
 				a.dubWorkspace(c)
 			})
 		}).ClipX()
-		a.dubSide.view(c, "dub-side", i18n.T("Step settings"), inline, shown, false, width, func() {
+		a.dubSide.view(a, c, "dub-side", i18n.T("Step settings"), inline, shown, width, func() {
 			ui.Column(c).Padding(px(t, sp4), px(t, sp4), px(t, sp5)).Gap(px(t, sp3)).Bind(&a.dubSideFocus).Children(func() { a.dubStepPanel(c) })
 		})
 	})

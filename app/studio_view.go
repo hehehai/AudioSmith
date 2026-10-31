@@ -19,7 +19,6 @@ import (
 // the panel's toggle.
 func (a *app) studioPage(c *ui.Context) {
 	t := c.Theme()
-	k := tok(t)
 	inline, shown := a.studioInspectorShown(c)
 	if c.Shortcut(ui.Alt, ui.KeySlash) { // wherever the focus is, the script editor's too
 		a.composer.insertOpen = !a.composer.insertOpen
@@ -42,31 +41,11 @@ func (a *app) studioPage(c *ui.Context) {
 	}})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		a.scriptColumn(c, shown)
-		if shown && inline {
-			ui.Box(c).Width(1).Background(k.Line)
-			ui.Column(c.Key("studio-panel")).Width(px(t, studioPanelWidth)).Shrink(0).Children(func() {
-				a.studioPanel(c, false)
-			})
-		}
+		// In its lane beside the script, or, too narrow for both, over it.
+		a.floating(c, floatPanel{key: "studio-panel", label: i18n.T("Text to speech panel"), w: px(t, studioPanelWidth),
+			lane: inline, fill: true, close: func() { a.composer.panel, a.composer.panelSet = false, true }},
+			shown, func() { a.studioPanel(c, !inline) })
 	})
-	if shown && !inline {
-		// Too narrow for both: the panel slides over the script.
-		ui.Overlay(c, func() {
-			w, h := c.Size()
-			pw := min(px(t, studioPanelWidth), w-px(t, 40))
-			panel := ui.Column(c.Key("studio-drawer")).Absolute().Right(0).Top(titleBarHeight).Width(pw).
-				Height(h-titleBarHeight-1).Background(k.Bg).BorderWidth(0, 0, 0, 1).BorderColor(k.Line).
-				Shadow(-8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Text to speech panel"))
-			panel.Children(func() {
-				a.studioPanel(c, true)
-			})
-			if panel.PressedOutside() || panel.OverlayShortcut(0, ui.KeyEscape) {
-				if !a.voicePickers.open[studioVoiceKey] && !a.pickerOpen["model"] {
-					a.composer.panel, a.composer.panelSet = false, true
-				}
-			}
-		})
-	}
 	// After the inputs above applied this frame's edits.
 	a.autosaveStudio()
 }
@@ -142,7 +121,7 @@ func (a *app) studioNarrow(c *ui.Context) bool {
 	}
 	inline, shown := a.studioInspectorShown(c)
 	if shown && inline {
-		w -= px(t, studioPanelWidth)
+		w -= laneWidth(t, px(t, studioPanelWidth))
 	}
 	return w-side < px(t, 500)
 }

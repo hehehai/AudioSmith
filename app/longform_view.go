@@ -29,7 +29,7 @@ func (a *app) lfLayout(c *ui.Context, p *lfPage) (inline, shown bool) {
 	inline, shown = p.panel.layout(a, c, px(t, inspectorWidth), px(t, 480))
 	w := a.pageWidth(c)
 	if inline && shown {
-		w -= px(t, inspectorWidth)
+		w -= laneWidth(t, px(t, inspectorWidth))
 	}
 	p.narrow = w < px(t, 600)
 	return inline, shown
@@ -39,7 +39,7 @@ func (a *app) lfLayout(c *ui.Context, p *lfPage) (inline, shown bool) {
 // page or as a drawer.
 func (a *app) lfInspector(c *ui.Context, p *lfPage, inline, shown bool, sections func()) {
 	t := c.Theme()
-	p.panel.view(c, "lf-inspector", i18n.T("Inspector"), inline, shown, false, px(t, inspectorWidth), func() {
+	p.panel.view(a, c, "lf-inspector", i18n.T("Inspector"), inline, shown, px(t, inspectorWidth), func() {
 		ui.Column(c).Padding(px(t, sp2), px(t, sp4), px(t, sp5)).Gap(px(t, sp1)).Children(sections)
 	})
 }

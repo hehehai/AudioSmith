@@ -82,6 +82,11 @@ type shellState struct {
 	// settingsReveal is the part a section scrolls to (an old section's
 	// id: revealAnchor), "" none.
 	settingsReveal string
+	// floats are the floating panels' lives, by key (ui_panels.go).
+	floats map[string]*floatState
+	// testMotion lets a test without a window see motion (the floating
+	// panels' tests); other tests show every change at once.
+	testMotion bool
 
 	bus      *core.Bus
 	settings settings.Service
@@ -287,7 +292,7 @@ func (a *app) openWindow() {
 func (a *app) view(c *ui.Context) {
 	a.applyTheme(c)
 	t := c.Theme()
-	if a.win == nil || a.prefs.Appearance.ReduceMotion {
+	if (a.win == nil && !a.testMotion) || a.prefs.Appearance.ReduceMotion {
 		// Tests and snapshots show every change at once, as does the
 		// user's Reduce motion.
 		c.DisableAnimations()

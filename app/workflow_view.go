@@ -125,36 +125,27 @@ func (a *app) workflowsPage(c *ui.Context) {
 				if railShown && railInline {
 					mid -= px(t, wfRailWidth) + 1
 				}
-				right = max(0, min(px(t, wfPanelWidth), mid-px(t, 260)))
+				right = max(0, min(laneWidth(t, px(t, wfPanelWidth)), mid-px(t, 260)))
 			}
 			a.wfToolbar(c, right)
 			ui.Box(c).Height(1).Background(k.Line)
 			a.wfCanvasView(c)
 		})
-		if panelShown && panelInline {
-			ui.Box(c).Width(1).Background(k.Line)
-			ui.Column(c.Key("wf-panel")).Width(px(t, wfPanelWidth)).Shrink(0).Children(panel)
+		// Too narrow for the rail: a floating list from the left.
+		a.floating(c, floatPanel{key: "wf-rail-drawer", label: i18n.T("Workflows and steps"), w: px(t, wfRailWidth+20), left: true,
+			close: func() { a.wfRailOpen = false }}, railShown && !railInline, rail)
+		// The step and the run: in its lane, or over the canvas.
+		var build func()
+		var esc func()
+		if a.wf != nil {
+			build = panel
 		}
+		if !panelInline {
+			esc = func() { a.wfPanelOpen = false }
+		}
+		a.floating(c, floatPanel{key: "wf-panel", label: i18n.T("Step and run"), w: px(t, wfPanelWidth), lane: panelInline,
+			fill: true, close: esc}, panelShown, build)
 	})
-	if railShown && !railInline {
-		// A drawer from the left edge of the page.
-		ui.Overlay(c, func() {
-			w, h := c.Size()
-			left := w - a.pageWidth(c)
-			d := ui.Scroll(c.Key("wf-rail-drawer")).Absolute().Left(left).Top(pageTop).Width(px(t, wfRailWidth+20)).
-				Height(h-pageTop-1).Background(k.Bg).BorderWidth(0, 1, 0, 0).BorderColor(k.Line).
-				Shadow(8, 0, 24, 0, ui.RGBA(0, 0, 0, 0.12)).Label(i18n.T("Workflows and steps"))
-			d.Children(rail)
-			if d.PressedOutside() || d.OverlayShortcut(0, ui.KeyEscape) {
-				a.wfRailOpen = false
-			}
-		})
-	}
-	if panelShown && !panelInline {
-		sidePanel(c, "wf-panel", px(t, wfPanelWidth), false, i18n.T("Step and run"), func() { a.wfPanelOpen = false }, func() {
-			ui.Column(c).Height(func() float32 { _, h := c.Size(); return h - pageTop - 1 }()).Children(panel)
-		})
-	}
 	a.wfConfirmDialog(c)
 }
 

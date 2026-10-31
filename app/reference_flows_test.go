@@ -129,7 +129,7 @@ func TestVoiceMenuMakeReference(t *testing.T) {
 	a.navigate("/voices")
 	a.openVoiceEditor(v.ID)
 	tt.Frame()
-	if err := tt.Click("More actions"); err != nil {
+	if err := tt.Click("More actions for Kid"); err != nil { // the panel's ⋯
 		t.Fatal(err)
 	}
 	if !slices.Contains(tt.Menu(), "Make reference") {

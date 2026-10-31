@@ -103,6 +103,7 @@ func TestGalleryPage(t *testing.T) {
 		t.Errorf("favorites only: %d", g.page.Total)
 	}
 	g.favOnly = false
+	g.detail = "" // the floating detail would cover the rows' ⋯ (#126)
 	b, _, _ := newTestAppIn(t, dir)
 	if !b.gallery.favs.Has(first.ID) {
 		t.Error("favorite not saved")
