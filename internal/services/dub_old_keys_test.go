@@ -38,7 +38,7 @@ func oldDubDigest(t *testing.T, e *dubEnv, p *dub.Project) string {
 		for _, seg := range p.Segments {
 			r := tr.Lines[seg.ID]
 			v, _ := e.dubs.voiceFor(context.Background(), p, seg, l, caps, cache)
-			if fp := p.Fingerprint(seg, l, v); r.Key != fp || !strings.HasSuffix(r.File, seg.ID+"-"+fp[:10]+".wav") {
+			if fp := p.Fingerprint(seg, l, e.dubs.keyVoice(p.ID, v)); r.Key != fp || !strings.HasSuffix(r.File, seg.ID+"-"+fp[:10]+".wav") {
 				t.Errorf("%s %s: key %s file %s, fingerprint %s", l, seg.ID, r.Key, r.File, fp)
 			}
 			fmt.Fprintf(&b, " %s %s %.3f %.3f %.3f %.3f %q %s;", seg.ID, r.Verdict, r.Ratio, r.Raw, r.Length, r.Over, r.Text, sum(e.dubs.Path(p.ID, r.File)))

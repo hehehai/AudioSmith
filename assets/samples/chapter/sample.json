@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "chapter",
+  "kind": "audiobook",
+  "title": {
+    "en": "An audiobook chapter",
+    "zh-Hans": "一章有声书"
+  },
+  "subtitle": {
+    "en": "Chapter one, read by a narrator with two characters",
+    "zh-Hans": "第一章：旁白朗读，两个角色各说一句"
+  },
+  "cover": {
+    "color": "#0EA5E9",
+    "icon": "audiobook"
+  },
+  "files": [
+    {
+      "path": "project.json",
+      "role": "project"
+    },
+    {
+      "path": "audio/chapter.ogg",
+      "role": "audio"
+    }
+  ]
+}

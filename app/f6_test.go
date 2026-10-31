@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/fs"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,6 +21,8 @@ import (
 	"github.com/hehehai/AudioSmith/assets"
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
+	"github.com/hehehai/AudioSmith/internal/dsp"
+	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/hub"
 	"github.com/hehehai/AudioSmith/internal/llm"
@@ -43,9 +46,9 @@ func fixtureSamples(t *testing.T) fstest.MapFS {
 	tb, _ := json.Marshal(tr)
 	return fstest.MapFS{
 		"story/sample.json": man("story", sampleStory, "A story for two voices", "两人对话的故事",
-			sampleFile{"script.txt", roleScript}, sampleFile{"audio/story.m4a", roleAudio}),
+			sampleFile{"script.txt", roleScript}, sampleFile{"audio/story.wav", roleAudio}),
 		"story/script.txt":      {Data: []byte("# The Lighthouse\nThe keeper climbed the stairs.\n[voice:Mara] Is the lamp lit?\n[voice:Jun] Not yet. The oil is cold.\n[voice:default] Night came early.\n")},
-		"story/audio/story.m4a": {Data: []byte("m4a bytes")},
+		"story/audio/story.wav": {Data: sampleTestWAV(t)},
 		"dub/sample.json": man("dub", sampleDub, "A dubbed clip", "一段配音短片",
 			sampleFile{"project.json", roleProject}, sampleFile{"media/clip.wav", roleMedia}),
 		"dub/project.json":   {Data: db},
@@ -56,6 +59,24 @@ func fixtureSamples(t *testing.T) fstest.MapFS {
 		"meeting/media/meeting.wav": {Data: []byte("RIFF audio")},
 		"broken/sample.json":        {Data: []byte(`{"version":1,"id":"other","kind":"story"}`)},
 	}
+}
+
+// sampleTestWAV is half a second of a tone, as a sample's audio.
+func sampleTestWAV(t *testing.T) []byte {
+	t.Helper()
+	buf := dsp.Buffer{Rate: 24000, Channels: 1, Samples: make([]float32, 12000)}
+	for i := range buf.Samples {
+		buf.Samples[i] = 0.2 * float32(math.Sin(float64(i)*2*math.Pi*220/24000))
+	}
+	path := filepath.Join(t.TempDir(), "tone.wav")
+	if err := wav.WriteFile(path, buf, wav.PCM16, wav.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 // useSamples reads the samples from fsys for the test.
@@ -92,7 +113,7 @@ func TestSampleCopyOpen(t *testing.T) {
 	if len(ex) != 1 || ex[0].ProjectID != p.project || ex[0].Kind != "story" || !strings.HasPrefix(ex[0].Path, filepath.Join(a.dataDir(), "samples")) {
 		t.Fatalf("exports %+v", ex)
 	}
-	if b, err := os.ReadFile(ex[0].Path); err != nil || string(b) != "m4a bytes" {
+	if b, err := os.ReadFile(ex[0].Path); err != nil || string(b) != string(sampleTestWAV(t)) {
 		t.Fatalf("audio %q %v", b, err)
 	}
 	first := p.project

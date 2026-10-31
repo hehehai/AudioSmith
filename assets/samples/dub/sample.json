@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "id": "dub",
+  "kind": "dub",
+  "title": {
+    "en": "A dubbed clip",
+    "zh-Hans": "一段配音短片"
+  },
+  "subtitle": {
+    "en": "Why is the sky blue? An English explainer dubbed into Chinese",
+    "zh-Hans": "《天空为什么是蓝色的》：英文讲解配成中文"
+  },
+  "cover": {
+    "color": "#EF4444",
+    "icon": "dub"
+  },
+  "files": [
+    {
+      "path": "dub.json",
+      "role": "project"
+    },
+    {
+      "path": "source/why-is-the-sky-blue.mp4",
+      "role": "media"
+    },
+    {
+      "path": "audio.wav",
+      "role": "media"
+    },
+    {
+      "path": "background.wav",
+      "role": "media"
+    },
+    {
+      "path": "audio.peaks",
+      "role": "media"
+    },
+    {
+      "path": "poster.jpg",
+      "role": "media"
+    },
+    {
+      "path": "refs/S1.ref.wav",
+      "role": "media"
+    },
+    {
+      "path": "tracks/zh-Hans.wav",
+      "role": "media"
+    },
+    {
+      "path": "renders/zh-Hans/s1-c360701e71.wav",
+      "role": "media"
+    },
+    {
+      "path": "renders/zh-Hans/s2-b510e00f51.wav",
+      "role": "media"
+    },
+    {
+      "path": "renders/zh-Hans/s3-26bbff05b9.wav",
+      "role": "media"
+    },
+    {
+      "path": "renders/zh-Hans/s4-eed97c9ddd.wav",
+      "role": "media"
+    },
+    {
+      "path": "renders/zh-Hans/s5-20da660edf.wav",
+      "role": "media"
+    },
+    {
+      "path": "renders/zh-Hans/s6-27b0d38dc9.wav",
+      "role": "media"
+    }
+  ]
+}

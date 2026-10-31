@@ -1,0 +1,21 @@
+{
+ "version": 2,
+ "kind": "audiobook",
+ "title": "北站的末班车",
+ "model": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
+ "voice": "speaker:Uncle_Fu",
+ "language": "zh",
+ "speed": 1,
+ "format": "wav",
+ "seed": 688931669,
+ "script": "# 第一章　北站的末班车\n\n十一月的最后一个夜晚，北站的站台上只剩下零星几位旅客。广播里循环播放着末班车晚点的通知，候车室的暖气时有时无。\n\n林舟把行李箱立在脚边，抬头看了看站台上方的电子钟。指针刚刚越过十一点。他原本打算今晚赶回家，在母亲的生日结束之前推开那扇门。\n\n一位穿深蓝制服的列车员从站台另一端走来，在他身旁停下。\n\n[voice:列车员] 先生，末班车还要再等四十分钟，候车室里暖和一些。\n\n[voice:default] 林舟摇了摇头，把手插进大衣口袋。\n\n[voice:林舟] 谢谢，我就在这里等。我怕一进去，就错过它进站的声音。\n\n[voice:default] 列车员笑了笑，没有再劝。远处的隧道里，第一束灯光正慢慢亮起来。\n",
+ "voiceCast": {
+  "列车员": "speaker:Vivian",
+  "林舟": "speaker:Dylan"
+ },
+ "production": {
+  "lineGapMs": 400,
+  "paragraphGapMs": 800
+ },
+ "book": {}
+}

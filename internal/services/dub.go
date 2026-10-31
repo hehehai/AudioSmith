@@ -285,6 +285,17 @@ func (s *Dubs) Path(id, name string) string {
 	return filepath.Join(s.Dir(id), name)
 }
 
+// keyPath is how a project file's path enters a render key: relative to
+// the project's folder (with slashes) when it is inside it, so the keys
+// stay the same when the folder moves (a copied sample, Settings →
+// Storage); other paths as they are.
+func (s *Dubs) keyPath(id, path string) string {
+	if rel, err := filepath.Rel(s.Dir(id), path); err == nil && filepath.IsAbs(path) && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return filepath.ToSlash(rel)
+	}
+	return path
+}
+
 // Create saves a new project (its ID chosen when empty).
 func (s *Dubs) Create(ctx context.Context, p *dub.Project) (*dub.Project, error) {
 	if p.ID == "" {

@@ -254,7 +254,7 @@ func (s *Dubs) synthesize(ctx context.Context, sc *stageCtx) error {
 		if !ok {
 			continue
 		}
-		key := dd.key(seg.ID, p.Fingerprint(seg, l, v))
+		key := dd.key(seg.ID, p.Fingerprint(seg, l, s.keyVoice(p.ID, v)))
 		keys[seg.ID] = key
 		r, ok := track.Lines[seg.ID]
 		fresh := ok && r.Key == key && r.Err == "" && r.File != "" && fileExists(sc.path(r.File))
@@ -277,6 +277,14 @@ func (s *Dubs) synthesize(ctx context.Context, sc *stageCtx) error {
 		return sc.save(ctx, func(q *dub.Project) { q.PutTrack(mergeTrack(q.Track(l), track, keys, l)) })
 	}
 	return s.renderWork(ctx, sc, work, dd, dir)
+}
+
+// keyVoice is v as a line's render key sees it: the project's files
+// relative to its folder (keyPath), so a copied or moved project keeps
+// its keys.
+func (s *Dubs) keyVoice(id string, v dub.VoiceSpec) dub.VoiceSpec {
+	v.RefAudio, v.VoicePrompt = s.keyPath(id, v.RefAudio), s.keyPath(id, v.VoicePrompt)
+	return v
 }
 
 // dubWork is a line to render: its index, key and recipe.

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "narration",
+  "kind": "narration",
+  "title": {
+    "en": "A product narration",
+    "zh-Hans": "一段产品旁白"
+  },
+  "subtitle": {
+    "en": "Thirty seconds of voice-over for a made-up lamp",
+    "zh-Hans": "为一款虚构台灯配的三十秒旁白"
+  },
+  "cover": {
+    "color": "#F59E0B",
+    "icon": "narration"
+  },
+  "files": [
+    {
+      "path": "script.txt",
+      "role": "script"
+    },
+    {
+      "path": "take.json",
+      "role": "project"
+    },
+    {
+      "path": "audio/narration.ogg",
+      "role": "audio"
+    }
+  ]
+}

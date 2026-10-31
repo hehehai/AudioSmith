@@ -105,6 +105,8 @@ func (a *app) sampleCopyExists(ref string) bool {
 func (a *app) openSampleCopy(key, ref string) {
 	kind, id, _ := strings.Cut(ref, ":")
 	oplog.Info("sample.open", "sample", key, "copy", ref)
+	a.skipIntroOf(map[string]string{sampleStory: "/stories", sampleAudiobook: "/audiobook", sampleDub: "/dub",
+		sampleTranscriptKind: "/transcripts"}[kind]) // the user chose to try the sample: no feature intro first
 	switch kind {
 	case sampleStory:
 		a.openProj(projItem{kind: projStory, id: id})
@@ -115,10 +117,19 @@ func (a *app) openSampleCopy(key, ref string) {
 	case sampleTranscriptKind:
 		a.navigate("/transcripts")
 		a.selectTranscript(id)
-	case "export": // a narration: its script in Text to speech, its audio in Assets
+	case "export": // a narration: its script and take in Text to speech, its audio in Assets
 		if s, ok := a.sampleCardOf(key); ok && s.bundled != nil {
 			a.sampleNarrate(*s.bundled)
 		}
+		lib := a.lib.svc.Library
+		a.background(func() {
+			e, err := lib.Export(context.Background(), id)
+			a.post(func() {
+				if err == nil && e.SourceID != "" && a.findTake(e.SourceID) != nil {
+					a.lastClipID = e.SourceID
+				}
+			})
+		})
 	}
 }
 
@@ -208,7 +219,13 @@ func (a *app) copyBundledSample(ctx context.Context, fsys fs.FS, m sampleManifes
 		if kind == core.ProjectStory {
 			exp = "story"
 		}
-		if _, err := a.sampleExport(ctx, fsys, m, in.data, pr.ID, exp, doc.Title); err != nil {
+		render := ""
+		if m.file(roleAudio) != "" { // the page opens with it, ready to play
+			if render, err = a.sampleRender(ctx, fsys, m, pr.ID, doc); err != nil {
+				return "", err
+			}
+		}
+		if _, err := a.sampleExport(ctx, fsys, m, in.data, pr.ID, exp, doc.Title, render); err != nil {
 			return "", err
 		}
 		return m.Kind + ":" + pr.ID, nil
@@ -220,8 +237,12 @@ func (a *app) copyBundledSample(ctx context.Context, fsys fs.FS, m sampleManifes
 		if m.file(roleAudio) == "" {
 			return "", nil
 		}
+		take, err := a.sampleNarrationTake(ctx, fsys, m) // Text to speech's latest take
+		if err != nil {
+			return "", err
+		}
 		id := core.NewID(time.Now())
-		ex, err := a.sampleExport(ctx, fsys, m, in.data, id, "take", title)
+		ex, err := a.sampleExport(ctx, fsys, m, in.data, id, "take", title, take)
 		if err != nil || ex == "" {
 			return "", err
 		}
@@ -230,9 +251,10 @@ func (a *app) copyBundledSample(ctx context.Context, fsys fs.FS, m sampleManifes
 }
 
 // sampleExport copies a sample's audio to <data>/samples/<id>/ and
-// records it (an export record: Assets lists it); its record's ID, ""
-// when the sample has no audio.
-func (a *app) sampleExport(ctx context.Context, fsys fs.FS, m sampleManifest, data, id, kind, title string) (string, error) {
+// records it (an export record: Assets lists it) as made from source (the
+// render or take the copy keeps); its record's ID, "" when the sample has
+// no audio.
+func (a *app) sampleExport(ctx context.Context, fsys fs.FS, m sampleManifest, data, id, kind, title, source string) (string, error) {
 	f := m.file(roleAudio)
 	if f == "" {
 		return "", nil
@@ -241,7 +263,7 @@ func (a *app) sampleExport(ctx context.Context, fsys fs.FS, m sampleManifest, da
 	if err := copyFromFS(fsys, path.Join(m.ID, f), dst); err != nil {
 		return "", err
 	}
-	e := core.Export{Kind: kind, Title: title, Path: dst, Format: strings.TrimPrefix(path.Ext(f), ".")}
+	e := core.Export{Kind: kind, Title: title, Path: dst, Format: strings.TrimPrefix(path.Ext(f), "."), SourceID: source}
 	if kind != "take" {
 		e.ProjectID = id
 	}
@@ -304,12 +326,12 @@ func (a *app) copySampleTranscript(ctx context.Context, fsys fs.FS, m sampleMani
 	t.SourcePath = ""
 	var made core.Transcript
 	if t.Audio != "" {
-		f, err := fsys.Open(path.Join(m.ID, t.Audio))
+		f, ext, err := sampleTranscriptAudio(fsys, path.Join(m.ID, t.Audio))
 		if err != nil {
 			return "", err
 		}
 		defer f.Close()
-		made, err = a.trSvc.Import(ctx, t, path.Ext(t.Audio), f)
+		made, err = a.trSvc.Import(ctx, t, ext, f)
 		if err != nil {
 			return "", err
 		}

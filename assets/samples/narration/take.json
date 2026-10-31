@@ -1,0 +1,6 @@
+{
+  "model": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
+  "voice": "Serena",
+  "language": "zh",
+  "seed": 11
+}
