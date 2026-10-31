@@ -74,7 +74,6 @@ func voicePageTitle(path string) (string, bool) {
 // title "Voices", and the tabs (发现 | 我的) in the header row, after the
 // count.
 func (a *app) voicesTabbed(c *ui.Context, tab string, view func(*ui.Context)) {
-	t := c.Theme()
 	a.voicesTab = tab
 	sel := 0
 	if tab == "mine" {
@@ -82,7 +81,8 @@ func (a *app) voicesTabbed(c *ui.Context, tab string, view func(*ui.Context)) {
 	}
 	headerHost.title = i18n.X("nav", "Voices")
 	headerHost.inline = func() {
-		tabs := underlineTabs(c.Key("voices-tab"), &sel, i18n.T("Discover"), i18n.T("Mine")).Label(i18n.X("nav", "Voices")).BorderWidth(0, 0, 0, 0).Gap(px(t, sp4))
+		// A segmented control, not underlined tabs (user, 10-31).
+		tabs := ui.Segmented(c.Key("voices-tab"), &sel, i18n.T("Discover"), i18n.T("Mine")).Label(i18n.X("nav", "Voices")).Shrink(0)
 		if tabs.Changed() {
 			a.navigate("/voices/" + voicesTabs[sel])
 		}
