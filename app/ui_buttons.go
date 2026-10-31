@@ -24,7 +24,7 @@ func primaryButton(c *ui.Context, label string) ui.Element {
 	c.SetTheme(inkTheme(t))
 	b := ui.PrimaryButton(c, label).Border(1, ui.Color{}) // as tall as ui.Button, which has a hairline
 	c.SetTheme(t)
-	return b
+	return headerFit(c, b)
 }
 
 // primaryIconButton is primaryButton with an icon before its label.
@@ -37,7 +37,7 @@ func primaryIconButton(c *ui.Context, ic icons.Icon, label string) ui.Element {
 		ui.Text(c, label).SingleLine()
 	})
 	c.SetTheme(t)
-	return b
+	return headerFit(c, b)
 }
 
 // recordButton is a record or destructive action (Record, Stop
@@ -63,7 +63,7 @@ func secondaryIconButton(c *ui.Context, ic icons.Icon, label string) ui.Element 
 		ui.Icon(c, ic.Linear).Size(labelIcon(t), labelIcon(t))
 		ui.Text(c, label).SingleLine()
 	})
-	return b
+	return headerFit(c, b)
 }
 
 // ghostButton is a quiet action: no face until the pointer is on it.
@@ -71,7 +71,7 @@ func ghostButton(c *ui.Context, label string) ui.Element {
 	t := c.Theme()
 	b := ghostBase(c).Padding(t.Space(1.5), t.Space(2.5))
 	b.Children(func() { ui.Text(c, label).SingleLine() })
-	return b
+	return headerFit(c, b)
 }
 
 // ghostIconButton is a ghost button with an icon before its label.
@@ -88,7 +88,7 @@ func ghostIconButtonSized(c *ui.Context, ic icons.Icon, label string, size float
 		ui.Icon(c, ic.Linear).Size(size, size).TextColor(tok(t).Text2)
 		ui.Text(c, label).SingleLine()
 	})
-	return b
+	return headerFit(c, b)
 }
 
 // labelOrIcon is a ghost button with an icon and its label, or only the
@@ -111,7 +111,7 @@ func dropButton(c *ui.Context, ic icons.Icon, label string) ui.Element {
 		ui.Text(c, label).SingleLine().Ellipsis("…").MinWidth(0)
 		ui.Icon(c, icons.AltArrowDown.Linear).Size(px(t, 12), px(t, 12)).TextColor(k.Text3)
 	})
-	return b
+	return headerFit(c, b)
 }
 
 // dropText is a ghost button that opens a menu: its label and a
@@ -164,13 +164,17 @@ func ghostBase(c *ui.Context) ui.Element {
 	return b
 }
 
-// iconButton is a square ghost button showing only an icon; tip names it
-// (for the tooltip, assistive technology and tests).
+// iconButton is a square ghost button showing only an icon, 28 DIPs (in
+// a page header, headerControlH); tip names it (for the tooltip,
+// assistive technology and tests).
 //
 //	if iconButton(c.Key("close"), icons.Close, i18n.T("Close")).Clicked() { … }
 func iconButton(c *ui.Context, ic icons.Icon, tip string) ui.Element {
 	t := c.Theme()
-	b := ghostBase(c).Size(px(t, 28), px(t, 28)).Center().Label(tip).Tooltip(tip)
+	b := ghostBase(c).Size(iconSide(t), iconSide(t)).Center().Label(tip).Tooltip(tip)
+	if inHeader && headerProbe != nil {
+		headerProbe(b)
+	}
 	b.Children(func() {
 		col := tok(t).Text2
 		if b.Hovered() {
@@ -186,7 +190,10 @@ func iconButton(c *ui.Context, ic icons.Icon, tip string) ui.Element {
 func iconToggle(c *ui.Context, ic icons.Icon, on bool, tip string) ui.Element {
 	t := c.Theme()
 	k := tok(t)
-	b := ghostBase(c).Size(px(t, 28), px(t, 28)).Center().Label(tip).Tooltip(tip).Checked(on)
+	b := ghostBase(c).Size(iconSide(t), iconSide(t)).Center().Label(tip).Tooltip(tip).Checked(on)
+	if inHeader && headerProbe != nil {
+		headerProbe(b)
+	}
 	if on {
 		b.Background(k.Pressed)
 	}
@@ -285,7 +292,7 @@ func headerSelect(c *ui.Context, label string, on bool) ui.Element {
 		ui.Text(c, label).TextColor(col).SingleLine().Ellipsis("…").MinWidth(0)
 		ui.Icon(c, icons.AltArrowDown.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text3)
 	})
-	return b
+	return headerFit(c, b)
 }
 
 // ifStr is a when ok, else b.

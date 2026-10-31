@@ -27,18 +27,21 @@ var developerTabs = []string{"/developers", "/developers/api", "/developers/tool
 // developersPage is the page; slug ("" none) an integration's setup.
 func (a *app) developersPage(c *ui.Context, slug string) {
 	t := c.Theme()
+	if slug == "" {
+		// The sections as a segmented control in the header, after the
+		// title, as Voices' 发现 | 我的 (user, 10-31: not underlined tabs).
+		headerHost.inline = func() {
+			if headerFit(c, ui.Segmented(c.Key("dev-tab"), &a.devTab, i18n.T("Overview"), i18n.T("Local API"), i18n.T("Tools"))).
+				Label(i18n.T("Developer sections")).Shrink(0).Changed() {
+				a.navigate(developerTabs[a.devTab])
+			}
+		}
+	}
 	pageHeader(c, i18n.T("Developers"), func() {
 		if ghostIconButton(c.Key("dev-reference"), icons.Programming, i18n.T("API reference")).Label(i18n.T("API reference")).Disabled(a.apiPort == 0).Clicked() {
 			a.navigate("/api-reference")
 		}
 	})
-	if slug == "" {
-		ui.Row(c.Key("dev-tabs")).Padding(0, px(t, sp6)).Shrink(0).Children(func() {
-			if underlineTabs(c.Key("dev-tab"), &a.devTab, i18n.T("Overview"), i18n.T("Local API"), i18n.T("Tools")).Label(i18n.T("Developers")).Grow(1).Changed() {
-				a.navigate(developerTabs[a.devTab])
-			}
-		})
-	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(px(t, sp4), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 760)).Children(func() {
 			if slug != "" {

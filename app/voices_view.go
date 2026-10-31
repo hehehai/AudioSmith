@@ -83,7 +83,7 @@ func (a *app) voicesPage(c *ui.Context) {
 		search: &headSearch{key: "voices-search", value: &a.voiceQuery, placeholder: i18n.T("Search voices")},
 		tools: func(hn bool) {
 			if !hn {
-				ui.Segmented(c.Key("voices-kind"), &a.voiceKind, voiceKinds()...).Label(i18n.T("Kind")).Shrink(0)
+				headerFit(c, ui.Segmented(c.Key("voices-kind"), &a.voiceKind, voiceKinds()...)).Label(i18n.T("Kind")).Shrink(0)
 			}
 			if iconButton(c.Key("voices-import"), icons.Import, i18n.T("Import…")).Tooltip(i18n.T("Import a .asvoice or .ovsvoice file")).Clicked() {
 				a.chooseVoiceFile()
