@@ -325,3 +325,32 @@ func TestGalleryDubUsesBundledReference(t *testing.T) {
 		t.Errorf("builtin %+v %v", spec, err)
 	}
 }
+
+// TestRecommendedFixedWidth: the recommended cards keep one width; a
+// short last row does not stretch (user, 10-31: 6 voices in rows of 4
+// made the last two wider).
+func TestRecommendedFixedWidth(t *testing.T) {
+	a, _, _ := newTestApp(t)
+	tt := ui.NewTester(a.view, 1400, 1100) // the old layout wrapped 4 + 2 here
+	a.navigate("/voices/discover")
+	tt.Frame()
+	tt.Frame()
+	recs := recommended()
+	if len(recs) < 5 {
+		t.Skipf("only %d recommended voices", len(recs))
+	}
+	first, ok1 := tt.Find(recs[0].Name.En)
+	last, ok2 := tt.Find(recs[len(recs)-1].Name.En)
+	if !ok1 || !ok2 {
+		t.Fatalf("cards not found: %q", tt.Texts())
+	}
+	if d := first.W - last.W; d > 1 || d < -1 {
+		t.Errorf("first card %.0f wide, last %.0f", first.W, last.W)
+	}
+	if got := recColumns(1200, 240, 8); got != 4 {
+		t.Errorf("recColumns(1200) = %d", got)
+	}
+	if got := recColumns(3000, 240, 8); got != 4 {
+		t.Errorf("recColumns caps at 4: %d", got)
+	}
+}

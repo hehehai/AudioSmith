@@ -379,10 +379,12 @@ func TestVoicesNarrow(t *testing.T) {
 	a.navigate("/voices/discover")
 	tt.Frame()
 	tt.Frame()
-	if tt.HasText("Gender · age") || !tt.HasText("Name") || !tt.HasText("Use") {
+	// The table has no column titles (user, 10-31); a row keeps its
+	// name, ▶ and 「使用」 inside the window.
+	if tt.HasText("Gender · age") || !tt.HasText("Serena") || !tt.HasText("Use") {
 		t.Errorf("narrow table: %q", tt.Texts())
 	}
-	w, _ := tt.Find("Name")
+	w, _ := tt.Find("Use")
 	if w.X+w.W > 820 {
 		t.Errorf("table off the window: %+v", w)
 	}
