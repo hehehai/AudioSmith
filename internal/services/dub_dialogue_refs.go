@@ -45,9 +45,11 @@ func (s *Dubs) dialogueRef(sc *stageCtx, seg dub.Segment, v dub.VoiceSpec, caps 
 		return hex.EncodeToString(h[:8])
 	}
 	clip := func(audio, txt string) dialogueRef {
-		key := audio
-		if fi, err := os.Stat(audio); err == nil {
-			key = fmt.Sprintf("%s|%d|%d", audio, fi.Size(), fi.ModTime().Unix())
+		// The clip by its path in the project and its content, not its
+		// absolute path and time: a copied project keeps its keys.
+		key := s.keyPath(p.ID, audio)
+		if b, err := os.ReadFile(audio); err == nil {
+			key = fmt.Sprintf("%s|%d|%s", key, len(b), hash(string(b)))
 		}
 		return dialogueRef{audio: audio, text: txt, key: key, tidy: sc.path(filepath.Join("refs", "dlg-"+hash(key)+".ref.wav"))}
 	}

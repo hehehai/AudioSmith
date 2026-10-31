@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "story",
+  "kind": "story",
+  "title": {
+    "en": "A story for two voices",
+    "zh-Hans": "两人对话的故事"
+  },
+  "subtitle": {
+    "en": "A rainy night at a watch repair shop, two voices and a narrator",
+    "zh-Hans": "雨夜修表铺：两个角色和一位旁白"
+  },
+  "cover": {
+    "color": "#8B5CF6",
+    "icon": "story"
+  },
+  "files": [
+    {
+      "path": "project.json",
+      "role": "project"
+    },
+    {
+      "path": "audio/story.ogg",
+      "role": "audio"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "meeting",
+  "kind": "transcript",
+  "title": {
+    "en": "A meeting transcript",
+    "zh-Hans": "一段会议转写"
+  },
+  "subtitle": {
+    "en": "A release meeting for two, with speakers and timings",
+    "zh-Hans": "两人的发布安排会，分说话人、带时间"
+  },
+  "cover": {
+    "color": "#10B981",
+    "icon": "transcript"
+  },
+  "files": [
+    {
+      "path": "transcript.json",
+      "role": "project"
+    },
+    {
+      "path": "audio/meeting.ogg",
+      "role": "media"
+    }
+  ]
+}

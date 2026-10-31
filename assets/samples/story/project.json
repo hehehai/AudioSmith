@@ -1,0 +1,71 @@
+{
+ "version": 2,
+ "kind": "story",
+ "title": "雨夜修表铺",
+ "model": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
+ "voice": "speaker:Eric",
+ "language": "zh",
+ "speed": 1,
+ "format": "wav",
+ "seed": 956489857,
+ "scene": "雨夜，老城巷子尽头的修表铺。年轻姑娘小满带来外公留下的旧怀表；修表师傅老周话不多，心很细。",
+ "lines": [
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J497",
+   "text": "雨下了一整晚。巷子尽头的修表铺还亮着灯，老周正对着放大镜，拧紧最后一颗螺丝。门铃响了，一个浑身湿透的姑娘走进来，手里攥着一块旧怀表。"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J498",
+   "text": "师傅，这块表停了三年，您还能让它走起来吗？",
+   "character": "01M68SBAPK05B9GNWT87B2J495"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J499",
+   "text": "先让我看看。表壳磨得这么亮，你平时一定常把它拿在手里。",
+   "character": "01M68SBAPK05B9GNWT87B2J496"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J49A",
+   "text": "这是外公留给我的。他说，等它再走起来，我就长大了。",
+   "character": "01M68SBAPK05B9GNWT87B2J495"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J49B",
+   "text": "老周打开后盖，用镊子轻轻拨了拨里面的齿轮。"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J49C",
+   "text": "里面的发条没有断，只是油干了。今晚把它留在这儿，明天早上来取。",
+   "character": "01M68SBAPK05B9GNWT87B2J496"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J49D",
+   "text": "我能在这里等吗？我想听它重新走起来的声音。",
+   "character": "01M68SBAPK05B9GNWT87B2J495"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J49E",
+   "text": "老周没有回答，只是把椅子往灯下推了推。窗外的雨渐渐小了。快到午夜的时候，柜台上传来一阵清脆的嘀嗒声。"
+  }
+ ],
+ "cast": [
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J495",
+   "name": "小满",
+   "voice": "speaker:Serena"
+  },
+  {
+   "id": "01M68SBAPK05B9GNWT87B2J496",
+   "name": "老周",
+   "voice": "speaker:Uncle_Fu"
+  }
+ ],
+ "production": {
+  "lineGapMs": 400,
+  "paragraphGapMs": 800,
+  "pacing": "dialogue",
+  "dialogue": true,
+  "dialogueModel": "actnowai/SoulX-Podcast-1.7B-MLX-8bit"
+ },
+ "book": {}
+}

@@ -107,6 +107,20 @@ func (a *app) maybeIntro() {
 	})
 }
 
+// skipIntroOf counts the introduction of path's feature as seen (a sample
+// opened there: the user chose to try it).
+func (a *app) skipIntroOf(path string) {
+	in, ok := introOf(path)
+	if !ok || slices.Contains(a.prefs.Setup.Intros, in.id) {
+		return
+	}
+	a.updateSettings(func(s *settings.Settings) {
+		if !slices.Contains(s.Setup.Intros, in.id) {
+			s.Setup.Intros = append(slices.Clone(s.Setup.Intros), in.id)
+		}
+	})
+}
+
 // resetIntros shows every introduction again (Settings → General).
 func (a *app) resetIntros() {
 	a.updateSettings(func(s *settings.Settings) { s.Setup.Intros = nil })

@@ -1,0 +1,657 @@
+{
+ "version": 1,
+ "id": "01M68VJC994H1XN5NDF28XPSV4",
+ "title": "天空为什么是蓝色的",
+ "createdAt": "2026-10-31T19:29:55.51426+08:00",
+ "updatedAt": "2026-10-31T19:31:17.818218+08:00",
+ "source": {
+  "kind": "file",
+  "path": "source/why-is-the-sky-blue.mp4",
+  "name": "why-is-the-sky-blue.mp4",
+  "size": 1386519,
+  "duration": 24.634,
+  "hasVideo": true,
+  "video": {
+   "codec": "h264",
+   "width": 1280,
+   "height": 720,
+   "fps": 30
+  },
+  "audio": "aac"
+ },
+ "sourceLang": "en",
+ "detected": "en",
+ "speakers": 1,
+ "targets": [
+  "zh-Hans"
+ ],
+ "segments": [
+  {
+   "id": "s1",
+   "start": 0.56,
+   "end": 1.76,
+   "speaker": "S1",
+   "text": "Why is the sky blue?",
+   "words": [
+    {
+     "text": "Why",
+     "start": 0.56,
+     "end": 0.8
+    },
+    {
+     "text": "is",
+     "start": 0.8,
+     "end": 0.96
+    },
+    {
+     "text": "the",
+     "start": 0.96,
+     "end": 1.04
+    },
+    {
+     "text": "sky",
+     "start": 1.04,
+     "end": 1.44
+    },
+    {
+     "text": "blue?",
+     "start": 1.44,
+     "end": 1.76
+    }
+   ],
+   "lines": {
+    "zh-Hans": {
+     "text": "天空为什么是蓝的？",
+     "edited": true
+    }
+   },
+   "volume": 1
+  },
+  {
+   "id": "s2",
+   "start": 2.24,
+   "end": 5.84,
+   "speaker": "S1",
+   "text": "Sunlight looks white, but it carries every color of the rainbow.",
+   "words": [
+    {
+     "text": "Sunlight",
+     "start": 2.24,
+     "end": 2.8
+    },
+    {
+     "text": "looks",
+     "start": 2.8,
+     "end": 3.04
+    },
+    {
+     "text": "white,",
+     "start": 3.04,
+     "end": 3.36
+    },
+    {
+     "text": "but",
+     "start": 3.76,
+     "end": 3.92
+    },
+    {
+     "text": "it",
+     "start": 3.92,
+     "end": 4
+    },
+    {
+     "text": "carries",
+     "start": 4,
+     "end": 4.32
+    },
+    {
+     "text": "every",
+     "start": 4.48,
+     "end": 4.72
+    },
+    {
+     "text": "color",
+     "start": 4.72,
+     "end": 5.12
+    },
+    {
+     "text": "of",
+     "start": 5.12,
+     "end": 5.2
+    },
+    {
+     "text": "the",
+     "start": 5.2,
+     "end": 5.28
+    },
+    {
+     "text": "rainbow.",
+     "start": 5.28,
+     "end": 5.84
+    }
+   ],
+   "lines": {
+    "zh-Hans": {
+     "text": "阳光看起来是白色的，但它包含了彩虹里的所有颜色。",
+     "fit": {
+      "predicted": 5.04,
+      "slot": 3.5999999999999996,
+      "ratio": 1.4,
+      "over": 1.44,
+      "verdict": "overflow"
+     }
+    }
+   },
+   "volume": 1
+  },
+  {
+   "id": "s3",
+   "start": 6.32,
+   "end": 13.36,
+   "speaker": "S1",
+   "text": "As it passes through the air, tiny gas molecules scatter the short blue waves far more than the long red ones.",
+   "words": [
+    {
+     "text": "As",
+     "start": 6.32,
+     "end": 6.48
+    },
+    {
+     "text": "it",
+     "start": 6.48,
+     "end": 6.56
+    },
+    {
+     "text": "passes",
+     "start": 6.56,
+     "end": 7.04
+    },
+    {
+     "text": "through",
+     "start": 7.04,
+     "end": 7.2
+    },
+    {
+     "text": "the",
+     "start": 7.2,
+     "end": 7.36
+    },
+    {
+     "text": "air,",
+     "start": 7.44,
+     "end": 7.76
+    },
+    {
+     "text": "tiny",
+     "start": 8.24,
+     "end": 8.56
+    },
+    {
+     "text": "gas",
+     "start": 8.64,
+     "end": 8.96
+    },
+    {
+     "text": "molecules",
+     "start": 8.96,
+     "end": 9.6
+    },
+    {
+     "text": "scatter",
+     "start": 9.6,
+     "end": 10.16
+    },
+    {
+     "text": "the",
+     "start": 10.16,
+     "end": 10.24
+    },
+    {
+     "text": "short",
+     "start": 10.24,
+     "end": 10.64
+    },
+    {
+     "text": "blue",
+     "start": 10.64,
+     "end": 10.96
+    },
+    {
+     "text": "waves",
+     "start": 10.96,
+     "end": 11.44
+    },
+    {
+     "text": "far",
+     "start": 11.44,
+     "end": 11.76
+    },
+    {
+     "text": "more",
+     "start": 11.76,
+     "end": 12.08
+    },
+    {
+     "text": "than",
+     "start": 12.08,
+     "end": 12.24
+    },
+    {
+     "text": "the",
+     "start": 12.24,
+     "end": 12.32
+    },
+    {
+     "text": "long",
+     "start": 12.32,
+     "end": 12.72
+    },
+    {
+     "text": "red",
+     "start": 12.72,
+     "end": 12.96
+    },
+    {
+     "text": "ones.",
+     "start": 12.96,
+     "end": 13.36
+    }
+   ],
+   "lines": {
+    "zh-Hans": {
+     "text": "光穿过空气时，微小的气体分子对短波蓝光的散射，远强于长波红光。",
+     "edited": true
+    }
+   },
+   "volume": 1
+  },
+  {
+   "id": "s4",
+   "start": 13.84,
+   "end": 16.8,
+   "speaker": "S1",
+   "text": "So blue light reaches your eyes from every direction.",
+   "words": [
+    {
+     "text": "So",
+     "start": 13.84,
+     "end": 14
+    },
+    {
+     "text": "blue",
+     "start": 14,
+     "end": 14.32
+    },
+    {
+     "text": "light",
+     "start": 14.32,
+     "end": 14.64
+    },
+    {
+     "text": "reaches",
+     "start": 14.72,
+     "end": 15.12
+    },
+    {
+     "text": "your",
+     "start": 15.12,
+     "end": 15.28
+    },
+    {
+     "text": "eyes",
+     "start": 15.36,
+     "end": 15.68
+    },
+    {
+     "text": "from",
+     "start": 15.68,
+     "end": 15.92
+    },
+    {
+     "text": "every",
+     "start": 16,
+     "end": 16.32
+    },
+    {
+     "text": "direction.",
+     "start": 16.32,
+     "end": 16.8
+    }
+   ],
+   "lines": {
+    "zh-Hans": {
+     "text": "所以，蓝光会从四面八方进入你的眼睛。",
+     "edited": true
+    }
+   },
+   "volume": 1
+  },
+  {
+   "id": "s5",
+   "start": 17.2,
+   "end": 19.52,
+   "speaker": "S1",
+   "text": "At sunset, the light crosses much more air.",
+   "words": [
+    {
+     "text": "At",
+     "start": 17.2,
+     "end": 17.36
+    },
+    {
+     "text": "sunset,",
+     "start": 17.36,
+     "end": 17.92
+    },
+    {
+     "text": "the",
+     "start": 17.92,
+     "end": 18
+    },
+    {
+     "text": "light",
+     "start": 18,
+     "end": 18.32
+    },
+    {
+     "text": "crosses",
+     "start": 18.32,
+     "end": 18.8
+    },
+    {
+     "text": "much",
+     "start": 18.8,
+     "end": 19.04
+    },
+    {
+     "text": "more",
+     "start": 19.04,
+     "end": 19.28
+    },
+    {
+     "text": "air.",
+     "start": 19.28,
+     "end": 19.52
+    }
+   ],
+   "lines": {
+    "zh-Hans": {
+     "text": "日落时，光线要穿过更多的空气。",
+     "fit": {
+      "predicted": 3.04,
+      "slot": 2.3200000000000003,
+      "ratio": 1.31,
+      "over": 0.72,
+      "verdict": "overflow"
+     }
+    }
+   },
+   "volume": 1
+  },
+  {
+   "id": "s6",
+   "start": 20.16,
+   "end": 23.68,
+   "speaker": "S1",
+   "text": "The blue fades away, and reds and oranges paint the sky.",
+   "words": [
+    {
+     "text": "The",
+     "start": 20.16,
+     "end": 20.24
+    },
+    {
+     "text": "blue",
+     "start": 20.24,
+     "end": 20.56
+    },
+    {
+     "text": "fades",
+     "start": 20.56,
+     "end": 20.96
+    },
+    {
+     "text": "away,",
+     "start": 20.96,
+     "end": 21.44
+    },
+    {
+     "text": "and",
+     "start": 21.6,
+     "end": 21.84
+    },
+    {
+     "text": "reds",
+     "start": 21.84,
+     "end": 22.24
+    },
+    {
+     "text": "and",
+     "start": 22.24,
+     "end": 22.32
+    },
+    {
+     "text": "oranges",
+     "start": 22.32,
+     "end": 22.88
+    },
+    {
+     "text": "paint",
+     "start": 22.88,
+     "end": 23.2
+    },
+    {
+     "text": "the",
+     "start": 23.2,
+     "end": 23.28
+    },
+    {
+     "text": "sky.",
+     "start": 23.28,
+     "end": 23.68
+    }
+   ],
+   "lines": {
+    "zh-Hans": {
+     "text": "蓝光渐渐散尽，只剩红色和橙色铺满天空。",
+     "edited": true
+    }
+   },
+   "volume": 1
+  }
+ ],
+ "nextSeg": 7,
+ "references": {
+  "S1": {
+   "file": "refs/S1.ref.wav",
+   "start": 13.84,
+   "end": 23.68,
+   "text": "So blue light reaches your eyes from every direction. At sunset, the light crosses much more air. The blue fades away, and reds and oranges paint the sky.",
+   "score": 0.748,
+   "tidied": true,
+   "grade": "good"
+  }
+ },
+ "refTried": [
+  "S1"
+ ],
+ "settings": {
+  "model": "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit",
+  "translator": "llm",
+  "quality": "fast",
+  "timing": "smart",
+  "keepBackground": true,
+  "voiceMatch": "consistent",
+  "review": true,
+  "dialogue": "auto",
+  "export": {
+   "bits": 24
+  }
+ },
+ "media": {
+  "audio": "audio.wav",
+  "background": "background.wav",
+  "poster": "poster.jpg",
+  "peaks": "audio.peaks",
+  "onsets": [
+   0.6,
+   1.199,
+   1.539,
+   1.784,
+   2.25,
+   2.844,
+   2.944,
+   3.815,
+   3.874,
+   3.994,
+   4.474,
+   4.804,
+   5.659,
+   6.27,
+   6.339,
+   6.569,
+   7.429,
+   8.205,
+   8.499,
+   8.654,
+   9.324,
+   9.829,
+   10.714,
+   12.224,
+   12.929,
+   13.274000000000001,
+   13.865,
+   14.114,
+   14.194,
+   14.944,
+   15.349,
+   16.004,
+   16.319,
+   16.574,
+   17.16,
+   17.229,
+   17.339,
+   17.639,
+   17.929000000000002,
+   18.344,
+   18.994,
+   20.12,
+   20.314,
+   20.394000000000002,
+   20.934,
+   22.134,
+   22.929000000000002,
+   23.189,
+   23.424
+  ],
+  "separator": "iky1e/demucs-mlx"
+ },
+ "stages": {
+  "ingest": {
+   "status": "done",
+   "job": "01M68SKJ2JE510EY905XN40YT6",
+   "at": "2026-10-31T18:55:37.333692+08:00"
+  },
+  "mix:zh-Hans": {
+   "status": "done",
+   "job": "01M68VM1T61WBW28ZZ6FHNWY1J",
+   "at": "2026-10-31T19:31:17.81813+08:00"
+  },
+  "references": {
+   "status": "done",
+   "job": "01M68SKJ2JE510EY905XN40YT9",
+   "at": "2026-10-31T18:55:43.347079+08:00"
+  },
+  "separate": {
+   "status": "done",
+   "job": "01M68SKJ2JE510EY905XN40YT7",
+   "at": "2026-10-31T18:55:40.824863+08:00"
+  },
+  "synthesize:zh-Hans": {
+   "status": "done",
+   "job": "01M68VM1T61WBW28ZZ6FHNWY1H",
+   "at": "2026-10-31T19:31:16.061742+08:00"
+  },
+  "transcribe": {
+   "status": "done",
+   "job": "01M68SKJ2JE510EY905XN40YT8",
+   "at": "2026-10-31T18:55:43.209631+08:00"
+  },
+  "translate:zh-Hans": {
+   "status": "done",
+   "job": "01M68SKJ2JE510EY905XN40YTA",
+   "at": "2026-10-31T18:55:51.303532+08:00"
+  }
+ },
+ "tracks": {
+  "zh-Hans": {
+   "lang": "zh-Hans",
+   "file": "tracks/zh-Hans.wav",
+   "seconds": 24.618,
+   "mixed": "2026-10-31T19:31:17.817831+08:00",
+   "background": "stem",
+   "lines": {
+    "s1": {
+     "key": "c360701e71cdafe8169d2c5d",
+     "file": "renders/zh-Hans/s1-c360701e71.wav",
+     "raw": 1.51,
+     "length": 1.51,
+     "ratio": 1,
+     "start": 0.56,
+     "verdict": "ok",
+     "text": "天空为什么是蓝的？"
+    },
+    "s2": {
+     "key": "b510e00f51b6c6d05fc94a53",
+     "file": "renders/zh-Hans/s2-b510e00f51.wav",
+     "raw": 4.44,
+     "length": 3.978,
+     "ratio": 0.896,
+     "start": 2.24,
+     "verdict": "ok",
+     "text": "阳光看起来是白色的，但它包含了彩虹里的所有颜色。"
+    },
+    "s3": {
+     "key": "26bbff05b98a06238e7a6a89",
+     "file": "renders/zh-Hans/s3-26bbff05b9.wav",
+     "raw": 6.67,
+     "length": 6.67,
+     "ratio": 1,
+     "start": 6.32,
+     "verdict": "ok",
+     "text": "光穿过空气时，微小的气体分子对短波蓝光的散射，远强于长波红光。"
+    },
+    "s4": {
+     "key": "eed97c9ddd66a2d0868e2278",
+     "file": "renders/zh-Hans/s4-eed97c9ddd.wav",
+     "raw": 3.57,
+     "length": 3.259,
+     "ratio": 0.913,
+     "start": 13.84,
+     "verdict": "ok",
+     "text": "所以，蓝光会从四面八方进入你的眼睛。"
+    },
+    "s5": {
+     "key": "20da660edfd811d9ef72478c",
+     "file": "renders/zh-Hans/s5-20da660edf.wav",
+     "raw": 2.85,
+     "length": 2.85,
+     "ratio": 1,
+     "start": 17.2,
+     "verdict": "ok",
+     "text": "日落时，光线要穿过更多的空气。"
+    },
+    "s6": {
+     "key": "27b0d38dc941b508a6f00209",
+     "file": "renders/zh-Hans/s6-27b0d38dc9.wav",
+     "raw": 3.91,
+     "length": 3.91,
+     "ratio": 1,
+     "start": 20.16,
+     "verdict": "ok",
+     "text": "蓝光渐渐散尽，只剩红色和橙色铺满天空。"
+    }
+   }
+  }
+ }
+}

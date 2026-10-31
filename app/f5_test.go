@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -20,8 +21,11 @@ import (
 	"github.com/hehehai/AudioSmith/internal/services"
 )
 
-// A sample card makes the right kind of project and opens it.
+// A sample card makes the right kind of project and opens it (the
+// built-in fallbacks: no sample bundled; TestBundledSamplesOpen opens the
+// bundled ones).
 func TestProjectsTemplates(t *testing.T) {
+	useSamples(t, fstest.MapFS{})
 	a, _, tt := newTestApp(t)
 	tt.SetSize(1200, 900)
 	a.navigate("/projects")
