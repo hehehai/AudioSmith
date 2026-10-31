@@ -389,6 +389,16 @@ func TestVoicesFirstTab(t *testing.T) {
 	if p := a.voicesTabPath(); p != "discover" {
 		t.Errorf("no voices: %s", p)
 	}
+	// ⌘3 follows the same rule as the sidebar (the Mac check, #121: it
+	// opened an empty Mine on a fresh install).
+	tt.Key(ui.Cmd, ui.Key3)
+	tt.Frame()
+	if p := a.router.Path(); p != "/voices/discover" {
+		t.Errorf("⌘3 without voices: %s", p)
+	}
+	a.voicesTab = ""
+	a.navigate("/studio")
+	tt.Frame()
 	a.voices = []core.Voice{{ID: "v1", Name: "Ann"}}
 	if p := a.voicesTabPath(); p != "mine" {
 		t.Errorf("with voices: %s", p)

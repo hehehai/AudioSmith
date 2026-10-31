@@ -307,11 +307,19 @@ func (a *app) navClicked() {
 	case "/more":
 		a.moreOpen = true
 		a.nav = a.navShown // the page shown stays chosen until a tool is
-	case "/voices":
-		a.navigate("/voices/" + a.voicesTabPath())
 	default:
-		a.navigate(a.nav)
+		a.openPage(a.nav)
 	}
+}
+
+// openPage opens a page the user picked by name (the sidebar, ⌘1–8, the
+// Go menu, the palette): Voices opens the tab its rule chooses
+// (voicesTabPath), where navigate's old-path alias always opens Mine.
+func (a *app) openPage(path string) {
+	if path == "/voices" {
+		path = "/voices/" + a.voicesTabPath()
+	}
+	a.navigate(path)
 }
 
 // moreBadge is the badge of "··· More": its pages' (a running batch, a

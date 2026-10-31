@@ -82,8 +82,12 @@ func (a *app) trComposer(c *ui.Context) {
 	if a.toolCompact(c) {
 		return
 	}
-	caption(c, i18n.T("Dictate into any app with %s: the text is typed where your cursor is. Set it up in Settings → Dictation.",
-		dictation.GlyphsOf(a.prefs.Dictation.Shortcut))).TextColor(tok(t).Text3)
+	hint := i18n.T("Turn on dictation in Settings → Dictation to dictate into any app.")
+	if a.prefs.Dictation.Enabled { // off: its shortcut does nothing (the Mac check, #121)
+		hint = i18n.T("Dictate into any app with %s: the text is typed where your cursor is. Set it up in Settings → Dictation.",
+			dictation.GlyphsOf(a.prefs.Dictation.Shortcut))
+	}
+	caption(c, hint).TextColor(tok(t).Text3)
 }
 
 // trComposerDrop holds the first audio or video file dropped.
@@ -158,8 +162,11 @@ func (a *app) trListView(c *ui.Context) {
 	t := c.Theme()
 	list := a.shownTranscripts()
 	if len(a.trList) == 0 && a.trJob == nil {
-		ghostRows(c.Key("tr-ghost"), 4, transcribeIcon, i18n.T("No transcripts yet"),
-			i18n.T("Transcribe a file or a recording, or dictate anywhere with %s.", dictation.GlyphsOf(a.prefs.Dictation.Shortcut)))
+		sub := i18n.T("Transcribe a file or a recording.")
+		if a.prefs.Dictation.Enabled {
+			sub = i18n.T("Transcribe a file or a recording, or dictate anywhere with %s.", dictation.GlyphsOf(a.prefs.Dictation.Shortcut))
+		}
+		ghostRows(c.Key("tr-ghost"), 4, transcribeIcon, i18n.T("No transcripts yet"), sub)
 		return
 	}
 	narrow := a.toolNarrow(c)

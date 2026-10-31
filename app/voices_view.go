@@ -125,6 +125,10 @@ func (a *app) voicesPage(c *ui.Context) {
 	a.personaDialogs(c)
 }
 
+// voiceDateW is the Created column's width: a whole Chinese date
+// ("2026年10月31日") fits (the Mac check, #121: 92 cut it to "2026年10月3…").
+const voiceDateW = 108
+
 // voicesTable is the saved voices' table, or its empty states.
 func (a *app) voicesTable(c *ui.Context, narrow bool) {
 	t := c.Theme()
@@ -153,7 +157,7 @@ func (a *app) voicesTable(c *ui.Context, narrow bool) {
 		voiceCol{title: i18n.T("Name")},
 		voiceCol{title: i18n.T("Kind"), w: 76},
 		voiceCol{title: i18n.T("Language"), w: 84, wide: true},
-		voiceCol{title: i18n.T("Created"), w: 92, wide: true},
+		voiceCol{title: i18n.T("Created"), w: voiceDateW, wide: true},
 		voiceCol{title: i18n.T("Used"), w: 64, wide: true})
 	for i := range vs {
 		v := &vs[i]
@@ -176,7 +180,7 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 		voiceCell(c, mineKind(v), 76)
 		if !narrow {
 			voiceCell(c, voiceLangName(v.Language), 84)
-			voiceCell(c, i18n.Date(v.CreatedAt), 92)
+			voiceCell(c, i18n.Date(v.CreatedAt), voiceDateW)
 			uses := ""
 			if n := a.mine.uses[v.ID]; n > 0 {
 				uses = i18n.N(n, "%d time", "%d times", n)
