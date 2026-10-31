@@ -374,8 +374,10 @@ func (a *app) toastsView(c *ui.Context) {
 // foot, which toasts at the bottom would cover: they go to its header.
 func (a *app) toastsTop() bool {
 	switch section(a.router.Path()) {
-	case "/studio", "/dub", "/stories", "/audiobook":
+	case "/studio", "/stories", "/audiobook":
 		return true
+	case "/dub":
+		return strings.HasPrefix(a.router.Path(), "/dub/") // the editor, not the list
 	}
 	return false
 }

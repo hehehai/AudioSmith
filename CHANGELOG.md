@@ -4,7 +4,7 @@
 
 ### A new start page and a new sidebar
 - AudioSmith opens on **Home**: ask 「今天想做点什么？」, then type, paste a link or drop a file and press Enter (Shift-Enter for a new line). Text opens in Text to speech with it as the script, a video or a link starts a dub of it, a recording is transcribed, a text file or an ebook becomes an audiobook's manuscript. A row of tools and your recent work (speech, dubs, transcripts, stories, books) are under it. With the writing help's model loaded, 「智能分派」 lets it choose between Text to speech, Stories and Audiobook.
-- The sidebar has places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator (coming in this version), Dictation, and ··· More (Workflows, Batch dubbing, Calls). Developers and Settings are at its foot.
+- The sidebar has places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator, Dictation, and ··· More (Workflows, Batch dubbing, Calls). Developers and Settings are at its foot.
 - **Voices** is one page with two tabs, Discover and Mine; **New voice** offers Quick clone and Design a voice. **Assets** is the former History. **Developers** gathers the agents' setups (MCP, Claude Code, Codex, SDKs), the Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark).
 - A top bar shows where you are, "Search everything ⌘K" and a bell: how many things are going on, and a list of them and of the notifications. It replaces the cards at the sidebar's foot.
 - Models, Engine, Logs and Integrations are in Settings only. ⌘1…⌘8 are now Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories, Audiobook; ⌘F searches the library on the Projects page.
@@ -16,6 +16,12 @@
 - On the right, two tabs. **Settings**: the voice and the model as rows that open their pickers (the voice's previews are still there), 「✦ Recommend」, which lists voices for the script's language and use first (and the model for a language the current one has no voice in), the speed, the language and "Play when ready" as rows, and Advanced at the foot. **History**: this page's takes, newest first — play, the first words, the voice, the length, when — with ⋯ Export…, Reuse settings, Regenerate with another voice, Save as project (Audiobook or Story, for long scripts) and Delete. Assets still lists every take.
 - 「Regenerate with another voice」 loads the take and opens the voice picker, recommended voices first: the voice you pick makes it again.
 - The page's title row is gone: the top bar's breadcrumb names the page. In a narrow window the panel opens over the script from the toolbar's toggle, or from the model and voice named under the count.
+
+### Dub, Speech to text and the new Voice isolator: start on the page
+- **Dub** opens on a composer: drop a video or an audio file, or paste a link, pick the language to dub into and press 「配音」. The dub starts at once — the source's details, the download and the transcript run in the background — and shows on top of the list under it, with its progress. The list has a search, filters (in progress, done, failed; a language) and each dub's cover, languages, length and status; ⋯ opens, exports or deletes it. A click opens the dub's editor, as before, with ← 视频配音 back to the list. Creating an empty project first is gone.
+- **Speech to text** works the same way: drop or upload a file (or record), choose the language, speakers and Fast or Accurate, and send it; the transcript shows in the list and opens on its own page. A transcript has two new hand-offs: 「配音」 makes a dub of the same file, 「在文字转语音里朗读」 opens its text as the script.
+- New: **Voice isolator**. Drop a song, a video or a noisy recording and get the voices alone, the music and effects, and the voices denoised, on this Mac, with the models dubbing uses (HTDemucs, DeepFilterNet). It runs as a task in the bell; each result plays and saves its three tracks, and goes on to Speech to text or Dub. If its models are missing the page says which, with their size, and downloads them. Results are kept in the data folder and appear in Home's Recent.
+- These pages lost their title row: the top bar's breadcrumb names the page (视频配音 › the dub's title).
 
 ## 0.4.0-beta.8 — 2026-10-26
 

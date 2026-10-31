@@ -9,6 +9,7 @@ package main
 // icon rail (inset).
 
 import (
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -46,6 +47,28 @@ func crumbs(path string) []crumb {
 	return []crumb{{pageTitle(navKey(path)), ""}}
 }
 
+// pageCrumbs is crumbs with the items of the tool pages (0.5 F2): 视频配音 ›
+// a dub, 语音转文字 › a transcript, 人声分离 › an isolation.
+func (a *app) pageCrumbs(path string) []crumb {
+	for _, tool := range []string{"/dub", "/transcripts", "/isolate"} {
+		id, ok := strings.CutPrefix(path, tool+"/")
+		if !ok || id == "" {
+			continue
+		}
+		title := ""
+		switch tool {
+		case "/dub":
+			title = a.dubTitleOf(id)
+		case "/transcripts":
+			title = a.transcriptTitleOf(id)
+		case "/isolate":
+			title = a.isoTitleOf(id)
+		}
+		return []crumb{{pageTitle(tool), tool}, {title, ""}}
+	}
+	return crumbs(path)
+}
+
 // topBar is the bar over the page.
 func (a *app) topBar(c *ui.Context, inset float32) {
 	t := c.Theme()
@@ -56,8 +79,13 @@ func (a *app) topBar(c *ui.Context, inset float32) {
 	narrow := a.pageWidth(c) < px(t, 640)
 	ui.Row(c.Key("topbar")).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+inset).Gap(px(t, sp3)).
 		DragWindow().BorderWidth(0, 0, 1, 0).BorderColor(k.Line).Children(func() {
-		ui.Row(c.Key("crumbs")).Grow(1).Basis(0).MinWidth(0).Gap(px(t, 6)).AlignItems(ui.Center).Role(ui.RoleGroup).Label(i18n.T("Breadcrumb")).Children(func() {
-			cs := crumbs(a.router.Path())
+		// Narrow, the search is an icon: the breadcrumb takes the room.
+		grow := float32(1)
+		if narrow {
+			grow = 3
+		}
+		ui.Row(c.Key("crumbs")).Grow(grow).Basis(0).MinWidth(0).Gap(px(t, 6)).AlignItems(ui.Center).Role(ui.RoleGroup).Label(i18n.T("Breadcrumb")).Children(func() {
+			cs := a.pageCrumbs(a.router.Path())
 			for i, cr := range cs {
 				if i > 0 {
 					ui.Text(c, "›").TextColor(k.Text3).Shrink(0)
@@ -72,7 +100,7 @@ func (a *app) topBar(c *ui.Context, inset float32) {
 					}
 					continue
 				}
-				b := ghostBase(c.Key("crumb-"+cr.path)).Padding(px(t, 2), px(t, 4)).Label(cr.title).MinWidth(0).Shrink(1)
+				b := ghostBase(c.Key("crumb-"+cr.path)).Padding(px(t, 2), px(t, 4)).Label(cr.title).Shrink(0) // the page shown gives way first
 				b.Children(func() {
 					col := k.Text2
 					if b.Hovered() {

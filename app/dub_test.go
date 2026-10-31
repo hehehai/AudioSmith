@@ -90,7 +90,7 @@ func TestDubPageEndToEnd(t *testing.T) {
 	d := newDubTest(t, 6)
 	a, tt := d.a, d.tt
 	tt.Frame()
-	if !tt.HasText("Video and audio dubbing") {
+	if !tt.HasText("Drop a video or audio file here") || !tt.HasText("No dubs yet") {
 		t.Fatalf("empty state: %q", tt.Texts())
 	}
 	a.dubSourceFile(d.src)

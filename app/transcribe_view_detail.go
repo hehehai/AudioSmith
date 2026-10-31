@@ -67,9 +67,20 @@ func (a *app) transcriptDetail(c *ui.Context) {
 				}
 			})
 		})
-		reuse := i18n.T("Reuse as script")
+		// The hand-offs: a dub of the same media, the text read aloud.
+		dubLabel := i18n.X("action", "Dub")
+		var db ui.Element
+		if a.trTight {
+			db = iconButton(c.Key("tr-dub"), dubIcon, dubLabel)
+		} else {
+			db = ghostIconButton(c.Key("tr-dub"), dubIcon, dubLabel).Label(dubLabel).Shrink(0)
+		}
+		if db.Tooltip(i18n.T("Dub the same media into another language")).Label(i18n.T("Dub the same media into another language")).Disabled(a.trMediaOf(*tr) == "").Clicked() {
+			a.trToDub(*tr)
+		}
+		reuse := i18n.T("Read it in Text to speech")
 		var rb ui.Element
-		if a.trNarrow {
+		if a.trTight {
 			rb = iconButton(c.Key("tr-reuse"), icons.Soundwave, reuse)
 		} else {
 			rb = ghostIconButton(c.Key("tr-reuse"), icons.Soundwave, reuse).Label(reuse).Shrink(0)

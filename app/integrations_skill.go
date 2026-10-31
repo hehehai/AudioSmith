@@ -148,7 +148,7 @@ func skillModules() map[string]skillModule {
 			"create_dub", "get_dub", "edit_dub", "run_dub", "export_dub"),
 		m("/transcripts", i18n.T("transcripts of recordings and videos, with times and speakers."),
 			i18n.T("Editing a transcript and its clean-up only in the app."), "transcribe", "export_transcript"),
-		m("/isolate", i18n.T("the voice alone, without music or noise (coming in this version)."), i18n.T("Only in the app.")),
+		m("/isolate", i18n.T("the voices of an audio or video file alone, its music and effects, and the voices denoised."), i18n.T("Only in the app.")),
 		m("/dictation", i18n.T("speak into any app with a global hotkey."), i18n.T("Only in the app (%s → %s): not for agents.", set, i18n.T("Dictation"))),
 		m("/workflows", i18n.T("saved pipelines (scripts or recordings → speak, transcribe, translate, convert, normalize → export), run over many items."),
 			i18n.T("Building or changing a workflow only in the app."), "list_workflows", "run_workflow"),

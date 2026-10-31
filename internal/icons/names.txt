@@ -126,3 +126,5 @@ code-square             # Developers
 music-notes             # Voice isolator
 arrow-up                # the composer's submit
 stars                   # smart routing
+# 0.5 F2 (thread #115): the tool pages.
+link                    # a link in a composer

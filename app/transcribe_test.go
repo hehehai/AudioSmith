@@ -40,7 +40,7 @@ func TestTranscribeFileAccurate(t *testing.T) {
 	a, eng, tt := m.a, m.eng, m.tt
 	a.navigate("/transcripts")
 	tt.Frame()
-	if !tt.HasText("No transcripts yet") || !tt.HasText("Drop audio or video here, or click to choose") || !tt.HasText("Chinese & English transcription + word timings") {
+	if !tt.HasText("No transcripts yet") || !tt.HasText("Drop audio or video here") || !tt.HasText("Chinese & English transcription + word timings") {
 		t.Fatalf("empty page: %q", tt.Texts())
 	}
 	a.updateSettings(func(s *settings.Settings) { s.Transcribe.Language = "en" })
@@ -67,7 +67,7 @@ func TestTranscribeFileAccurate(t *testing.T) {
 	eng.succeed(r.ID, services.TranscribeResult{Transcript: tr})
 	tt.Frame()
 	if a.trJob != nil || a.trSel != req.ID || a.trDetail == nil || !tt.HasText("Hello there.") || !tt.HasText("General Kenobi.") ||
-		!tt.HasText("2 segments") || !tt.HasText("1 transcript") {
+		!tt.HasText("2 segments") || a.router.Path() != "/transcripts/"+req.ID {
 		t.Fatalf("detail: %q", tt.Texts())
 	}
 
@@ -124,7 +124,7 @@ func TestTranscribeFileAccurate(t *testing.T) {
 	}
 
 	// Reuse as script.
-	tt.Click("Reuse as script")
+	tt.Click("Read it in Text to speech")
 	tt.Frame()
 	if a.currentPage() != "studio" || a.text != "Hello there. General Grievous." {
 		t.Fatalf("reuse: %s %q", a.currentPage(), a.text)
@@ -251,7 +251,7 @@ func TestTranscriptHistory(t *testing.T) {
 	putTranscript(t, a, d)
 	a.navigate("/transcripts")
 	tt.Frame()
-	if !tt.HasText("2 transcripts") || !tt.HasText("Dictation in Notes") || !tt.HasText("你好，世界。") || !tt.HasText("interview.m4a") {
+	if len(a.trList) != 2 || !tt.HasText("Dictation in Notes") || !tt.HasText("你好，世界。") || !tt.HasText("interview.m4a") {
 		t.Fatalf("history: %q", tt.Texts())
 	}
 	a.trQuery = "kenobi"

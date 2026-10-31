@@ -1,7 +1,7 @@
 package main
 
-// The tool pages 0.5 F1 adds to the sidebar: Voice isolator (/isolate),
-// a placeholder until F2 builds it, and Dictation (/dictation): the
+// The tool pages 0.5 F1 adds to the sidebar: Voice isolator's routes
+// (/isolate, isolate_view.go since F2), and Dictation (/dictation): the
 // shortcut, a box to try it in and the recent dictations. Developers'
 // route is here too (developers_view.go builds the page).
 
@@ -39,7 +39,10 @@ func (a *app) toolRoute(c *ui.Context, r *ui.Route) bool {
 	switch {
 	case r.Match("/isolate"):
 		r.Title(i18n.T("Voice isolator"))
-		a.isolatePage(c)
+		a.isolatePage(c) // isolate_view.go (F2)
+	case r.Match("/isolate/{id}"):
+		r.Title(i18n.T("Voice isolator") + " · " + a.isoTitleOf(r.Param("id")))
+		a.isolationPage(c, r.Param("id"))
 	case r.Match("/dictation"):
 		r.Title(i18n.T("Dictation"))
 		a.dictationPage(c)
@@ -62,13 +65,6 @@ func (a *app) toolRoute(c *ui.Context, r *ui.Route) bool {
 		return false
 	}
 	return true
-}
-
-// isolatePage is Voice isolator's place until F2 builds it.
-func (a *app) isolatePage(c *ui.Context) {
-	pageHeader(c, i18n.T("Voice isolator"), nil)
-	emptyState(c, isolateIcon, i18n.T("Coming in this version"),
-		i18n.T("Drop an audio or video file and get the voice alone, the music and noise without it, and a cleaned-up voice: on this Mac, with the models dubbing uses."), nil)
 }
 
 // dictationPage is Dictation: its shortcut (set in Settings → Dictation),

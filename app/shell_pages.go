@@ -209,6 +209,9 @@ func (a *app) pages(c *ui.Context) {
 		case r.Match("/transcripts"): // M2: transcribe_view.go
 			r.Title(i18n.T("Speech to text"))
 			a.transcribePage(c)
+		case r.Match("/transcripts/{id}"): // 0.5 F2: a transcript
+			r.Title(i18n.T("Speech to text") + " · " + a.transcriptTitleOf(r.Param("id")))
+			a.transcriptPage(c, r.Param("id"))
 		case a.toolRoute(c, r): // /isolate, /dictation, /developers (tool_pages.go, F1)
 		case a.longformRoute(c, r): // M3: /stories, /audiobook, /projects (longform_pages.go, thread #18)
 		case a.dubRoute(c, r): // M4: /dub, /batch (dub_pages.go, thread #19)

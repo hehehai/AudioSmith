@@ -1,9 +1,10 @@
 package main
 
-// The Transcribe page (/transcripts) and its toolbar: the model line, the
-// language button and the speakers toggle. The history, the open
-// transcript and its segments are in transcribe_view_history.go,
-// transcribe_view_detail.go and transcribe_view_segments.go.
+// The Transcribe pages (/transcripts, /transcripts/{id}) and the
+// composer's options: quality, the language button and the speakers
+// toggle. The composer and the list, the open transcript and its
+// segments are in transcribe_view_history.go, transcribe_view_detail.go
+// and transcribe_view_segments.go.
 
 import (
 	"fmt"
@@ -46,45 +47,54 @@ func ago(t time.Time) string {
 	return i18n.DateTime(t)
 }
 
+// transcribePage is /transcripts (0.5 F2): the composer (a file, a
+// recording; the language, speakers and quality), the run and the list
+// of transcripts (transcribe_view_history.go). A row opens the transcript
+// at /transcripts/{id}.
 func (a *app) transcribePage(c *ui.Context) {
 	t := c.Theme()
-	width := px(t, 280)
-	inline, shown := a.trSide.layout(a, c, width, px(t, 480))
-	w := a.pageWidth(c)
-	if inline && shown {
-		w -= width
-	}
-	a.trNarrow = w < px(t, 560)
+	a.trNarrow = a.pageWidth(c) < px(t, 560)
 	a.trTight = a.pageWidth(c) < px(t, 760)
-	page := ui.Column(c.Key("transcribe-page")).Grow(1).MinHeight(0).AlignItems(ui.Stretch)
-	if files := page.DroppedFiles(); files != nil {
-		a.transcribeDropped(files)
-	}
-	page.Children(func() {
-		pageHeader(c, i18n.T("Speech to text"), func() { a.transcribeToolbar(c, shown) })
-		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-			a.trSide.view(c, "tr-history", i18n.T("History"), inline, shown, true, width, func() {
-				ui.Column(c).Grow(1).MinHeight(0).Children(func() { a.transcriptHistory(c, inline) })
-			})
-			ui.Scroll(c.Key("tr-main")).Grow(1).MinWidth(0).Children(func() {
-				ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).MaxWidth(px(t, 920)).Children(func() {
-					a.transcriptStatus(c)
-					if a.trSel == "" {
-						a.transcribeSources(c)
-					} else {
-						a.transcriptDetail(c)
-					}
-				})
-			}).ClipX()
-		})
+	a.toolPage(c, "transcribe-page", func() {
+		a.trNeedNotice(c)
+		a.trComposer(c)
+		a.transcriptStatus(c)
+		a.trListView(c)
 	})
 }
 
-// transcribeToolbar: the history toggle, mode, language, and New
-// transcript (the page's primary while a transcript shows).
-func (a *app) transcribeToolbar(c *ui.Context, shown bool) {
-	busy := a.trJob != nil || a.trMic.phase != ""
-	e := a.trModel(a.trMode == 0)
+// transcriptPage is /transcripts/{id}: back to the list, then the
+// transcript (transcribe_view_detail.go).
+func (a *app) transcriptPage(c *ui.Context, id string) {
+	t := c.Theme()
+	a.trNarrow = a.pageWidth(c) < px(t, 560)
+	a.trTight = a.pageWidth(c) < px(t, 760)
+	if a.trSel != id {
+		a.selectTranscript(id)
+	}
+	backRow(c, "tr-back", pageTitle("/transcripts"), func() { a.navigate("/transcripts") }, nil)
+	ui.Scroll(c.Key("tr-main")).Grow(1).MinWidth(0).Children(func() {
+		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(px(t, 920)).Gap(px(t, sp3)).Children(func() { a.transcriptDetail(c) })
+		})
+	}).ClipX()
+}
+
+// transcriptTitleOf is transcript id's title, for the breadcrumb.
+func (a *app) transcriptTitleOf(id string) string {
+	if a.trDetail != nil && a.trDetail.ID == id {
+		return transcriptTitle(*a.trDetail)
+	}
+	for _, tr := range a.trList {
+		if tr.ID == id {
+			return transcriptTitle(tr)
+		}
+	}
+	return i18n.T("Transcript")
+}
+
+// trModeControl is the quality: Fast (no word timings) or Accurate.
+func (a *app) trModeControl(c *ui.Context, busy bool) {
 	mode := ui.Segmented(c.Key("tr-mode"), &a.trMode, i18n.T("Fast"), i18n.T("Accurate")).Label(i18n.T("Transcription quality")).Disabled(busy).Shrink(0).
 		Tooltip(i18n.T("Fast gives the text without word timings. Accurate also times every word, for subtitles and editing."))
 	if mode.Changed() {
@@ -93,23 +103,6 @@ func (a *app) transcribeToolbar(c *ui.Context, shown bool) {
 			m = settings.TranscribeFast
 		}
 		a.updateSettings(func(s *settings.Settings) { s.Transcribe.Mode = m })
-	}
-	a.trSpeakersToggle(c, busy)
-	a.trLanguageButton(c, e)
-	a.trSide.toggle(c.Key("tr-list-toggle"), icons.PanelLeft, shown, i18n.T("Show the transcripts"), i18n.T("Hide the transcripts"))
-	if a.trSel != "" {
-		label := i18n.T("New transcript")
-		var b ui.Element
-		if a.trNarrow || a.trTight {
-			b = primaryButton(c.Key("tr-new"), "").Label(label).Tooltip(label).Children(func() {
-				ui.Icon(c, icons.AddCircle.Linear).Size(px(c.Theme(), 16), px(c.Theme(), 16))
-			})
-		} else {
-			b = primaryIconButton(c.Key("tr-new"), icons.AddCircle, label).Label(label)
-		}
-		if b.Clicked() {
-			a.selectTranscript("")
-		}
 	}
 }
 

@@ -19,7 +19,8 @@ import (
 // dubExts are the files the Dub page takes.
 var dubExts = dub.MediaExts
 
-// chooseDubSource asks for a video or audio file.
+// chooseDubSource asks for a video or audio file: the composer holds it
+// (on the list), or it becomes the open dub's source (a dub without one).
 func (a *app) chooseDubSource() {
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose a video or audio file"),
@@ -27,7 +28,13 @@ func (a *app) chooseDubSource() {
 		if err != nil || len(paths) == 0 {
 			return
 		}
-		a.post(func() { a.dubSourceFile(paths[0]) })
+		a.post(func() {
+			if a.router.Path() == "/dub" {
+				a.dubPend = paths[0]
+				return
+			}
+			a.dubSourceFile(paths[0])
+		})
 	}()
 }
 
