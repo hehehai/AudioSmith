@@ -251,7 +251,7 @@ func (a *app) generateBar(c *ui.Context) {
 		a.studioSummary(c)
 		ui.Spacer(c)
 		if a.job != nil {
-			if ui.Button(c.Key("cancel"), i18n.T("Cancel")).Clicked() {
+			if secondaryButton(c.Key("cancel"), i18n.T("Cancel")).Clicked() {
 				a.cancel()
 			}
 		}
@@ -291,7 +291,7 @@ func (a *app) jobProblem(c *ui.Context) {
 				text = i18n.T("Downloading %s · %d%%", modelRef(*e), int(100*m.progress.Bytes/m.progress.TotalBytes))
 			}
 			caption(c, text)
-			if ui.Button(c.Key("dl-cancel"), i18n.T("Cancel")).Clicked() {
+			if secondaryButton(c.Key("dl-cancel"), i18n.T("Cancel")).Clicked() {
 				a.cancelDownload(*e)
 			}
 		default:

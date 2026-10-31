@@ -197,7 +197,7 @@ func (a *app) updatePanelFooter(c *ui.Context) {
 			a.checkForUpdates()
 		}
 	default:
-		if ui.Button(c.Key("upd-ok"), i18n.T("OK")).Clicked() {
+		if secondaryButton(c.Key("upd-ok"), i18n.T("OK")).Clicked() {
 			u.panelOpen = false
 			if u.mgr != nil {
 				u.mgr.Dismiss()
@@ -249,19 +249,19 @@ func (a *app) softwareUpdateSettings(c *ui.Context) {
 			note = i18n.T("Last checked %s.", i18n.DateTime(last))
 		}
 		settingRowNote(c, "about-update", i18n.T("Check for updates"), note, func() {
-			if ui.Button(c.Key("about-update"), i18n.T("Check for Updates…")).Disabled(st.Phase == akup.Checking).Clicked() {
+			if secondaryButton(c.Key("about-update"), i18n.T("Check for Updates…")).Disabled(st.Phase == akup.Checking).Clicked() {
 				a.checkForUpdates()
 			}
 		})
 		auto := on && a.prefs.Updates.AutoCheckOn()
 		settingRow(c, "about-update-auto", i18n.T("Automatic checks"), i18n.T("Once a day, from actnow.dev; a new version shows at the foot of the sidebar. Nothing about you is sent."), func() {
-			if ui.Switch(c.Key("about-update-auto"), &auto).Label(i18n.T("Check for updates automatically")).Disabled(!on).Changed() {
+			if inkSwitch(c.Key("about-update-auto"), &auto).Label(i18n.T("Check for updates automatically")).Disabled(!on).Changed() {
 				a.setAutoCheck(auto)
 			}
 		})
 		install := on && a.prefs.Updates.AutoCheckOn() && a.prefs.Updates.AutoInstall
 		settingRow(c, "about-update-download", i18n.T("Automatic installs"), i18n.T("A new version found by the daily check downloads and installs without asking, and runs the next time you open AudioSmith."), func() {
-			if ui.Switch(c.Key("about-update-download"), &install).Label(i18n.T("Install without asking")).Disabled(!on || !a.prefs.Updates.AutoCheckOn()).Changed() {
+			if inkSwitch(c.Key("about-update-download"), &install).Label(i18n.T("Install without asking")).Disabled(!on || !a.prefs.Updates.AutoCheckOn()).Changed() {
 				v := install
 				a.updateSettings(func(s *settings.Settings) { s.Updates.AutoInstall = v })
 			}
@@ -276,12 +276,12 @@ func (a *app) softwareUpdateSettings(c *ui.Context) {
 		// The info shows under the name, not in ⓘ: it says what turning it
 		// off does to a beta copy.
 		settingRowNote(c, "about-update-beta", i18n.T("Receive beta updates"), info, func() {
-			if ui.Switch(c.Key("about-update-beta"), &beta).Label(i18n.T("Beta updates")).Disabled(!on).Changed() {
+			if inkSwitch(c.Key("about-update-beta"), &beta).Label(i18n.T("Beta updates")).Disabled(!on).Changed() {
 				a.setBetaUpdates(beta)
 			}
 		})
 		settingRow(c, "about-changelog", i18n.T("Changelog"), i18n.T("What changed in each version, in AudioSmith's language."), func() {
-			if ui.Button(c.Key("about-changelog"), i18n.T("Show Changelog…")).Clicked() {
+			if secondaryButton(c.Key("about-changelog"), i18n.T("Show Changelog…")).Clicked() {
 				a.openHistory()
 			}
 		})
@@ -339,7 +339,7 @@ func (a *app) historyDialog(c *ui.Context) {
 	}, func() {
 		ui.Link(c, i18n.T("On actnow.dev"), releaseNotesURL).FontSize(px(t, fsCaption))
 		ui.Spacer(c)
-		if ui.Button(c.Key("hist-close"), i18n.T("Close")).Clicked() {
+		if secondaryButton(c.Key("hist-close"), i18n.T("Close")).Clicked() {
 			u.historyOpen = false
 		}
 	})

@@ -100,7 +100,7 @@ func (a *app) voicesToolbar(c *ui.Context, room float32) {
 		filterBar(c, room-px(t, 2*sp6), 210, func() {
 			searchField(c, "voices-search", &a.voiceQuery, i18n.T("Search voices"), px(t, 320))
 		}, func() {
-			ui.Segmented(c.Key("voices-kind"), &a.voiceKind, i18n.T("All"), i18n.T("Cloned"), i18n.T("Designed")).Label(i18n.T("Kind")).Shrink(0)
+			segmented(c.Key("voices-kind"), &a.voiceKind, i18n.T("All"), i18n.T("Cloned"), i18n.T("Designed")).Label(i18n.T("Kind")).Shrink(0)
 		})
 	})
 }
@@ -115,15 +115,17 @@ func (a *app) voicesGrid(c *ui.Context) {
 		case len(a.voices) > 0:
 			emptyState(c, icons.Magnifer, i18n.T("No matches"), "", nil)
 		default:
-			emptyState(c, icons.UserSpeakRounded, i18n.T("No saved voices yet"),
-				i18n.T("Upload or record a clip and save it as a voice, design one from a description, or pick one in the gallery."), func() {
-					if ui.Button(c.Key("empty-gallery"), i18n.T("Discover voices")).Clicked() {
-						a.navigate("/gallery")
-					}
-					if ui.Button(c.Key("empty-design"), i18n.T("Design a voice")).Clicked() {
-						a.navigate("/design")
-					}
-				})
+			ui.Column(c).Grow(1).Padding(px(t, sp2), px(t, sp6)).Children(func() {
+				ghostRows(c, 4, icons.UserSpeakRounded, i18n.T("No saved voices yet"),
+					i18n.T("Upload or record a clip and save it as a voice, design one from a description, or pick one in the gallery."), func() {
+						if secondaryButton(c.Key("empty-gallery"), i18n.T("Discover voices")).Clicked() {
+							a.navigate("/gallery")
+						}
+						if secondaryButton(c.Key("empty-design"), i18n.T("Design a voice")).Clicked() {
+							a.navigate("/design")
+						}
+					})
+			})
 		}
 		return
 	}

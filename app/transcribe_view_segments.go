@@ -86,7 +86,7 @@ func (a *app) transcriptSegments(c *ui.Context, tr *core.Transcript) {
 							a.saveSegmentEdit()
 						}
 						ui.Row(c).Gap(px(t, 6)).Children(func() {
-							if ui.Button(c.Key("edit-save"), i18n.T("Save")).Tooltip("⌘↩").Clicked() {
+							if secondaryButton(c.Key("edit-save"), i18n.T("Save")).Tooltip("⌘↩").Clicked() {
 								a.saveSegmentEdit()
 							}
 							if ghostButton(c.Key("edit-cancel"), i18n.T("Cancel")).Tooltip("Esc").Clicked() {
@@ -177,7 +177,7 @@ func (a *app) trSpeakersBar(c *ui.Context, tr *core.Transcript, labels []string)
 						if ghostButton(c.Key("tr-spk-cancel"), i18n.T("Cancel")).Clicked() {
 							a.trRename, a.trRenOpen = "", false
 						}
-						if ui.Button(c.Key("tr-spk-save"), i18n.T("Save")).Clicked() {
+						if secondaryButton(c.Key("tr-spk-save"), i18n.T("Save")).Clicked() {
 							a.renameSpeaker(l, a.trRenBuf)
 						}
 					})

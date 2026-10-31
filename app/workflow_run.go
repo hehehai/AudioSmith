@@ -77,14 +77,14 @@ func (a *app) wfRunPanel(c *ui.Context) {
 	upToDate := run != nil && run.State == workflow.RunDone && !a.wfStale()
 	ui.Row(c.Key("wf-run-buttons")).Gap(px(t, 6)).Wrap().Children(func() {
 		if busy {
-			if ui.Button(c.Key("wf-run-cancel"), i18n.T("Cancel")).Clicked() {
+			if secondaryButton(c.Key("wf-run-cancel"), i18n.T("Cancel")).Clicked() {
 				a.wfCancel()
 			}
 			return
 		}
 		if upToDate {
 			// Every result is made: only a new run makes anything.
-			if ui.Button(c.Key("wf-run-again"), i18n.T("Start a new run")).
+			if secondaryButton(c.Key("wf-run-again"), i18n.T("Start a new run")).
 				Tooltip(i18n.T("Make every result again, even those that are up to date")).Disabled(rep.Errors() > 0).Clicked() {
 				a.wfStart(true)
 			}
@@ -97,7 +97,7 @@ func (a *app) wfRunPanel(c *ui.Context) {
 		case run != nil && run.State == workflow.RunFailed && !a.wfStale():
 			label = i18n.T("Retry")
 		}
-		if ui.Button(c.Key("wf-run-go"), label).Disabled(rep.Errors() > 0).Clicked() {
+		if secondaryButton(c.Key("wf-run-go"), label).Disabled(rep.Errors() > 0).Clicked() {
 			a.wfStart(false)
 		}
 		if run != nil && run.Signature != "" && ghostButton(c.Key("wf-run-again"), i18n.T("Start a new run")).

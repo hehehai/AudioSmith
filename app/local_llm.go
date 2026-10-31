@@ -224,7 +224,7 @@ func (a *app) localLLMSettings(c *ui.Context) {
 				a.syncLLMForm()
 			}
 			if !(m.known && m.local.State == hub.Downloaded) && !m.downloading {
-				if ui.Button(c.Key("llm-engine-download"), i18n.T("Download")).Clicked() {
+				if secondaryButton(c.Key("llm-engine-download"), i18n.T("Download")).Clicked() {
 					a.download(cur)
 				}
 			}

@@ -56,7 +56,7 @@ func (a *app) integrationDetail(c *ui.Context, slug string) {
 		a.apiStatusLine(c)
 		if a.apiHasKey && a.apiSrv != nil && a.apiSrv.Key() != "" {
 			settingRow(c, "integ-key", i18n.T("Put my API key in the setups"), i18n.T("Off: setups read it from the AUDIOSMITH_API_KEY environment variable when a key is required. Anyone who sees a setup with the key can use AudioSmith."), func() {
-				ui.Switch(c.Key("integ-key-switch"), &a.apiForm.keyIncl).Label(i18n.T("Put my API key in the setups"))
+				inkSwitch(c.Key("integ-key-switch"), &a.apiForm.keyIncl).Label(i18n.T("Put my API key in the setups"))
 			})
 		}
 		blocks := func() {

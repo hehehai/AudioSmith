@@ -189,7 +189,7 @@ func (a *app) dubVoiceControls(c *ui.Context, caps services.DubModelCaps, locked
 			}
 		}
 		ui.Field(c, i18n.T("Steps: %d", int(steps)), func() {
-			if ui.StepSlider(c.Key("gen-steps"), &steps, 8, 64, 1).Label(i18n.T("Steps")).Disabled(locked).Changed() {
+			if slimStepSlider(c.Key("gen-steps"), &steps, 8, 64, 1).Label(i18n.T("Steps")).Disabled(locked).Changed() {
 				v := int(steps)
 				a.dubSettings(func(s *dub.Settings) { s.Steps = v })
 			}
@@ -198,7 +198,7 @@ func (a *app) dubVoiceControls(c *ui.Context, caps services.DubModelCaps, locked
 	if caps.Guidance {
 		g := shown(p.Settings.Guidance, rec.Guidance, 2)
 		ui.Field(c, i18n.T("Guidance: %.1f", g), func() {
-			if ui.StepSlider(c.Key("gen-cfg"), &g, 0, 4, 0.1).Label(i18n.T("Guidance")).Disabled(locked).Changed() {
+			if slimStepSlider(c.Key("gen-cfg"), &g, 0, 4, 0.1).Label(i18n.T("Guidance")).Disabled(locked).Changed() {
 				v := dubRound(g)
 				a.dubSettings(func(s *dub.Settings) { s.Guidance = v })
 			}
@@ -209,7 +209,7 @@ func (a *app) dubVoiceControls(c *ui.Context, caps services.DubModelCaps, locked
 		speed = 1
 	}
 	ui.Field(c, i18n.T("Speed: %.2f×", speed), func() {
-		if ui.StepSlider(c.Key("gen-speed"), &speed, 0.5, 2, 0.05).Label(i18n.T("Speed")).Disabled(locked || !caps.Speed).Changed() {
+		if slimStepSlider(c.Key("gen-speed"), &speed, 0.5, 2, 0.05).Label(i18n.T("Speed")).Disabled(locked || !caps.Speed).Changed() {
 			v := dubRound(speed)
 			if v == 1 {
 				v = 0
@@ -334,7 +334,7 @@ func sortedKeys[V any](m map[string]V) []string {
 func dubSwitch(c *ui.Context, key, label, info string, on *bool, disabled bool) bool {
 	changed := false
 	formRow(c, key+"-row", label, info, func() {
-		changed = ui.Switch(c.Key(key), on).Label(label).Disabled(disabled).Changed()
+		changed = inkSwitch(c.Key(key), on).Label(label).Disabled(disabled).Changed()
 	})
 	return changed
 }

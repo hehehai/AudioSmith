@@ -217,7 +217,7 @@ func (a *app) voiceEditor(c *ui.Context) {
 			}
 			a.voiceLongformMenu(c, v) // M3: Use in Stories, Narrate an audiobook (longform_voices.go, thread #18)
 			ui.Spacer(c)
-			if ui.Button(c.Key("editor-studio"), i18n.T("Use in Studio")).Clicked() {
+			if secondaryButton(c.Key("editor-studio"), i18n.T("Use in Studio")).Clicked() {
 				a.useVoiceInStudio(v)
 			}
 			if primaryButton(c.Key("editor-save"), i18n.T("Save")).Disabled(!e.dirty() || e.saving).Clicked() {
@@ -341,7 +341,7 @@ func (a *app) editorTry(c *ui.Context, v *core.Voice) {
 					}
 				}
 				j := a.voiceJob("try", v.ID)
-				if ui.Button(c.Key("try-go"), i18n.T("Generate preview")).Disabled(j.running() || strings.TrimSpace(e.tryText) == "").Clicked() {
+				if secondaryButton(c.Key("try-go"), i18n.T("Generate preview")).Disabled(j.running() || strings.TrimSpace(e.tryText) == "").Clicked() {
 					a.tryVoice(v.ID)
 				}
 			})

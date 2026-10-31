@@ -125,14 +125,14 @@ func (a *app) callLiveControls(c *ui.Context, call *services.Call) {
 		}
 		on := call.Takeover
 		settingRow(c, "cv-takeover", i18n.T("Take over"), i18n.T("Pause the agent and type what to say; the caller is still transcribed."), func() {
-			if ui.Switch(c.Key("cv-takeover-switch"), &on).Label(i18n.T("Take over")).Changed() {
+			if inkSwitch(c.Key("cv-takeover-switch"), &on).Label(i18n.T("Take over")).Changed() {
 				a.takeoverCall(call.ID, on)
 			}
 		})
 		if call.Takeover {
 			ui.Row(c.Key("cv-say")).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
 				in := ui.TextInput(c.Key("cv-say-text"), &a.callSay).Placeholder(i18n.T("What to say next")).Label(i18n.T("What to say next")).Grow(1).AutoFocus()
-				if in.Submitted() || ui.Button(c.Key("cv-say-go"), i18n.T("Say")).Disabled(strings.TrimSpace(a.callSay) == "").Clicked() {
+				if in.Submitted() || secondaryButton(c.Key("cv-say-go"), i18n.T("Say")).Disabled(strings.TrimSpace(a.callSay) == "").Clicked() {
 					a.sayInCall(call.ID)
 				}
 			})

@@ -31,14 +31,14 @@ func (a *app) privacySettings(c *ui.Context) {
 		})
 		local := a.prefs.Privacy.LocalOnlyLLM
 		settingRow(c, "priv-local-llm", i18n.T("Local language models only"), i18n.T("Writing help and translation use only local models (Ollama, LM Studio, the engine), never a cloud provider."), func() {
-			if ui.Switch(c.Key("priv-local-llm"), &local).Label(i18n.T("Keep text on this Mac")).Changed() {
+			if inkSwitch(c.Key("priv-local-llm"), &local).Label(i18n.T("Keep text on this Mac")).Changed() {
 				on := local
 				a.updateSettings(func(s *settings.Settings) { s.Privacy.LocalOnlyLLM = on })
 			}
 		})
 		search := a.prefs.Privacy.AllowNetworkSearch
 		settingRow(c, "priv-search", i18n.T("Web lookups"), i18n.T("Lookups you did not ask for one by one, such as finding portraits for voices. Off by default."), func() {
-			if ui.Switch(c.Key("priv-search"), &search).Label(i18n.T("Allow web lookups")).Changed() {
+			if inkSwitch(c.Key("priv-search"), &search).Label(i18n.T("Allow web lookups")).Changed() {
 				on := search
 				a.updateSettings(func(s *settings.Settings) { s.Privacy.AllowNetworkSearch = on })
 			}
@@ -112,7 +112,7 @@ func (a *app) usageBody(c *ui.Context) {
 		return
 	}
 	stat := func(n, label string) {
-		ui.Column(c).Gap(px(t, 2)).Padding(px(t, 10)).Radius(8).Background(t.Surface).Children(func() {
+		ui.Column(c).Gap(px(t, 2)).Padding(px(t, 10)).Radius(px(t, radiusControl)).Background(tok(t).Subtle).Children(func() {
 			ui.Text(c, n).FontSize(px(t, 20)).Bold()
 			ui.Text(c, label).FontSize(px(t, 12)).TextColor(t.TextMuted)
 		})
@@ -176,7 +176,7 @@ func (a *app) usageBody(c *ui.Context) {
 	}
 	table("usage-models", i18n.T("Takes by model"), byModel)
 	table("usage-langs", i18n.T("Takes by language"), byLang)
-	if ui.Button(c.Key("usage-refresh"), i18n.T("Refresh")).Clicked() {
+	if secondaryButton(c.Key("usage-refresh"), i18n.T("Refresh")).Clicked() {
 		a.usage = nil
 		a.loadUsageStats()
 	}

@@ -238,7 +238,7 @@ func (a *app) pages(c *ui.Context) {
 func (a *app) notFoundPage(c *ui.Context, path string) {
 	pageHeader(c, i18n.T("Not found"), nil)
 	emptyState(c, icons.Magnifer, i18n.T("There is no page at %s.", path), "", func() {
-		if ui.Button(c.Key("go-studio"), i18n.T("Go to the Studio")).Clicked() {
+		if secondaryButton(c.Key("go-studio"), i18n.T("Go to the Studio")).Clicked() {
 			a.navigate("/studio")
 		}
 	})

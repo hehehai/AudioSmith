@@ -128,7 +128,7 @@ func (a *app) transcriptPlayer(c *ui.Context, tr *core.Transcript) {
 			a.toggleTranscriptPlayback()
 		}
 		seek := pos
-		if ui.Slider(c.Key("tr-seek"), &seek, 0, tr.Duration).Grow(1).MinWidth(0).Label(i18n.T("Position")).Changed() {
+		if seekSlider(c.Key("tr-seek"), &seek, 0, tr.Duration).Grow(1).MinWidth(0).Label(i18n.T("Position")).Changed() {
 			a.playTranscriptAt(seek)
 		}
 		ui.Text(c, clock(pos)+" / "+clock(tr.Duration)).FontSize(px(t, fsMicro)).Font(monoFont).TextColor(tok(t).Text2).SingleLine().Shrink(0)

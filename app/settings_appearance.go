@@ -15,7 +15,7 @@ func (a *app) sidebarRow(c *ui.Context) {
 		rail = 1
 	}
 	settingRow(c, "sidebar-style", i18n.T("Sidebar"), i18n.T("Icons only leaves the pages more room; names show on pointing."), func() {
-		if ui.Segmented(c.Key("sidebar-seg"), &rail, i18n.T("Names and icons"), i18n.T("Icons only")).Label(i18n.T("Sidebar")).Changed() {
+		if segmented(c.Key("sidebar-seg"), &rail, i18n.T("Names and icons"), i18n.T("Icons only")).Label(i18n.T("Sidebar")).Changed() {
 			a.setRail(rail == 1)
 		}
 	})

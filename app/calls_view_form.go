@@ -83,7 +83,7 @@ func (a *app) newCallForm(c *ui.Context) {
 	})
 	sectionTitle(c, i18n.T("What it will say first"))
 	settingRow(c, "nc-disclose", i18n.T("AI disclosure"), i18n.T("Plays in full before the conversation starts; it can't be interrupted."), func() {
-		ui.Switch(c.Key("nc-disclose-switch"), &f.disclose).Label(i18n.T("AI disclosure"))
+		inkSwitch(c.Key("nc-disclose-switch"), &f.disclose).Label(i18n.T("AI disclosure"))
 	})
 	if f.disclose {
 		if !f.edited {
@@ -182,7 +182,7 @@ func (a *app) callDialogs(c *ui.Context) {
 				})
 				ui.Row(c).Gap(px(t, 8)).Children(func() {
 					ui.Spacer(c)
-					if ui.Button(c.Key("cc-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
+					if secondaryButton(c.Key("cc-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
 						a.callAsk = false
 					}
 					if primaryButton(c.Key("cc-call"), i18n.T("Call")).Clicked() {
@@ -214,7 +214,7 @@ func (a *app) callDialogs(c *ui.Context) {
 						a.navigate("/calls/setup")
 					}
 					ui.Spacer(c)
-					if ui.Button(c.Key("ci-cancel"), i18n.T("Cancel")).Clicked() {
+					if secondaryButton(c.Key("ci-cancel"), i18n.T("Cancel")).Clicked() {
 						a.callInOpen = false
 					}
 					if primaryButton(c.Key("ci-save"), i18n.T("Save")).Clicked() {

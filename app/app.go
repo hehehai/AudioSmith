@@ -57,6 +57,7 @@ type app struct {
 	familyKeys                        // family_keys.go (thread #74): API keys shared with the family
 	familyReuse                       // family_reuse.go (thread #75): reusing other apps' models, licences
 	familyShared                      // family_shared.go (thread #76): the shared settings, moving the models
+	intro            introState       // ui_kit_feedback.go (thread #113): the "introducing" dialog showing
 }
 
 func newApp(eng *engineHost, lib *library) *app {

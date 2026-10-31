@@ -63,7 +63,7 @@ func (a *app) inspector(c *ui.Context) {
 	}
 	if p.Has(catalog.CapSpeed) {
 		ui.Field(c, i18n.T("Speed  %.2f×", a.speed), func() {
-			snapped(ui.Slider(c.Key("speed"), &a.speed, 0.5, 2).Label(i18n.T("Speed")), &a.speed, 0.05)
+			snapped(slimSlider(c.Key("speed"), &a.speed, 0.5, 2).Label(i18n.T("Speed")), &a.speed, 0.05)
 		})
 	}
 	ui.Divider(c)
@@ -208,7 +208,7 @@ func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 	if p.Has(catalog.CapGuidance) {
 		g := shown(a.guidance, rec.Guidance, 2)
 		ui.Field(c, i18n.T("Prompt guidance  %.1f", g), func() {
-			if snapped(ui.Slider(c.Key("guidance"), &g, 1, 4).Label(i18n.T("Prompt guidance")), &g, 0.1).Changed() {
+			if snapped(slimSlider(c.Key("guidance"), &g, 1, 4).Label(i18n.T("Prompt guidance")), &g, 0.1).Changed() {
 				a.guidance = g
 			}
 		})
@@ -216,18 +216,18 @@ func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 	if p.Has(catalog.CapSampling) {
 		temp, topP := shown(a.temperature, rec.Temperature, 0.9), shown(a.topP, rec.TopP, 1)
 		ui.Field(c, i18n.T("Temperature  %.2f", temp), func() {
-			if snapped(ui.Slider(c.Key("temperature"), &temp, 0.05, 1.5).Label(i18n.T("Temperature")), &temp, 0.05).Changed() {
+			if snapped(slimSlider(c.Key("temperature"), &temp, 0.05, 1.5).Label(i18n.T("Temperature")), &temp, 0.05).Changed() {
 				a.temperature = temp
 			}
 		})
 		ui.Field(c, i18n.T("Top P  %.2f", topP), func() {
-			if snapped(ui.Slider(c.Key("topp"), &topP, 0.05, 1).Label(i18n.T("Top P")), &topP, 0.05).Changed() {
+			if snapped(slimSlider(c.Key("topp"), &topP, 0.05, 1).Label(i18n.T("Top P")), &topP, 0.05).Changed() {
 				a.topP = topP
 			}
 		})
 	}
 	formRow(c, "seed-pin-row", i18n.T("Pin the seed"), i18n.T("The same seed and settings make the same take."), func() {
-		ui.Switch(c.Key("seed-pin"), &a.seedPinned).Label(i18n.T("Pin the seed"))
+		inkSwitch(c.Key("seed-pin"), &a.seedPinned).Label(i18n.T("Pin the seed"))
 	})
 	if a.seedPinned {
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
@@ -238,10 +238,10 @@ func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 		})
 	}
 	formRow(c, "normalize-row", i18n.T("Read numbers as words"), i18n.T("Numbers, times, dates, money and abbreviations, before the model reads them."), func() {
-		ui.Switch(c.Key("normalize"), &a.normalize).Label(i18n.T("Read numbers as words"))
+		inkSwitch(c.Key("normalize"), &a.normalize).Label(i18n.T("Read numbers as words"))
 	})
 	formRow(c, "even-out-row", i18n.T("Even out volume"), i18n.T("Masters the take to broadcast loudness (−18 LUFS)."), func() {
-		ui.Switch(c.Key("even-out"), &a.evenOut).Label(i18n.T("Even out volume"))
+		inkSwitch(c.Key("even-out"), &a.evenOut).Label(i18n.T("Even out volume"))
 	})
 }
 

@@ -1,26 +1,32 @@
 package main
 
-// Design tokens (0.3 redesign, research/ui-design-spec.md): a neutral grey
-// scale, near-black ink for the one primary action of a view, one accent
-// for state (selection, progress, focus, links, what plays), and a
-// red-orange for recording and destructive actions. applyTheme puts them
-// into MyGo's Theme, so that MyGo's widgets follow them; views read the
-// rest with tok(t).
+// Design tokens (0.5 overhaul, plan/ui-overhaul-plan.md §4, after the
+// ElevenLabs study research/elevenlabs-ui/README.md §3): monochrome — a
+// neutral grey scale from white to near-black, white controls inside a
+// 1 px hairline, near-black ink for the one primary action of a view (and
+// switches, sliders, active filters) — one accent, teal, for state only
+// (selection, progress, focus rings, links, what plays), and a red-orange
+// for recording and destructive actions. applyTheme puts them into MyGo's
+// Theme, so that MyGo's widgets follow them; views read the rest with
+// tok(t).
 
 import "github.com/egoist/mygo/ui"
 
 // Radii, DIPs at 100 % (scale them with px).
 const (
-	radiusControl = 8  // buttons, inputs, list rows
-	radiusCard    = 12 // cards, dialogs, popovers
+	radiusControl = 8  // buttons, inputs, chips, list rows
+	radiusCard    = 12 // cards, popovers, image cards
+	radiusFeature = 20 // feature cards (浅灰底的大卡片)
 )
 
-// Type scale, DIPs at 100 % (px(t, fsBody)).
+// Type scale, DIPs at 100 % (px(t, fsBody)). Body text is the platform's
+// size (13 pt on the Mac, the theme's FontSize): px scales the rest with
+// it, so a bigger body would scale the whole interface.
 const (
-	fsTitle   = 20 // page titles
+	fsTitle   = 26 // big titles: pages, the setup, empty pages (regular weight)
 	fsSection = 15 // section headings, dialog titles
 	fsBody    = 13 // text
-	fsCaption = 12 // secondary lines, captions
+	fsCaption = 12 // secondary lines, captions, meta
 	fsMicro   = 11 // badges, keyboard hints
 )
 
@@ -38,14 +44,17 @@ const (
 // greys are the neutral scale, from the background (0) to the text (9).
 type greys [10]ui.Color
 
+// Light: 0 the page, 1 the sidebar (#fafafa), 2 hover, 3 the chosen row
+// (#ededed), 4 hairlines (#e5e5e5), 7 secondary text (#6b6b6b), 9 text
+// and ink (#0b0b0b). Dark mirrors it on near-black.
 var (
 	lightGreys = greys{
-		ui.Hex("#ffffff"), ui.Hex("#f7f7f7"), ui.Hex("#f2f2f2"), ui.Hex("#ebebeb"), ui.Hex("#e0e0e0"),
-		ui.Hex("#c7c7c7"), ui.Hex("#a3a3a3"), ui.Hex("#6e6e6e"), ui.Hex("#454545"), ui.Hex("#111111"),
+		ui.Hex("#ffffff"), ui.Hex("#fafafa"), ui.Hex("#f3f3f3"), ui.Hex("#ededed"), ui.Hex("#e5e5e5"),
+		ui.Hex("#d4d4d4"), ui.Hex("#a1a1a1"), ui.Hex("#6b6b6b"), ui.Hex("#3d3d3d"), ui.Hex("#0b0b0b"),
 	}
 	darkGreys = greys{
-		ui.Hex("#151515"), ui.Hex("#1c1c1c"), ui.Hex("#232323"), ui.Hex("#2b2b2b"), ui.Hex("#353535"),
-		ui.Hex("#4a4a4a"), ui.Hex("#6b6b6b"), ui.Hex("#a3a3a3"), ui.Hex("#d0d0d0"), ui.Hex("#f2f2f2"),
+		ui.Hex("#111111"), ui.Hex("#171717"), ui.Hex("#1f1f1f"), ui.Hex("#262626"), ui.Hex("#2e2e2e"),
+		ui.Hex("#404040"), ui.Hex("#6b6b6b"), ui.Hex("#a3a3a3"), ui.Hex("#d4d4d4"), ui.Hex("#f5f5f5"),
 	}
 )
 
@@ -71,9 +80,13 @@ type tokens struct {
 	Bg      ui.Color // pages, dialogs
 	Sidebar ui.Color // the sidebar, the status bar
 	Subtle  ui.Color // a card's fill (cards have a fill or a hairline, not both)
+	Field   ui.Color // the face of controls: buttons, inputs, selects, chips
 	Hover   ui.Color // ghost buttons and rows under the pointer
 	Pressed ui.Color // … pressed; the chosen row
-	Line    ui.Color // hairlines: dividers, card borders
+	Line    ui.Color // hairlines: dividers, card and control borders
+	// Lift is the faint shadow under a white control (secondary buttons,
+	// a segmented control's chosen segment); clear in the dark.
+	Lift ui.Color
 	// Selected: rows selected among many (the logs' lines), the accent's
 	// tint, stronger than Hover; SelectedHover one under the pointer.
 	Selected, SelectedHover ui.Color
@@ -100,15 +113,18 @@ func makeTokens(dark bool) *tokens {
 		g = darkGreys
 		accent = ui.Hex(ac.dark)
 		k = &tokens{G: g,
-			InkHover: ui.Hex("#dcdcdc"), InkPressed: ui.Hex("#c4c4c4"),
+			InkHover: ui.Hex("#dedede"), InkPressed: ui.Hex("#c4c4c4"),
 			Record: ui.Hex("#ff6b47"), Success: ui.Hex("#3ccb7f"), Warning: ui.Hex("#f2a53a"),
 		}
+		k.Bg, k.Sidebar, k.Subtle, k.Field = g[0], g[1], g[1], g[2]
+		k.Hover, k.Pressed, k.Line = g[3], g[4], g[4]
 	} else {
-		k.InkHover, k.InkPressed = ui.Hex("#2e2e2e"), ui.Hex("#454545")
+		k.InkHover, k.InkPressed = ui.Hex("#2b2b2b"), ui.Hex("#3d3d3d")
 		k.Record, k.Success, k.Warning = ui.Hex("#eb5230"), ui.Hex("#1f9d55"), ui.Hex("#c27803")
+		k.Bg, k.Sidebar, k.Subtle, k.Field = g[0], g[1], ui.Hex("#f7f7f7"), g[0]
+		k.Hover, k.Pressed, k.Line = g[2], g[3], g[4]
+		k.Lift = ui.RGBA(0, 0, 0, 0.05)
 	}
-	k.Bg, k.Sidebar, k.Subtle = g[0], g[1], g[1]
-	k.Hover, k.Pressed, k.Line = g[2], g[3], g[3]
 	k.Text, k.Text2, k.Text3 = g[9], g[7], g[6]
 	k.Ink, k.OnInk = g[9], g[0]
 	k.Accent = accent
@@ -145,13 +161,11 @@ func tok(t *ui.Theme) *tokens {
 func styleTheme(th *ui.Theme) {
 	k := tok(th)
 	th.Background = k.Bg
-	th.Surface = k.G[2]
-	th.SurfaceHover = k.G[3]
-	th.SurfacePressed = k.G[4]
-	th.Border = k.G[3]
-	if th.Dark {
-		th.Border = k.G[4]
-	}
+	// Controls are white (raised a step in the dark) inside a hairline.
+	th.Surface = k.Field
+	th.SurfaceHover = k.Hover
+	th.SurfacePressed = k.Pressed
+	th.Border = k.Line
 	th.Text, th.TextMuted = k.Text, k.Text2
 	th.Accent = k.Accent
 	th.AccentHover = k.Accent.Mix(ui.Hex("#000000"), 0.12)

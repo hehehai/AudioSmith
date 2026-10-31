@@ -28,7 +28,7 @@ func (a *app) bookDialogueCard(c *ui.Context, p *lfPage, locked bool) {
 	on := d.Production.Dialogue && blocked == ""
 	title := i18n.T("Dialogue model")
 	formRow(c, "ab-dialogue-row", title, i18n.T("%s speaks each passage's lines together, each line hearing the lines before it, so they answer each other; the rest of the book stays on its model. Voices in a passage are cloned by the dialogue model and sound a little different from the same voice outside it. Slower than real time.", modelRef(e)), func() {
-		if ui.Switch(c.Key("ab-dialogue"), &on).Label(title).Disabled(locked || blocked != "").Changed() {
+		if inkSwitch(c.Key("ab-dialogue"), &on).Label(title).Disabled(locked || blocked != "").Changed() {
 			d.Production.Dialogue = on
 			if on {
 				d.Production.DialogueModel = e.Repo
@@ -128,7 +128,7 @@ func (a *app) bookUncast(c *ui.Context, p *lfPage, locked bool) {
 				"%[2]s have no voices yet: given ones of their own when the book is generated.", len(names), strings.Join(names, i18n.X("list separator", ", ")))).Grow(1).MinWidth(0)
 		})
 		ui.Row(c).Gap(px(t, sp2)).Padding(0, 0, 0, px(t, 22)).Children(func() {
-			if ui.Button(c.Key("ab-uncast-auto"), i18n.T("Assign voices")).Disabled(locked).Clicked() {
+			if secondaryButton(c.Key("ab-uncast-auto"), i18n.T("Assign voices")).Disabled(locked).Clicked() {
 				a.autoCastBook(p)
 			}
 			if ghostButton(c.Key("ab-uncast-pick"), i18n.T("Choose…")).Disabled(locked).Clicked() {

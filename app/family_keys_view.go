@@ -48,14 +48,14 @@ func (a *app) keyOffer(c *ui.Context, ks keySlot, primary bool) bool {
 	t := c.Theme()
 	ui.Row(c.Key("key-offer")).Wrap().Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, i18n.T("Use the %s key from %s (%s)", vendorName(in.Vendor), in.From, in.Offer.Hint)).Grow(1).MinWidth(px(t, 160))
-		use := ui.Button
+		use := secondaryButton
 		if primary {
 			use = primaryButton
 		}
 		if use(c.Key("key-use"), i18n.T("Use this key")).Disabled(v.busy).Clicked() {
 			a.useFamilyKey(ks)
 		}
-		if ui.Button(c.Key("key-another"), i18n.T("Enter another key")).Clicked() {
+		if secondaryButton(c.Key("key-another"), i18n.T("Enter another key")).Clicked() {
 			v.another = true
 		}
 	})
@@ -120,7 +120,7 @@ func (a *app) keyNoteLines(c *ui.Context, ks keySlot, v *keyView, typed string) 
 	if in.Different && in.From != "" {
 		ui.Row(c.Key("key-different")).Wrap().Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			caption(c, i18n.T("%s has a different %s key.", in.From, vendorName(in.Vendor)))
-			if ui.Button(c.Key("key-use-theirs"), i18n.T("Use this key")).Disabled(v.busy).Clicked() {
+			if secondaryButton(c.Key("key-use-theirs"), i18n.T("Use this key")).Disabled(v.busy).Clicked() {
 				a.useFamilyKey(ks)
 			}
 		})
@@ -169,14 +169,14 @@ func (a *app) mtKeyRow(c *ui.Context, svc string) {
 	input := a.mtKeyInput(svc)
 	ui.Row(c.Key("mt-key")).Wrap().Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 		ui.TextInput(c.Key("mt-key-input"), input).Password().Placeholder(i18n.T("API key")).Label(i18n.T("API key")).Width(px(t, 220))
-		if ui.Button(c.Key("mt-key-save"), i18n.T("Save")).Disabled(strings.TrimSpace(*input) == "" || v.busy).Clicked() {
+		if secondaryButton(c.Key("mt-key-save"), i18n.T("Save")).Disabled(strings.TrimSpace(*input) == "" || v.busy).Clicked() {
 			key := *input
 			*input = ""
 			a.saveFamilyKey(ks, key)
 		}
 		if v.info.Own || v.info.Shared {
 			caption(c, i18n.T("A key is saved in the Keychain.")).TextColor(t.Success)
-			if ui.Button(c.Key("mt-key-remove"), i18n.T("Remove the key")).Disabled(v.busy).Clicked() {
+			if secondaryButton(c.Key("mt-key-remove"), i18n.T("Remove the key")).Disabled(v.busy).Clicked() {
 				a.removeFamilyKey(ks)
 			}
 		}

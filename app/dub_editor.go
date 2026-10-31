@@ -390,7 +390,7 @@ func (a *app) dubLineText(c *ui.Context, s dub.Segment, locked bool, after *func
 			*after = func() { a.dubSplit(id, -1) }
 		}
 		ui.Row(c).Gap(px(t, 6)).Children(func() {
-			if ui.Button(c.Key("edit-ok"), i18n.T("Done")).Tooltip("⌘↩").Clicked() {
+			if secondaryButton(c.Key("edit-ok"), i18n.T("Done")).Tooltip("⌘↩").Clicked() {
 				*after = commit
 			}
 			if ghostButton(c.Key("edit-cancel"), i18n.T("Cancel")).Tooltip("Esc").Clicked() {
@@ -461,7 +461,7 @@ func (a *app) dubLineOptions(c *ui.Context, s dub.Segment, locked bool, after *f
 		ui.Row(c).Gap(px(t, 8)).AlignItems(ui.Center).Wrap().Children(func() {
 			vol := s.Volume
 			ui.Field(c, i18n.T("Volume"), func() {
-				if ui.StepSlider(c.Key("volume"), &vol, 0, 2, 0.1).Label(i18n.T("Volume")).Width(px(t, 140)).Disabled(locked).Changed() {
+				if slimStepSlider(c.Key("volume"), &vol, 0, 2, 0.1).Label(i18n.T("Volume")).Width(px(t, 140)).Disabled(locked).Changed() {
 					a.dubSetLine(id, "volume", func(s *dub.Segment) { s.Volume = dubRound(vol) })
 				}
 			})
@@ -471,7 +471,7 @@ func (a *app) dubLineOptions(c *ui.Context, s dub.Segment, locked bool, after *f
 				speed = 1
 			}
 			ui.Field(c, i18n.T("Speed"), func() {
-				if ui.StepSlider(c.Key("speed"), &speed, 0.5, 2, 0.05).Label(i18n.T("Speed")).Width(px(t, 140)).Disabled(locked).Changed() {
+				if slimStepSlider(c.Key("speed"), &speed, 0.5, 2, 0.05).Label(i18n.T("Speed")).Width(px(t, 140)).Disabled(locked).Changed() {
 					v := dubRound(speed)
 					if v == 1 {
 						v = 0

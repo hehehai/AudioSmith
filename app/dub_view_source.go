@@ -33,7 +33,7 @@ func (a *app) dubSourcePanel(c *ui.Context) {
 		}
 		zone.Children(func() {
 			caption(c, i18n.T("Drop a video or audio file here")).TextAlign(ui.Center)
-			if ui.Button(c.Key("src-choose"), i18n.T("Choose file…")).Clicked() {
+			if secondaryButton(c.Key("src-choose"), i18n.T("Choose file…")).Clicked() {
 				a.chooseDubSource()
 			}
 		})

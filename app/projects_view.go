@@ -154,12 +154,14 @@ func (a *app) libraryItems(c *ui.Context) {
 			ui.Column(c.Key("pj-empty")).Grow(1).Center().Children(func() { ui.Spinner(c).Label(i18n.T("Loading…")) })
 		case strings.TrimSpace(s.query) != "":
 			emptyState(c.Key("pj-empty"), icons.Magnifer, i18n.T("No matches for “%s”", strings.TrimSpace(s.query)), "", func() {
-				if ui.Button(c.Key("pj-empty-clear"), i18n.T("Clear search")).Clicked() {
+				if secondaryButton(c.Key("pj-empty-clear"), i18n.T("Clear search")).Clicked() {
 					s.query = ""
 				}
 			})
 		default:
-			emptyState(c.Key("pj-empty"), projectsIcon, i18n.T("Nothing here yet"), i18n.T("Write a story, make an audiobook, design a voice or generate a take, and it shows up here."), nil)
+			ui.Column(c.Key("pj-empty")).Grow(1).Padding(px(t, sp2), px(t, sp6)).Children(func() {
+				ghostRows(c, 4, projectsIcon, i18n.T("Nothing here yet"), i18n.T("Write a story, make an audiobook, design a voice or generate a take, and it shows up here."), nil)
+			})
 		}
 		return
 	}
@@ -286,7 +288,7 @@ func (a *app) itemTitle(c *ui.Context, it store.LibraryItem) {
 	if s.renaming == key {
 		ui.Row(c).Gap(px(t, 4)).AlignItems(ui.Center).Children(func() {
 			in := ui.TextInput(c.Key("rename"), &s.renameText).Label(i18n.T("Project name")).Grow(1).MinWidth(0).AutoFocus()
-			if in.Submitted() || ui.Button(c.Key("rename-ok"), i18n.T("Save name")).Disabled(strings.TrimSpace(s.renameText) == "").Clicked() {
+			if in.Submitted() || secondaryButton(c.Key("rename-ok"), i18n.T("Save name")).Disabled(strings.TrimSpace(s.renameText) == "").Clicked() {
 				if strings.TrimSpace(s.renameText) != "" {
 					a.renameItem(it, s.renameText)
 					s.renaming = ""
@@ -505,7 +507,7 @@ func (a *app) libraryDialogs(c *ui.Context) {
 				caption(c, i18n.T("This cannot be undone. Projects and export records are removed; deleting voices, takes or renders removes their audio too. Exported files are kept."))
 				ui.Row(c).Gap(px(t, sp2)).Children(func() {
 					ui.Spacer(c)
-					if ui.Button(c.Key("del-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
+					if secondaryButton(c.Key("del-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
 						s.deleteOpen = false
 					}
 					label := i18n.N(len(items), "Delete %d item", "Delete %d items", len(items))

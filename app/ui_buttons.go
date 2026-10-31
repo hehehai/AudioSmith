@@ -54,11 +54,11 @@ func recordButton(c *ui.Context, label string) ui.Element {
 	return b
 }
 
-// secondaryIconButton is a secondary button (ui.Button's look) with an
+// secondaryIconButton is a secondaryButton with an
 // icon before its label.
 func secondaryIconButton(c *ui.Context, ic icons.Icon, label string) ui.Element {
 	t := c.Theme()
-	b := ui.Button(c, "")
+	b := secondaryButton(c, "")
 	b.Children(func() {
 		ui.Icon(c, ic.Linear).Size(labelIcon(t), labelIcon(t))
 		ui.Text(c, label).SingleLine()
@@ -114,29 +114,8 @@ func dropButton(c *ui.Context, ic icons.Icon, label string) ui.Element {
 	return b
 }
 
-// dropText is a ghost button that opens a menu: its label and a
-// chevron, on the grey fill while on (a filter is set).
-func dropText(c *ui.Context, label string, on bool) ui.Element {
-	t := c.Theme()
-	k := tok(t)
-	b := ghostBase(c).Padding(px(t, 4), px(t, 6), px(t, 4), px(t, 10)).Gap(px(t, sp1)).AlignItems(ui.Center).Label(label).MinWidth(0).Shrink(1)
-	if on {
-		b.Background(k.Pressed)
-	}
-	b.Children(func() {
-		col := k.Text2
-		if on {
-			col = k.Text
-		}
-		ui.Text(c, label).FontSize(px(t, fsCaption)).TextColor(col).SingleLine().Ellipsis("…").MinWidth(0)
-		ui.Icon(c, icons.AltArrowDown.Linear).Size(px(t, 12), px(t, 12)).TextColor(k.Text3)
-	})
-	return b
-}
-
-// quietButton is an action in a row of dropText filters (Reset): the
-// same size, type and colour as they are, so the row keeps its height
-// when it appears.
+// quietButton is an action in a row of filter chips (Reset), in their
+// small type, so the row keeps its height when it appears.
 func quietButton(c *ui.Context, ic icons.Icon, label string) ui.Element {
 	t := c.Theme()
 	k := tok(t)

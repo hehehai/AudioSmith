@@ -77,32 +77,32 @@ func (a *app) lfAdvanced(c *ui.Context, p *lfPage, locked bool) {
 			if p.kind == core.ProjectStory && d.Production.Pacing != services.PacingFixed {
 				merge := !d.Production.NoMerge
 				formRow(c, "perf-merge-row", i18n.T("Merge a character's lines"), i18n.T("Consecutive lines of one character are said in one go, so the voice flows from one into the next; they are split back into lines for the player and stems (or made one by one when they cannot be)."), func() {
-					if ui.Switch(c.Key("perf-merge"), &merge).Label(i18n.T("Merge a character's lines")).Disabled(locked).Changed() {
+					if inkSwitch(c.Key("perf-merge"), &merge).Label(i18n.T("Merge a character's lines")).Disabled(locked).Changed() {
 						d.Production.NoMerge = !merge
 					}
 				})
 				level := !d.Production.NoLevel
 				formRow(c, "perf-level-row", i18n.T("Even out each voice"), i18n.T("Brings each character's lines toward one loudness, so a voice does not jump in level from line to line; louder or softer directions keep part of their difference."), func() {
-					if ui.Switch(c.Key("perf-level-switch"), &level).Label(i18n.T("Even out each voice")).Disabled(locked).Changed() {
+					if inkSwitch(c.Key("perf-level-switch"), &level).Label(i18n.T("Even out each voice")).Disabled(locked).Changed() {
 						d.Production.NoLevel = !level
 					}
 				})
 				emoGaps := !d.Production.NoEmotionGaps
 				formRow(c, "perf-emotion-gaps-row", i18n.T("Pauses follow the emotion"), i18n.T("Lines with an emotion change the pauses around them: excited or angry lines come quicker, hesitant or sad ones after a longer pause."), func() {
-					if ui.Switch(c.Key("perf-emotion-gaps"), &emoGaps).Label(i18n.T("Pauses follow the emotion")).Disabled(locked).Changed() {
+					if inkSwitch(c.Key("perf-emotion-gaps"), &emoGaps).Label(i18n.T("Pauses follow the emotion")).Disabled(locked).Changed() {
 						d.Production.NoEmotionGaps = !emoGaps
 					}
 				})
 				tracks := !d.Production.NoTracks
 				formRow(c, "perf-tracks-row", i18n.T("Each character's part in one go"), i18n.T("A character's lines with emotions are said in one synthesis per stretch of one feeling, so the voice carries on from line to line, and cut apart again with the forced aligner (%s). Narration, and a stretch that cannot be cut cleanly, are made line by line. Off: every line on its own.", modelRefID(catalog.DefaultAlign)), func() {
-					if ui.Switch(c.Key("perf-tracks"), &tracks).Label(i18n.T("Each character's part in one go")).Disabled(locked).Changed() {
+					if inkSwitch(c.Key("perf-tracks"), &tracks).Label(i18n.T("Each character's part in one go")).Disabled(locked).Changed() {
 						d.Production.NoTracks = !tracks
 					}
 				})
 			}
 			a.lfProduction(c, p, locked)
 			formRow(c, "book-stems-row", i18n.T("A stem per character"), i18n.T("Each character's lines on the book's timeline, silent elsewhere, for mixing. As large as the book per character."), func() {
-				ui.Switch(c.Key("book-stems"), &d.Stems).Label(i18n.T("A stem per character")).Disabled(locked)
+				inkSwitch(c.Key("book-stems"), &d.Stems).Label(i18n.T("A stem per character")).Disabled(locked)
 			})
 			if p.kind == core.ProjectStory {
 				sectionTitle(c, i18n.T("As an audiobook"))

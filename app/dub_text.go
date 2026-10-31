@@ -273,7 +273,7 @@ func (a *app) dubRetranscribeHint(c *ui.Context, key string) {
 		return
 	}
 	notice(c, key, noticeInfo, i18n.T("%s is ready: transcribe again to tell the speakers apart with it.", modelRef(e)), "", func() {
-		if ui.Button(c.Key(key+"-again"), i18n.T("Transcribe again")).Clicked() {
+		if secondaryButton(c.Key(key+"-again"), i18n.T("Transcribe again")).Clicked() {
 			a.dubConfirm, a.dubConfirmOpen = "transcribe", true
 		}
 	}, func() { a.dubDismissed["speakers-again"] = true })

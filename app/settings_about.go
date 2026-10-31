@@ -454,15 +454,15 @@ func (a *app) diagnosticsSettings(c *ui.Context) {
 			model = i18n.T("In memory: %s", catalog.Builtin().DisplayName(eng.Loaded[0]))
 		}
 		settingRowNote(c, "diag-engine", i18n.T("Speech engine"), state+"\n"+model, func() {
-			if ui.Button(c.Key("diag-engine-restart"), i18n.T("Restart engine")).Clicked() {
+			if secondaryButton(c.Key("diag-engine-restart"), i18n.T("Restart engine")).Clicked() {
 				a.restartEngine()
 			}
-			if ui.Button(c.Key("diag-engine-details"), i18n.T("Details")).Clicked() {
+			if secondaryButton(c.Key("diag-engine-details"), i18n.T("Details")).Clicked() {
 				a.navigate("/engine")
 			}
 		})
 		settingRow(c, "diag-logs", i18n.T("Logs"), i18n.T("What AudioSmith and the engine wrote: open them when something fails without a clear error."), func() {
-			if ui.Button(c.Key("diag-logs-open"), i18n.T("Show the logs")).Clicked() {
+			if secondaryButton(c.Key("diag-logs-open"), i18n.T("Show the logs")).Clicked() {
 				a.navigate("/logs")
 			}
 		})
@@ -473,7 +473,7 @@ func (a *app) diagnosticsSettings(c *ui.Context) {
 			if a.selfChecking {
 				ui.Spinner(c)
 			}
-			if ui.Button(c.Key("about-check"), i18n.T("Run the check")).Disabled(a.selfChecking).Clicked() {
+			if secondaryButton(c.Key("about-check"), i18n.T("Run the check")).Disabled(a.selfChecking).Clicked() {
 				a.runSelfCheck()
 			}
 		})
@@ -507,18 +507,18 @@ func (a *app) selfCheckList(c *ui.Context) {
 func (a *app) reportSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("Report a problem"), func() {
 		settingRow(c, "about-copy", i18n.T("Copy diagnostics"), i18n.T("Versions, the machine, folders and the self-check: no text, audio or keys."), func() {
-			if ui.Button(c.Key("about-copy"), i18n.T("Copy")).Clicked() {
+			if secondaryButton(c.Key("about-copy"), i18n.T("Copy")).Clicked() {
 				c.WriteClipboard(a.diagnosticsText())
 				a.toast(i18n.T("Diagnostics copied"))
 			}
 		})
 		settingRow(c, "about-bundle", i18n.T("Save a diagnostic bundle"), i18n.T("A ZIP of the diagnostics, the logs and the settings (without keys), to attach to a report."), func() {
-			if ui.Button(c.Key("about-bundle"), i18n.T("Save…")).Clicked() {
+			if secondaryButton(c.Key("about-bundle"), i18n.T("Save…")).Clicked() {
 				a.saveBundle()
 			}
 		})
 		settingRow(c, "about-bug", i18n.T("Report a bug"), i18n.T("Opens a new issue on GitHub in your browser, with the diagnostics filled in. Nothing is sent until you submit it."), func() {
-			if ui.Button(c.Key("about-bug"), i18n.T("Report…")).Clicked() {
+			if secondaryButton(c.Key("about-bug"), i18n.T("Report…")).Clicked() {
 				u := a.bugReportURL()
 				if a.win == nil {
 					c.Services().OpenURL(u)

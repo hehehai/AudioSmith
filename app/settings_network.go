@@ -158,7 +158,7 @@ func (a *app) networkSettings(c *ui.Context) {
 			if a.netTesting {
 				ui.Spinner(c)
 			}
-			if ui.Button(c.Key("net-test"), i18n.T("Test")).Disabled(a.netTesting).Clicked() {
+			if secondaryButton(c.Key("net-test"), i18n.T("Test")).Disabled(a.netTesting).Clicked() {
 				a.testNetwork(nil)
 			}
 		})

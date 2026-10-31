@@ -283,7 +283,7 @@ func (a *app) reuseCard(c *ui.Context) {
 			case reuseChoose:
 				caption(c, i18n.T("Models lists them after the setup: use the ones you want."))
 			}
-			if ui.Button(c.Key("ob-reuse-use"), i18n.T("Use them")).Clicked() {
+			if secondaryButton(c.Key("ob-reuse-use"), i18n.T("Use them")).Clicked() {
 				pack := a.obPack
 				a.reusePack(pack, func() { a.obReuse = reuseUsed })
 			}

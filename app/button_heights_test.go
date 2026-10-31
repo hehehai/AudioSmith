@@ -13,7 +13,7 @@ import (
 func TestButtonHeights(t *testing.T) {
 	var els []ui.Element
 	var hs []float32
-	names := []string{"ui.Button", "primary", "primaryIcon", "secondaryIcon", "ghost", "ghostIcon", "dropButton", "record"}
+	names := []string{"ui.Button", "primary", "primaryIcon", "secondaryIcon", "ghost", "ghostIcon", "dropButton", "record", "secondary", "text"}
 	view := func(c *ui.Context) {
 		th := *c.Theme()
 		styleTheme(&th)
@@ -29,6 +29,8 @@ func TestButtonHeights(t *testing.T) {
 				ghostIconButton(c.Key("f"), icons.AddCircle, "Ghost icon"),
 				dropButton(c.Key("g"), icons.AddCircle, "Drop"),
 				recordButton(c.Key("h"), "Record"),
+				secondaryButton(c.Key("i"), "Secondary"),
+				textButton(c.Key("j"), "Text", true),
 			)
 		})
 		hs = hs[:0]

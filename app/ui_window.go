@@ -15,12 +15,14 @@ import (
 
 // Sizes of the window layout, DIPs at 100 %.
 const (
-	// fsPageTitle is a page's title in the title bar: a step under fsTitle
-	// (the setup's, an empty page's big titles).
-	fsPageTitle = 16
+	// fsPageTitle is a page's title in the title bar, in the regular
+	// weight: under fsTitle, which would crowd the title bar's tools.
+	fsPageTitle = 22
+	// fwPageTitle is its weight: regular, as the overhaul's titles are.
+	fwPageTitle = 400
 	// radiusDialog rounds what floats over the window: Settings, ⌘K, the
 	// dialogs.
-	radiusDialog = 18
+	radiusDialog = 16
 	// radiusNotice rounds the activity cards at the sidebar's foot.
 	radiusNotice = 14
 	// settingControlW is the width of Settings' selects, fields and
@@ -114,7 +116,7 @@ func headerRow(c *ui.Context, title, note string, history bool, trailing func())
 				headerNav.forward()
 			}
 		}
-		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(fwPageTitle).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if note != "" {
 			ui.Text(c, note).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
 		}

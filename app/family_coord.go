@@ -257,12 +257,12 @@ func (a *app) shortcutConflictCard(c *ui.Context) {
 					a.famPrompt = nil
 				}
 				if link := family.ShortcutLink(p.Other); link != "" {
-					if ui.Button(c.Key("family-conflict-open"), i18n.T("Open %s settings", p.Other.Name)).Clicked() {
+					if secondaryButton(c.Key("family-conflict-open"), i18n.T("Open %s settings", p.Other.Name)).Clicked() {
 						a.famPrompt = nil
 						c.Services().OpenURL(link)
 					}
 				}
-				if ui.Button(c.Key("family-conflict-change"), i18n.T("Change shortcut")).Clicked() {
+				if secondaryButton(c.Key("family-conflict-change"), i18n.T("Change shortcut")).Clicked() {
 					a.famPrompt = nil
 					a.navigate("/settings/dictation")
 				}

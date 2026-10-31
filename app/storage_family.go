@@ -59,7 +59,7 @@ func (a *app) familyStorage(c *ui.Context, r *storageReport) {
 	}
 	settingRow(c, "st-orphans", i18n.N(r.orphans, "%d model (%s) is only used by apps that are no longer installed.",
 		"%d models (%s) are only used by apps that are no longer installed.", r.orphans, humanBytes(r.orphanBytes)), "", func() {
-		if ui.Button(c.Key("st-orphans-clean"), i18n.T("Clean up")).Disabled(a.stOrphansBusy).Clicked() {
+		if secondaryButton(c.Key("st-orphans-clean"), i18n.T("Clean up")).Disabled(a.stOrphansBusy).Clicked() {
 			a.cleanOrphans()
 		}
 	})

@@ -112,20 +112,22 @@ func (a *app) galleryCategorySelect(c *ui.Context, page gallery.Page, narrow boo
 	}
 }
 
-// facetMenu is one facet as a menu button of its values with counts.
+// facetMenu is one facet as a filter chip ("+ Gender", then "× Gender |
+// Female") opening the menu of its values with counts.
 func (a *app) facetMenu(c *ui.Context, f gallery.Facet, values []gallery.FacetCount) {
 	g := &a.gallery
 	loc := i18n.Locale()
 	cur := g.filters[f]
-	label := facetTitle(f)
+	value := ""
 	if cur != "" {
 		for _, v := range gallery.FacetValues(f) {
 			if v.Value == cur {
-				label += ": " + v.Label.In(loc)
+				value = v.Label.In(loc)
 			}
 		}
 	}
-	dropText(c.Key("facet-"+string(f)), label, cur != "").Label(facetTitle(f)).Tooltip(label).Menu(func(m *ui.Menu) {
+	b, cleared := filterChip(c.Key("facet-"+string(f)), facetTitle(f), value)
+	b.Menu(func(m *ui.Menu) {
 		if m.Item(i18n.T("Any")).Checked(cur == "").Chosen() {
 			delete(g.filters, f)
 			g.limit = galleryPageSize
@@ -137,6 +139,10 @@ func (a *app) facetMenu(c *ui.Context, f gallery.Facet, values []gallery.FacetCo
 			}
 		}
 	})
+	if cleared {
+		delete(g.filters, f)
+		g.limit = galleryPageSize
+	}
 }
 
 // archetypeCard is one gallery voice: a flat card with its avatar, name,
@@ -209,7 +215,7 @@ func (a *app) archetypeCard(c *ui.Context, arch gallery.Archetype) {
 			if !arch.Designed() {
 				tip = i18n.T("Save it to your voices and open it in the Studio")
 			}
-			if ui.Button(c.Key("use"), i18n.T("Use voice")).Disabled(g.using).Tooltip(tip).Clicked() {
+			if secondaryButton(c.Key("use"), i18n.T("Use voice")).Disabled(g.using).Tooltip(tip).Clicked() {
 				a.useArchetype(arch, false)
 			}
 			moreMenu(c.Key("more"), "", func(m *ui.Menu) {

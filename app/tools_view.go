@@ -33,7 +33,7 @@ func (a *app) toolsPage(c *ui.Context) {
 		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 760)).Children(func() {
 			if !narrow {
 				ui.Row(c).Children(func() {
-					ui.Segmented(c.Key("tools-tab"), &a.toolTab, tabs...).Label(i18n.T("Tool"))
+					underlineTabs(c.Key("tools-tab"), &a.toolTab, tabs...).Label(i18n.T("Tool")).Grow(1)
 				})
 			}
 			switch a.toolTab {
@@ -154,7 +154,7 @@ func (a *app) convertTool(c *ui.Context) {
 		ui.Select(c.Key("cv-voice"), &cv.voice, labels).Label(i18n.T("Voice")).Width(px(t, 280)).Shrink(1).MinWidth(0)
 	})
 	settingRow(c, "cv-match", i18n.T("Match the recording's length"), i18n.T("%s aims at the length as it speaks; other models' takes are time-stretched to it, at the same pitch (up to twice as fast or slow).", modelRefID(idOmniVoice)), func() {
-		ui.Switch(c.Key("cv-match-switch"), &cv.match).Label(i18n.T("Match the recording's length"))
+		inkSwitch(c.Key("cv-match-switch"), &cv.match).Label(i18n.T("Match the recording's length"))
 	})
 	ui.Row(c).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
 		if primaryButton(c.Key("cv-run"), i18n.T("Convert")).Disabled(cv.file == "" || cv.stage != "").Clicked() {
@@ -221,7 +221,7 @@ func (a *app) rateFitTool(c *ui.Context) {
 		desc = i18n.T("Set up a language model in Settings → Writing help to get shorter versions.")
 	}
 	settingRowNote(c, "rf-rewrite", i18n.T("Suggest a shorter version"), desc, func() {
-		ui.Switch(c.Key("rf-rewrite-switch"), &rf.rewrite).Disabled(!canRewrite).Label(i18n.T("Suggest a shorter version"))
+		inkSwitch(c.Key("rf-rewrite-switch"), &rf.rewrite).Disabled(!canRewrite).Label(i18n.T("Suggest a shorter version"))
 	})
 	ui.Row(c).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
 		if primaryButton(c.Key("rf-run"), i18n.T("Check")).Disabled(rf.busy || strings.TrimSpace(rf.text) == "" || rf.slot <= 0).Clicked() {

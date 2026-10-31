@@ -136,7 +136,7 @@ func (a *app) reviewBuffer(c *ui.Context, p *lfPage, locked bool) {
 				}
 			}
 			ui.Spacer(c)
-			if ui.Button(c.Key("st-split"), i18n.T("Split into lines")).Disabled(locked || empty).Clicked() {
+			if secondaryButton(c.Key("st-split"), i18n.T("Split into lines")).Disabled(locked || empty).Clicked() {
 				a.splitStory(p)
 			}
 			if secondaryIconButton(c.Key("st-autocast"), icons.MagicStick3, i18n.T("Auto-cast")).Label(i18n.T("Auto-cast")).
@@ -154,7 +154,7 @@ func (a *app) storyLines(c *ui.Context, p *lfPage, locked bool) {
 	heard := storyContinuity(p.doc.Model) != services.ContinuityLines
 	if len(lines) == 0 {
 		emptyState(c.Key("st-empty"), icons.Dialog2, i18n.T("New story"), i18n.T("Start your story with dialogue and narration lines, and give each character a voice in the Cast."), func() {
-			if ui.Button(c.Key("st-empty-sample"), i18n.T("Load sample")).Disabled(locked).Clicked() {
+			if secondaryButton(c.Key("st-empty-sample"), i18n.T("Load sample")).Disabled(locked).Clicked() {
 				a.loadSampleStory(p)
 			}
 			if secondaryIconButton(c.Key("st-empty-add"), icons.AddCircle, i18n.T("Add first line")).Label(i18n.T("Add first line")).Disabled(locked).Clicked() {
@@ -326,7 +326,7 @@ func (a *app) lineOptions(c *ui.Context, p *lfPage, l *services.StoryLine, locke
 		}
 		if e.Has(catalog.CapSpeed) {
 			formRow(c, "opt-speed", i18n.T("Speed %.2f×", sp), "", func() {
-				if snapped(ui.Slider(c.Key("line-speed"), &sp, 0.5, 2).Label(i18n.T("Speed")).Width(px(t, 160)).Shrink(1).Disabled(locked), &sp, 0.05).Changed() {
+				if snapped(slimSlider(c.Key("line-speed"), &sp, 0.5, 2).Label(i18n.T("Speed")).Width(px(t, 160)).Shrink(1).Disabled(locked), &sp, 0.05).Changed() {
 					l.Speed = sp
 				}
 				if l.Speed > 0 && iconButton(c.Key("speed-reset"), icons.Restart, i18n.T("Reset")).Disabled(locked).Clicked() {

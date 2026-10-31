@@ -202,7 +202,7 @@ func (a *app) audioToolsSettings(c *ui.Context) {
 			settingRowNote(c, "ff-checking", i18n.T("Checking ffmpeg…"), shortPath(m.FFmpeg), func() { ui.Spinner(c) })
 		case tool == nil:
 			settingRowNote(c, "ff-broken", i18n.T("ffmpeg does not run"), orDash(a.ffErr), func() {
-				if ui.Button(c.Key("ff-retry"), i18n.T("Try again")).Clicked() {
+				if secondaryButton(c.Key("ff-retry"), i18n.T("Try again")).Clicked() {
 					a.ffPath = ""
 					a.loadMediaTool()
 				}
@@ -217,7 +217,7 @@ func (a *app) audioToolsSettings(c *ui.Context) {
 				if m.Origin == settings.MediaDownloaded {
 					label = i18n.T("Remove")
 				}
-				if ui.Button(c.Key("ff-remove"), label).Clicked() {
+				if secondaryButton(c.Key("ff-remove"), label).Clicked() {
 					a.removeFFmpeg()
 				}
 			})
@@ -247,17 +247,17 @@ func (a *app) audioToolsSettings(c *ui.Context) {
 		for _, p := range a.ffSystem {
 			settingRow(c, "ff-sys-"+p, shortPath(p), "", func() {
 				inUse := m.FFmpeg == p
-				if ui.Button(c.Key("ff-use"), i18n.T("Use this one")).Disabled(inUse).Clicked() {
+				if secondaryButton(c.Key("ff-use"), i18n.T("Use this one")).Disabled(inUse).Clicked() {
 					a.useFFmpeg(p, settings.MediaSystem)
 				}
 			})
 		}
 		settingBlock(c, "ff-sys-actions", func() {
 			ui.Row(c).Gap(px(t, 8)).Children(func() {
-				if ui.Button(c.Key("ff-rescan"), i18n.T("Look again")).Clicked() {
+				if secondaryButton(c.Key("ff-rescan"), i18n.T("Look again")).Clicked() {
 					a.scanFFmpeg()
 				}
-				if a.win != nil && ui.Button(c.Key("ff-choose"), i18n.T("Choose a file…")).Clicked() {
+				if a.win != nil && secondaryButton(c.Key("ff-choose"), i18n.T("Choose a file…")).Clicked() {
 					a.chooseFFmpeg()
 				}
 			})
@@ -288,7 +288,7 @@ func (a *app) ffmpegDownloadRows(c *ui.Context) {
 				}
 				ui.Progress(c, frac).Grow(1)
 				ui.Text(c, i18n.T("%.0f of %.0f MB", float64(st.done)/1e6, float64(st.size)/1e6)).FontSize(px(t, 12)).TextColor(t.TextMuted)
-				if ui.Button(c.Key("ff-cancel"), i18n.T("Cancel")).Clicked() && st.cancel != nil {
+				if secondaryButton(c.Key("ff-cancel"), i18n.T("Cancel")).Clicked() && st.cancel != nil {
 					st.cancel()
 				}
 			})
@@ -296,7 +296,7 @@ func (a *app) ffmpegDownloadRows(c *ui.Context) {
 	default:
 		settingRowNote(c, "ff-download", i18n.T("Download ffmpeg"), desc, func() {
 			disabled := m.Origin == settings.MediaDownloaded && tool != nil
-			if ui.Button(c.Key("ff-install"), i18n.T("Download")).Disabled(disabled).Clicked() {
+			if secondaryButton(c.Key("ff-install"), i18n.T("Download")).Disabled(disabled).Clicked() {
 				a.installFFmpeg()
 			}
 		})

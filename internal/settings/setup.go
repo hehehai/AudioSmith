@@ -74,6 +74,8 @@ func normalizeM7(s *Settings) {
 
 func cloneM7(s *Settings) {
 	s.Appearance.ClosedSections = slices.Clone(s.Appearance.ClosedSections)
+	s.Appearance.Advanced = slices.Clone(s.Appearance.Advanced)
+	s.Appearance.Seen = slices.Clone(s.Appearance.Seen)
 }
 
 // migrateM7 marks the setup done in documents saved before the wizard

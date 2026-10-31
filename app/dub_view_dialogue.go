@@ -136,7 +136,7 @@ func (a *app) dubDialogueRow(c *ui.Context, locked bool) {
 	fillCard(c.Key("cast-dialogue")).Gap(px(t, 4)).Padding(px(t, sp3)).Children(func() {
 		on := d.on
 		formRow(c, "cast-dialogue-row", title, info, func() {
-			if ui.Switch(c.Key("cast-dialogue"), &on).Label(title).Disabled(locked || d.blocked != "").Changed() {
+			if inkSwitch(c.Key("cast-dialogue"), &on).Label(title).Disabled(locked || d.blocked != "").Changed() {
 				v := dub.DialogueOff
 				if on {
 					v = dub.DialogueAuto

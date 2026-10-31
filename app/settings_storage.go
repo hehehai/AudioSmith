@@ -340,7 +340,7 @@ func (a *app) storageSettings(c *ui.Context) {
 	r := a.stReport
 	muted := func(s string) { ui.Text(c, s).FontSize(px(t, 12)).TextColor(t.TextMuted) }
 	open := func(key, dir string) {
-		if dir != "" && a.win != nil && ui.Button(c.Key(key), i18n.T("Open")).Clicked() {
+		if dir != "" && a.win != nil && secondaryButton(c.Key(key), i18n.T("Open")).Clicked() {
 			mygo.Shell.OpenPath(dir)
 		}
 	}
@@ -348,20 +348,20 @@ func (a *app) storageSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("Data folder"), func() {
 		settingRow(c, "st-data", shortPath(a.dataDir()), i18n.T("Your library: takes, voices, projects, dubs, transcripts and the database."), func() {
 			open("st-open-data", a.dataDir())
-			if ui.Button(c.Key("st-move"), i18n.T("Move…")).Disabled(a.moving).Clicked() {
+			if secondaryButton(c.Key("st-move"), i18n.T("Move…")).Disabled(a.moving).Clicked() {
 				chooseMoveDir(a, a.startMove)
 			}
 		})
 		if l := a.stLoc; l.Previous != "" {
 			settingRowNote(c, "st-prev", i18n.T("The previous data folder is still there"), shortPath(l.Previous), func() {
-				if ui.Button(c.Key("st-prev-rm"), i18n.T("Remove it")).Clicked() {
+				if secondaryButton(c.Key("st-prev-rm"), i18n.T("Remove it")).Clicked() {
 					a.removePrevious()
 				}
 			})
 		}
 		if l := a.stLoc; l.Failed != "" {
 			settingRowNote(c, "st-failed", i18n.T("The last move did not happen"), l.Failed, func() {
-				if ui.Button(c.Key("st-failed-ok"), i18n.T("Dismiss")).Clicked() {
+				if secondaryButton(c.Key("st-failed-ok"), i18n.T("Dismiss")).Clicked() {
 					a.dismissMoveFailure()
 				}
 			})
@@ -386,7 +386,7 @@ func (a *app) storageSettings(c *ui.Context) {
 					ui.Row(c.Key("cat-" + cat.id)).Children(func() {
 						if cat.id == "caches" {
 							busy := len(a.activeJobs()) > 0
-							b := ui.Button(c.Key("st-clear"), i18n.T("Clear")).Disabled(busy || cat.bytes == 0)
+							b := secondaryButton(c.Key("st-clear"), i18n.T("Clear")).Disabled(busy || cat.bytes == 0)
 							if busy {
 								b.Tooltip(i18n.T("Wait for the jobs in progress"))
 							}
@@ -420,7 +420,7 @@ func (a *app) storageSettings(c *ui.Context) {
 				hint = i18n.T("Models can be downloaded again, so Time Machine leaves them out. Applies to all ActNow apps.")
 			}
 			settingRow(c, "st-models-backup", i18n.T("Back up models with Time Machine"), hint, func() {
-				if ui.Switch(c.Key("st-models-backup-switch"), &on).Changed() {
+				if inkSwitch(c.Key("st-models-backup-switch"), &on).Changed() {
 					go func(on bool) {
 						if err := fam.SetBackup(context.Background(), on); err != nil {
 							log.Printf("family: Time Machine: %v", err)
@@ -448,17 +448,17 @@ func (a *app) storageSettings(c *ui.Context) {
 	})
 	settingGroup(c, i18n.T("Reset"), func() {
 		settingRow(c, "st-reset-look", i18n.T("Reset the look"), i18n.T("Theme, colours, size, sidebar and language."), func() {
-			if ui.Button(c.Key("st-reset-look"), i18n.T("Reset")).Clicked() {
+			if secondaryButton(c.Key("st-reset-look"), i18n.T("Reset")).Clicked() {
 				a.resetLook()
 			}
 		})
 		settingRow(c, "st-reset-settings", i18n.T("Reset all settings"), i18n.T("Every setting goes back to its default. Your library, models and saved keys stay."), func() {
-			if ui.Button(c.Key("st-reset-settings"), i18n.T("Reset…")).Clicked() {
+			if secondaryButton(c.Key("st-reset-settings"), i18n.T("Reset…")).Clicked() {
 				a.resetAsk = "settings"
 			}
 		})
 		settingRow(c, "st-erase", i18n.T("Erase everything"), i18n.T("Deletes your library (takes, voices, projects, dubs, transcripts), settings, caches and logs, then restarts AudioSmith as new."), func() {
-			if ui.Button(c.Key("st-erase"), i18n.T("Erase…")).Clicked() {
+			if secondaryButton(c.Key("st-erase"), i18n.T("Erase…")).Clicked() {
 				a.resetAsk, a.resetText = "everything", ""
 				a.eraseKeeps()
 			}
@@ -475,10 +475,10 @@ func (a *app) storageDialogs(c *ui.Context) {
 		ui.Text(c, i18n.T("Reset all settings?")).Bold()
 		ui.Text(c, i18n.T("Every setting goes back to its default. Your library, models and saved keys stay.")).Width(px(t, 380))
 		ui.Row(c).Gap(px(t, 8)).Justify(ui.End).Children(func() {
-			if ui.Button(c.Key("st-ask-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
+			if secondaryButton(c.Key("st-ask-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
 				a.resetAsk = ""
 			}
-			if ui.Button(c.Key("st-ask-ok"), i18n.T("Reset the settings")).Clicked() {
+			if secondaryButton(c.Key("st-ask-ok"), i18n.T("Reset the settings")).Clicked() {
 				a.resetAsk = ""
 				a.resetSettings()
 			}
@@ -499,10 +499,10 @@ func (a *app) storageDialogs(c *ui.Context) {
 		ui.Text(c, i18n.T("Type DELETE to confirm.")).FontSize(px(t, 12)).TextColor(t.TextMuted)
 		ui.TextInput(c.Key("st-erase-text"), &a.resetText).Placeholder("DELETE").Width(px(t, 200)).Label(i18n.T("Type DELETE to confirm."))
 		ui.Row(c).Gap(px(t, 8)).Justify(ui.End).Children(func() {
-			if ui.Button(c.Key("st-erase-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
+			if secondaryButton(c.Key("st-erase-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
 				a.resetAsk = ""
 			}
-			if ui.Button(c.Key("st-erase-ok"), i18n.T("Erase and restart")).Disabled(strings.TrimSpace(a.resetText) != "DELETE").Clicked() {
+			if secondaryButton(c.Key("st-erase-ok"), i18n.T("Erase and restart")).Disabled(strings.TrimSpace(a.resetText) != "DELETE").Clicked() {
 				a.eraseAll()
 			}
 		})
@@ -535,7 +535,7 @@ func (a *app) storageDialogs(c *ui.Context) {
 			}
 			ui.Text(c, status).FontSize(px(t, 12)).TextColor(t.TextMuted)
 			ui.Row(c).Justify(ui.End).Children(func() {
-				if ui.Button(c.Key("st-move-cancel"), i18n.T("Cancel")).Disabled(a.moveCancel == nil).Clicked() && a.moveCancel != nil {
+				if secondaryButton(c.Key("st-move-cancel"), i18n.T("Cancel")).Disabled(a.moveCancel == nil).Clicked() && a.moveCancel != nil {
 					a.moveCancel()
 				}
 			})

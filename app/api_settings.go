@@ -27,7 +27,7 @@ func (a *app) apiSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("Server"), func() {
 		on := cfg.Enabled
 		settingRow(c, "api-on", i18n.T("Run the Local API"), i18n.T("OpenAI-compatible speech and transcription, AudioSmith's own API and an MCP server for agents, on this Mac only."), func() {
-			if ui.Switch(c.Key("api-on-switch"), &on).Label(i18n.T("Run the Local API")).Changed() {
+			if inkSwitch(c.Key("api-on-switch"), &on).Label(i18n.T("Run the Local API")).Changed() {
 				a.updateSettings(func(s *settings.Settings) { s.API.Enabled = on })
 				a.applyAPI()
 			}
@@ -35,7 +35,7 @@ func (a *app) apiSettings(c *ui.Context) {
 		settingRow(c, "api-port", i18n.T("Port"), i18n.T("Clients connect to 127.0.0.1 at this port. Changing it breaks the configurations you gave out."), func() {
 			numberInput(c.Key("api-port-input"), &a.apiForm.port, 1024, 65535, 1, numOpts{Label: i18n.T("Port")})
 			p := int(a.apiForm.port)
-			if ui.Button(c.Key("api-port-apply"), i18n.T("Apply")).Disabled(p == cfg.LoopbackPort() || p < 1024).Clicked() {
+			if secondaryButton(c.Key("api-port-apply"), i18n.T("Apply")).Disabled(p == cfg.LoopbackPort() || p < 1024).Clicked() {
 				a.updateSettings(func(s *settings.Settings) { s.API.Port = p })
 				a.applyAPI()
 			}
@@ -61,7 +61,7 @@ func (a *app) apiStatusRow(c *ui.Context) {
 			ui.Badge(c, i18n.T("Running"))
 			ui.Text(c, a.apiBaseURL()).Font(monoFont).Grow(1).SingleLine()
 		}
-		if ui.Button(c.Key("api-copy-url"), i18n.T("Copy base URL")).Tooltip(i18n.T("The OpenAI base URL: %s", a.apiBaseURL()+"/v1")).Clicked() {
+		if secondaryButton(c.Key("api-copy-url"), i18n.T("Copy base URL")).Tooltip(i18n.T("The OpenAI base URL: %s", a.apiBaseURL()+"/v1")).Clicked() {
 			c.Services().WriteClipboard(a.apiBaseURL() + "/v1")
 			a.toast(i18n.T("Copied"))
 		}
@@ -83,10 +83,10 @@ func (a *app) apiAccessSettings(c *ui.Context) {
 			if a.apiHasKey {
 				label = i18n.T("Replace")
 			}
-			if ui.Button(c.Key("api-key-gen"), label).Clicked() {
+			if secondaryButton(c.Key("api-key-gen"), label).Clicked() {
 				a.generateAPIKey()
 			}
-			if ui.Button(c.Key("api-key-revoke"), i18n.T("Revoke")).Disabled(!a.apiHasKey).Clicked() {
+			if secondaryButton(c.Key("api-key-revoke"), i18n.T("Revoke")).Disabled(!a.apiHasKey).Clicked() {
 				a.revokeAPIKey()
 			}
 		})
@@ -95,7 +95,7 @@ func (a *app) apiAccessSettings(c *ui.Context) {
 		}
 		require := cfg.RequireKey
 		settingRow(c, "api-require", i18n.T("Require the key on this Mac too"), i18n.T("Every client must send the key, also programs on this Mac. Health and the API reference stay open."), func() {
-			if ui.Switch(c.Key("api-require-switch"), &require).Label(i18n.T("Require the key on this Mac too")).Disabled(!a.apiHasKey && !require).Changed() {
+			if inkSwitch(c.Key("api-require-switch"), &require).Label(i18n.T("Require the key on this Mac too")).Disabled(!a.apiHasKey && !require).Changed() {
 				a.updateSettings(func(s *settings.Settings) { s.API.RequireKey = require })
 			}
 		})
@@ -104,7 +104,7 @@ func (a *app) apiAccessSettings(c *ui.Context) {
 			ui.TextArea(c.Key("api-origins"), &a.apiForm.origins).Height(px(t, 52)).Font(monoFont).Label(i18n.T("Browser origins allowed"))
 			ui.Row(c.Key("api-origins-row")).Justify(ui.End).Children(func() {
 				origins := splitLines(a.apiForm.origins)
-				if ui.Button(c.Key("api-origins-save"), i18n.T("Save")).Disabled(slices.Equal(origins, cfg.Origins)).Clicked() {
+				if secondaryButton(c.Key("api-origins-save"), i18n.T("Save")).Disabled(slices.Equal(origins, cfg.Origins)).Clicked() {
 					a.updateSettings(func(s *settings.Settings) { s.API.Origins = origins })
 				}
 			})
@@ -115,7 +115,7 @@ func (a *app) apiAccessSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("Sharing on the local network"), func() {
 		sharing := a.apiShare != nil
 		settingRow(c, "api-share", i18n.T("Share with other devices"), i18n.T("Opens port %d on your network. Devices need the PIN below for speech, transcription and voices; the key for everything else. Until you turn it off or quit.", cfg.LANPort()), func() {
-			if ui.Switch(c.Key("api-share-switch"), &sharing).Label(i18n.T("Share with other devices")).Disabled(a.apiPort == 0 && !sharing).Changed() {
+			if inkSwitch(c.Key("api-share-switch"), &sharing).Label(i18n.T("Share with other devices")).Disabled(a.apiPort == 0 && !sharing).Changed() {
 				if sharing {
 					a.startSharing()
 				} else {
@@ -137,7 +137,7 @@ func (a *app) apiAccessSettings(c *ui.Context) {
 func (a *app) apiShareInfo(c *ui.Context, sh *api.Share) {
 	t := c.Theme()
 	muted := func(s string) { ui.Text(c, s).FontSize(px(t, 12)).TextColor(t.TextMuted).Wrap() }
-	ui.Column(c.Key("api-share-info")).Gap(px(t, 6)).Padding(px(t, 12)).Radius(8).Background(t.Surface).Children(func() {
+	ui.Column(c.Key("api-share-info")).Gap(px(t, 6)).Padding(px(t, 12)).Radius(px(t, radiusControl)).Background(tok(t).Subtle).Children(func() {
 		ui.Row(c).Gap(px(t, 12)).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, i18n.T("PIN")).TextColor(t.TextMuted)
 			ui.Text(c, sh.PIN[:3]+" "+sh.PIN[3:]).Font(monoFont).FontSize(px(t, 22)).Bold()
@@ -148,7 +148,7 @@ func (a *app) apiShareInfo(c *ui.Context, sh *api.Share) {
 		for i, u := range sh.URLs {
 			ui.Row(c.Key("share-url-" + strconv.Itoa(i))).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, u+"/v1").Font(monoFont).Grow(1).SingleLine()
-				if ui.Button(c.Key("copy"), i18n.T("Copy")).Clicked() {
+				if secondaryButton(c.Key("copy"), i18n.T("Copy")).Clicked() {
 					c.Services().WriteClipboard(u + "/v1")
 					a.toast(i18n.T("Copied"))
 				}
@@ -162,16 +162,16 @@ func (a *app) apiShareInfo(c *ui.Context, sh *api.Share) {
 func (a *app) apiAgentSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("Agents (MCP)"), func() {
 		settingRow(c, "api-mcp-output", i18n.T("Audio for agents"), i18n.T("How generate_speech hands back audio: in the answer, as a WAV file in the folder below, or both."), func() {
-			if ui.Segmented(c.Key("api-output-seg"), &a.apiForm.output, i18n.T("Both"), i18n.T("Inline"), i18n.T("File")).Label(i18n.T("Audio for agents")).Changed() {
+			if segmented(c.Key("api-output-seg"), &a.apiForm.output, i18n.T("Both"), i18n.T("Inline"), i18n.T("File")).Label(i18n.T("Audio for agents")).Changed() {
 				mode := []string{settings.MCPOutputBoth, settings.MCPOutputInline, settings.MCPOutputFile}[a.apiForm.output]
 				a.updateSettings(func(s *settings.Settings) { s.API.MCPOutput = mode })
 			}
 		})
 		settingRowNote(c, "api-mcp-dir", i18n.T("Folder for agents' audio"), a.apiSandbox(), func() {
-			if ui.Button(c.Key("api-dir-choose"), i18n.T("Choose…")).Clicked() {
+			if secondaryButton(c.Key("api-dir-choose"), i18n.T("Choose…")).Clicked() {
 				a.chooseAPIDir()
 			}
-			if ui.Button(c.Key("api-dir-reveal"), i18n.T("Show in Finder")).Clicked() {
+			if secondaryButton(c.Key("api-dir-reveal"), i18n.T("Show in Finder")).Clicked() {
 				a.revealAPIDir()
 			}
 		})
@@ -181,10 +181,10 @@ func (a *app) apiAgentSettings(c *ui.Context) {
 	})
 	settingGroup(c, i18n.T("API reference"), func() {
 		settingRowNote(c, "api-ref", i18n.T("OpenAPI description"), a.apiBaseURL()+"/openapi.json", func() {
-			if ui.Button(c.Key("api-ref-open"), i18n.T("Open the reference")).Disabled(a.apiPort == 0).Clicked() {
+			if secondaryButton(c.Key("api-ref-open"), i18n.T("Open the reference")).Disabled(a.apiPort == 0).Clicked() {
 				a.navigate("/api-reference")
 			}
-			if ui.Button(c.Key("api-ref-browser"), i18n.T("Open in the browser")).Disabled(a.apiPort == 0).Clicked() {
+			if secondaryButton(c.Key("api-ref-browser"), i18n.T("Open in the browser")).Disabled(a.apiPort == 0).Clicked() {
 				go mygo.Shell.OpenExternal(a.apiBaseURL() + "/docs")
 			}
 		})
@@ -246,7 +246,7 @@ func (a *app) apiBindingList(c *ui.Context, labels, ids []string) {
 				name = labels[j]
 			}
 			ui.Text(c, name).Grow(1).SingleLine()
-			if ui.Button(c.Key("remove"), i18n.T("Remove")).Clicked() {
+			if secondaryButton(c.Key("remove"), i18n.T("Remove")).Clicked() {
 				idx := i
 				a.updateSettings(func(s *settings.Settings) {
 					if idx < len(s.API.Bindings) {
@@ -276,7 +276,7 @@ func (a *app) apiBindingList(c *ui.Context, labels, ids []string) {
 		ui.Select(c.Key("binding-voice"), &f.newVoice, labels).Grow(1).Label(i18n.T("Voice"))
 		client := strings.TrimSpace(f.newClient)
 		_, exists := cfg.Binding(client)
-		if ui.Button(c.Key("binding-add"), i18n.T("Add")).Disabled(client == "" || exists).Clicked() {
+		if secondaryButton(c.Key("binding-add"), i18n.T("Add")).Disabled(client == "" || exists).Clicked() {
 			voice := ""
 			if j := slices.Index(labels, f.newVoice); j >= 0 {
 				voice = ids[j]
@@ -342,13 +342,13 @@ func (a *app) revealAPIDir() {
 // apiNewKeyRow is a key just made: shown once, to copy.
 func (a *app) apiNewKeyRow(c *ui.Context) {
 	t := c.Theme()
-	ui.Row(c.Key("api-new-key")).Gap(px(t, 8)).AlignItems(ui.Center).Padding(px(t, 8)).Radius(6).Background(t.Surface).Children(func() {
+	ui.Row(c.Key("api-new-key")).Gap(px(t, 8)).AlignItems(ui.Center).Padding(px(t, 8)).Radius(px(t, radiusControl)).Background(tok(t).Subtle).Children(func() {
 		ui.Text(c, a.apiNewKey).Font(monoFont).Grow(1).SingleLine()
-		if ui.Button(c.Key("api-key-copy"), i18n.T("Copy")).Clicked() {
+		if secondaryButton(c.Key("api-key-copy"), i18n.T("Copy")).Clicked() {
 			c.Services().WriteClipboard(a.apiNewKey)
 			a.toast(i18n.T("Copied"))
 		}
-		if ui.Button(c.Key("api-key-hide"), i18n.T("Done")).Clicked() {
+		if secondaryButton(c.Key("api-key-hide"), i18n.T("Done")).Clicked() {
 			a.apiNewKey = ""
 		}
 	})

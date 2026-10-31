@@ -119,3 +119,8 @@ users-group-rounded     # Transcribe's Speakers option, speaker names
 turntable-music-note-line-duotone   # play a sound (a duotone variant: both Linear and Bold)
 volume-cross             # volume: muted
 volume-small             # volume: low
+
+# The UI kit of the 0.5 overhaul (ui_kit_*.go).
+arrow-up                # the round submit button of a composer
+filter                  # a filter button
+lightbulb-minimalistic  # a tip card

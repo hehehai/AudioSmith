@@ -48,7 +48,7 @@ func (a *app) sharedScopeLine(c *ui.Context, key string) {
 			}
 			theirs := sharedValueText(key, fv)
 			caption(c, a.otherValueText(key)).Tooltip(theirs)
-			if ui.Button(c.Key("scope-theirs"), i18n.T("Use theirs")).Tooltip(theirs).Clicked() {
+			if secondaryButton(c.Key("scope-theirs"), i18n.T("Use theirs")).Tooltip(theirs).Clicked() {
 				a.followFamily(key)
 			}
 			return
@@ -102,7 +102,7 @@ func (a *app) moveModelsBanner(c *ui.Context) {
 		text = i18n.T("%s keeps models in %s. Move AudioSmith's models there to share them?", by, path)
 	}
 	notice(c, "move-models", noticeInfo, text, "", func() {
-		if ui.Button(c.Key("move-models"), i18n.T("Move models…")).Disabled(a.modelsMoveLoading).Clicked() {
+		if secondaryButton(c.Key("move-models"), i18n.T("Move models…")).Disabled(a.modelsMoveLoading).Clicked() {
 			a.planModelsMove()
 		}
 		if ghostButton(c.Key("keep-separate"), i18n.T("Keep separate")).Clicked() {
@@ -145,7 +145,7 @@ func (a *app) modelsMoveProgress(c *ui.Context, j jobs.Job) {
 		if p.Fraction >= 0 {
 			ui.Progress(c, p.Fraction).Width(px(t, 120)).Label(i18n.T("Move models"))
 		}
-		if ui.Button(c.Key("move-cancel"), i18n.T("Cancel")).Clicked() {
+		if secondaryButton(c.Key("move-cancel"), i18n.T("Cancel")).Clicked() {
 			a.cancelModelsMove()
 		}
 	}).Shrink(0)

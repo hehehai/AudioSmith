@@ -110,7 +110,7 @@ func (a *app) removeSharedDialog(c *ui.Context, e catalog.Entry) {
 				ui.Text(c, i18n.T("Delete %s for all apps?", modelRef(e))).Bold()
 				ui.Text(c, i18n.T("%s will need to download it again (%s).", listJoin(a.deleteShared), mb(a.deleteFree))).TextColor(t.TextMuted)
 				ui.Row(c).Gap(px(t, sp2)).Justify(ui.End).Children(func() {
-					if ui.Button(c.Key("delete-all-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
+					if secondaryButton(c.Key("delete-all-cancel"), i18n.T("Cancel")).AutoFocus().Clicked() {
 						open = false
 					}
 					if recordButton(c.Key("delete-all-ok"), i18n.T("Delete")).Clicked() {
@@ -123,10 +123,10 @@ func (a *app) removeSharedDialog(c *ui.Context, e catalog.Entry) {
 			ui.Text(c, i18n.T("Remove %s from AudioSmith?", modelRef(e))).Bold()
 			ui.Text(c, sharedText(a.deleteShared, a.model(e).local.Bytes)).TextColor(t.TextMuted)
 			ui.Row(c).Gap(px(t, sp2)).Justify(ui.End).Children(func() {
-				if ui.Button(c.Key("delete-cancel"), i18n.T("Cancel")).Clicked() {
+				if secondaryButton(c.Key("delete-cancel"), i18n.T("Cancel")).Clicked() {
 					open = false
 				}
-				if ui.Button(c.Key("delete-all"), i18n.T("Delete for all apps…")).Clicked() {
+				if secondaryButton(c.Key("delete-all"), i18n.T("Delete for all apps…")).Clicked() {
 					a.deleteAllAsk = true
 				}
 				if primaryButton(c.Key("delete-remove"), i18n.T("Remove from AudioSmith")).AutoFocus().Clicked() {

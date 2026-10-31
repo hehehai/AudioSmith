@@ -87,8 +87,8 @@ func (a *app) workflowsPage(c *ui.Context) {
 	}
 	panel := func() {
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
-			ui.Row(c).Padding(px(t, sp2), px(t, sp3)).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
-				ui.Segmented(c.Key("wf-panel-tabs"), &a.wfPanel, i18n.T("Step"), i18n.T("Run")).Label(i18n.T("Panel")).Grow(1)
+			ui.Row(c).Padding(px(t, sp1), px(t, sp3), 0).Gap(px(t, sp1)).AlignItems(ui.End).Children(func() {
+				underlineTabs(c.Key("wf-panel-tabs"), &a.wfPanel, i18n.T("Step"), i18n.T("Run")).Label(i18n.T("Panel")).Grow(1).BorderWidth(0, 0, 0, 0)
 				if !panelInline && iconButton(c.Key("wf-panel-close"), icons.Close, i18n.T("Close")).Clicked() {
 					a.wfPanelOpen = false
 				}
@@ -162,7 +162,7 @@ func (a *app) wfHeaderActions(c *ui.Context) {
 		return
 	}
 	if a.wfBusy() {
-		if ui.Button(c.Key("wf-cancel"), i18n.T("Cancel run")).Clicked() {
+		if secondaryButton(c.Key("wf-cancel"), i18n.T("Cancel run")).Clicked() {
 			a.wfCancel()
 		}
 		return
@@ -208,7 +208,7 @@ func (a *app) wfEmpty(c *ui.Context) {
 				a.wfNew("")
 			}
 			for _, tp := range workflow.Templates {
-				if ui.Button(c.Key("wf-empty-"+tp.ID), workflow.TemplateName(tp.ID)).Tooltip(workflow.TemplateAbout(tp.ID)).Clicked() {
+				if secondaryButton(c.Key("wf-empty-"+tp.ID), workflow.TemplateName(tp.ID)).Tooltip(workflow.TemplateAbout(tp.ID)).Clicked() {
 					a.wfNew(tp.ID)
 				}
 			}

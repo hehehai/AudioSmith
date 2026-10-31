@@ -154,7 +154,7 @@ func (a *app) twStepAccount(c *ui.Context) {
 			})
 			ui.Text(c, i18n.T("The token is kept in your Mac's Keychain. It is never shown again or exported.")).FontSize(px(t, 12)).TextColor(t.TextMuted).Wrap()
 			ui.Row(c).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
-				if ui.Button(c.Key("tw-save"), i18n.T("Save and check")).Disabled(w.checking || strings.TrimSpace(w.sid) == "").Clicked() {
+				if secondaryButton(c.Key("tw-save"), i18n.T("Save and check")).Disabled(w.checking || strings.TrimSpace(w.sid) == "").Clicked() {
 					a.saveTwilioAccount()
 				}
 				if w.replacing && ghostButton(c.Key("tw-cancel"), i18n.T("Cancel")).Clicked() {
@@ -179,7 +179,7 @@ func (a *app) twStepTunnel(c *ui.Context) {
 		ui.Text(c, i18n.T("Twilio needs a public https address. A tunnel gives your Mac one and forwards it to AudioSmith's call gateway — a separate port that serves only Twilio, never the Local API.")).
 			FontSize(px(t, 12)).TextColor(t.TextMuted).Wrap()
 		ui.Row(c).Children(func() {
-			ui.Segmented(c.Key("tw-tool"), &w.tool, "cloudflared", "ngrok").Label(i18n.T("Tunnel"))
+			segmented(c.Key("tw-tool"), &w.tool, "cloudflared", "ngrok").Label(i18n.T("Tunnel"))
 		})
 		install, run := tunnelCommands(w.tool, cfg.Port())
 		ui.Text(c, i18n.T("Install it (Homebrew):")).FontSize(px(t, 12))
@@ -203,7 +203,7 @@ func (a *app) twStepTunnel(c *ui.Context) {
 			})
 		})
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
-			if ui.Button(c.Key("tw-url-save"), i18n.T("Save")).Clicked() {
+			if secondaryButton(c.Key("tw-url-save"), i18n.T("Save")).Clicked() {
 				a.saveTunnel()
 			}
 			if ghostButton(c.Key("tw-url-check"), i18n.T("Check")).Disabled(w.tunnel == "checking").Clicked() {
@@ -262,7 +262,7 @@ func (a *app) twStepNumber(c *ui.Context) {
 					}
 				}
 				ui.Select(c.Key("tw-numbers"), &w.numberSel, labels).Label(i18n.T("Your Twilio number")).Width(px(t, 300)).Shrink(1).MinWidth(px(t, 160))
-				if ui.Button(c.Key("tw-use"), i18n.T("Use this number")).Disabled(w.hooking).Clicked() {
+				if secondaryButton(c.Key("tw-use"), i18n.T("Use this number")).Disabled(w.hooking).Clicked() {
 					a.useTwilioNumber()
 				}
 			}
@@ -325,7 +325,7 @@ func (a *app) twStepBehaviour(c *ui.Context) {
 		ui.Text(c, i18n.T("Said first on every outgoing call. {name} becomes your name (or the voice's). Leave it empty for the default.")).FontSize(px(t, 12)).TextColor(t.TextMuted).Wrap()
 		ui.Field(c, i18n.T("When someone calls"), func() {
 			ui.Row(c).Children(func() {
-				ui.Segmented(c.Key("tw-inbound"), &w.inbound, i18n.T("Play greeting"), i18n.T("AI agent")).Label(i18n.T("When someone calls"))
+				segmented(c.Key("tw-inbound"), &w.inbound, i18n.T("Play greeting"), i18n.T("AI agent")).Label(i18n.T("When someone calls"))
 			})
 		})
 		if w.inbound == 0 {
@@ -344,7 +344,7 @@ func (a *app) twStepBehaviour(c *ui.Context) {
 			})
 		}
 		settingRow(c, "tw-record", i18n.T("Record calls"), i18n.T("Keeps a stereo recording of each call (the caller left, the agent right), only when the disclosure says the call may be recorded. Recording laws differ by place."), func() {
-			ui.Switch(c.Key("tw-record-switch"), &w.record).Label(i18n.T("Record calls"))
+			inkSwitch(c.Key("tw-record-switch"), &w.record).Label(i18n.T("Record calls"))
 		})
 		if w.record && strings.TrimSpace(w.disclosure) != "" && !callMentionsRecording(w.disclosure) {
 			ui.Column(c.Key("tw-record-warn")).Children(func() {
@@ -354,7 +354,7 @@ func (a *app) twStepBehaviour(c *ui.Context) {
 		ui.Text(c, i18n.T("You are responsible for following the laws on automated calls, AI disclosure and recording where you and the people you call are.")).
 			FontSize(px(t, 11)).TextColor(t.TextMuted).Wrap()
 		ui.Row(c).Children(func() {
-			if ui.Button(c.Key("tw-behaviour-save"), i18n.T("Save")).Clicked() {
+			if secondaryButton(c.Key("tw-behaviour-save"), i18n.T("Save")).Clicked() {
 				a.saveTwilioBehaviour()
 			}
 		})

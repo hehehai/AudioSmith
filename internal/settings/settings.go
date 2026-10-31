@@ -110,6 +110,10 @@ type Appearance struct {
 	// Advanced lists the pages whose 「高级」 section is open ("studio",
 	// "story", "audiobook", "dub", "export", "clone").
 	Advanced []string `json:"advanced,omitempty"`
+	// Seen lists what was shown once and should not show again (0.5
+	// overhaul): an "introducing" dialog ("intro:dub"), a dismissed promo
+	// card or corner tip ("tip:…").
+	Seen []string `json:"seen,omitempty"`
 }
 
 // Studio: defaults of the TTS form.

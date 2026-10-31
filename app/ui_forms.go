@@ -1,7 +1,7 @@
 package main
 
-// The kit's forms and dialogs (ui_kit.go): segmented controls, the number
-// input, popovers with a footer, and the dialog frame.
+// The kit's forms and dialogs (ui_kit.go): the number input, popovers
+// with a footer, and the dialog frame.
 
 import (
 	"math"
@@ -12,13 +12,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
-
-// segmentedFit is ui.Segmented as wide as its segments, for a form's
-// column: there a plain Segmented stretches across, its segments keeping
-// their width and leaving the rest of the track empty.
-func segmentedFit(c *ui.Context, selected *int, labels ...string) ui.Element {
-	return ui.Segmented(c, selected, labels...).AlignSelf(ui.Start)
-}
 
 // numOpts configure numberInput (set before it is built: Disabled also
 // disables its steps). Width is the whole control's.
@@ -125,49 +118,6 @@ func popoverWithFooter(c *ui.Context, key string, footer, body func()) {
 		ui.Divider(c)
 		ui.Column(c.Key(key + "-pop-footer")).Padding(px(t, 10)).AlignItems(ui.Stretch).Children(footer)
 	})
-}
-
-// segmentedSome is ui.Segmented (as wide as its segments, as
-// segmentedFit) whose segments may be off: off[i] true greys segment i
-// out, and tips[i] ("" for none) says why, as its tooltip. Its Changed
-// reports a new choice.
-func segmentedSome(c *ui.Context, selected *int, labels []string, off []bool, tips []string) ui.Element {
-	t := c.Theme()
-	parts := ui.SegmentedBase(c, selected, len(labels))
-	tr := parts.Track.AlignSelf(ui.Start).Shrink(0).AlignItems(ui.Stretch).Padding(t.Space(0.5)).Gap(t.Space(0.5)).
-		Radius(t.Radius).Background(t.Surface).Border(1, t.Border)
-	tr.Children(func() {
-		for i, label := range labels {
-			s := parts.Segment(i).Padding(t.Space(1), t.Space(3)).Radius(max(t.Radius-t.Space(0.5), 0)).Center().Label(label)
-			dis := i < len(off) && off[i]
-			if dis {
-				s.Disabled(true)
-			}
-			if i < len(tips) && tips[i] != "" {
-				s.Tooltip(tips[i])
-			}
-			switch {
-			case i == *selected:
-				face := t.Background
-				if t.Dark {
-					face = t.SurfacePressed
-				}
-				s.Background(face).Shadow(0, 1, 2, 0, ui.RGBA(0, 0, 0, 0.12))
-			case dis:
-			case s.Pressed():
-				s.Background(t.SurfacePressed)
-			case s.Hovered():
-				s.Background(t.SurfaceHover)
-			}
-			s.Children(func() {
-				tx := ui.Text(c, label).SingleLine()
-				if dis {
-					tx.TextColor(tok(t).Text3)
-				}
-			})
-		}
-	})
-	return tr
 }
 
 // dialogFrame is a dialog in the look of the Settings dialog: a panel

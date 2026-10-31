@@ -123,7 +123,7 @@ func (a *app) pill(c *ui.Context, s *dictSession) {
 			}
 		}
 		if s.need != nil && s.phase == dictError {
-			if ui.Button(c.Key("pill-models"), i18n.T("Open Models")).Clicked() {
+			if secondaryButton(c.Key("pill-models"), i18n.T("Open Models")).Clicked() {
 				a.dictHide()
 				a.showMainWindow()
 				a.navigate("/models")

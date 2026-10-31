@@ -202,7 +202,7 @@ func (a *app) watermarkSettings(c *ui.Context) { // M7a: a section of Settings â
 	}
 	desc := i18n.T("Every take, chapter, dub and API output gets a mark you cannot hear, so it can be recognised as AudioSmith's. It survives compression and volume changes.")
 	settingRow(c, "privacy-watermark", i18n.T("Add an invisible watermark to generated audio"), desc, func() {
-		if ui.Switch(c.Key("privacy-watermark-switch"), &a.wmOn).Label(i18n.T("Add an invisible watermark to generated audio")).Changed() {
+		if inkSwitch(c.Key("privacy-watermark-switch"), &a.wmOn).Label(i18n.T("Add an invisible watermark to generated audio")).Changed() {
 			on := a.wmOn
 			a.updateSettings(func(s *settings.Settings) { s.Privacy.NoWatermark = !on })
 		}
@@ -223,7 +223,7 @@ func (a *app) watermarkSettings(c *ui.Context) { // M7a: a section of Settings â
 		ui.Row(c.Key("privacy-watermark-model")).Gap(px(t, groupCtrlGap)).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, status).FontSize(px(t, 12)).TextColor(t.TextMuted).Grow(1).Wrap()
 			if m.local.State != hub.Downloaded && !m.downloading {
-				if ui.Button(c.Key("privacy-watermark-download"), i18n.T("Download")).Clicked() {
+				if secondaryButton(c.Key("privacy-watermark-download"), i18n.T("Download")).Clicked() {
 					a.download(e)
 				}
 			}
@@ -250,7 +250,7 @@ func (a *app) watermarkTool(c *ui.Context) {
 				name = i18n.T("No file chosen")
 			}
 			ui.Text(c, name).Grow(1).SingleLine()
-			if ui.Button(c.Key("wm-choose"), i18n.T("Chooseâ€¦")).Disabled(w.busy).Clicked() {
+			if secondaryButton(c.Key("wm-choose"), i18n.T("Chooseâ€¦")).Disabled(w.busy).Clicked() {
 				go func() {
 					paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("An audio or video file")})
 					if err != nil || len(paths) == 0 {

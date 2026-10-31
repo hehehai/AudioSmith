@@ -368,7 +368,7 @@ func (a *app) licenceModal(c *ui.Context) {
 				ui.Checkbox(c.Key("licence-agree"), &a.licenceAgree, i18n.T("I have read the licence and will use this model only as it allows."))
 			}
 			ui.Row(c).Gap(px(t, sp2)).Justify(ui.End).Children(func() {
-				if ui.Button(c.Key("licence-cancel"), i18n.T("Cancel")).Clicked() {
+				if secondaryButton(c.Key("licence-cancel"), i18n.T("Cancel")).Clicked() {
 					a.licenceOpen, a.licenceThen = false, nil
 				}
 				if a.licenceFrom != "" {

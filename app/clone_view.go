@@ -138,7 +138,7 @@ func (a *app) micControls(c *ui.Context, m *micState, done func(path string)) {
 			}
 		}
 		ch := m.channels
-		if ui.Segmented(c.Key("mic-channels"), &ch, i18n.T("Auto"), i18n.T("Mono"), i18n.T("Stereo")).Label(i18n.T("Channels")).Disabled(busy).Changed() {
+		if segmented(c.Key("mic-channels"), &ch, i18n.T("Auto"), i18n.T("Mono"), i18n.T("Stereo")).Label(i18n.T("Channels")).Disabled(busy).Changed() {
 			m.channels = ch
 		}
 	})
@@ -346,7 +346,7 @@ func (a *app) cloneSaveForm(c *ui.Context) {
 		if problem != "" {
 			caption(c, problem).Grow(1).Basis(px(t, 200))
 		}
-		if ui.Button(c.Key("clone-once"), i18n.T("Use without saving")).Disabled(problem != "").
+		if secondaryButton(c.Key("clone-once"), i18n.T("Use without saving")).Disabled(problem != "").
 			Tooltip(i18n.T("Use the clip in the Studio once, without adding it to your voices")).Clicked() {
 			a.cloneUseOnce()
 		}

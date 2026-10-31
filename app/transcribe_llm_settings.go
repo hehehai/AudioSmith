@@ -272,7 +272,7 @@ func (a *app) writingSettings(c *ui.Context) {
 			}
 		})
 		settingRow(c, "llm-local", i18n.T("Keep text on this Mac"), i18n.T("Only local models (Ollama, LM Studio) are used; cloud providers are skipped."), func() {
-			if ui.Switch(c.Key("llm-local-switch"), &f.local).Label(i18n.T("Keep text on this Mac")).Changed() {
+			if inkSwitch(c.Key("llm-local-switch"), &f.local).Label(i18n.T("Keep text on this Mac")).Changed() {
 				on := f.local
 				a.updateSettings(func(s *settings.Settings) { s.Privacy.LocalOnlyLLM = on })
 				a.applyLLM()
@@ -291,7 +291,7 @@ func (a *app) writingSettings(c *ui.Context) {
 			}
 		}
 		settingRowNote(c, "llm-ollama", i18n.T("Ollama on this Mac"), ollama, func() {
-			if ui.Button(c.Key("llm-recheck"), i18n.T("Look for Ollama")).Clicked() {
+			if secondaryButton(c.Key("llm-recheck"), i18n.T("Look for Ollama")).Clicked() {
 				a.checkOllama()
 			}
 		})
@@ -304,7 +304,7 @@ func (a *app) writingSettings(c *ui.Context) {
 				f.add = opts[0]
 			}
 			ui.Select(c.Key("llm-add-select"), &f.add, opts).Label(i18n.T("Provider")).Width(px(t, 180))
-			if ui.Button(c.Key("llm-add-button"), i18n.T("Add")).Clicked() {
+			if secondaryButton(c.Key("llm-add-button"), i18n.T("Add")).Clicked() {
 				a.addProvider(f.add)
 			}
 		})
@@ -330,10 +330,10 @@ func (a *app) providerCard(c *ui.Context, p settings.LLMProvider) {
 				where = i18n.T("On this Mac")
 			}
 			ui.Text(c, where).FontSize(px(t, 11)).TextColor(t.TextMuted)
-			if ui.Button(c.Key("test"), i18n.T("Test")).Disabled(f.testing[p.ID]).Clicked() {
+			if secondaryButton(c.Key("test"), i18n.T("Test")).Disabled(f.testing[p.ID]).Clicked() {
 				a.testProvider(p.ID)
 			}
-			if ui.Button(c.Key("remove"), i18n.T("Remove")).Clicked() {
+			if secondaryButton(c.Key("remove"), i18n.T("Remove")).Clicked() {
 				a.removeProvider(p.ID)
 			}
 		})
@@ -390,12 +390,12 @@ func (a *app) providerKey(c *ui.Context, id string, e *providerEdit) {
 	}
 	ui.Row(c).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
 		ui.TextInput(c.Key("key"), &e.key).Password().Placeholder(i18n.T("API key")).Label(i18n.T("API key")).Width(px(t, 220))
-		if ui.Button(c.Key("key-save"), i18n.T("Save")).Disabled(strings.TrimSpace(e.key) == "").Clicked() {
+		if secondaryButton(c.Key("key-save"), i18n.T("Save")).Disabled(strings.TrimSpace(e.key) == "").Clicked() {
 			a.saveKey(id, e.key)
 		}
 		if f.hasKey[id] {
 			ui.Text(c, i18n.T("A key is saved in the Keychain.")).FontSize(px(t, 12)).TextColor(t.Success)
-			if ui.Button(c.Key("key-remove"), i18n.T("Remove the key")).Clicked() {
+			if secondaryButton(c.Key("key-remove"), i18n.T("Remove the key")).Clicked() {
 				a.saveKey(id, "")
 			}
 		}

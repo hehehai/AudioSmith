@@ -163,7 +163,7 @@ func (a *app) quickSwitchDialog(c *ui.Context) {
 			}
 		})
 	}, func() {
-		if ui.Button(c.Key("switch-preload"), i18n.T("Preload")).Disabled(eng.Busy || eng.State != engineReady).Clicked() {
+		if secondaryButton(c.Key("switch-preload"), i18n.T("Preload")).Disabled(eng.Busy || eng.State != engineReady).Clicked() {
 			a.preload()
 		}
 		if iconButton(c.Key("switch-restart"), icons.Restart, i18n.T("Restart engine")).Clicked() {

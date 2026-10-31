@@ -221,7 +221,7 @@ func (a *app) dubEmpty(c *ui.Context) {
 				}
 				ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).FillWidth().MaxWidth(px(t, 480)).Children(func() {
 					ui.TextInput(c.Key("dub-url"), &a.dubURL).Placeholder(i18n.T("…or paste a YouTube or video link")).Label(i18n.T("Video link")).Grow(1).MinWidth(0)
-					if ui.Button(c.Key("dub-url-go"), i18n.T("Import")).Disabled(strings.TrimSpace(a.dubURL) == "").Clicked() {
+					if secondaryButton(c.Key("dub-url-go"), i18n.T("Import")).Disabled(strings.TrimSpace(a.dubURL) == "").Clicked() {
 						a.dubImportURL()
 					}
 				})
@@ -233,7 +233,7 @@ func (a *app) dubEmpty(c *ui.Context) {
 							if a.dubCookies != "" {
 								label = shortPath(a.dubCookies)
 							}
-							if ui.Button(c.Key("dub-cookies"), label).Shrink(1).MinWidth(0).Clicked() {
+							if secondaryButton(c.Key("dub-cookies"), label).Shrink(1).MinWidth(0).Clicked() {
 								a.dubChooseCookies()
 							}
 							if a.dubCookies != "" && iconButton(c.Key("dub-cookies-x"), icons.Close, i18n.T("Remove the cookies")).Clicked() {
@@ -246,7 +246,7 @@ func (a *app) dubEmpty(c *ui.Context) {
 				if a.dubErr != "" {
 					ui.Column(c).FillWidth().Children(func() {
 						notice(c, "dub-url-err", noticeError, a.dubErr, "", func() {
-							if a.dubErrCode == dub.CodeNoYtDlp && ui.Button(c.Key("dub-url-settings"), i18n.T("Open Settings → Dubbing")).Clicked() {
+							if a.dubErrCode == dub.CodeNoYtDlp && secondaryButton(c.Key("dub-url-settings"), i18n.T("Open Settings → Dubbing")).Clicked() {
 								a.navigate("/settings/dubbing")
 							}
 						}, nil)
@@ -406,7 +406,7 @@ func (a *app) dubBanners(c *ui.Context) {
 	p := a.dub
 	if a.dubInterrupted() {
 		notice(c, "b-recover", noticeWarn, i18n.T("The last run stopped before it finished (the app quit, or a step failed)."), "", func() {
-			if ui.Button(c.Key("b-resume"), i18n.T("Continue the run")).Clicked() {
+			if secondaryButton(c.Key("b-resume"), i18n.T("Continue the run")).Clicked() {
 				a.dubResume()
 			}
 		}, func() { a.dubSet(func(p *dub.Project) { p.Run = nil }) })
@@ -422,11 +422,11 @@ func (a *app) dubBanners(c *ui.Context) {
 			}
 			switch a.dubErrCode {
 			case services.DubCodeNoTranslator:
-				if ui.Button(c.Key("b-llm"), i18n.T("Set up writing help")).Clicked() {
+				if secondaryButton(c.Key("b-llm"), i18n.T("Set up writing help")).Clicked() {
 					a.navigate("/settings/writing")
 				}
 			case dub.CodeNoYtDlp:
-				if ui.Button(c.Key("b-ytdlp"), i18n.T("Open Settings → Dubbing")).Clicked() {
+				if secondaryButton(c.Key("b-ytdlp"), i18n.T("Open Settings → Dubbing")).Clicked() {
 					a.navigate("/settings/dubbing")
 				}
 			}
@@ -437,14 +437,14 @@ func (a *app) dubBanners(c *ui.Context) {
 		switch {
 		case len(p.Segments) > 0 && len(p.Tracks) == 0 && !dubAnyTranslated(p) && !a.dubDismissed["transcript"]:
 			notice(c, "b-transcript", noticeInfo, i18n.T("Transcript ready — fix recognition errors now: every translation starts from it."), "", func() {
-				if ui.Button(c.Key("b-go-translate"), i18n.T("Translate →")).Clicked() {
+				if secondaryButton(c.Key("b-go-translate"), i18n.T("Translate →")).Clicked() {
 					a.dubStep = dubStepTranslate
 					a.dubTranslate(false)
 				}
 			}, func() { a.dubDismissed["transcript"] = true })
 		case p.AllTranslated() && !p.TracksReady() && !a.dubDismissed["translated"]:
 			notice(c, "b-translated", noticeInfo, i18n.T("Translations ready — skim them before generating."), "", func() {
-				if ui.Button(c.Key("b-go-generate"), i18n.T("Generate dub →")).Clicked() {
+				if secondaryButton(c.Key("b-go-generate"), i18n.T("Generate dub →")).Clicked() {
 					a.dubStep = dubStepGenerate
 					a.dubGenerate()
 				}

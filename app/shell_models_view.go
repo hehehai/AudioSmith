@@ -41,7 +41,7 @@ func (a *app) modelsList(c *ui.Context) {
 				a.modelsKind = max(slices.Index(labels, cur), 0)
 			}
 		} else {
-			ui.Segmented(c.Key("models-kind"), &a.modelsKind, labels...).Label(i18n.T("Kind of model")).Shrink(0)
+			underlineTabs(c.Key("models-kind"), &a.modelsKind, labels...).Label(i18n.T("Kind of model")).Shrink(0)
 		}
 		ui.Spacer(c)
 		if iconButton(c.Key("models-refresh"), icons.Refresh, i18n.T("Look again at what is on disk")).Clicked() {
@@ -308,7 +308,7 @@ func (a *app) modelActions(c *ui.Context, e catalog.Entry, m *modelState, loaded
 		}
 	case a.installedBy(e, m) != "":
 		// Another app installed it: AudioSmith claims it to use it.
-		if ui.Button(c.Key("use"), i18n.T("Use")).Tooltip(i18n.T("Use it in AudioSmith too: nothing to download")).Clicked() {
+		if secondaryButton(c.Key("use"), i18n.T("Use")).Tooltip(i18n.T("Use it in AudioSmith too: nothing to download")).Clicked() {
 			a.useModel(e)
 		}
 	}

@@ -93,7 +93,7 @@ func (a *app) lfOutputs(c *ui.Context, p *lfPage) {
 		})
 		if a.pl.Current() == id {
 			prog := float64(a.pl.Progress(id))
-			if ui.Slider(c.Key("out-seek"), &prog, 0, 1).Label(i18n.T("Position")).Changed() {
+			if seekSlider(c.Key("out-seek"), &prog, 0, 1).Label(i18n.T("Position")).Changed() {
 				a.pl.Seek(id, float32(prog))
 			}
 		}

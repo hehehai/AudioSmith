@@ -266,7 +266,7 @@ func (a *app) designTarget(c *ui.Context) {
 	ms := designModels()
 	if len(ms) == 0 {
 		banner(c, icons.DangerTriangle, t.Warning, i18n.T("No model here can design voices. Download one that can, such as %s, in Settings → Models & network.", modelRefID(idVoiceDesign)), func() {
-			if ui.Button(c.Key("design-models"), i18n.T("Models")).Clicked() {
+			if secondaryButton(c.Key("design-models"), i18n.T("Models")).Clicked() {
 				a.navigate("/models")
 			}
 		})
@@ -337,7 +337,7 @@ func (a *app) designScript(c *ui.Context) {
 			Tooltip(i18n.T("Language")).Width(px(t, 140)).Shrink(1).MinWidth(px(t, 80))
 		ui.Spacer(c)
 		_, ok := voiceCatalog().ByLabel(d.model)
-		gen := ui.Button
+		gen := secondaryButton
 		if j == nil || j.take == nil {
 			gen = primaryButton // until there is a preview to save
 		}
@@ -376,7 +376,7 @@ func (a *app) designSaveForm(c *ui.Context) {
 		if v := a.findVoice(d.linked); v != nil && v.Name == strings.TrimSpace(d.saveName) {
 			label = i18n.T("Update voice")
 		}
-		save := ui.Button
+		save := secondaryButton
 		if j := a.voiceJob("design", ""); j != nil && j.take != nil {
 			save = primaryButton // the preview is there: saving is next
 		}

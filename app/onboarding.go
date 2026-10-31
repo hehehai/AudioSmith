@@ -302,7 +302,7 @@ func (a *app) maybeFirstSound() {
 // onboardingRow is Settings → General's way back to the wizard.
 func (a *app) onboardingRow(c *ui.Context) {
 	settingRow(c, "setup-again", i18n.T("Setup"), i18n.T("Check this Mac, choose a model pack, privacy and dictation, as on the first day."), func() {
-		if ui.Button(c.Key("setup-again"), i18n.T("Run the setup again")).Clicked() {
+		if secondaryButton(c.Key("setup-again"), i18n.T("Run the setup again")).Clicked() {
 			a.openOnboarding()
 		}
 	})

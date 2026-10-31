@@ -64,7 +64,7 @@ func (a *app) dubPlayControls(c *ui.Context, toggle bool) {
 				}
 			} else {
 				sel := i
-				if ui.Segmented(c.Key("dub-ab"), &sel, names...).Label(i18n.T("Track")).Shrink(1).MinWidth(0).Changed() || sel != i {
+				if segmented(c.Key("dub-ab"), &sel, names...).Label(i18n.T("Track")).Shrink(1).MinWidth(0).Changed() || sel != i {
 					a.dubSwitchTrack(tracks[sel])
 				}
 			}
@@ -194,7 +194,7 @@ func (a *app) dubFooter(c *ui.Context) {
 			ui.Spinner(c)
 			ui.Text(c, i18n.T("Reading the video's details…")).FontSize(px(t, fsCaption)).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 			ui.Spacer(c)
-			if ui.Button(c.Key("dub-cancel"), i18n.T("Cancel")).Clicked() {
+			if secondaryButton(c.Key("dub-cancel"), i18n.T("Cancel")).Clicked() {
 				a.dubCancel()
 			}
 			return
@@ -207,7 +207,7 @@ func (a *app) dubFooter(c *ui.Context) {
 				ui.Progress(c.Key("dub-progress"), f).Width(px(t, 160)).Shrink(1).Label(a.dubStatus())
 			}
 			ui.Spacer(c)
-			if ui.Button(c.Key("dub-cancel"), i18n.T("Cancel")).Clicked() {
+			if secondaryButton(c.Key("dub-cancel"), i18n.T("Cancel")).Clicked() {
 				a.dubCancel()
 			}
 			return

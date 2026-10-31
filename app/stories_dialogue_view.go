@@ -221,7 +221,7 @@ func (a *app) storyDialogue(c *ui.Context, p *lfPage, locked bool) {
 	on := d.Production.Dialogue && blocked == ""
 	title := i18n.T("Whole dialogue")
 	formRow(c, "perf-dialogue-row", title, i18n.T("The characters' lines are spoken by %s a scene at a time, each line hearing the lines before it, so they answer each other; narration stays on the story's model. Each character is cloned from their voice's reference (a cloned voice's clip, a designed voice's reference, else a short sample in that voice). Lines it does not say clearly are made again, then on the story's model. Slower than real time.", modelRef(e)), func() {
-		if ui.Switch(c.Key("perf-dialogue"), &on).Label(title).Disabled(locked || blocked != "").Changed() {
+		if inkSwitch(c.Key("perf-dialogue"), &on).Label(title).Disabled(locked || blocked != "").Changed() {
 			d.Production.Dialogue = on
 			if on {
 				d.Production.DialogueModel = e.Repo

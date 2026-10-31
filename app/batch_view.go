@@ -196,7 +196,7 @@ func (a *app) batchSetup(c *ui.Context) {
 				iconMark(c, icons.DangerTriangle, t.Warning, "")
 				caption(c, i18n.T("Translating needs a translation engine: a local model (Ollama, LM Studio) or a provider in Settings → Writing help.")).TextColor(k.Text).Grow(1).MinWidth(0)
 			})
-			if ui.Button(c.Key("batch-llm"), i18n.T("Set up writing help")).Clicked() {
+			if secondaryButton(c.Key("batch-llm"), i18n.T("Set up writing help")).Clicked() {
 				a.navigate("/settings/writing")
 			}
 		})
@@ -249,10 +249,10 @@ func (a *app) batchWatchPanel(c *ui.Context) {
 		}
 		ui.Row(c).Gap(px(t, 6)).Children(func() {
 			if w.Paused {
-				if ui.Button(c.Key("watch-resume"), i18n.T("Resume watching")).Clicked() {
+				if secondaryButton(c.Key("watch-resume"), i18n.T("Resume watching")).Clicked() {
 					a.batchWatchPause(false)
 				}
-			} else if ui.Button(c.Key("watch-pause"), i18n.T("Pause")).Clicked() {
+			} else if secondaryButton(c.Key("watch-pause"), i18n.T("Pause")).Clicked() {
 				a.batchWatchPause(true)
 			}
 			if ghostButton(c.Key("watch-stop"), i18n.T("Stop")).Clicked() {
@@ -279,8 +279,8 @@ func (a *app) batchQueue(c *ui.Context, stacked bool) {
 		}
 	}
 	ui.Row(c).Children(func() {
-		ui.Segmented(c.Key("batch-tabs"), &b.tab, i18n.T("Active (%d)", len(tabs[0])), i18n.T("Completed (%d)", len(tabs[1])), i18n.T("Failed (%d)", len(tabs[2]))).
-			Label(i18n.T("Queue")).Shrink(1).MinWidth(0)
+		underlineTabs(c.Key("batch-tabs"), &b.tab, i18n.T("Active (%d)", len(tabs[0])), i18n.T("Completed (%d)", len(tabs[1])), i18n.T("Failed (%d)", len(tabs[2]))).
+			Label(i18n.T("Queue")).Grow(1).Shrink(1).MinWidth(0)
 	})
 	list := tabs[min(max(b.tab, 0), 2)]
 	if len(list) == 0 {
@@ -389,7 +389,7 @@ func (a *app) batchCard(c *ui.Context, r store.DubRecord) {
 			ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 				iconMark(c, icons.DangerCircle, t.Danger, "")
 				caption(c, why).TextColor(t.Danger).MaxLines(3).Ellipsis("…").Tooltip(why).Grow(1).MinWidth(0)
-				if ui.Button(c.Key("retry"), i18n.T("Retry")).Clicked() {
+				if secondaryButton(c.Key("retry"), i18n.T("Retry")).Clicked() {
 					a.batchRetry(id)
 				}
 			})

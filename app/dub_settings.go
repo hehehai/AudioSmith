@@ -97,14 +97,14 @@ func (a *app) dubbingSettings(c *ui.Context) {
 					}
 					ui.Progress(c, frac).Grow(1)
 					caption(c, i18n.T("%.0f of %.0f MB", float64(y.done)/1e6, float64(y.size)/1e6)).SingleLine()
-					if ui.Button(c.Key("ytdlp-cancel"), i18n.T("Cancel")).Clicked() && y.cancel != nil {
+					if secondaryButton(c.Key("ytdlp-cancel"), i18n.T("Cancel")).Clicked() && y.cancel != nil {
 						y.cancel()
 					}
 				})
 			})
 		case d.URLImport && d.YtDlp != "":
 			settingRowNote(c, "ytdlp-on", i18n.T("Importing from links is on"), i18n.T("yt-dlp %s · %s", dub.YtDlpVersion, shortPath(d.YtDlp)), func() {
-				if ui.Button(c.Key("ytdlp-remove"), i18n.T("Turn off and remove")).Clicked() {
+				if secondaryButton(c.Key("ytdlp-remove"), i18n.T("Turn off and remove")).Clicked() {
 					a.removeYtDlp()
 				}
 			})
@@ -128,7 +128,7 @@ func (a *app) dubbingSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("New dubs"), func() {
 		review := !d.NoReview
 		settingRow(c, "dub-review", i18n.T("Review after each step"), i18n.T("Stops after the transcript and after the translation, so they can be checked first."), func() {
-			if ui.Switch(c.Key("dub-review"), &review).Label(i18n.T("Review after each step")).Changed() {
+			if inkSwitch(c.Key("dub-review"), &review).Label(i18n.T("Review after each step")).Changed() {
 				a.updateSettings(func(s *settings.Settings) { s.Dubbing.NoReview = !review })
 			}
 		})

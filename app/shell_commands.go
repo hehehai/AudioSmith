@@ -320,7 +320,7 @@ func (a *app) shortcutSheet(c *ui.Context) {
 			}
 		})
 		ui.Row(c).Justify(ui.End).Children(func() {
-			if ui.Button(c.Key("sheet-close"), i18n.T("Close")).Clicked() {
+			if secondaryButton(c.Key("sheet-close"), i18n.T("Close")).Clicked() {
 				a.sheetOpen = false
 			}
 		})

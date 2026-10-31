@@ -251,7 +251,7 @@ func (a *app) languagePicker(c *ui.Context) {
 		ui.Column(c.Key("lang-picker")).Width(px(t, 320)).Gap(px(t, 6)).Padding(px(t, 6)).Children(func() {
 			ui.TextInput(c.Key("lang-search"), &a.composer.langQuery).Placeholder(i18n.T("Search 650 languages")).Label(i18n.T("Search languages"))
 			ui.Row(c).Gap(px(t, 6)).Wrap().Children(func() {
-				if ui.Button(c.Key("lang-auto"), i18n.T("Auto-detect")).Clicked() {
+				if secondaryButton(c.Key("lang-auto"), i18n.T("Auto-detect")).Clicked() {
 					a.language = ""
 					a.composer.langOpen = false
 				}
@@ -270,7 +270,7 @@ func (a *app) languagePicker(c *ui.Context) {
 					if !supported {
 						continue
 					}
-					if ui.Button(c.Key("lang-recent-"+code), strings.TrimSpace(l.Flag()+" "+l.NameIn(i18n.Locale()))).Clicked() {
+					if secondaryButton(c.Key("lang-recent-"+code), strings.TrimSpace(l.Flag()+" "+l.NameIn(i18n.Locale()))).Clicked() {
 						a.languageChosen(code, valueOf(mc))
 					}
 				}

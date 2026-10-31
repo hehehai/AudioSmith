@@ -374,20 +374,20 @@ func (a *app) obPrivacy(c *ui.Context) {
 	banner(c, icons.ShieldCheck, t.Success, i18n.T("Everything you write, record and generate stays on this Mac. AudioSmith has no analytics and no account."), nil)
 	local := a.prefs.Privacy.LocalOnlyLLM
 	settingRowNote(c, "ob-local", i18n.T("Local language models only"), i18n.T("Writing help and translation never use a cloud provider, even one you add later."), func() {
-		if ui.Switch(c.Key("ob-local"), &local).Label(i18n.T("Keep text on this Mac")).Changed() {
+		if inkSwitch(c.Key("ob-local"), &local).Label(i18n.T("Keep text on this Mac")).Changed() {
 			on := local
 			a.updateSettings(func(s *settings.Settings) { s.Privacy.LocalOnlyLLM = on })
 		}
 	})
 	wm := !a.prefs.Privacy.NoWatermark
 	settingRowNote(c, "ob-watermark", i18n.T("Invisible watermark"), i18n.T("Marks generated audio so it can be recognised as made by AudioSmith. Needs a small model."), func() {
-		if ui.Switch(c.Key("ob-watermark"), &wm).Label(i18n.T("Add an invisible watermark to generated audio")).Changed() {
+		if inkSwitch(c.Key("ob-watermark"), &wm).Label(i18n.T("Add an invisible watermark to generated audio")).Changed() {
 			on := wm
 			a.updateSettings(func(s *settings.Settings) { s.Privacy.NoWatermark = !on })
 		}
 	})
 	settingRowNote(c, "ob-keep", i18n.T("History"), i18n.T("Older takes that are not starred are deleted beyond the limit."), func() {
-		ui.Segmented(c.Key("ob-keep"), &a.obKeep, i18n.T("Keep every take"), i18n.T("Last 1000"), i18n.T("Last 200")).Label(i18n.T("History"))
+		segmented(c.Key("ob-keep"), &a.obKeep, i18n.T("Keep every take"), i18n.T("Last 1000"), i18n.T("Last 200")).Label(i18n.T("History"))
 	})
 	caption(c, i18n.T("Settings → Privacy says exactly what may use the network, and when."))
 }
@@ -397,7 +397,7 @@ func (a *app) obDictation(c *ui.Context) {
 	f := &a.dictSet
 	f.enabled = a.prefs.Dictation.Enabled
 	settingRowNote(c, "ob-dict", i18n.T("Dictation shortcut"), i18n.T("Works in every app while AudioSmith runs."), func() {
-		if ui.Switch(c.Key("ob-dict-switch"), &f.enabled).Label(i18n.T("Dictation shortcut")).Changed() {
+		if inkSwitch(c.Key("ob-dict-switch"), &f.enabled).Label(i18n.T("Dictation shortcut")).Changed() {
 			on := f.enabled
 			a.updateSettings(func(s *settings.Settings) { s.Dictation.Enabled = on })
 			a.applyDictShortcut()

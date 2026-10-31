@@ -40,20 +40,20 @@ func (a *app) appearanceSettings(c *ui.Context) {
 	a.revealAnchor(c, "appearance")
 	settingGroup(c, i18n.T("Appearance"), func() {
 		settingRow(c, "theme", i18n.T("Theme"), "", func() {
-			if ui.Segmented(c.Key("theme-seg"), &a.theme, i18n.T("System"), i18n.T("Light"), i18n.T("Dark")).Label(i18n.T("Theme")).Changed() {
+			if segmented(c.Key("theme-seg"), &a.theme, i18n.T("System"), i18n.T("Light"), i18n.T("Dark")).Label(i18n.T("Theme")).Changed() {
 				theme := settings.Themes[a.theme]
 				a.updateSettings(func(s *settings.Settings) { s.Appearance.Theme = theme })
 			}
 		})
 		settingRow(c, "scale", i18n.T("Interface size"), i18n.T("Scales text and spacing."), func() {
-			if ui.Segmented(c.Key("scale-seg"), &a.scale, scaleLabels...).Label(i18n.T("Interface size")).Changed() {
+			if segmented(c.Key("scale-seg"), &a.scale, scaleLabels...).Label(i18n.T("Interface size")).Changed() {
 				scale := settings.Scales[a.scale]
 				a.updateSettings(func(s *settings.Settings) { s.Appearance.Scale = scale })
 			}
 		})
 		a.sidebarRow(c)
 		settingRow(c, "motion", i18n.T("Reduce motion"), i18n.T("Pages and panels change without animating. The system's setting is followed too."), func() {
-			if ui.Switch(c.Key("motion-switch"), &a.reduceMotion).Label(i18n.T("Reduce motion")).Changed() {
+			if inkSwitch(c.Key("motion-switch"), &a.reduceMotion).Label(i18n.T("Reduce motion")).Changed() {
 				on := a.reduceMotion
 				a.updateSettings(func(s *settings.Settings) { s.Appearance.ReduceMotion = on })
 			}
@@ -71,10 +71,10 @@ func (a *app) modelSettings(c *ui.Context) {
 			shown = hub.CacheDir()
 		}
 		settingRowNote(c, "cache-dir", i18n.T("Model folder"), shown, func() {
-			if ui.Button(c.Key("cache-choose"), i18n.T("Choose…")).Clicked() {
+			if secondaryButton(c.Key("cache-choose"), i18n.T("Choose…")).Clicked() {
 				a.chooseCacheDir()
 			}
-			if ui.Button(c.Key("cache-default"), i18n.T("Use the default")).Disabled(dir == "").
+			if secondaryButton(c.Key("cache-default"), i18n.T("Use the default")).Disabled(dir == "").
 				Tooltip(i18n.T("The ActNow model folder in Application Support")).Clicked() {
 				a.updateSettings(func(s *settings.Settings) { s.Models.CacheDir = "" })
 			}
@@ -88,10 +88,10 @@ func (a *app) modelSettings(c *ui.Context) {
 				return
 			}
 			ui.TextInput(c.Key("token-input"), &a.token).Password().Placeholder("hf_…").Width(px(t, 200)).Label(i18n.T("Access token"))
-			if ui.Button(c.Key("token-save"), i18n.T("Save")).Disabled(strings.TrimSpace(a.token) == "").Clicked() {
+			if secondaryButton(c.Key("token-save"), i18n.T("Save")).Disabled(strings.TrimSpace(a.token) == "").Clicked() {
 				a.saveToken(a.token)
 			}
-			if ui.Button(c.Key("token-remove"), i18n.T("Remove")).Tooltip(i18n.T("Remove the token saved in the Keychain")).Clicked() {
+			if secondaryButton(c.Key("token-remove"), i18n.T("Remove")).Tooltip(i18n.T("Remove the token saved in the Keychain")).Clicked() {
 				a.saveToken("")
 			}
 		})
@@ -114,7 +114,7 @@ func (a *app) licenceSettings(c *ui.Context) {
 				who = catalog.Builtin().DisplayName(acc.Model)
 			}
 			settingRowNote(c, "acc-"+acc.Licence+"-"+acc.Model, licenceName(acc.Licence), i18n.T("Accepted for %s on %s", who, i18n.Date(acc.AcceptedAt)), func() {
-				if ui.Button(c.Key("revoke"), i18n.T("Withdraw")).Clicked() {
+				if secondaryButton(c.Key("revoke"), i18n.T("Withdraw")).Clicked() {
 					a.revokeLicence(acc)
 				}
 			})
@@ -188,7 +188,7 @@ func (a *app) studioSettings(c *ui.Context) {
 			}
 		})
 		settingRow(c, "autoplay", i18n.T("Play each take when it is ready"), "", func() {
-			if ui.Switch(c.Key("autoplay-switch"), &a.autoplaySetting).Label(i18n.T("Play each take when it is ready")).Changed() {
+			if inkSwitch(c.Key("autoplay-switch"), &a.autoplaySetting).Label(i18n.T("Play each take when it is ready")).Changed() {
 				on := a.autoplaySetting
 				a.updateSettings(func(s *settings.Settings) { s.Studio.Autoplay = on })
 			}

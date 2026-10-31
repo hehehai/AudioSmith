@@ -97,7 +97,7 @@ func (a *app) transcriptStatus(c *ui.Context) {
 				ui.Spinner(c)
 				ui.Text(c, i18n.T("Transcribing %s", j.title)).FontWeight(600).Grow(1).MinWidth(0).SingleLine().Ellipsis("…")
 				caption(c, formatDuration(time.Since(j.started).Seconds())).SingleLine()
-				if ui.Button(c.Key("tr-cancel"), i18n.T("Cancel")).Disabled(j.cancelling).Clicked() {
+				if secondaryButton(c.Key("tr-cancel"), i18n.T("Cancel")).Disabled(j.cancelling).Clicked() {
 					a.cancelTranscription()
 				}
 			})

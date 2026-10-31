@@ -202,7 +202,7 @@ func (a *app) dubSourceDetails(c *ui.Context) {
 	}
 	if m != nil && m.NeedsFFmpeg && p.Source.Path == "" && a.mediaTool() == nil {
 		notice(c, "dub-src-ffmpeg", noticeWarn, dubURLErrorText(&dub.URLError{Code: dub.CodeYtDlp, Detail: "Requested format is not available"}), "", func() {
-			if ui.Button(c.Key("dub-src-ffmpeg-go"), i18n.T("Open Settings → Audio tools")).Clicked() {
+			if secondaryButton(c.Key("dub-src-ffmpeg-go"), i18n.T("Open Settings → Audio tools")).Clicked() {
 				a.navigate("/settings/audio-tools")
 			}
 		}, nil)

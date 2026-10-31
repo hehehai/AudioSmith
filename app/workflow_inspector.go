@@ -124,7 +124,7 @@ func (a *app) wfDiagnostics(c *ui.Context, ds []workflow.Diagnostic) {
 		ui.Row(c.Key(fmt.Sprintf("wf-diag-%d", i))).Gap(px(t, 6)).Padding(px(t, 6), px(t, 8)).Radius(6).Border(1, col).Children(func() {
 			ui.Text(c, d.Text()).FontSize(px(t, 12)).TextColor(col).Grow(1).MinWidth(0)
 			if d.Code == wfCodeNotDownloaded {
-				if ui.Button(c.Key("wf-diag-models"), i18n.T("Models")).Clicked() {
+				if secondaryButton(c.Key("wf-diag-models"), i18n.T("Models")).Clicked() {
 					a.navigate("/models")
 				}
 			}
@@ -178,13 +178,13 @@ func (a *app) wfScriptsPanel(c *ui.Context, n *workflow.Node) {
 		})
 	}
 	ui.Row(c).Gap(px(t, 6)).Wrap().Children(func() {
-		if ui.Button(c.Key("wf-script-add-"+id), i18n.T("Add script")).Disabled(locked || len(n.P.Scripts) >= workflow.MaxScripts).Clicked() {
+		if secondaryButton(c.Key("wf-script-add-"+id), i18n.T("Add script")).Disabled(locked || len(n.P.Scripts) >= workflow.MaxScripts).Clicked() {
 			a.wfEdit(func(w *workflow.Workflow) {
 				p := &w.Node(id).P
 				p.Scripts = append(p.Scripts, workflow.Script{})
 			})
 		}
-		if ui.Button(c.Key("wf-script-import-"+id), i18n.T("Import scripts…")).Tooltip(i18n.T("TXT, Markdown, DOCX or EPUB: one script per file")).
+		if secondaryButton(c.Key("wf-script-import-"+id), i18n.T("Import scripts…")).Tooltip(i18n.T("TXT, Markdown, DOCX or EPUB: one script per file")).
 			Disabled(locked).Clicked() {
 			a.wfImportScripts(id)
 		}
@@ -224,7 +224,7 @@ func (a *app) wfClipsPanel(c *ui.Context, n *workflow.Node) {
 	}
 	zone.Children(func() {
 		ui.Text(c, i18n.T("Drop audio files here, up to 50 clips of 64 MiB each.")).FontSize(px(t, 12)).TextColor(t.TextMuted).TextAlign(ui.Center)
-		if ui.Button(c.Key("wf-clip-add-"+id), i18n.T("Add audio…")).Disabled(locked || len(n.P.Clips) >= workflow.MaxClips).Clicked() {
+		if secondaryButton(c.Key("wf-clip-add-"+id), i18n.T("Add audio…")).Disabled(locked || len(n.P.Clips) >= workflow.MaxClips).Clicked() {
 			a.wfAddClips(id)
 		}
 	})
@@ -268,7 +268,7 @@ func (a *app) wfVoicePanel(c *ui.Context, n *workflow.Node) {
 			if ready, known := a.modelOnDisk(e); known && !ready {
 				ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, i18n.T("%s is not downloaded yet.", modelRef(e))).FontSize(px(t, 12)).TextColor(t.Warning).Grow(1)
-					if ui.Button(c.Key("wf-download-"+id), i18n.T("Download")).Clicked() {
+					if secondaryButton(c.Key("wf-download-"+id), i18n.T("Download")).Clicked() {
 						a.askLicence(e, func() { a.download(e) })
 					}
 				})
@@ -298,7 +298,7 @@ func (a *app) wfVoicePanel(c *ui.Context, n *workflow.Node) {
 	a.wfLangSelect(c, "wf-lang-"+id, i18n.T("Language"), &n.P.Language, true)
 	ui.Field(c, i18n.T("Speed"), func() {
 		ui.Row(c).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
-			if ui.Slider(c.Key("wf-speed-"+id), &n.P.Speed, workflow.MinSpeed, workflow.MaxSpeed).Step(0.05).Label(i18n.T("Speed")).
+			if slimSlider(c.Key("wf-speed-"+id), &n.P.Speed, workflow.MinSpeed, workflow.MaxSpeed).Step(0.05).Label(i18n.T("Speed")).
 				Disabled(locked).Grow(1).Changed() {
 				a.wfEdit(func(*workflow.Workflow) {})
 			}
@@ -403,7 +403,7 @@ func (a *app) wfTranslatorSelect(c *ui.Context, n *workflow.Node) {
 	if ok, name := a.dubTranslatorReady(dub.Settings{Translator: n.P.Translator}); ok && name != "" {
 		ui.Text(c, i18n.T("Translates with %s.", name)).FontSize(px(t, 12)).TextColor(t.TextMuted)
 	} else if n.P.Translator == "" {
-		if ui.Button(c.Key("wf-llm-settings"), i18n.T("Set up a language model…")).Clicked() {
+		if secondaryButton(c.Key("wf-llm-settings"), i18n.T("Set up a language model…")).Clicked() {
 			a.navigate("/settings/writing")
 		}
 	}
@@ -464,10 +464,10 @@ func (a *app) wfExportPanel(c *ui.Context, n *workflow.Node) {
 				ui.Text(c, n.P.Folder).FontSize(px(t, 12)).MaxLines(2).Ellipsis("…")
 			}
 			ui.Row(c).Gap(px(t, 6)).Children(func() {
-				if ui.Button(c.Key("wf-folder-"+id), i18n.T("Choose…")).Disabled(locked).Clicked() {
+				if secondaryButton(c.Key("wf-folder-"+id), i18n.T("Choose…")).Disabled(locked).Clicked() {
 					a.wfChooseFolder(id)
 				}
-				if n.P.Folder != "" && ui.Button(c.Key("wf-folder-clear-"+id), i18n.T("Clear")).Disabled(locked).Clicked() {
+				if n.P.Folder != "" && secondaryButton(c.Key("wf-folder-clear-"+id), i18n.T("Clear")).Disabled(locked).Clicked() {
 					a.wfEdit(func(w *workflow.Workflow) { w.Node(id).P.Folder = "" })
 				}
 			})

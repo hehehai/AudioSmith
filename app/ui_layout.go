@@ -18,7 +18,7 @@ var headerInset float32
 func pageHeader(c *ui.Context, title string, trailing func()) {
 	t := c.Theme()
 	ui.Row(c).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).Gap(px(t, sp2)).DragWindow().Children(func() {
-		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
+		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(fwPageTitle).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
 		if trailing != nil {
 			trailing()
 		}

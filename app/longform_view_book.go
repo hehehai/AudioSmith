@@ -46,33 +46,33 @@ func (a *app) lfProduction(c *ui.Context, p *lfPage, locked bool) {
 	if e.Has(catalog.CapGuidance) {
 		g := shown(pr.Guidance, rec.Guidance, 2)
 		ui.Field(c, i18n.T("Guidance %.1f", g), func() {
-			if snapped(ui.Slider(c.Key("lf-cfg"), &g, 0, 4).Label(i18n.T("Guidance")).Disabled(locked), &g, 0.1).Changed() {
+			if snapped(slimSlider(c.Key("lf-cfg"), &g, 0, 4).Label(i18n.T("Guidance")).Disabled(locked), &g, 0.1).Changed() {
 				pr.Guidance = g
 			}
 		})
 	}
 	formRow(c, "lf-vary-row", i18n.T("Vary repeated lines"), i18n.T("Give identical lines takes of their own instead of reusing one recording."), func() {
-		ui.Switch(c.Key("lf-vary"), &pr.VaryRepeats).Label(i18n.T("Vary repeated lines")).Disabled(locked)
+		inkSwitch(c.Key("lf-vary"), &pr.VaryRepeats).Label(i18n.T("Vary repeated lines")).Disabled(locked)
 	})
 	if _, paced := services.GapsOf(pr.Pacing); paced && p.kind == core.ProjectStory {
 		caption(c.Key("lf-paced"), i18n.T("Gaps between lines follow the pacing: %s (Performance).", pacingLabel(pr.Pacing)))
 	} else {
 		lg := float64(pr.LineGapMs)
 		ui.Field(c, i18n.T("Gap between lines %d ms", pr.LineGapMs), func() {
-			if snapped(ui.Slider(c.Key("lf-line-gap"), &lg, 0, 2000).Label(i18n.T("Gap between lines")).Disabled(locked), &lg, 50).Changed() {
+			if snapped(slimSlider(c.Key("lf-line-gap"), &lg, 0, 2000).Label(i18n.T("Gap between lines")).Disabled(locked), &lg, 50).Changed() {
 				pr.LineGapMs = int(lg)
 			}
 		})
 	}
 	pg := float64(pr.ParagraphGapMs)
 	ui.Field(c, i18n.T("Gap between paragraphs %d ms", pr.ParagraphGapMs), func() {
-		if snapped(ui.Slider(c.Key("lf-para-gap"), &pg, 0, 3000).Label(i18n.T("Gap between paragraphs")).Disabled(locked), &pg, 50).Changed() {
+		if snapped(slimSlider(c.Key("lf-para-gap"), &pg, 0, 3000).Label(i18n.T("Gap between paragraphs")).Disabled(locked), &pg, 50).Changed() {
 			pr.ParagraphGapMs = int(pg)
 		}
 	})
 	trim := !pr.KeepEdges
 	formRow(c, "lf-trim-row", i18n.T("Trim engine silence"), i18n.T("Cut the silence engines pad onto each chunk before joining, so the gaps above are what you hear."), func() {
-		if ui.Switch(c.Key("lf-trim"), &trim).Label(i18n.T("Trim engine silence")).Disabled(locked).Changed() {
+		if inkSwitch(c.Key("lf-trim"), &trim).Label(i18n.T("Trim engine silence")).Disabled(locked).Changed() {
 			pr.KeepEdges = !trim
 		}
 	})

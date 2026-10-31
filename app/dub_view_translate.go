@@ -81,7 +81,7 @@ func (a *app) dubTranslatePanel(c *ui.Context) {
 				iconMark(c, icons.DangerTriangle, t.Warning, "")
 				caption(c, i18n.T("Translating needs a translation engine: a local model (Ollama, LM Studio) or a provider in Settings → Writing help.")).TextColor(tok(t).Text).Grow(1).MinWidth(0)
 			})
-			if ui.Button(c.Key("tl-setup"), i18n.T("Set up writing help")).Clicked() {
+			if secondaryButton(c.Key("tl-setup"), i18n.T("Set up writing help")).Clicked() {
 				a.navigate("/settings/writing")
 			}
 		})
@@ -197,7 +197,7 @@ func (a *app) dubGlossaryPanel(c *ui.Context) {
 					ui.TextInput(c.Key("es"), &g.eSrc).Label(i18n.T("Source term")).Grow(1)
 					ui.TextInput(c.Key("et"), &g.eTgt).Label(i18n.T("Translation")).Grow(1)
 					ui.TextInput(c.Key("en"), &g.eNot).Label(i18n.T("Note")).Grow(1)
-					if ui.Button(c.Key("save"), i18n.T("Save")).Clicked() {
+					if secondaryButton(c.Key("save"), i18n.T("Save")).Clicked() {
 						a.dubSaveTerm(ii)
 					}
 					if ghostButton(c.Key("cancel"), i18n.T("Cancel")).Clicked() {

@@ -1,15 +1,17 @@
 package main
 
 // The shared kit of the 0.3 design (research/ui-design-spec.md §3–§4,
-// docs/architecture.md §3.4): buttons by rank, the "⋯" overflow menu,
-// text marks and chips, the page header, flat cards, collapsible
-// sections, form rows, search and filter bars, empty states, notes on
+// docs/architecture.md §3.4), restyled and extended by the 0.5 overhaul
+// (plan/ui-overhaul-plan.md §4: monochrome, after ElevenLabs' patterns):
+// buttons by rank, the "⋯" overflow menu, text marks and chips, the page
+// header, flat cards, collapsible sections, form rows, search and filter bars, empty states, notes on
 // the page, and side panels that become drawers when the page is
 // narrow. Pages build from these rather than styling MyGo's widgets one
 // by one.
 //
-// Ranks: one primaryButton per view (the core action, in ink); ui.Button
-// for the other actions that need a label (secondary: grey face); ghost
+// Ranks: one primaryButton per view (the core action, in ink);
+// secondaryButton for the other actions that need a label (a white face
+// inside a hairline); textButton for links written as text; ghost
 // buttons for quiet actions in toolbars and lists; iconButton, with its
 // tooltip, wherever an icon says enough; and the rest in moreMenu. The
 // round ink playButton plays a take or a clip; playToggle is the small
@@ -27,4 +29,17 @@ package main
 //	ui_marks.go    text, marks and chips; notes on the page (banner, notice)
 //	ui_layout.go   the page header, cards, collapsible, form rows, search and filter bars, empty states
 //	ui_panels.go   side panels (inline or a drawer) and their state
-//	ui_forms.go    segmented controls, the number input, popovers, the dialog frame
+//	ui_forms.go    the number input, popovers, the dialog frame
+//
+// The 0.5 kit (each a small function on MyGo's base widgets; pages use
+// these rather than ui.Button, ui.Segmented, ui.Switch or ui.Slider):
+//
+//	ui_kit_buttons.go   secondary, text, outlined icon, wide primary, round submit
+//	ui_kit_tabs.go      underline tabs, segmented controls
+//	ui_kit_chips.go     category, filter, example and toggle chips
+//	ui_kit_forms.go     selector row, slim sliders and the slider field, ink switch
+//	ui_kit_cards.go     composer card and drop zone, tool tile, image / feature /
+//	                    promo / suggestion cards, table row
+//	ui_kit_feedback.go  ghost rows, the intro dialog (shown once), the corner tip
+//
+// TestSnapshotsKitGallery renders all of them, light and dark, for review.

@@ -60,7 +60,7 @@ func (a *app) lfRenderBar(c *ui.Context, p *lfPage) {
 					txt.TextColor(t.Warning)
 				}
 				if r != nil && (r.rec.State == core.RenderFailed || r.rec.State == core.RenderStopped) {
-					if ui.Button(c.Key("lf-resume"), i18n.X("render", "Resume")).Tooltip(i18n.T("Render what is missing: finished chapters are kept")).
+					if secondaryButton(c.Key("lf-resume"), i18n.X("render", "Resume")).Tooltip(i18n.T("Render what is missing: finished chapters are kept")).
 						Disabled(a.activeRender() != nil).Clicked() {
 						a.resumeLf(p, r.rec.ID)
 					}
@@ -250,7 +250,7 @@ func (a *app) interruptedRenders(c *ui.Context, p *lfPage) {
 			if ghostButton(c.Key("show"), i18n.T("Show")).Clicked() {
 				p.render = r.rec.ID
 			}
-			if ui.Button(c.Key("resume"), i18n.X("render", "Resume")).Disabled(a.activeRender() != nil).Clicked() {
+			if secondaryButton(c.Key("resume"), i18n.X("render", "Resume")).Disabled(a.activeRender() != nil).Clicked() {
 				a.resumeLf(p, r.rec.ID)
 			}
 		})

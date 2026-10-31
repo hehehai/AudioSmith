@@ -244,14 +244,14 @@ func (a *app) exportDialog(c *ui.Context) {
 				if f.trim && f.info != nil && f.info.Seconds-f.info.Trimmed >= 0.05 {
 					caption(c, i18n.T("−%.1f s", f.info.Seconds-f.info.Trimmed)).SingleLine()
 				}
-				ui.Switch(c.Key("ex-trim-switch"), &f.trim).Label(i18n.T("Trim silence"))
+				inkSwitch(c.Key("ex-trim-switch"), &f.trim).Label(i18n.T("Trim silence"))
 			})
 		})
 	}, func() {
 		size := humanBytes(f.estimate())
 		ui.Text(c, i18n.T("About %s · %s", size, i18n.T("%.1f s", f.seconds()))).FontSize(px(t, fsCaption)).TextColor(k.Text2).
 			SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
-		if ui.Button(c.Key("ex-cancel"), i18n.T("Cancel")).Clicked() {
+		if secondaryButton(c.Key("ex-cancel"), i18n.T("Cancel")).Clicked() {
 			f.open = false
 		}
 		if primaryButton(c.Key("ex-export"), i18n.T("Export…")).Disabled(!f.availOK[ef.id]).Clicked() {

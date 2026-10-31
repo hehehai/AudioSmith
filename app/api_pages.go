@@ -65,7 +65,7 @@ func (a *app) apiReferencePage(c *ui.Context) {
 	})
 	if a.apiPort == 0 {
 		emptyState(c, icons.Programming, i18n.T("The Local API is not running."), "", func() {
-			if ui.Button(c.Key("ref-settings-empty"), i18n.T("Settings…")).Clicked() {
+			if secondaryButton(c.Key("ref-settings-empty"), i18n.T("Settings…")).Clicked() {
 				a.navigate("/settings/integrations")
 			}
 		})

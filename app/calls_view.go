@@ -58,7 +58,7 @@ func (a *app) callsPage(c *ui.Context) {
 			ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).MaxWidth(px(t, 760)).Children(func() {
 				a.callsBanner(c)
 				ui.Row(c).Children(func() {
-					ui.Segmented(c.Key("calls-tab"), &a.callTab, i18n.T("New call"), i18n.T("Call")).Label(i18n.T("Show"))
+					underlineTabs(c.Key("calls-tab"), &a.callTab, i18n.T("New call"), i18n.T("Call")).Label(i18n.T("Show")).Grow(1)
 				})
 				if a.callTab == 0 {
 					a.newCallForm(c)

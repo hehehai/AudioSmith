@@ -117,7 +117,7 @@ func (a *app) historyPage(c *ui.Context) {
 				a.searchTakes()
 			}
 		}, func() {
-			ui.Segmented(c.Key("history-filter"), &h.filter, i18n.T("All"), i18n.T("Starred")).Label(i18n.T("Show")).Shrink(0)
+			segmented(c.Key("history-filter"), &h.filter, i18n.T("All"), i18n.T("Starred")).Label(i18n.T("Show")).Shrink(0)
 			models := append([]string{i18n.T("All models")}, a.historyModels()...)
 			choice := h.model
 			if choice == "" {
@@ -149,10 +149,15 @@ func (a *app) historyPage(c *ui.Context) {
 		if twoLines {
 			bar += px(t, 40)
 		}
+		if len(a.takes) == 0 {
+			// Ghost rows: what the list will hold.
+			ui.Column(c).Absolute().Left(0).Top(titleBarHeight+bar).Right(0).Bottom(0).Padding(px(t, sp2), px(t, sp6)).PassThrough().Children(func() {
+				ghostRows(c, 4, icons.History, i18n.T("No takes yet"), i18n.T("What you generate in the studio shows up here."), nil)
+			})
+			return
+		}
 		ui.Column(c).Absolute().Left(0).Top(titleBarHeight + bar).Right(0).Bottom(0).Center().PassThrough().Children(func() {
-			if len(a.takes) == 0 {
-				emptyState(c, icons.History, i18n.T("No takes yet"), i18n.T("What you generate in the studio shows up here."), nil)
-			} else {
+			{
 				emptyState(c, icons.Magnifer, i18n.T("No take matches"), "", nil)
 			}
 		})

@@ -85,7 +85,7 @@ func (a *app) transcribePage(c *ui.Context) {
 func (a *app) transcribeToolbar(c *ui.Context, shown bool) {
 	busy := a.trJob != nil || a.trMic.phase != ""
 	e := a.trModel(a.trMode == 0)
-	mode := ui.Segmented(c.Key("tr-mode"), &a.trMode, i18n.T("Fast"), i18n.T("Accurate")).Label(i18n.T("Transcription quality")).Disabled(busy).Shrink(0).
+	mode := segmented(c.Key("tr-mode"), &a.trMode, i18n.T("Fast"), i18n.T("Accurate")).Label(i18n.T("Transcription quality")).Disabled(busy).Shrink(0).
 		Tooltip(i18n.T("Fast gives the text without word timings. Accurate also times every word, for subtitles and editing."))
 	if mode.Changed() {
 		m := settings.TranscribeAccurate

@@ -3672,5 +3672,7 @@
   "A voice it uses was deleted: choose another one.": "它用到的一个音色已被删除：请另选一个。",
   "“%s” was the Studio's voice: choose another one there.": "“%s”是工作室正在用的音色：请在工作室另选一个。",
   "Never": "从不",
-  "After %d minutes": "%d 分钟后"
+  "After %d minutes": "%d 分钟后",
+  "Clear %s": "清除%s",
+  "Get started": "开始使用"
 }

@@ -314,7 +314,7 @@ func (a *app) dictationSettings(c *ui.Context) {
 		FontSize(px(t, 12)).TextColor(t.TextMuted)
 	settingGroup(c, "", func() {
 		settingRow(c, "dict-enabled", i18n.T("Dictation shortcut"), i18n.T("Works in every app while AudioSmith runs."), func() {
-			if ui.Switch(c.Key("dict-enabled-switch"), &f.enabled).Label(i18n.T("Dictation shortcut")).Changed() {
+			if inkSwitch(c.Key("dict-enabled-switch"), &f.enabled).Label(i18n.T("Dictation shortcut")).Changed() {
 				on := f.enabled
 				a.updateSettings(func(s *settings.Settings) { s.Dictation.Enabled = on })
 				a.applyDictShortcut()
@@ -324,7 +324,7 @@ func (a *app) dictationSettings(c *ui.Context) {
 			settingBlock(c, "dict-shortcut-block", func() { a.shortcutRow(c) })
 		}
 		settingRow(c, "dict-mode", i18n.T("Mode"), i18n.T("Toggle: press once to start, again to stop. Hold: dictate while the keys are held; a quick tap keeps listening."), func() {
-			if ui.Segmented(c.Key("dict-mode-seg"), &f.mode, i18n.T("Toggle"), i18n.T("Hold")).Label(i18n.T("Mode")).Changed() {
+			if segmented(c.Key("dict-mode-seg"), &f.mode, i18n.T("Toggle"), i18n.T("Hold")).Label(i18n.T("Mode")).Changed() {
 				m := settings.DictationToggle
 				if f.mode == 1 {
 					m = settings.DictationHold
@@ -353,7 +353,7 @@ func (a *app) dictationSettings(c *ui.Context) {
 				if m.downloading {
 					label = i18n.T("Downloading…")
 				}
-				if ui.Button(c.Key("dict-model-download"), label).Disabled(m.downloading).Clicked() {
+				if secondaryButton(c.Key("dict-model-download"), label).Disabled(m.downloading).Clicked() {
 					a.download(e)
 				}
 			}
@@ -398,7 +398,7 @@ func (a *app) vocabField(c *ui.Context, n int) {
 			color = t.Danger
 		}
 		ui.Text(c, i18n.T("%d / %d characters", n, settings.MaxVocabulary)).FontSize(px(t, 11)).TextColor(color).Grow(1)
-		if ui.Button(c.Key("dict-vocab-save"), i18n.T("Save")).Disabled(f.vocab == d.Vocabulary || n > settings.MaxVocabulary).Clicked() {
+		if secondaryButton(c.Key("dict-vocab-save"), i18n.T("Save")).Disabled(f.vocab == d.Vocabulary || n > settings.MaxVocabulary).Clicked() {
 			v := f.vocab
 			a.updateSettings(func(s *settings.Settings) { s.Dictation.Vocabulary = v })
 			a.toast(i18n.T("Vocabulary saved"))
@@ -418,7 +418,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 			cleanDesc = i18n.T("%s removes fillers and applies self-corrections; after 4 seconds the polished text is used instead.", who)
 		}
 		settingRowNote(c, "dict-cleanup", i18n.T("Clean up with a language model"), cleanDesc, func() {
-			if ui.Switch(c.Key("dict-cleanup-switch"), &f.cleanup).Label(i18n.T("Clean up with a language model")).Changed() {
+			if inkSwitch(c.Key("dict-cleanup-switch"), &f.cleanup).Label(i18n.T("Clean up with a language model")).Changed() {
 				on := f.cleanup
 				a.updateSettings(func(s *settings.Settings) { s.Dictation.Cleanup = on })
 				if on {
@@ -426,7 +426,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 				}
 			}
 			if !ok {
-				if ui.Button(c.Key("dict-writing"), i18n.T("Writing help…")).Clicked() {
+				if secondaryButton(c.Key("dict-writing"), i18n.T("Writing help…")).Clicked() {
 					a.navigate("/settings/writing")
 				}
 			}
@@ -436,7 +436,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 			outDesc = i18n.T("Typing needs Accessibility (Settings → Dictation): until then the text is copied.")
 		}
 		settingRowNote(c, "dict-output", i18n.T("Result"), outDesc, func() {
-			if ui.Segmented(c.Key("dict-output-seg"), &f.output, i18n.T("Type it"), i18n.T("Copy only")).Label(i18n.T("Result")).Changed() {
+			if segmented(c.Key("dict-output-seg"), &f.output, i18n.T("Type it"), i18n.T("Copy only")).Label(i18n.T("Result")).Changed() {
 				o := settings.OutputPaste
 				if f.output == 1 {
 					o = settings.OutputCopy
@@ -445,7 +445,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 			}
 		})
 		settingRow(c, "dict-sounds", i18n.T("Sounds"), i18n.T("A sound when listening starts and stops, and when something goes wrong. Choosing a sound plays it."), func() {
-			if ui.Switch(c.Key("dict-sounds-switch"), &f.sounds).Label(i18n.T("Sounds")).Changed() {
+			if inkSwitch(c.Key("dict-sounds-switch"), &f.sounds).Label(i18n.T("Sounds")).Changed() {
 				on := f.sounds
 				a.updateSettings(func(s *settings.Settings) { s.Dictation.Sounds = on })
 			}
@@ -458,7 +458,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 			if s := a.dict; s != nil && (s.phase == dictStarting || s.phase == dictListening) {
 				label = i18n.T("Stop dictation")
 			}
-			if ui.Button(c.Key("dict-try-button"), label).Clicked() {
+			if secondaryButton(c.Key("dict-try-button"), label).Clicked() {
 				a.dictToggle()
 			}
 		})
@@ -511,10 +511,10 @@ func (a *app) shortcutRow(c *ui.Context) {
 			if primaryButton(c.Key("dict-record-save"), i18n.T("Save")).Disabled(f.pending == "").Clicked() {
 				a.saveShortcut(f.pending)
 			}
-			if ui.Button(c.Key("dict-record-cancel"), i18n.T("Cancel")).Clicked() {
+			if secondaryButton(c.Key("dict-record-cancel"), i18n.T("Cancel")).Clicked() {
 				a.stopShortcutRecording()
 			}
-		} else if ui.Button(c.Key("dict-reset"), i18n.T("Reset")).Tooltip(dictation.GlyphsOf(settings.DefaultShortcut)).
+		} else if secondaryButton(c.Key("dict-reset"), i18n.T("Reset")).Tooltip(dictation.GlyphsOf(settings.DefaultShortcut)).
 			Disabled(d.Shortcut == settings.DefaultShortcut).Clicked() {
 			a.saveShortcut(settings.DefaultShortcut)
 		}
@@ -543,7 +543,7 @@ func (a *app) shortcutRow(c *ui.Context) {
 func (a *app) m2GeneralSettings(c *ui.Context) {
 	f := &a.dictSet
 	settingRow(c, "close-tray", i18n.T("Keep running in the menu bar"), i18n.T("Closing the window keeps AudioSmith in the menu bar, so dictation keeps working."), func() {
-		if ui.Switch(c.Key("close-tray-switch"), &f.closeTray).Label(i18n.T("Keep running in the menu bar")).Changed() {
+		if inkSwitch(c.Key("close-tray-switch"), &f.closeTray).Label(i18n.T("Keep running in the menu bar")).Changed() {
 			on := f.closeTray
 			a.updateSettings(func(s *settings.Settings) { s.General.CloseToTray = on })
 		}

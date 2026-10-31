@@ -118,7 +118,7 @@ func (a *app) lfSetup(c *ui.Context, p *lfPage, locked bool) {
 			d.Speed = 1
 		}
 		ui.Field(c, i18n.T("Speed %.2f×", d.Speed), func() {
-			snapped(ui.Slider(c.Key("lf-speed"), &d.Speed, 0.5, 2).Label(i18n.T("Speed")).Disabled(locked), &d.Speed, 0.05)
+			snapped(slimSlider(c.Key("lf-speed"), &d.Speed, 0.5, 2).Label(i18n.T("Speed")).Disabled(locked), &d.Speed, 0.05)
 		})
 		if p.kind == core.ProjectStory {
 			n := 0

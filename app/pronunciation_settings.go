@@ -254,7 +254,7 @@ func (a *app) pronunciationSettings(c *ui.Context) {
 			if p.previewJob != "" {
 				label = i18n.T("Rendering…")
 			}
-			if ui.Button(c.Key("pron-listen"), label).Disabled(strings.TrimSpace(p.test) == "" || p.previewJob != "" || a.engState != engineReady).
+			if secondaryButton(c.Key("pron-listen"), label).Disabled(strings.TrimSpace(p.test) == "" || p.previewJob != "" || a.engState != engineReady).
 				Tooltip(i18n.T("Render it with the Studio's model and voice")).Clicked() {
 				a.previewPronunciation()
 			}
@@ -322,7 +322,7 @@ func (a *app) pronunciationSettings(c *ui.Context) {
 						Tooltip(i18n.T("“global”, or a language code such as en or zh")).Changed() {
 						changed = true
 					}
-					if ui.Switch(c.Key("on"), &e.Enabled).Label(i18n.T("On")).Changed() {
+					if inkSwitch(c.Key("on"), &e.Enabled).Label(i18n.T("On")).Changed() {
 						changed = true
 					}
 					if iconButton(c.Key("remove"), icons.Close, i18n.T("Remove")).Tooltip(i18n.T("Remove")).Shrink(0).Clicked() {
@@ -340,7 +340,7 @@ func (a *app) pronunciationSettings(c *ui.Context) {
 			changed = true
 		}
 		ui.Row(c).Gap(px(t, 8)).Children(func() {
-			if ui.Button(c.Key("pron-add"), i18n.T("Add an entry")).Clicked() {
+			if secondaryButton(c.Key("pron-add"), i18n.T("Add an entry")).Clicked() {
 				p.entries = append(p.entries, lexicon.Entry{Type: lexicon.Respelling, Scope: lexicon.Global, Enabled: true})
 				p.types = nil
 				changed = true
@@ -353,7 +353,7 @@ func (a *app) pronunciationSettings(c *ui.Context) {
 					a.importPronunciation(lexicon.Replace)
 				}
 			})
-			if ui.Button(c.Key("pron-export"), i18n.T("Export…")).Disabled(len(p.entries) == 0).Clicked() {
+			if secondaryButton(c.Key("pron-export"), i18n.T("Export…")).Disabled(len(p.entries) == 0).Clicked() {
 				a.exportPronunciation()
 			}
 		})
