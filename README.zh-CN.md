@@ -250,4 +250,4 @@ AudioSmith 是自由软件：你可以按自由软件基金会发布的 [GNU Aff
 - 模型来自 Qwen 团队（Qwen3-TTS、Qwen3-ASR、Qwen3 4B）、hexgrad（Kokoro）、Resemble AI（Chatterbox）、k2-fsa（OmniVoice）、Soul AI Lab（SoulX-Podcast）、OpenMOSS（MOSS-TTSD、MOSS-Transcribe-Diarize）、OpenAI（Whisper）、Meta（HTDemucs、AudioSeal）、NVIDIA（Sortformer）、Silero 和 DeepFilterNet；MLX 版本由 mlx-community 等转换。
 - 运行在 [MLX](https://github.com/ml-explore/mlx)、[mlx-swift](https://github.com/ml-explore/mlx-swift) 和 [mlx-audio-swift](https://github.com/Blaizzy/mlx-audio-swift) 之上。
 - 界面基于 [MyGo](https://github.com/egoist/mygo)（MIT）。
-- 图标：480 Design 的 [Solar](https://icon-sets.iconify.design/solar/)，CC BY 4.0 许可（见 [NOTICE](NOTICE)）。
+- 图标：480 Design 的 [Solar](https://icon-sets.iconify.design/solar/)，CC BY 4.0 许可；播放和暂停图标：[Hugeicons](https://icon-sets.iconify.design/hugeicons/)，MIT 许可（见 [NOTICE](NOTICE)）。

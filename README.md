@@ -250,4 +250,4 @@ Model weights keep their own licences (see [Models](#models)); OmniVoice's is no
 - Models by the Qwen team (Qwen3-TTS, Qwen3-ASR, Qwen3 4B), hexgrad (Kokoro), Resemble AI (Chatterbox), k2-fsa (OmniVoice), Soul AI Lab (SoulX-Podcast), OpenMOSS (MOSS-TTSD, MOSS-Transcribe-Diarize), OpenAI (Whisper), Meta (HTDemucs, AudioSeal), NVIDIA (Sortformer), Silero and DeepFilterNet. MLX conversions by mlx-community and others.
 - Runs on [MLX](https://github.com/ml-explore/mlx), [mlx-swift](https://github.com/ml-explore/mlx-swift) and [mlx-audio-swift](https://github.com/Blaizzy/mlx-audio-swift).
 - The interface is built with [MyGo](https://github.com/egoist/mygo) (MIT).
-- Icons: [Solar](https://icon-sets.iconify.design/solar/) by 480 Design, CC BY 4.0 (see [NOTICE](NOTICE)).
+- Icons: [Solar](https://icon-sets.iconify.design/solar/) by 480 Design, CC BY 4.0; play and pause: [Hugeicons](https://icon-sets.iconify.design/hugeicons/), MIT (see [NOTICE](NOTICE)).

@@ -155,3 +155,26 @@ func TestDictationSoundPanel(t *testing.T) {
 		t.Errorf("played %q", got)
 	}
 }
+
+// TestDictationSoundTry: Try plays the line's sound and, while it plays
+// (the pause glyph), a click stops it.
+func TestDictationSoundTry(t *testing.T) {
+	m := newM2Test(t)
+	a, tt := m.a, m.tt
+	rec := useTestSounds(t, a)
+	tt.SetSize(1000, 2400)
+	a.navigate("/settings/dictation")
+	tt.Frame()
+	for range 2 {
+		if err := tt.Click("Try the error sound"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+	}
+	if got := rec.Played(); !slices.Equal(got, []string{"shrug@0.7", "stop shrug"}) {
+		t.Errorf("played %q", got)
+	}
+	if ch, _ := a.dictPlayer.Previewing(); ch != "" {
+		t.Errorf("still playing %q", ch)
+	}
+}
