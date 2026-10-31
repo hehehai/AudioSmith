@@ -16,13 +16,22 @@ import (
 
 func (a *app) integrationsSettings(c *ui.Context) {
 	if slug, ok := strings.CutPrefix(a.setRouter.Path(), "/integrations/"); ok && slug != "" {
-		a.integrationDetail(c, slug)
+		a.integrationDetail(c, slug, "/settings/integrations")
 		return
 	}
-	t := c.Theme()
-	k := tok(t)
 	caption(c, i18n.T("Agents, SDKs and automation tools use AudioSmith through its Local API, on this Mac: pick one for its setup.")).Wrap()
 	a.apiStatusLine(c)
+	a.integrationList(c, "/settings/integrations")
+	a.revealAnchor(c, "api")
+	subHeading(c, i18n.T("Local API"))
+	a.apiSettings(c) // its last group opens the API reference
+}
+
+// integrationList lists the apps and agents; a click opens the setup of
+// one at base/{slug} (Settings → Integrations, or Developers).
+func (a *app) integrationList(c *ui.Context, base string) {
+	t := c.Theme()
+	k := tok(t)
 	settingGroup(c, i18n.T("Apps and agents"), func() {
 		for _, in := range integrations {
 			caps := make([]string, len(in.Caps))
@@ -50,12 +59,9 @@ func (a *app) integrationsSettings(c *ui.Context) {
 						a.navigate("/calls/setup")
 						return
 					}
-					a.navigate("/settings/integrations/" + in.Slug)
+					a.navigate(base + "/" + in.Slug)
 				}
 			})
 		}
 	})
-	a.revealAnchor(c, "api")
-	subHeading(c, i18n.T("Local API"))
-	a.apiSettings(c) // its last group opens the API reference
 }

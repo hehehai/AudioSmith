@@ -94,12 +94,23 @@ func (a *app) projectsPage(c *ui.Context) {
 	a.libraryDialogs(c)
 }
 
-// libraryToolbar: the category (narrow) and the selection. The search is
-// the sidebar's (⌘F), the views are in the header.
+// libraryToolbar: the search (⌘F; Esc clears it), the category
+// (narrow) and the selection. The views are in the header.
 func (a *app) libraryToolbar(c *ui.Context, narrow bool) {
 	t := c.Theme()
 	s := &a.projects
 	ui.Row(c.Key("pj-toolbar")).Gap(px(t, sp2)).AlignItems(ui.Center).MinHeight(px(t, 30)).Children(func() {
+		in := searchField(c, "pj-search", &s.query, i18n.T("Search")+"  ⌘F", px(t, 320)).Label(i18n.T("Search the library"))
+		if a.searchFocus {
+			a.searchFocus = false
+			in.Focus()
+		}
+		if in.Shortcut(0, ui.KeyEscape) && s.query != "" {
+			s.query = ""
+		}
+		if in.Changed() {
+			clear(s.selected)
+		}
 		if narrow {
 			labels := make([]string, len(libCategories))
 			for i, cat := range libCategories {

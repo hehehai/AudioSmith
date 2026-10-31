@@ -1,7 +1,8 @@
 package main
 
-// The activity cards at the sidebar's foot (the ActNow family's window
-// spec §2): what goes on, instead of a status bar. In order: a stopped
+// The activity cards (the ActNow family's window spec §2): what goes on,
+// instead of a status bar; since 0.5 F1 the top bar's bell counts them
+// and lists them in its popover (shell_topbar.go), the Tasks page in full. In order: a stopped
 // engine (red, Restart), dictation and calls under way (Stop, Hang up),
 // the jobs by kind — each story or book render, dub and workflow run its
 // own card, the Studio's takes, exports and transcriptions one card a
@@ -9,10 +10,7 @@ package main
 // finished card stays 3 s. actnowkit/activity is the logic (jobs by kind,
 // finished cards, the stack's geometry); this file words and draws them.
 //
-// One card shows in full, two more peek out under it; the pointer over
-// the stack (or a click on its line) opens it into a list of four, "View
-// all" the Tasks page (shell_tasks.go). A click on a card goes where it
-// is managed; its button (on hover; always on a stopped engine) stops it.
+// A click on a card goes where it is managed; its button stops it.
 
 import (
 	"context"
@@ -20,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
@@ -35,10 +32,9 @@ type activityState struct {
 	actTracker activity.Tracker
 	actCards   []actCard // this frame's (buildActivity)
 	actTick    bool      // a card counts time or goes soon: build again
-	actPinned  bool      // the stack's line was clicked: open while the pointer is away
 }
 
-// actCard is a card at the sidebar's foot.
+// actCard is a card: a row of the bell's popover and the Tasks page.
 type actCard struct {
 	key    string
 	icon   icons.Icon
@@ -338,155 +334,4 @@ func (a *app) stopActivity(kind string, ids []string) {
 			}
 		}
 	}
-}
-
-// activityStack draws the cards: closed, the first in full and two
-// peeking out under it; open (the pointer over it, or its line clicked),
-// a list of four and "View all".
-func (a *app) activityStack(c *ui.Context) {
-	cards := a.actCards
-	n := len(cards)
-	if a.actTick {
-		c.After(time.Second)
-	}
-	if n == 0 {
-		a.actPinned = false
-		return
-	}
-	t := c.Theme()
-	k := tok(t)
-	wrap := ui.Column(c.Key("activity")).Shrink(0).Gap(px(t, sp1)).Role(ui.RoleList).Label(i18n.T("In progress"))
-	open := n > 1 && (a.actPinned || wrap.Hovered())
-	wrap.Children(func() {
-		h := activity.Height(n, open)
-		ui.Box(c.Key("activity-cards")).Height(px(t, h)).Shrink(0).Children(func() {
-			poses := activity.Poses(n, open)
-			anim := ui.Animation{Duration: 220 * time.Millisecond, Ease: ui.EaseInOut}
-			for i := len(poses) - 1; i >= 0; i-- {
-				p := poses[i]
-				card := a.activityCard(c, cards[i], px(t, p.Top))
-				fade := float32(0)
-				if p.Fade {
-					fade = 1
-				}
-				card.TransformOrigin(0.5, 1).AnimatePose(ui.Pose{Y: px(t, p.Y), Scale: p.Scale, Fade: fade}, anim)
-			}
-		})
-		if n < 2 {
-			return
-		}
-		ui.Row(c.Key("activity-line")).Gap(px(t, 6)).AlignItems(ui.Center).Padding(0, px(t, 4)).Children(func() {
-			line := ui.ButtonBase(c.Key("activity-more")).Gap(px(t, 6)).AlignItems(ui.Center).Justify(ui.Start).Padding(px(t, 2), px(t, 2)).Radius(px(t, 6)).
-				Label(i18n.N(n, "%d in progress", "%d in progress", n)).Grow(1).MinWidth(0)
-			line.Children(func() {
-				statusDot(c, k.Accent)
-				ui.Text(c, i18n.N(n, "%d in progress", "%d in progress", n)).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
-			})
-			if line.Clicked() {
-				a.actPinned = !a.actPinned
-			}
-			if open {
-				all := ghostBase(c.Key("activity-all")).Padding(px(t, 2), px(t, 6)).Label(i18n.T("View all")).Shrink(0)
-				all.Children(func() {
-					ui.Text(c, i18n.T("View all")+" ›").FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine()
-				})
-				if all.Clicked() {
-					a.actPinned = false
-					a.navigate("/tasks")
-				}
-			}
-		})
-	})
-}
-
-// activityCard is one card, top DIPs from the stack's top when open.
-func (a *app) activityCard(c *ui.Context, card actCard, top float32) ui.Element {
-	t := c.Theme()
-	k := tok(t)
-	label := card.title
-	if card.detail != "" {
-		label += " · " + card.detail
-	}
-	border := k.Line
-	if card.danger {
-		border = t.Danger
-	}
-	box := ui.Column(c.Key(card.key)).Absolute().Left(0).Right(0).Top(top).Height(px(t, activity.CardHeight)).
-		Radius(px(t, radiusNotice)).Background(k.Bg).Border(1, border).Shadow(0, 1, 4, 0, ui.RGBA(0, 0, 0, 0.06))
-	box.Children(func() {
-		b := ui.ButtonBase(c.Key("open")).Absolute().Left(0).Right(0).Top(0).Bottom(0).Radius(px(t, radiusNotice)).Label(label).Tooltip(label)
-		if b.Hovered() {
-			b.Background(k.Subtle)
-		}
-		showAction := card.action != nil && (card.danger || box.Hovered())
-		b.Children(func() {
-			ui.Column(c).Grow(1).Justify(ui.Center).Gap(px(t, 5)).Padding(0, px(t, 10)).Children(func() {
-				ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
-					col := k.Text2
-					switch {
-					case card.danger:
-						col = t.Danger
-					case card.done:
-						col = t.Success
-					}
-					ui.Icon(c, card.icon.Linear).Size(px(t, 14), px(t, 14)).TextColor(col).Shrink(0)
-					ui.Text(c, card.title).FontSize(px(t, 12)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
-					if showAction {
-						ui.Box(c).Width(px(t, 22)).Shrink(0)
-					} else if card.detail != "" {
-						ui.Text(c, card.detail).FontSize(px(t, 11)).TextColor(k.Text3).SingleLine().Shrink(0)
-					}
-				})
-				// A bar only for real progress: no empty or moving track
-				// (the card itself says that something goes on).
-				if card.frac > 0 && card.frac <= 1 {
-					ui.Box(c.Key("bar")).Height(px(t, 2)).Radius(px(t, 1)).Background(k.G[2]).Children(func() {
-						ui.Box(c).WidthPercent(float32(card.frac) * 100).Height(px(t, 2)).Radius(px(t, 1)).Background(k.Accent)
-					})
-				}
-			})
-		})
-		if b.Clicked() && card.open != nil {
-			a.actPinned = false
-			card.open()
-		}
-		if showAction {
-			act := card.action
-			ui.Box(c).Absolute().Right(px(t, 6)).Top(0).Bottom(0).Justify(ui.Center).Children(func() {
-				ib := ghostBase(c.Key("action")).Size(px(t, 22), px(t, 22)).Center().Label(act.tip).Tooltip(act.tip)
-				ib.Children(func() {
-					col := k.Text2
-					if card.danger {
-						col = t.Danger
-					}
-					ui.Icon(c, act.icon.Linear).Size(px(t, 14), px(t, 14)).TextColor(col)
-				})
-				if ib.Clicked() {
-					act.run()
-				}
-			})
-		}
-	})
-	return box
-}
-
-// activityRail is the cards on the icon rail: one icon with their count
-// (red while one needs the user); it opens the Tasks page.
-func (a *app) activityRail(c *ui.Context) {
-	n := len(a.actCards)
-	if a.actTick {
-		c.After(time.Second)
-	}
-	if n == 0 {
-		return
-	}
-	label := i18n.N(n, "%d in progress", "%d in progress", n)
-	ic := tasksIcon
-	for _, cd := range a.actCards {
-		if cd.danger {
-			ic = icons.DangerTriangle
-			label = cd.title + " · " + label
-		}
-	}
-	a.railButton(c, "rail-activity", ic, label, label, section(a.router.Path()) == "/tasks", itoa(n), func() { a.navigate("/tasks") })
 }

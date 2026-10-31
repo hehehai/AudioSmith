@@ -32,12 +32,12 @@ func (a *app) apiStatusLine(c *ui.Context) {
 // integrationDetail is Settings → Integrations → one of them
 // (/settings/integrations/{slug}): what it is, its setup prompt and skill
 // (agents), the setup's blocks.
-func (a *app) integrationDetail(c *ui.Context, slug string) {
+func (a *app) integrationDetail(c *ui.Context, slug, back string) {
 	t := c.Theme()
 	in, ok := integrationBySlug(slug)
 	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 		if ghostIconButton(c.Key("integ-back"), icons.AltArrowLeft, i18n.T("All integrations")).Label(i18n.T("All integrations")).Clicked() {
-			a.navigate("/settings/integrations")
+			a.navigate(back)
 		}
 		if ok {
 			ui.Text(c, in.Name).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)

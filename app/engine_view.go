@@ -14,18 +14,22 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-func (a *app) enginePage(c *ui.Context) {
+// engineSettingsSection is Settings → Engine (the Engine page before 0.5
+// F1): Restart and ⋯ (the log, the model cache), the engine's processes,
+// and its files.
+func (a *app) engineSettingsSection(c *ui.Context) {
 	t := c.Theme()
 	stopped := a.engState == engineFailed
 	for _, w := range a.workers {
 		stopped = stopped || w.State == engine.WorkerFailed
 	}
-	pageHeader(c, i18n.T("Engine"), func() {
+	ui.Row(c.Key("engine-actions")).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+		caption(c, i18n.T("AudioSmith runs speech models in audiosmith-engine, a helper built on mlx-audio-swift that runs on the Mac's GPU with MLX. It loads them, without the network, from the model folder Settings → Models & network downloads into (the Hugging Face cache the Python tools share).")).Wrap().Grow(1).MinWidth(0)
 		restart := ghostIconButton
 		if stopped {
 			restart = primaryIconButton // the one thing to do now
 		}
-		if restart(c.Key("restart"), icons.Restart, i18n.T("Restart engine")).Label(i18n.T("Restart engine")).Clicked() {
+		if restart(c.Key("restart"), icons.Restart, i18n.T("Restart engine")).Label(i18n.T("Restart engine")).Shrink(0).Clicked() {
 			a.restartEngine()
 		}
 		moreMenu(c.Key("engine-more"), "", func(m *ui.Menu) {
@@ -39,26 +43,21 @@ func (a *app) enginePage(c *ui.Context) {
 			}
 		})
 	})
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).MaxWidth(px(t, 760)).Children(func() {
-			sectionTitleTip(c.Key("engine-about"), i18n.T("Processes"), i18n.T("AudioSmith runs speech models in audiosmith-engine, a helper built on mlx-audio-swift that runs on the Mac's GPU with MLX. It loads them, without the network, from the model folder Settings → Models & network downloads into (the Hugging Face cache the Python tools share)."))
-			workers := a.workers
-			if len(workers) == 0 {
-				workers = []engine.WorkerStatus{{Role: proto.RoleGPU, State: engine.WorkerStarting}}
-			}
-			for _, w := range workers {
-				a.workerCard(c, w)
-			}
-
-			sectionTitle(c, i18n.T("Files"))
-			card(c.Key("engine-files")).Children(func() {
-				infoGrid(c, [][2]string{
-					{i18n.T("Engine"), orDash(a.eng.Path())},
-					{i18n.T("Takes"), a.takeStore.AudioDir()},
-					{i18n.T("Model cache"), modelCache(a.prefs)},
-					{i18n.T("Log"), orDash(a.logPath)},
-				})
-			})
+	sectionTitle(c, i18n.T("Processes"))
+	workers := a.workers
+	if len(workers) == 0 {
+		workers = []engine.WorkerStatus{{Role: proto.RoleGPU, State: engine.WorkerStarting}}
+	}
+	for _, w := range workers {
+		a.workerCard(c, w)
+	}
+	sectionTitle(c, i18n.T("Files"))
+	card(c.Key("engine-files")).Children(func() {
+		infoGrid(c, [][2]string{
+			{i18n.T("Engine"), orDash(a.eng.Path())},
+			{i18n.T("Takes"), a.takeStore.AudioDir()},
+			{i18n.T("Model cache"), modelCache(a.prefs)},
+			{i18n.T("Log"), orDash(a.logPath)},
 		})
 	})
 }

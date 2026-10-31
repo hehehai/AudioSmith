@@ -217,10 +217,12 @@ func (a *app) notify(sev core.Severity, title, body, link string) {
 	a.notes.Post(core.Notification{Severity: sev, Title: title, Body: body, Link: link})
 }
 
-// noticeCentre lists the notifications, newest first.
-func (a *app) noticeCentre(c *ui.Context) {
+// noticeCentreIn lists the notifications, newest first, under their
+// heading (Mark all read, Clear): the bell's popover (shell_topbar.go),
+// at most maxH tall.
+func (a *app) noticeCentreIn(c *ui.Context, maxH float32) {
 	t := c.Theme()
-	ui.Column(c).Width(px(t, 360)).Gap(px(t, sp2)).Padding(px(t, sp1)).Children(func() {
+	ui.Column(c).Gap(px(t, sp2)).Padding(0, px(t, 4)).Children(func() {
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 			sectionHeading(c, i18n.T("Notifications")).Grow(1)
 			if ghostButton(c.Key("notices-read"), i18n.T("Mark all read")).Disabled(len(a.notices) == 0).Clicked() {
@@ -240,7 +242,7 @@ func (a *app) noticeCentre(c *ui.Context) {
 			ui.Text(c, i18n.T("Nothing new.")).TextColor(t.TextMuted).Padding(px(t, 8), 0)
 			return
 		}
-		ui.Scroll(c).MaxHeight(px(t, 360)).Children(func() {
+		ui.Scroll(c).MaxHeight(maxH).Children(func() {
 			ui.Column(c).Gap(px(t, 6)).Children(func() {
 				for _, n := range a.notices {
 					a.noticeRow(c, n)

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -160,9 +161,14 @@ func agentSkill(slug string, p promptEnv) string {
 		}
 		item(s)
 	}
-	for _, g := range navGroups {
+	groups := append(slices.Clone(navGroups), navGroup{"More", morePages}, navGroup{"Foot", footPages})
+	for _, g := range groups {
 		line("")
-		line("### " + groupTitle(g.id))
+		if g.id == "Foot" {
+			line("### " + i18n.T("At the foot of the sidebar"))
+		} else {
+			line("### " + groupTitle(g.id))
+		}
 		for _, pg := range g.pages {
 			page(pg)
 		}
@@ -172,9 +178,13 @@ func agentSkill(slug string, p promptEnv) string {
 	for _, pg := range otherPages {
 		page(pg)
 	}
-	for _, k := range []string{"settings", "dictation"} {
+	for _, k := range []string{"settings", "models", "engine", "logs"} {
 		md := mods[k]
-		item("**" + md.Name + "**: " + md.What + sp + md.App)
+		s := "**" + md.Name + "**: " + md.What
+		if len(md.Tools) > 0 {
+			s += sp + i18n.T("Tools: %s.", tools(md.Tools))
+		}
+		item(s + sp + md.App)
 	}
 
 	head(i18n.T("Long jobs"))

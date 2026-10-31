@@ -133,7 +133,6 @@ func licenceName(id string) string {
 }
 
 func (a *app) engineSettings(c *ui.Context) {
-	a.revealAnchor(c, "engine")
 	settingGroup(c, i18n.T("Memory"), func() {
 		t := c.Theme()
 		settingRow(c, "memory", i18n.T("Memory budget"), i18n.T("How much memory models may take together, in GB; 0 lets AudioSmith decide. Models over it leave memory at once."), func() {

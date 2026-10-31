@@ -79,7 +79,7 @@ func (a *app) dubPage(c *ui.Context) {
 		// The workspace fills the page; when the window is too short for
 		// its notices, player, timeline and some lines, it scrolls.
 		_, winH := c.Size()
-		avail := winH - titleBarHeight - px(t, 40) - px(t, 52) - 4
+		avail := winH - pageTop - px(t, 40) - px(t, 52) - 4
 		// With lines, exactly the scroll's height once it was laid out, so
 		// the list of lines (which scrolls itself, dub_editor.go) reaches
 		// its foot; one more frame after the window's height changes.

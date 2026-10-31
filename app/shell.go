@@ -1,14 +1,17 @@
 package main
 
-// The window shell: the window, the sidebar and the router of pages, and
-// the overlays every page shares (command palette, the shortcut sheet,
-// the engine quick switch, notifications, the licence dialog), and the
+// The window shell: the window, the sidebar, the top bar and the router
+// of pages, and the overlays every page shares (command palette, the
+// shortcut sheet, the engine quick switch, the licence dialog), and the
 // theme, in the ActNow family's window layout (no status bar: what goes
-// on shows as cards at the sidebar's foot). Its parts:
+// on is counted by the top bar's bell), organised as 0.5 F1 has it
+// (plan/ui-overhaul-plan.md §2: places, tools, Home). Its parts:
 //
-//	shell_pages.go        sidebar views, sections and pages, titles, badges, the router
-//	shell_nav.go          the sidebar, its search field, its foot and the icon rail
-//	shell_activity.go     the activity cards at the sidebar's foot
+//	shell_pages.go        sidebar places, tools and pages, titles, badges, the router
+//	shell_routes.go       old paths and where they go now, the sidebar item of a path
+//	shell_nav.go          the sidebar, "··· More", its foot and the icon rail
+//	shell_topbar.go       the top bar: breadcrumb, search everything (⌘K), the tasks bell
+//	shell_activity.go     the activity cards (the bell's popover, the Tasks page)
 //	shell_tasks.go        the Tasks page: every job that runs or waits
 //	shell_commands.go     command registry, ⌘K palette, ? sheet, native menu, deep links
 //	shell_status.go       jobs, notification centre, ⌘E quick switch
@@ -42,6 +45,10 @@ import (
 
 const (
 	titleBarHeight = 52
+	// pageTop is where a page's content starts in the window: under the
+	// top bar (shell_topbar.go) and the page's header, each titleBarHeight
+	// tall. Drawers and pages that size themselves by the window use it.
+	pageTop        = 2 * titleBarHeight
 	sidebarWidth   = 200
 	inspectorWidth = 300
 )
@@ -114,7 +121,7 @@ type shellState struct {
 
 func newShellState() shellState {
 	return shellState{
-		router:       ui.NewRouter("/studio"),
+		router:       ui.NewRouter("/home"),
 		setRouter:    ui.NewRouter("/general"),
 		lastSettings: "general",
 		logsHeight:   220,
@@ -194,16 +201,15 @@ func logSettingsMigrations(ms []settings.Migration) {
 // that section, over the page, and "/settings" at the section shown last;
 // any other path closes it.
 func (a *app) navigate(path string) {
+	if to, ok := routeAlias(path); ok { // an old path (shell_routes.go)
+		path = to
+	}
 	if path == "/settings" || path == "/settings/" {
 		path = "/settings/" + a.lastSettings
 	}
 	if rest, ok := strings.CutPrefix(path, "/settings/"); ok && rest != "" {
 		a.lastSettings, _, _ = strings.Cut(rest, "/")
 		a.openSettings("/" + rest)
-		return
-	}
-	if to, ok := settingsPageAlias(path); ok { // Models, Integrations: Settings sections now
-		a.navigate(to)
 		return
 	}
 	a.settingsOpen = false
@@ -213,9 +219,9 @@ func (a *app) navigate(path string) {
 	a.router.Push(path)
 }
 
-// showPage goes to a page by name ("studio", "history", "engine",
-// "logs", "settings"; "models" opens Settings → Models & network). Other areas navigate only through it
-// (and read currentPage).
+// showPage goes to a page by name ("studio", "assets", "settings";
+// "models" opens Settings → Models & network). Other areas navigate only
+// through it (and read currentPage).
 func (a *app) showPage(name string) { a.navigate("/" + name) }
 
 // currentPage is the name of the page shown: the first part of its path.
@@ -286,7 +292,7 @@ func (a *app) view(c *ui.Context) {
 	ui.Column(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		a.sidebarFrame(c, func() { // shell_nav.go: the sidebar or the icon rail
 			a.pages(c)
-			if a.logsPanel && section(a.router.Path()) != "/logs" {
+			if a.logsPanel {
 				ui.Divider(c)
 				ui.Column(c.Key("logs-panel")).Height(px(t, a.logsHeight)).Shrink(0).Children(func() {
 					a.logsView(c, true)
@@ -331,7 +337,8 @@ func (a *app) toastsView(c *ui.Context) {
 			dh := min(h-2*px(t, sp6), px(t, settingsH))
 			vp.Justify(ui.End).Padding(0, px(t, sp4), (h-dh)/2+px(t, sp4))
 		case a.toastsTop():
-			vp.Justify(ui.Start).Padding(max(px(t, 4), (titleBarHeight-px(t, 36))/2), px(t, sp4), 0, w-page+px(t, sp4))
+			// The page's header is under the top bar.
+			vp.Justify(ui.Start).Padding(titleBarHeight+max(px(t, 4), (titleBarHeight-px(t, 36))/2), px(t, sp4), 0, w-page+px(t, sp4))
 		default:
 			vp.Justify(ui.End).Padding(0, px(t, sp4), px(t, sp6), w-page+px(t, sp4))
 		}

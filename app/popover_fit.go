@@ -55,3 +55,16 @@ func fitPopover(c *ui.Context, anchor ui.Element, open *bool, want float32, fn f
 		fn()
 	})
 }
+
+// sidePopover is a popover in the kit's look beside anchor, after it (on
+// its right), its top at the anchor's top: menus of the sidebar and the
+// rail ("··· More").
+func sidePopover(c *ui.Context, anchor ui.Element, open *bool, fn func()) {
+	t := c.Theme()
+	k := tok(t)
+	ui.PopoverBase(c, anchor, open, func(panel ui.Element) {
+		panel.AttachTo(anchor, ui.AnchorTopEnd, ui.AnchorTopStart).MarginStart(px(t, 6)).Padding(px(t, 4)).
+			Radius(px(t, radiusCard)).Background(k.Bg).Border(1, k.Line).Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 0.18))
+		fn()
+	})
+}

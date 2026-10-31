@@ -154,7 +154,7 @@ func TestDesignPage(t *testing.T) {
 	a.openVoiceEditor(v.ID)
 	tt.Frame()
 	tt.Click("Open in Design")
-	if a.router.Path() != "/design" || d.linked != v.ID || int64(d.seed) != 777 {
+	if a.router.Path() != "/voices/new/design" || d.linked != v.ID || int64(d.seed) != 777 {
 		t.Errorf("open in design: %s %v", d.linked, d.seed)
 	}
 

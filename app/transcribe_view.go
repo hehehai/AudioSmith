@@ -61,7 +61,7 @@ func (a *app) transcribePage(c *ui.Context) {
 		a.transcribeDropped(files)
 	}
 	page.Children(func() {
-		pageHeader(c, i18n.T("Transcribe"), func() { a.transcribeToolbar(c, shown) })
+		pageHeader(c, i18n.T("Speech to text"), func() { a.transcribeToolbar(c, shown) })
 		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 			a.trSide.view(c, "tr-history", i18n.T("History"), inline, shown, true, width, func() {
 				ui.Column(c).Grow(1).MinHeight(0).Children(func() { a.transcriptHistory(c, inline) })

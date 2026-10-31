@@ -32,6 +32,8 @@ func settingsSectionIcon(id string) icons.Icon {
 		return icons.Soundwave
 	case "engine":
 		return icons.CpuBolt
+	case "logs":
+		return icons.ClipboardList
 	case "pronunciation":
 		return icons.TextSquare
 	case "dictation":
@@ -195,14 +197,19 @@ func (a *app) settingsDialog(c *ui.Context) {
 						}
 					})
 					r.Title(title) // the page takes the focus: its name for VoiceOver
+					body := func() {
+						// What a section lays out by (pageWidth): its own width.
+						a.sectionW = dw - min(px(t, settingsNavW), dw*0.3) - 1 - px(t, 2*sp6)
+						a.sectionH = min(h-2*margin, px(t, settingsH)) - px(t, 52)
+						defer func() { a.sectionW = 0 }()
+						a.settingsSection(c, r)
+					}
+					if r.Match("/logs") { // the log scrolls in itself: the section does not
+						ui.Column(c).Grow(1).MinHeight(0).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).Children(body)
+						return
+					}
 					ui.Scroll(c).Grow(1).MinHeight(0).Children(func() {
-						ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, settingsGap)).Children(func() {
-							// What a section lays out by (pageWidth): its own width.
-							a.sectionW = dw - min(px(t, settingsNavW), dw*0.3) - 1 - px(t, 2*sp6)
-							a.sectionH = min(h-2*margin, px(t, settingsH)) - px(t, 52)
-							defer func() { a.sectionW = 0 }()
-							a.settingsSection(c, r)
-						})
+						ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, settingsGap)).Children(body)
 					})
 				}).Grow(1).MinHeight(0)
 			})
@@ -241,6 +248,8 @@ func (a *app) settingsSection(c *ui.Context, r *ui.Route) {
 	// M7a (thread #22): settings_*.go.
 	case section("audio-tools", a.audioToolsSettings):
 	case section("models", a.modelsList, a.networkSettings, a.modelSettings, a.engineSettings, a.licenceSettings):
+	case section("engine", a.engineSettingsSection): // engine_view.go (0.5 F1: the Engine page)
+	case section("logs", a.logsSettings): // shell_logs.go (0.5 F1: the Logs page)
 	case section("privacy", a.privacySettings):
 	case section("advanced", a.storageSettings, a.usageSettings, a.diagnosticsSettings):
 	case section("about", a.aboutSettings):

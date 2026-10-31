@@ -1,13 +1,14 @@
 package main
 
-// The sidebar's layouts (M7a, the ActNow family's window layout): the
-// full sidebar, resizable, whose width and closed sections the settings
-// remember, and the icon rail (Settings → General → Appearance, or the
-// ▯ button) that keeps only the icons; then the full sidebar itself: the
-// search field (⌘F: the library, shown on Projects), the views, the
-// sections that fold, and at its foot the activity cards
-// (shell_activity.go), the update line and a row of icons (Settings, the
-// logs panel, Tools; the notifications). Its pages are in shell_pages.go.
+// The sidebar's layouts (M7a, the ActNow family's window layout; 0.5 F1's
+// organisation): the full sidebar, resizable, whose width and closed
+// sections the settings remember, and the icon rail (Settings → General →
+// Appearance, or the ▯ button) that keeps only the icons; then the full
+// sidebar itself: the places (Home, Voices, Projects, Assets), the tools
+// (a section that folds) with "··· More" (a menu of Workflows, Batch and
+// Calls), and at its foot the update line, Developers and Settings. What
+// goes on is the top bar's bell (shell_topbar.go). Its pages are in
+// shell_pages.go.
 
 import (
 	"slices"
@@ -28,7 +29,10 @@ type navState struct {
 	sideW       float32          // the sidebar's width, DIPs at the theme's scale
 	sideWScale  float32          // the px factor sideW was computed at
 	sideWAt     time.Time        // when the user last resized it (saved after a pause)
-	searchFocus bool             // ⌘F: the search field takes the focus
+	searchFocus bool             // ⌘F: the library's search field (Projects) takes the focus
+	moreOpen    bool             // the "··· More" menu shows
+	railMore    bool             // … from the icon rail
+	voicesTab   string           // the Voices tab shown last: "discover", "mine" (voices_pages.go)
 }
 
 func (a *app) railMode() bool { return a.prefs.Appearance.Rail }
@@ -75,11 +79,14 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 	if a.railMode() {
 		// The window controls (the traffic lights) reach past the rail:
 		// page titles move over to keep clear of them.
-		headerInset = max(0, c.TitleBar().Left-px(t, railWidth)-px(t, sp6)+px(t, sp3))
+		inset := max(0, c.TitleBar().Left-px(t, railWidth)-px(t, sp6)+px(t, sp3))
 		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 			ui.Column(c).Width(px(t, railWidth)).Shrink(0).Background(k.Sidebar).Children(func() { a.navRail(c) })
 			ui.Box(c).Width(1).Background(k.Line)
-			ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(page)
+			ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(func() {
+				a.topBar(c, inset) // shell_topbar.go
+				page()
+			})
 		})
 		return
 	}
@@ -94,7 +101,10 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 	split := ui.Split(c.Key("sidebar-split"), &a.sideW, func() {
 		ui.Column(c).Fill().Background(k.Sidebar).Children(func() { a.sidebar(c) })
 	}, func() {
-		ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(page)
+		ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(func() {
+			a.topBar(c, 0) // shell_topbar.go
+			page()
+		})
 	}).Grow(1).MinHeight(0)
 	// Keep the width in its bounds, and save it once the drag rests.
 	lo, hi := px(t, settings.MinSidebarWidth), px(t, settings.MaxSidebarWidth)
@@ -115,8 +125,7 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 }
 
 // navRail is the sidebar as a column of icons; their titles show as
-// tooltips, a badge as a dot. What goes on is one icon with a count (it
-// opens the Tasks page); the foot's icons stand under the pages.
+// tooltips, a badge as a dot. The foot's icons stand under the pages.
 func (a *app) navRail(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
@@ -136,9 +145,6 @@ func (a *app) navRail(c *ui.Context) {
 			}
 		})
 	}
-	ui.Column(c).AlignItems(ui.Center).Padding(px(t, sp1), 0).Shrink(0).Children(func() {
-		a.railButton(c, "rail-search", icons.Magnifer, i18n.T("Command palette"), tip(i18n.T("Command palette"), "⌘K"), false, "", a.openPalette)
-	})
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).AlignItems(ui.Center).Gap(px(t, 2)).Padding(px(t, sp1), 0).Children(func() {
 			for gi, g := range navGroups {
@@ -149,15 +155,18 @@ func (a *app) navRail(c *ui.Context) {
 					a.railItem(c, p.path, p.icon, pageTitle(p.path))
 				}
 			}
+			more := ui.Box(c.Key("rail-more-box")).Children(func() {
+				a.railButton(c, "rail/more", icons.MenuDots, i18n.T("More"), i18n.T("More tools"), a.nav == "/more" || a.railMore, a.moreBadge(), func() { a.railMore = !a.railMore })
+			})
+			sidePopover(c, more, &a.railMore, func() { a.moreMenu(c, &a.railMore) })
 		})
 	})
 	ui.Column(c).AlignItems(ui.Center).Gap(px(t, 2)).Padding(px(t, 6), 0, px(t, 10)).Children(func() {
-		a.activityRail(c)     // shell_activity.go: what goes on, as a count
 		a.updateRailButton(c) // updates_view.go
-		a.railButton(c, "rail/tools", toolsIcon, pageTitle("/tools"), pageTitle("/tools"), !a.settingsOpen && section(a.router.Path()) == "/tools", "", func() { a.navigate("/tools") })
-		a.railButton(c, "rail/logs", logsIcon, i18n.T("Logs panel"), tip(i18n.T("Show or hide the logs panel"), "⇧⌘L"), a.logsPanel, "", func() { a.logsPanel = !a.logsPanel })
+		for _, p := range footPages {
+			a.railItem(c, p.path, p.icon, pageTitle(p.path))
+		}
 		a.railButton(c, "rail/settings", icons.Settings, i18n.T("Settings"), tip(i18n.T("Settings"), "⌘,"), a.settingsOpen, "", func() { a.navigate("/settings") })
-		a.bellButton(c, true)
 	})
 }
 
@@ -167,7 +176,7 @@ func (a *app) railItem(c *ui.Context, path string, ic icons.Icon, title string) 
 	if k := pageKeys(path); k != "" {
 		tip += " (" + k + ")"
 	}
-	selected := !a.settingsOpen && section(a.router.Path()) == path
+	selected := !a.settingsOpen && a.nav == path
 	a.railButton(c, "rail"+path, ic, title, tip, selected, a.navBadge(path), func() { a.navigate(path) })
 }
 
@@ -199,9 +208,10 @@ func (a *app) railButton(c *ui.Context, key string, ic icons.Icon, label, tip st
 }
 
 // syncNav makes the sidebar follow the router (Back, deep links, ⌘1…),
-// but not undo a choice in the sidebar the router has not seen yet.
+// but not undo a choice in the sidebar the router has not seen yet; once
+// the Settings dialog closes, its item gives the choice back to the page.
 func (a *app) syncNav() {
-	if p := section(a.router.Path()); p != a.navShown {
+	if p := navKey(a.router.Path()); p != a.navShown || (a.nav == "/settings" && !a.settingsOpen) {
 		a.nav, a.navShown = p, p
 	}
 }
@@ -214,7 +224,6 @@ func (a *app) sidebar(c *ui.Context) {
 			a.setRail(true)
 		}
 	})
-	a.sidebarSearch(c)
 	// The sidebar's own theme: icons in the secondary grey, the chosen
 	// page's in the text colour (MyGo draws a sidebar item's icon in the
 	// accent, and the chosen one's in the accent's text colour).
@@ -223,8 +232,9 @@ func (a *app) sidebar(c *ui.Context) {
 	side.SurfaceHover, side.SurfacePressed = k.G[2], k.G[3]
 	chosen := side
 	chosen.Accent = k.Text
-	item := func(p navPage) {
-		sel := p.path == a.nav
+	item := func(p navPage, badge string) ui.Element {
+		// While Settings shows, its item is the chosen one.
+		sel := p.path == a.nav && !a.settingsOpen || p.path == "/settings" && a.settingsOpen
 		if sel {
 			c.SetTheme(&chosen)
 		} else {
@@ -240,110 +250,113 @@ func (a *app) sidebar(c *ui.Context) {
 		if keys := pageKeys(p.path); keys != "" {
 			it.Tooltip(tip(pageTitle(p.path), keys))
 		}
-		if b := a.navBadge(p.path); b != "" {
-			it.Children(func() { ui.Badge(c, b) })
+		if badge != "" {
+			it.Children(func() { ui.Badge(c, badge) })
 		}
+		return it
 	}
 	// The list scrolls: a fade at its foot says there is more below.
 	ui.Column(c).Grow(1).MinHeight(0).Children(func() {
 		ui.Sidebar(c, &a.nav, func() {
 			for _, g := range navGroups {
-				if g.id == "" { // the views: no title, they do not fold
+				if g.id == "" { // the places: no title, they do not fold
 					for _, p := range g.pages {
-						item(p)
+						item(p, a.navBadge(p.path))
 					}
 					continue
 				}
 				open := a.sectionOpen(g.id)
 				ui.SidebarSection(c.Key("nav-"+g.id), groupTitle(g.id), open, func() {
 					for _, p := range g.pages {
-						item(p)
+						item(p, a.navBadge(p.path))
 					}
-				}).Margin(px(t, 10), 0, 0, 0)
+					// "··· More": a menu of the other tools.
+					more := item(navPage{"/more", "More", icons.MenuDots}, a.moreBadge()).Tooltip(i18n.T("More tools"))
+					sidePopover(c, more, &a.moreOpen, func() { a.moreMenu(c, &a.moreOpen) })
+				}).Margin(px(t, 14), 0, 0, 0)
 			}
 		}).Grow(1).MinHeight(0).Background(ui.Transparent).Padding(0, px(t, 10), px(t, sp4)).Label(i18n.T("Sections")).OnChange(func() {
-			a.navigate(a.nav)
+			a.navClicked()
 		})
 		ui.Box(c).Absolute().Left(0).Right(0).Bottom(0).Height(px(t, 20)).Gradient(k.Sidebar.Alpha(0), k.Sidebar, 180).PassThrough()
 	})
 	a.saveClosedSections()
-	ui.Column(c).Shrink(0).Padding(px(t, sp1), px(t, 10), px(t, 6)).Gap(px(t, sp1)).Children(func() {
-		a.activityStack(c) // shell_activity.go: what goes on
-		a.updateEntry(c)   // updates_view.go: an update to install, its download, the restart
-		ui.Row(c).Gap(px(t, 2)).AlignItems(ui.Center).Children(func() {
-			if iconButton(c.Key("nav-settings"), icons.Settings, tip(i18n.T("Settings"), "⌘,")).Checked(a.settingsOpen).Clicked() {
-				a.navigate("/settings")
+	ui.Column(c).Shrink(0).Padding(px(t, sp1), 0, px(t, 6)).Gap(px(t, sp1)).Children(func() {
+		ui.Column(c).Padding(0, px(t, 10)).Children(func() {
+			a.updateEntry(c) // updates_view.go: an update to install, its download, the restart
+		})
+		ui.Sidebar(c.Key("nav-foot"), &a.nav, func() {
+			for _, p := range footPages {
+				item(p, "")
 			}
-			if iconToggle(c.Key("nav-logs"), logsIcon, a.logsPanel, tip(i18n.T("Show or hide the logs panel"), "⇧⌘L")).Clicked() {
-				a.logsPanel = !a.logsPanel
-			}
-			if iconToggle(c.Key("nav-tools"), toolsIcon, !a.settingsOpen && section(a.router.Path()) == "/tools", pageTitle("/tools")).Clicked() {
-				a.navigate("/tools")
-			}
-			ui.Spacer(c)
-			a.bellButton(c, false)
+			s := item(navPage{"/settings", "Settings", icons.Settings}, "")
+			s.Tooltip(tip(i18n.T("Settings"), "⌘,"))
+		}).Background(ui.Transparent).Padding(0, px(t, 10)).Label(i18n.T("Developers and Settings")).OnChange(func() {
+			a.navClicked()
 		})
 	})
 }
 
-// bellButton opens the notification centre: the bell, Bold with a dot
-// while some are unread.
-func (a *app) bellButton(c *ui.Context, rail bool) {
-	t := c.Theme()
-	k := tok(t)
-	unread := a.unreadNotices()
-	label := i18n.T("Notifications")
-	if unread > 0 {
-		label = i18n.N(unread, "Notifications: %d unread", "Notifications: %d unread", unread)
+// navClicked follows a click in the sidebar: a page, More's menu, the
+// Voices tab shown last, or Settings.
+func (a *app) navClicked() {
+	switch a.nav {
+	case "/more":
+		a.moreOpen = true
+		a.nav = a.navShown // the page shown stays chosen until a tool is
+	case "/voices":
+		a.navigate("/voices/" + a.voicesTabPath())
+	default:
+		a.navigate(a.nav)
 	}
-	size := float32(28)
-	if rail {
-		size = 36
-	}
-	b := ghostBase(c.Key("nav-bell")).Size(px(t, size), px(t, 28)).Center().Label(i18n.T("Notifications")).Tooltip(label).Checked(a.noticesOpen)
-	if a.noticesOpen {
-		b.Background(k.Pressed)
-	}
-	b.Children(func() {
-		col := k.Text2
-		if unread > 0 || b.Hovered() {
-			col = k.Text
-		}
-		ui.Icon(c, bellIcon.Get(unread > 0)).Size(px(t, 16), px(t, 16)).TextColor(col)
-		if unread > 0 {
-			ui.Box(c).Absolute().Top(px(t, 4)).Right(px(t, size/2-10)).Size(px(t, 7), px(t, 7)).Radius(px(t, 4)).Background(k.Accent)
-		}
-	})
-	if b.Clicked() {
-		a.noticesOpen = !a.noticesOpen
-	}
-	ui.Popover(c, b, &a.noticesOpen, func() { a.noticeCentre(c) })
 }
 
-// sidebarSearch is the sidebar's search field (⌘F): it searches the
-// library (projects, voices, takes, transcripts, exports), whose results
-// the Projects page shows: typing elsewhere goes there. Esc clears it;
-// the button in it opens the palette (⌘K).
-func (a *app) sidebarSearch(c *ui.Context) {
+// moreBadge is the badge of "··· More": its pages' (a running batch, a
+// live call), the first there is.
+func (a *app) moreBadge() string {
+	for _, p := range morePages {
+		if b := a.navBadge(p.path); b != "" {
+			return b
+		}
+	}
+	return ""
+}
+
+// moreMenu is "··· More"'s menu: the tools the sidebar does not list,
+// each with its icon, title and what it does; open closes it.
+func (a *app) moreMenu(c *ui.Context, open *bool) {
 	t := c.Theme()
-	s := &a.projects
-	ui.Row(c).Shrink(0).Padding(0, px(t, 10), px(t, sp2)).Children(func() {
-		in := searchFieldWith(c, "nav-search", &s.query, i18n.T("Search")+"  ⌘F", 0, 1, func() {
-			if fieldButton(c.Key("nav-palette"), icons.Command, tip(i18n.T("Command palette"), "⌘K"), 13).Clicked() {
-				a.openPalette()
+	k := tok(t)
+	about := map[string]string{
+		"/workflows": i18n.T("Chain steps: transcribe, translate, speak, export"),
+		"/batch":     i18n.T("Dub many videos in one go"),
+		"/calls":     i18n.T("Phone calls in a voice, through Twilio"),
+	}
+	ui.Column(c).Width(px(t, 280)).Gap(px(t, 2)).Padding(px(t, 4)).Role(ui.RoleList).Label(i18n.T("More tools")).Children(func() {
+		ui.Text(c, i18n.T("More tools")).FontSize(px(t, fsMicro)).FontWeight(600).TextColor(k.Text3).Padding(px(t, 4), px(t, sp2))
+		for _, p := range morePages {
+			title := pageTitle(p.path)
+			row := ui.ButtonBase(c.Key("more"+p.path)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, 7), px(t, sp2)).Radius(px(t, radiusControl)).Label(title)
+			if row.Hovered() {
+				row.Background(k.Hover)
 			}
-		}).Label(i18n.T("Search the library"))
-		if a.searchFocus {
-			a.searchFocus = false
-			in.Focus()
-		}
-		if in.Shortcut(0, ui.KeyEscape) && s.query != "" {
-			s.query = ""
-		}
-		if in.Changed() {
-			clear(s.selected)
-			if s.query != "" && section(a.router.Path()) != "/projects" {
-				a.navigate("/projects")
+			row.Children(func() {
+				ui.Box(c).Size(px(t, 30), px(t, 30)).Radius(px(t, radiusControl)).Border(1, k.Line).Center().Shrink(0).Children(func() {
+					ui.Icon(c, p.icon.Linear).Size(px(t, 16), px(t, 16)).TextColor(k.Text)
+				})
+				ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
+					ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, title).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
+						if b := a.navBadge(p.path); b != "" {
+							ui.Badge(c, b)
+						}
+					})
+					ui.Text(c, about[p.path]).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
+				})
+			})
+			if row.Clicked() {
+				*open = false
+				a.navigate(p.path)
 			}
 		}
 	})

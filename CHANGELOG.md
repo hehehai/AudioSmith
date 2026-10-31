@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (0.5.0-beta.1)
+
+### A new start page and a new sidebar
+- AudioSmith opens on **Home**: ask 「今天想做点什么？」, then type, paste a link or drop a file. Text opens in Text to speech with it as the script, a video or a link starts a dub of it, a recording is transcribed, a text file or an ebook becomes an audiobook's manuscript. A row of tools and your recent work (speech, dubs, transcripts, stories, books) are under it. With the writing help's model loaded, 「智能分派」 lets it choose between Text to speech, Stories and Audiobook.
+- The sidebar has places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator (coming in this version), Dictation, and ··· More (Workflows, Batch dubbing, Calls). Developers and Settings are at its foot.
+- **Voices** is one page with two tabs, Discover and Mine; **New voice** offers Quick clone and Design a voice. **Assets** is the former History. **Developers** gathers the agents' setups (MCP, Claude Code, Codex, SDKs), the Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark).
+- A top bar shows where you are, "Search everything ⌘K" and a bell: how many things are going on, and a list of them and of the notifications. It replaces the cards at the sidebar's foot.
+- Models, Engine, Logs and Integrations are in Settings only. ⌘1…⌘8 are now Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories, Audiobook; ⌘F searches the library on the Projects page.
+- Old links (audiosmith://gallery, /history, /tools, /engine…) open where those pages are now; the Local API and MCP are unchanged.
+
 ## 0.4.0-beta.8 — 2026-10-26
 
 ### Idle models leave memory

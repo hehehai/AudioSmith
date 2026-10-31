@@ -101,6 +101,12 @@ func pageHeaderNote(c *ui.Context, title, note string, trailing func()) {
 func headerRow(c *ui.Context, title, note string, history bool, trailing func()) {
 	t := c.Theme()
 	k := tok(t)
+	title, below := hostedHeader(title) // ui_layout.go
+	defer func() {
+		if below != nil {
+			below()
+		}
+	}()
 	left := px(t, sp6)
 	if history && headerNav.back != nil {
 		left = px(t, sp4)

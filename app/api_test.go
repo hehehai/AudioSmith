@@ -359,7 +359,7 @@ func TestAPISettingsPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Body.Close()
-	a.showPage("engine") // not the Studio, whose Generate would show under the settings dialog
+	a.showPage("assets") // not the Studio, whose Generate would show under the settings dialog
 	a.navigate("/settings/api")
 	tt.Frame()
 	if !tt.HasText("Run the Local API") || !tt.HasText(a.apiBaseURL()) {

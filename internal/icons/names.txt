@@ -119,3 +119,10 @@ users-group-rounded     # Transcribe's Speakers option, speaker names
 turntable-music-note-line-duotone   # play a sound (a duotone variant: both Linear and Bold)
 volume-cross             # volume: muted
 volume-small             # volume: low
+# 0.5 F1 (thread #114): the new sidebar and the Home page.
+home-2                  # Home
+archive                 # Assets
+code-square             # Developers
+music-notes             # Voice isolator
+arrow-up                # the composer's submit
+stars                   # smart routing

@@ -114,7 +114,7 @@ func TestLogsKeepPlaceScrolledDown(t *testing.T) {
 	read := 0
 	var at float32
 	for i := 70; i > 0; i-- {
-		if y, ok := lineY(tt, i); ok && y > 150 {
+		if y, ok := lineY(tt, i); ok && y > a.logSel.origin.Y+80 { // clear of the pill at the list's top
 			read, at = i, y
 			break
 		}
