@@ -12,22 +12,25 @@ import (
 // headerHost lets a page that shows another page's view inside it (the
 // Voices page's tabs, New voice's flows: voices_pages.go) name the header
 // that view builds (title, "" keeps the view's) and add a row under it
-// (below: the tabs; nil none). The host sets it before the view builds
-// and clears it after; the next header takes it.
+// (below; nil none) or put something in the header row itself, after
+// the title, ‹ › and the count (inline: the Voices tabs; nil none). The
+// host sets it before the view builds and clears it after; the next
+// header takes it.
 var headerHost struct {
-	title string
-	below func()
+	title  string
+	below  func()
+	inline func()
 }
 
 // hostedHeader is the header's title, and what goes under it, taken from
 // headerHost once.
-func hostedHeader(title string) (string, func()) {
+func hostedHeader(title string) (string, func(), func()) {
 	h := headerHost
-	headerHost.title, headerHost.below = "", nil
+	headerHost.title, headerHost.below, headerHost.inline = "", nil, nil
 	if h.title != "" {
 		title = h.title
 	}
-	return title, h.below
+	return title, h.below, h.inline
 }
 
 // card is a flat card: the page's background inside a hairline border,

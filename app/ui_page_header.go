@@ -99,8 +99,8 @@ func pageHeader(c *ui.Context, title string, trailing func()) {
 func pageHeaderBar(c *ui.Context, h pageHead) {
 	t := c.Theme()
 	k := tok(t)
-	var below func()
-	h.title, below = hostedHeader(h.title) // ui_layout.go
+	var below, inline func()
+	h.title, below, inline = hostedHeader(h.title) // ui_layout.go
 	defer func() {
 		if below != nil {
 			below()
@@ -146,6 +146,9 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 			}
 			if h.sub != "" {
 				ui.Text(c.Key("head-sub"), h.sub).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+			}
+			if inline != nil {
+				ui.Row(c.Key("head-inline")).Shrink(0).Margin(0, 0, 0, px(t, sp3)).AlignItems(ui.Center).Children(inline)
 			}
 		})
 		ui.Row(c.Key("head-tools")).Shrink(0).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
