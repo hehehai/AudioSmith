@@ -63,7 +63,7 @@ func TestCloneFlowUpload(t *testing.T) {
 	if s.transcript != "This is what my voice sounds like." || s.asr != "done" {
 		t.Errorf("transcript %q %s", s.transcript, s.asr)
 	}
-	if !tt.HasText("long.wav") || !tt.HasText("Save as voice profile") {
+	if !tt.HasText("long.wav") || !tt.HasText("Step 2 of 4: Check") || !tt.HasText("Next ›") {
 		t.Errorf("clip view: %q", tt.Texts())
 	}
 
@@ -87,9 +87,16 @@ func TestCloneFlowUpload(t *testing.T) {
 		t.Error("best part")
 	}
 
-	// Saving needs a name.
+	// 下一步: the name. Saving needs one.
 	tt.Frame()
-	tt.Click("Save voice")
+	if err := tt.Click("Next ›"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if s.step != cloneName || !tt.HasText("Step 3 of 4: Name and save") {
+		t.Fatalf("step %d: %q", s.step, tt.Texts())
+	}
+	a.cloneSave()
 	if len(a.voices) != 0 {
 		t.Fatal("saved without a name")
 	}
@@ -126,15 +133,17 @@ func TestCloneFlowUpload(t *testing.T) {
 	if v.RefOriginal == "" || v.RefCheck == nil || v.RefCheck.Grade == "" || !slices.Contains(v.RefCheck.Cleaned, "tidied") {
 		t.Errorf("original %q, check %+v", v.RefOriginal, v.RefCheck)
 	}
-	if a.router.Path() != "/voices/mine" || a.edit == nil || a.edit.id != v.ID {
-		t.Errorf("after save: %s %+v", a.router.Path(), a.edit)
+	// The last step: the hand-offs.
+	if a.router.Path() != "/voices/new/clone" || a.clone.step != cloneDone || a.clone.savedID != v.ID ||
+		!tt.HasText("Saved to My voices") || !tt.HasText("Listen") {
+		t.Errorf("after save: %s step %d %q", a.router.Path(), a.clone.step, tt.Texts())
 	}
 	// Saved: the Clone page starts afresh next time (no clip, no name or
 	// words), keeping the microphone's choices.
 	if a.clone.hasClip() || a.clone.name != "" || a.clone.transcript != "" || a.clone.portrait != nil {
 		t.Errorf("the clone form kept %q %q %q", a.clone.srcName, a.clone.name, a.clone.transcript)
 	}
-	a.navigate("/clone")
+	a.startClone("") // Clone a voice again (New voice's card, Home's tile)
 	tt.Frame()
 	if !tt.HasText("Drop a clip here, or click to choose") || tt.HasText("My Narrator") {
 		t.Errorf("Clone after a save: %q", tt.Texts())
@@ -359,6 +368,8 @@ func TestCloneRecordAndUseOnce(t *testing.T) {
 
 	// Use it once in the Studio: the model switches to one that clones.
 	tt.Frame()
+	tt.Click("Next ›")
+	tt.Frame()
 	if err := tt.Click("Use without saving"); err != nil {
 		t.Fatal(err)
 	}
@@ -417,6 +428,10 @@ func TestReplaceReference(t *testing.T) {
 	clip := filepath.Join(t.TempDir(), "new.wav")
 	writeSpeech(clip, 7, []span{{0.3, 6.5}})
 	a.cloneLoad(clip, "new.wav", false)
+	tt.Frame()
+	if err := tt.Click("Next ›"); err != nil {
+		t.Fatal(err)
+	}
 	tt.Frame()
 	if err := tt.Click("Replace reference"); err != nil {
 		t.Fatal(err)

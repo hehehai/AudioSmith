@@ -234,7 +234,7 @@ func (a *app) homeTiles(c *ui.Context) {
 	tiles := []homeTile{
 		{"speech", i18n.X("tile", "Speech"), studioIcon, func() { a.navigate("/studio") }},
 		{"clone", i18n.X("tile", "Clone"), cloneIcon, func() { a.startClone("") }},
-		{"design", i18n.X("tile", "Design"), designIcon, func() { a.navigate("/voices/new/design") }},
+		{"design", i18n.X("tile", "Design"), designIcon, a.startDesign},
 		{"stories", i18n.X("tile", "Stories"), storiesIcon, func() { a.navigate("/stories") }},
 		{"audiobook", i18n.X("tile", "Audiobook"), audiobookIcon, func() { a.navigate("/audiobook") }},
 		{"dub", i18n.X("tile", "Dub"), dubIcon, func() { a.navigate("/dub") }},

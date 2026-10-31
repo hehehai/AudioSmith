@@ -1,6 +1,6 @@
 package main
 
-// Discover voices (/gallery): the curated voices (internal/gallery,
+// Discover voices (/voices/discover; the view is gallery_view.go): the curated voices (internal/gallery,
 // thread #94) to search, filter by use case, gender, age and language,
 // favorite, preview and use. Previews are bundled: a designed voice's
 // clip (gallery_assets.go), a built-in speaker's (voice_preview.go);
@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/gallery"
@@ -26,18 +25,18 @@ const galleryPageSize = gallery.DefaultLimit
 
 // galleryState is the Gallery page's view state.
 type galleryState struct {
-	text     string
-	tab      int // 0 = all use cases, i = gallery.Categories()[i-1]
-	filters  map[gallery.Facet]string
-	favOnly  bool
-	limit    int
-	tagH     float32 // a card's tag, as last laid out: its tags show two rows
-	contentH float32 // a card's top to its footer's bottom, as last laid out (cardHeight)
+	text    string
+	tab     int // 0 = all use cases, i = gallery.Categories()[i-1]
+	filters map[gallery.Facet]string
+	favOnly bool
+	limit   int
 
 	page    gallery.Page
 	pageFor string // the query page answers
 	favVer  int    // bumps when favorites change
-	grid    ui.GridState
+	// detail is the voice whose detail is open ("" none); try its 「试一句」.
+	detail string
+	try    voiceTry
 
 	favs  *gallery.Favorites
 	using bool
@@ -49,12 +48,6 @@ func (a *app) openGallery(lib *library) {
 	g.filters = map[gallery.Facet]string{}
 	g.limit = galleryPageSize
 	g.favs, _ = gallery.LoadFavorites(context.Background(), nil)
-	g.grid.Key = func(i int) any {
-		if i < len(g.page.Items) {
-			return g.page.Items[i].ID
-		}
-		return i
-	}
 	store := services.GalleryFavorites{Store: lib.store.Favorites()}
 	a.background(func() {
 		favs, err := gallery.LoadFavorites(context.Background(), store)
@@ -131,19 +124,7 @@ func archetypePreview(arch gallery.Archetype) voicePreview {
 }
 
 // previewArchetype plays (or stops) a gallery voice's preview.
-func (a *app) previewArchetype(arch gallery.Archetype) {
-	p := archetypePreview(arch)
-	if !p.ok() {
-		return
-	}
-	if a.pl.Playing(p.id) {
-		a.pl.Stop()
-		return
-	}
-	if err := a.pl.PlayPreview(p.id, p.data, p.path, 0); err != nil {
-		a.toastWarn(err.Error())
-	}
-}
+func (a *app) previewArchetype(arch gallery.Archetype) { a.togglePreview(archetypePreview(arch)) }
 
 // useArchetype saves a gallery voice to the voices (once: a second use
 // finds the voice it saved) and opens it in Design (a designed voice) or

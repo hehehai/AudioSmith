@@ -185,7 +185,8 @@ func (a *app) studioVoiceChoices(e catalog.Entry) (cur string, opts []voiceOptio
 			a.makeSpeakerPortable(e, speaker)
 		})
 	}
-	add(voiceOption{value: "manage", label: i18n.T("Manage voices…"), action: true}, func() { a.navigate("/voices") })
+	add(voiceOption{value: "browse", label: i18n.T("Browse the voice library ›"), action: true}, func() { a.navigate("/voices/discover") })
+	add(voiceOption{value: "manage", label: i18n.T("Manage voices…"), action: true}, func() { a.navigate("/voices/mine") })
 	return cur, opts, acts
 }
 

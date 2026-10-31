@@ -143,7 +143,7 @@ func TestProjectsLibrary(t *testing.T) {
 // The voice editor's "where used" opens the project.
 func TestVoiceUsageLinksToProjects(t *testing.T) {
 	a, _, _ := newTestApp(t)
-	tt := ui.NewTester(a.view, 1100, 1000) // the editor's usage below its reference (#83)
+	tt := ui.NewTester(a.view, 1100, 1600) // the detail's usage below its reference and settings (#83)
 	ctx := context.Background()
 	v, err := a.lib.svc.Voices.Save(ctx, core.Voice{Name: "Mara", Kind: core.VoiceDesigned, Design: "a warm voice"})
 	if err != nil {

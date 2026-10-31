@@ -1,9 +1,10 @@
 package main
 
-// The profile editor: the right pane of /voices for one voice. Name,
-// transcript, style, language and tags; the portrait; the reference (play,
-// replace); "Try this voice" with a lock to the take it makes; the
-// ownership statement; where the voice was used; export.
+// A saved voice's detail (0.5 F4: the panel of voice_detail.go; before,
+// the profile editor): name, transcript, style, language and tags; the
+// portrait; the reference (play, replace); 「试一句」 with a lock to the
+// take it makes; the ownership statement; where the voice was used;
+// export.
 
 import (
 	"context"
@@ -28,7 +29,7 @@ type voiceEdit struct {
 	usage  *core.VoiceUsage
 	saving bool
 
-	tryOpen  bool
+	trySet   bool // tryText was set (the voice's language's line at first)
 	tryText  string
 	tryModel string // catalogue label
 
@@ -42,7 +43,7 @@ type voiceEdit struct {
 }
 
 func newVoiceEdit(v core.Voice) *voiceEdit {
-	e := &voiceEdit{id: v.ID, exportRef: true, tryText: i18n.T("Hello — this is a test of this voice.")}
+	e := &voiceEdit{id: v.ID, exportRef: true}
 	e.load(v)
 	return e
 }
@@ -175,6 +176,9 @@ func consentStatement() string {
 	return i18n.T("I confirm that this voice is my own, and I consent to AudioSmith cloning it on my behalf.")
 }
 
+// voiceEditor is a saved voice's detail (voice_detail.go): its head,
+// the preview, the hand-offs, 「试一句」, then the reference, settings,
+// where it is used, the lock, ownership and export, and Delete.
 func (a *app) voiceEditor(c *ui.Context) {
 	t := c.Theme()
 	e := a.edit
@@ -185,79 +189,115 @@ func (a *app) voiceEditor(c *ui.Context) {
 	if e.consent.phase != "" {
 		c.After(100 * time.Millisecond)
 	}
-	k := tok(t)
-	ui.Column(c.Key("editor-"+v.ID)).Padding(px(t, sp3), px(t, sp5), px(t, sp5)).Gap(px(t, sp4)).Children(func() {
-		panelHeader(c, i18n.T("Edit voice profile"), func() { a.edit = nil })
-		ui.Row(c).Gap(px(t, sp3)).AlignItems(ui.Center).Children(func() {
-			id := v.ID
+	ui.Column(c.Key("editor-"+v.ID)).Padding(px(t, sp4), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
+		id := v.ID
+		desc := firstOf(v.Style, v.Design)
+		detailHead(c, v.Name, voiceKindLabel(v)+" · "+i18n.DateTime(v.CreatedAt), desc, v.Tags, func() {
 			a.portraitPicker(c, "editor-portrait", v.Name, a.portrait(v), func(p string) { a.setVoicePortrait(id, p) }, func() {
 				cur := *v
 				a.voiceAction(func(ctx context.Context, svc core.VoiceService) (core.Voice, error) {
 					return svc.SaveFiles(ctx, cur, core.VoiceFiles{RemovePortrait: true})
 				}, "")
 			})
-			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, sp1)).Children(func() {
-				sectionHeading(c, v.Name).Tooltip(v.Name)
-				ui.Row(c).Gap(px(t, sp2)).Wrap().Children(func() { voiceBadges(c, v) })
-				truncText(c, voiceKindLabel(v)+" · "+i18n.DateTime(v.CreatedAt)).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-			})
-		})
+		}, func() { voiceBadges(c, v) }, func() { a.edit = nil })
 		a.editorAudio(c, v)
-		a.editorReference(c, v) // voice_editor_ref.go (#83)
-		a.editorFields(c, v)
-		a.editorTry(c, v)
-		a.editorLock(c, v)
-		a.editorConsent(c, v)
-		a.editorUsage(c, v)
-		a.editorExport(c, v)
-		ui.Box(c).Height(1).Background(k.Line)
-		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
-			if iconButton(c.Key("editor-delete"), icons.TrashBinMinimalistic, i18n.T("Delete")).Clicked() {
-				a.askDeleteVoice(v.ID)
+		handoffRow(c, "editor-handoffs", func() {
+			use := primaryButton
+			if e.dirty() {
+				use = ui.Button // Save is the primary while there are changes
 			}
-			a.voiceLongformMenu(c, v) // M3: Use in Stories, Narrate an audiobook (longform_voices.go, thread #18)
-			ui.Spacer(c)
-			if ui.Button(c.Key("editor-studio"), i18n.T("Use in Studio")).Clicked() {
+			if use(c.Key("editor-studio"), i18n.T("Use in Text to speech")).Clicked() {
 				a.useVoiceInStudio(v)
 			}
-			if primaryButton(c.Key("editor-save"), i18n.T("Save")).Disabled(!e.dirty() || e.saving).Clicked() {
-				a.saveVoiceEdit()
+		}, func() {
+			if ui.Button(c.Key("editor-stories"), i18n.T("Use as a story character")).Clicked() {
+				a.useVoiceInStories(v)
+			}
+			if ui.Button(c.Key("editor-book"), i18n.T("Narrate an audiobook")).Clicked() {
+				a.useVoiceInAudiobook(v)
+			}
+		})
+		a.editorTry(c, v)
+		if v.Kind == core.VoiceCloned || v.Kind == core.VoiceDesigned && !v.Locked {
+			detailSection(c, "editor-ref-sec", i18n.T("Reference"), func() {
+				a.editorReference(c, v) // voice_editor_ref.go (#83)
+				if v.Kind == core.VoiceCloned && v.RefCheck == nil && v.RefOriginal == "" {
+					caption(c, i18n.T("Not checked: it was saved before the reference checker."))
+				}
+			})
+		}
+		detailSection(c, "editor-settings", i18n.T("Settings"), func() {
+			a.editorFields(c, v)
+			ui.Row(c).Justify(ui.End).Children(func() {
+				if e.dirty() {
+					if primaryButton(c.Key("editor-save"), i18n.T("Save")).Disabled(e.saving).Clicked() {
+						a.saveVoiceEdit()
+					}
+				} else {
+					ui.Button(c.Key("editor-save"), i18n.T("Save")).Disabled(true)
+				}
+			})
+		})
+		a.editorUsage(c, v)
+		a.editorLock(c, v)
+		a.editorConsent(c, v)
+		a.editorExport(c, v)
+		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Padding(px(t, sp2), 0, 0).BorderWidth(1, 0, 0, 0).BorderColor(tok(t).Line).Children(func() {
+			if ghostIconButton(c.Key("editor-delete"), icons.TrashBinMinimalistic, i18n.T("Delete…")).Label(i18n.T("Delete")).Clicked() {
+				a.askDeleteVoice(v.ID)
+			}
+			ui.Spacer(c)
+			if ghostIconButton(c.Key("editor-dup"), icons.Copy, i18n.T("Duplicate")).Label(i18n.T("Duplicate")).Clicked() {
+				a.duplicateVoice(v.ID)
 			}
 		})
 	})
 	a.editorAlerts(c, v)
 }
 
-// editorAudio plays the voice's reference or sample, and replaces it.
+// editorAudio is the large preview: the voice's sample or reference (a
+// built-in speaker's clip), and Replace / Open in Design.
 func (a *app) editorAudio(c *ui.Context, v *core.Voice) {
 	t := c.Theme()
+	k := tok(t)
 	what := i18n.T("Reference clip")
+	line := v.RefText
 	switch {
 	case v.Locked && v.Sample != "":
-		what = i18n.T("Locked take")
+		what, line = i18n.T("Locked take"), v.SampleText
 	case v.Kind == core.VoiceDesigned && v.Sample != "":
-		what = i18n.T("Voice sample")
+		what, line = i18n.T("Voice sample"), v.SampleText
 	case v.Kind == core.VoiceDesigned:
 		what = i18n.T("No sample yet")
+	case v.Kind == core.VoiceBuiltin:
+		what, line = i18n.T("Preview"), v.Speaker
 	}
 	if v.Kind == core.VoiceCloned && !v.Locked && v.RefSeconds > 0 {
 		what += " · " + i18n.T("%.1f s", v.RefSeconds)
 	}
-	ui.Row(c.Key("editor-audio")).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusCard)).Background(tok(t).Subtle).Children(func() {
+	ui.Row(c.Key("editor-audio")).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
 		if j := a.voiceJob("sample", v.ID); j.running() {
 			ui.Spinner(c)
 			caption(c, j.status).Grow(1).MinWidth(0)
 			return
 		}
-		playing := a.voicePlaying(v)
-		b := playButton(c.Key("editor-play"), playing, true, 32)
-		if !playing && a.voiceAudio(v) == "" {
+		playing := a.savedPlaying(v)
+		b := playButton(c.Key("editor-play"), playing, true, 44)
+		if !playing {
 			b.Label(i18n.T("Preview voice")).Tooltip(i18n.T("Preview voice"))
 		}
 		if b.Clicked() {
-			a.playVoice(v)
+			a.previewSaved(v)
 		}
-		truncText(c, what).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).Grow(1)
+		ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
+			tx := ui.Text(c, what).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
+			if playing {
+				tx.TextColor(k.AccentInk)
+			}
+			if line != "" {
+				ui.Text(c, line).FontSize(px(t, fsCaption)).TextColor(k.Text2).MaxLines(2).Ellipsis("…").MinWidth(0).Tooltip(line)
+			}
+		})
 		if v.Kind == core.VoiceCloned && iconButton(c.Key("editor-replace"), icons.UploadMinimalistic, i18n.T("Replace reference…")).Clicked() {
 			a.startClone(v.ID)
 		}
@@ -310,7 +350,10 @@ func tryModels(v *core.Voice) []catalog.Entry {
 func (a *app) editorTry(c *ui.Context, v *core.Voice) {
 	t := c.Theme()
 	e := a.edit
-	collapsible(c.Key("editor-try"), i18n.T("Try this voice"), &e.tryOpen, nil, func() {
+	if !e.trySet {
+		e.tryText, e.trySet = tryLine(v.Language), true
+	}
+	detailSection(c, "editor-try", i18n.T("Try a line"), func() {
 		ms := tryModels(v)
 		if len(ms) == 0 {
 			caption(c, i18n.T("No model can speak with this voice."))
@@ -341,34 +384,16 @@ func (a *app) editorTry(c *ui.Context, v *core.Voice) {
 					}
 				}
 				j := a.voiceJob("try", v.ID)
-				if ui.Button(c.Key("try-go"), i18n.T("Generate preview")).Disabled(j.running() || strings.TrimSpace(e.tryText) == "").Clicked() {
+				if ui.Button(c.Key("try-go"), i18n.T("Generate")).Disabled(j.running() || strings.TrimSpace(e.tryText) == "").Clicked() {
 					a.tryVoice(v.ID)
 				}
 			})
-			j := a.voiceJob("try", v.ID)
-			switch {
-			case j == nil:
-			case j.running():
-				ui.Progress(c, j.fraction).Label(j.status)
-				caption(c, j.status)
-			case j.err != "":
-				ui.Text(c, j.err).FontSize(px(t, fsCaption)).TextColor(t.Danger).Selectable()
-				if j.needDownload != nil && secondaryIconButton(c.Key("try-download"), icons.DownloadMinimalistic, i18n.T("Download")).Label(i18n.T("Download")).Clicked() {
-					a.download(*j.needDownload)
+			a.tryResult(c, "try", a.voiceJob("try", v.ID), func(take *core.Take) {
+				if v.LockTake != take.ID && ghostIconButton(c.Key("try-lock"), icons.LockKeyhole, i18n.T("Lock voice identity")).Label(i18n.T("Lock voice identity")).
+					Tooltip(i18n.T("Every take with this voice reuses this take's audio and seed")).Clicked() {
+					a.lockVoice(v.ID, take.ID)
 				}
-			default:
-				take := j.take
-				ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
-					if playButton(c.Key("try-play"), a.pl.Playing(take.ID), true, 28).Clicked() {
-						a.play(take)
-					}
-					caption(c, i18n.T("%.1f s · seed %d", take.AudioSeconds, take.Seed)).SingleLine().Grow(1)
-					if v.LockTake != take.ID && ghostIconButton(c.Key("try-lock"), icons.LockKeyhole, i18n.T("Lock voice identity")).Label(i18n.T("Lock voice identity")).
-						Tooltip(i18n.T("Every take with this voice reuses this take's audio and seed")).Clicked() {
-						a.lockVoice(v.ID, take.ID)
-					}
-				})
-			}
+			})
 		})
 	})
 }
@@ -455,11 +480,11 @@ func (a *app) editorConsent(c *ui.Context, v *core.Voice) {
 func (a *app) editorUsage(c *ui.Context, v *core.Voice) {
 	t := c.Theme()
 	u := a.edit.usage
-	if u == nil || (u.Takes == 0 && u.Segments == 0) {
-		return
-	}
-	ui.Column(c.Key("editor-usage")).Gap(px(t, sp1)).Children(func() {
-		ui.Text(c, i18n.T("Where this voice has been used")).FontWeight(600)
+	detailSection(c, "editor-usage", i18n.T("Where this voice has been used"), func() {
+		if u == nil || (u.Takes == 0 && u.Segments == 0) {
+			caption(c, i18n.T("Not used yet."))
+			return
+		}
 		parts := []string{i18n.N(u.Takes, "%d take", "%d takes", u.Takes)}
 		if len(u.Projects) > 0 {
 			parts = append(parts, i18n.N(len(u.Projects), "%d project", "%d projects", len(u.Projects)),
@@ -470,9 +495,9 @@ func (a *app) editorUsage(c *ui.Context, v *core.Voice) {
 			a.projectUsageLink(c, p) // M3: opens the project (longform_projects.go, thread #18)
 		}
 		if u.Takes > 0 {
-			ui.Row(c).Children(func() {
-				if ghostIconButton(c.Key("usage-history"), icons.History, i18n.T("Show in History")).Label(i18n.T("Show in History")).Clicked() {
-					a.navigate("/history")
+			ui.Row(c).Gap(px(t, sp1)).Children(func() {
+				if ghostIconButton(c.Key("usage-history"), icons.History, i18n.T("Show in Assets")).Label(i18n.T("Show in Assets")).Clicked() {
+					a.navigate("/assets")
 				}
 			})
 		}

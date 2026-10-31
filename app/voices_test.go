@@ -45,7 +45,7 @@ func TestVoicesLibrary(t *testing.T) {
 	if !tt.HasText("Narrator") || !tt.HasText("Grandma") || !tt.HasText("2 voices") {
 		t.Fatalf("library: %q", tt.Texts())
 	}
-	if !strings.Contains(strings.Join(tt.Texts(), "|"), "Cloned voice · ") {
+	if !tt.HasText("Cloned") || !tt.HasText("Designed") {
 		t.Error("kind not shown")
 	}
 
@@ -75,7 +75,7 @@ func TestVoicesLibrary(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.edit == nil || !tt.HasText("Edit voice profile") || !tt.HasText("Replace reference…") {
+	if a.edit == nil || !tt.HasText("Voice details") || !tt.HasText("Replace reference…") {
 		t.Fatalf("editor: %q", tt.Texts())
 	}
 	a.edit.name = "Old Narrator"
@@ -121,11 +121,11 @@ func TestVoicesEmptyAndReload(t *testing.T) {
 	tt := ui.NewTester(a.view, 1200, 1800)
 	a.navigate("/voices")
 	tt.Frame()
-	if !tt.HasText("No saved voices yet") || !tt.HasText("Discover voices") {
+	if !tt.HasText("No saved voices yet") || !tt.HasText("Discover voices ›") {
 		t.Fatalf("empty: %q", tt.Texts())
 	}
-	tt.Click("Design a voice")
-	if a.router.Path() != "/voices/new/design" {
+	tt.Click("New voice")
+	if a.router.Path() != "/voices/new" {
 		t.Errorf("path %s", a.router.Path())
 	}
 	addVoice(t, a, core.Voice{Name: "Kept", Kind: core.VoiceCloned}, 3)
@@ -143,16 +143,14 @@ func TestVoiceTryAndLock(t *testing.T) {
 	v := addVoice(t, a, core.Voice{Name: "Me", Kind: core.VoiceCloned, RefText: "Reference words.", Style: "whisper", Language: "en"}, 5)
 	a.openVoiceEditor(v.ID)
 	tt.Frame()
-	tt.Click("Try this voice")
-	tt.Frame()
-	if !tt.HasText("Test phrase") {
+	if !tt.HasText("Test phrase") { // 「试一句」 is open in the detail
 		t.Fatalf("try: %q", tt.Texts())
 	}
 	om, _ := catalog.Builtin().ByRepo(omni)
 	a.edit.tryModel = om.Label
 	acceptLicences(t, a)
 	tt.Frame()
-	if err := tt.Click("Generate preview"); err != nil {
+	if err := tt.Click("Generate"); err != nil {
 		t.Fatal(err)
 	}
 	req := eng.last(t)

@@ -78,7 +78,6 @@ func snapshotsVoices(t *testing.T, out string) {
 		save("voice-editor")
 		a.edit.consentOpen = true
 		a.edit.exportOpen = true
-		a.edit.tryOpen = true
 		tt.SetSize(1100, 1700)
 		save("voice-editor-tall")
 		tt.SetSize(1100, 720)
