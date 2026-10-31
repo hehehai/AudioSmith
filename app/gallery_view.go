@@ -76,7 +76,7 @@ func (a *app) galleryPage(c *ui.Context) {
 	page := a.galleryResults()
 	pageHeaderBar(c, pageHead{
 		title: i18n.T("Discover voices"),
-		count: i18n.N(page.Total, "%d voice", "%d voices", page.Total),
+		// The count sits at the right of the filters' row (user, 10-31).
 		search: &headSearch{key: "gallery-search", value: &g.text, placeholder: i18n.T("Search: narrator, 东北, grandma…"),
 			label:   i18n.T("Search Discover voices"),
 			changed: func() { g.limit = galleryPageSize }},
@@ -170,6 +170,9 @@ func (a *app) galleryFilters(c *ui.Context, page gallery.Page) {
 				clear(g.filters)
 			}
 		}
+		ui.Box(c).Grow(1).MinWidth(px(t, sp2))
+		n := i18n.N(page.Total, "%d voice", "%d voices", page.Total)
+		ui.Text(c.Key("gallery-count"), n).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
 	})
 }
 
