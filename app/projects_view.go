@@ -45,7 +45,7 @@ func (a *app) projectsPage(c *ui.Context) {
 		search: &headSearch{key: "pj-search", value: &s.query, placeholder: i18n.T("Search projects")},
 		tools: func(narrow bool) {
 			if !narrow {
-				dropText(c.Key("pj-type"), projKindLabel(kind), kind != "").Label(i18n.T("Type")).Menu(filter)
+				headerSelect(c.Key("pj-type"), ifStr(kind == "", i18n.T("All types"), projKindLabel(kind)), kind != "").Label(i18n.T("Type")).Menu(filter)
 			}
 			if iconToggle(c.Key("pj-view-list"), icons.List, s.cards == 0, tip(i18n.T("List"), "⌥1")).Clicked() {
 				s.cards = 0

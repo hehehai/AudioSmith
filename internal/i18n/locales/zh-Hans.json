@@ -3616,6 +3616,7 @@
   "Coming soon": "即将推出",
   "Developers and Settings": "开发者与设置",
   "Developers": "开发者",
+  "Developer sections": "开发者分区",
   "Dictate into the box": "听写到输入框",
   "Discover": "发现",
   "Downloading models and accepting licences only in the app: ask the user.": "下载模型和接受许可只能在应用里做：请让用户操作。",
@@ -3932,5 +3933,6 @@
   "%s: %s": "%s：%s",
   "Gender and age": "性别与年龄",
   "Times used": "使用次数",
-  "Use cases": "用途"
+  "Use cases": "用途",
+  "All statuses": "全部状态"
 }

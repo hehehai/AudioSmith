@@ -42,7 +42,7 @@ func TestVoicesLibrary(t *testing.T) {
 	addVoice(t, a, core.Voice{Name: "Grandma", Kind: core.VoiceDesigned, DesignAttrs: designAttrs(vd.Attributes{Gender: "female", Age: "elderly"}), Seed: 7}, 0)
 	a.navigate("/voices")
 	tt.Frame()
-	if !tt.HasText("Narrator") || !tt.HasText("Grandma") { // no count on Mine (user, 10-31)
+	if !tt.HasText("Narrator") || !tt.HasText("Grandma") || tt.HasText("2 voices") { // no count on Mine (user, 10-31)
 		t.Fatalf("library: %q", tt.Texts())
 	}
 	if !tt.HasText("Cloned") || !tt.HasText("Designed") {

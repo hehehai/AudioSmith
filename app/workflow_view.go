@@ -164,7 +164,7 @@ func (a *app) wfHeaderActions(c *ui.Context) {
 		return
 	}
 	if a.wfBusy() {
-		if ui.Button(c.Key("wf-cancel"), i18n.T("Cancel run")).Clicked() {
+		if headerFit(c, ui.Button(c.Key("wf-cancel"), i18n.T("Cancel run"))).Clicked() {
 			a.wfCancel()
 		}
 		return
@@ -173,7 +173,7 @@ func (a *app) wfHeaderActions(c *ui.Context) {
 	if a.wfResumable() {
 		label = i18n.T("Resume")
 	}
-	if primaryButton(c.Key("wf-run"), label).Tooltip(i18n.T("Run every item through the steps")).Clicked() {
+	if primaryButton(c.Key("wf-run"), label).Label(label).Tooltip(i18n.T("Run every item through the steps")).Clicked() {
 		a.wfStart(false)
 	}
 }
