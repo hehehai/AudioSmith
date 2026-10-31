@@ -18,11 +18,14 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-// The panels' motion: in, easing out; out, faster, easing in.
+// The panels' motion: in, easing out (cubic); out, faster, easing in
+// (quadratic: a cubic hardly moves in its first third).
 const (
 	panelInDur  = 240 * time.Millisecond
 	panelOutDur = 180 * time.Millisecond
 )
+
+func easeInQuad(t float32) float32 { return t * t }
 
 // pageWidth is the width of the page beside the sidebar (or the rail).
 func (a *app) pageWidth(c *ui.Context) float32 {
@@ -124,7 +127,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	st.mounted = true
 	target, anim := float32(1), ui.Animation{Duration: panelInDur, Ease: ui.EaseOut}
 	if !in {
-		target, anim = 0, ui.Animation{Duration: panelOutDur, Ease: ui.EaseIn}
+		target, anim = 0, ui.Animation{Duration: panelOutDur, Ease: easeInQuad}
 	}
 	v := card.AnimateTo("slide", target, anim)
 	if lane.Valid() {

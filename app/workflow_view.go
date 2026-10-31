@@ -34,7 +34,7 @@ func (a *app) wfLayout(c *ui.Context) (railInline, panelInline bool) {
 	if railInline && !a.wfRailHide {
 		w -= rail
 	}
-	panelInline = w-panel >= px(t, 480)
+	panelInline = w-laneWidth(t, panel) >= px(t, 480)
 	return railInline, panelInline
 }
 
