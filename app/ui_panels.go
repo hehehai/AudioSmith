@@ -51,6 +51,7 @@ func (a *app) pageWidth(c *ui.Context) float32 {
 type floatState struct {
 	seen, mounted, closing bool
 	item                   any
+	v                      float32 // its slide's value at the last frame
 }
 
 // floatPanel describes a floating panel.
@@ -60,6 +61,9 @@ type floatPanel struct {
 	left       bool    // at the left of the page, sliding from there
 	lane       bool    // the page keeps a lane for it (a tool panel that fits)
 	fill       bool    // the content fills the panel (it scrolls itself)
+	// under is the height of the rows between the page's header and the
+	// body the panel is built in (the dub's steps).
+	under float32
 	// lead is room over the content, whose first row is then level with
 	// the page header's (panelLead): for content that also shows under
 	// the header, in the page (a drawer's).
@@ -122,13 +126,10 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	}
 	// The card runs from the window's top, like the sidebar, when the
 	// page's header still fits beside it (it moves clear of the card);
-	// else it stays under the header. The body starts under the header,
-	// where a probe saw it last frame.
-	full := a.pageWidth(c)-headerPanelNext-w >= px(t, headerKeepW) // beside the panels built before it
-	top := float32(pageTop)
-	if r := ui.Box(c.Key(p.key+"-top")).Absolute().Top(0).Left(0).Size(0, 0).PassThrough().LayoutBounds(); r.Y > 0 {
-		top = r.Y
-	}
+	// else it stays under the header. The body starts under the header
+	// and the rows the page puts under it (under).
+	full := a.pageWidth(c)-headerPanelsNext.room-w >= px(t, headerKeepW) // beside the panels built before it
+	top := float32(pageTop) + p.under
 	r := px(t, radiusCard)
 	card := ui.Column(c.Key(p.key+"-float")).Absolute().Bottom(gap).Width(w).
 		Background(k.Bg).BorderColor(k.Line).Clip().
@@ -144,6 +145,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 		card.Top(px(t, sp2)).Right(0).Radius(r, 0, 0, r).BorderWidth(1, 0, 1, 1)
 	}
 	in := open && !st.closing
+	wasIn := st.mounted
 	if !st.mounted && !first {
 		card.Jump("slide", 0) // it comes in; on the page's first build it is there
 	}
@@ -152,11 +154,21 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	if !in {
 		target, anim = 0, ui.Animation{Duration: panelOutDur, Ease: easeInQuad}
 	}
-	v := card.AnimateTo("slide", target, anim)
+	now := card.AnimateTo("slide", target, anim)
+	// It shows where the last frame's value puts it, as the page's header
+	// does (headerPanels).
+	v := st.v
+	if first || !wasIn {
+		v = now
+	}
+	st.v = now
+	if v != now {
+		c.AnimationFrame() // and one more frame to catch up
+	}
 	if lane.Valid() {
 		lane.Width(v * w)
 	}
-	if !in && v < 0.001 { // out: gone, and the host closes it
+	if !in && now < 0.001 { // out: gone, and the host closes it
 		st.mounted = false
 		card.Opacity(0)
 		if st.closing {
@@ -169,7 +181,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 		return
 	}
 	if full {
-		headerAvoid(c, p.left, v*w, max(target, v)*w)
+		headerAvoid(p.left, now*w, max(target, now)*w) // where the next frame shows it
 	}
 	dx := (1 - v) * w
 	if p.left {
@@ -276,8 +288,9 @@ func (sp *panelState) toggle(c *ui.Context, ic icons.Icon, shown bool, showTip, 
 }
 
 // view builds the panel at the right of the page's body (call it last
-// in the body's row): in its lane when inline, else over the page.
-func (sp *panelState) view(a *app, c *ui.Context, key, label string, inline, shown bool, width float32, build func()) {
+// in the body's row, under rows under the header): in its lane when
+// inline, else over the page.
+func (sp *panelState) view(a *app, c *ui.Context, key, label string, inline, shown bool, width, under float32, build func()) {
 	hide := func() { sp.open, sp.set = false, true }
-	a.floating(c, floatPanel{key: key, label: label, w: width, lane: inline, close: hide}, shown, build)
+	a.floating(c, floatPanel{key: key, label: label, w: width, lane: inline, under: under, close: hide}, shown, build)
 }

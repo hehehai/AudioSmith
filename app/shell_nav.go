@@ -33,6 +33,7 @@ type navState struct {
 	moreOpen   bool             // the "··· More" menu shows
 	railMore   bool             // … from the icon rail
 	voicesTab  string           // the Voices tab shown last: "discover", "mine" (voices_pages.go)
+	panelsNav  string           // the page of the last frame's floating panels (headerPanels)
 	sideSearchState
 }
 
@@ -74,10 +75,15 @@ func (a *app) saveClosedSections() {
 // sidebarFrame lays out the sidebar and the page: the rail, or the full
 // sidebar beside a divider that resizes it.
 func (a *app) sidebarFrame(c *ui.Context, page func()) {
+	defer headerSettle(c) // ui_page_header.go
 	t := c.Theme()
 	k := tok(t)
 	headerInset = 0
-	headerPanel, headerPanelNext = headerPanelNext, 0
+	if a.nav != a.panelsNav { // another page: the last frame's panels were not its
+		a.panelsNav, headerPanelsNext = a.nav, headerTake{}
+	}
+	headerPanels, headerPanelsNext = headerPanelsNext, headerTake{}
+	headerBuilt, headerTook = "", headerTake{} // until the page's header builds
 	if a.railMode() {
 		// The window controls (the traffic lights) reach past the rail:
 		// the pages' headers move over to keep clear of them.

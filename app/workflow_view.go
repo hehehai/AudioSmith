@@ -132,7 +132,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 			a.wfCanvasView(c)
 		})
 		// Too narrow for the rail: a floating list from the left.
-		a.floating(c, floatPanel{key: "wf-rail-drawer", label: i18n.T("Workflows and steps"), w: px(t, wfRailWidth+20), left: true, lead: panelLead(t, 28) - px(t, sp2),
+		a.floating(c, floatPanel{key: "wf-rail-drawer", label: i18n.T("Workflows and steps"), w: px(t, wfRailWidth+20), left: true, under: 1, lead: panelLead(t, 28) - px(t, sp2),
 			close: func() { a.wfRailOpen = false }}, railShown && !railInline, rail)
 		// The step and the run: in its lane, or over the canvas.
 		var build func()
@@ -143,7 +143,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 		if !panelInline {
 			esc = func() { a.wfPanelOpen = false }
 		}
-		a.floating(c, floatPanel{key: "wf-panel", label: i18n.T("Step and run"), w: px(t, wfPanelWidth), lane: panelInline,
+		a.floating(c, floatPanel{key: "wf-panel", label: i18n.T("Step and run"), w: px(t, wfPanelWidth), lane: panelInline, under: 1,
 			fill: true, close: esc}, panelShown, build)
 	})
 	a.wfConfirmDialog(c)

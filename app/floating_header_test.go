@@ -67,12 +67,18 @@ func TestFloatingPanelHeaderClear(t *testing.T) {
 			tt.Frame()
 			fitted = fitted[:0]
 			tt.Frame()
+			if tt.FramePending() {
+				t.Errorf("%s %s: the header and the panel do not settle", cfg.name, p.name)
+			}
 			r, ok := tt.Find(p.panel)
 			if !ok {
 				t.Errorf("%s %s: no panel %q", cfg.name, p.name, p.panel)
 				continue
 			}
 			full := r.Y < 0.5
+			if r.Y < -0.5 {
+				t.Errorf("%s %s: panel %+v above the window", cfg.name, p.name, r)
+			}
 			if cfg.name == "1100" && !full {
 				t.Errorf("%s %s: panel %+v not from the window's top", cfg.name, p.name, r)
 			}
@@ -95,5 +101,36 @@ func TestFloatingPanelHeaderClear(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// While a panel slides in and out, the header's tools move with it: the
+// last of them (New voice, after ⋯) never goes under it.
+func TestFloatingPanelHeaderSlides(t *testing.T) {
+	a, tt, v1, _ := mineWithVoices(t)
+	th := ui.LightTheme()
+	check := func(when string) {
+		t.Helper()
+		r, ok := tt.Find("Voice details")
+		m, okm := findHeaderTool(tt, "More tools")
+		if !ok || !okm {
+			return // not narrow yet, or gone
+		}
+		if end := m.X + m.W + px(th, sp1) + headerControlH(th); end > r.X+0.5 {
+			t.Errorf("%s: the header's tools end at %.1f, the panel at %.1f", when, end, r.X)
+		}
+	}
+	a.openVoiceEditor(v1.ID)
+	tt.Frame()
+	for i := range 6 {
+		check("in " + time.Duration(i*40*int(time.Millisecond)).String())
+		tt.Advance(40 * time.Millisecond)
+	}
+	tt.Advance(time.Second)
+	a.dismissPanel("voice-editor")()
+	tt.Frame()
+	for i := range 5 {
+		check("out " + time.Duration(i*40*int(time.Millisecond)).String())
+		tt.Advance(40 * time.Millisecond)
 	}
 }

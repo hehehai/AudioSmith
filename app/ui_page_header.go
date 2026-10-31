@@ -119,7 +119,7 @@ func pageNarrow(c *ui.Context) bool {
 	if headerNav.pageW != nil {
 		w = headerNav.pageW(c)
 	}
-	return w-headerPanel < px(t, headerNarrowW)
+	return w < px(t, headerNarrowW)
 }
 
 // pageHeader is a page's header with its title and tools (trailing,
@@ -145,10 +145,12 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 			below()
 		}
 	}()
-	narrow := pageNarrow(c)
-	headerRow = ui.Row(c.Key("page-header"))
-	headerSides = [2]float32{}
-	headerRow.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).
+	headerBuilt = h.parent + "/" + h.title
+	took := headerFor(headerBuilt)
+	headerTook = took
+	narrow := pageNarrow(c) || headerNav.pageW != nil && headerNav.pageW(c)-took.room < px(t, headerNarrowW)
+	side := took.sides
+	ui.Row(c.Key("page-header")).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4)+side[1], 0, px(t, sp6)+headerInset+side[0]).
 		Gap(px(t, sp2)).DragWindow().Role(ui.RoleGroup).Label(i18n.T("Page header")).Children(func() {
 		ui.Row(c.Key("head-left")).Grow(1).Shrink(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			if h.parent != "" && h.up == "" {
@@ -214,35 +216,61 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 	})
 }
 
-// headerRow is this pass's page header, which the page's floating panels,
-// built after it, keep clear of (headerAvoid); headerSides is how much of
-// it they cover on its left and right.
-var (
-	headerRow   ui.Element
-	headerSides [2]float32
-)
+// headerTake is what a page's floating panels take of its header: on
+// its left and right as they show now (sliding), and in all once in
+// place.
+type headerTake struct {
+	sides [2]float32
+	room  float32
+	page  string // the header's page (its title) they were over
+}
 
-// headerPanel is how much of the page's width its floating panels take,
-// shown or coming in, as the last frame saw it: the header goes narrow
-// for it (pageNarrow). headerPanelNext is this frame's, which
-// sidebarFrame hands over.
-var headerPanel, headerPanelNext float32
+// headerPanels is what the panels took as the last frame left them (the
+// header builds before its page's panels): its ends move clear of them,
+// and it goes narrow for their room (pageNarrow). headerPanelsNext is
+// this frame's, which sidebarFrame hands over. The panels show where the
+// last frame put them too, so that the header and they move as one.
+var headerPanels, headerPanelsNext headerTake
 
-// headerAvoid moves the page header's ends clear of a floating panel
-// over its left or right, visible wide now (as it slides), and room wide
-// once in place.
-func headerAvoid(c *ui.Context, left bool, visible, room float32) {
-	headerPanelNext += room
-	if !headerRow.Valid() {
-		return
-	}
-	t := c.Theme()
+// headerAvoid notes a floating panel over the header's left or right,
+// visible wide now (as it slides), and room wide once in place.
+func headerAvoid(left bool, visible, room float32) {
 	side := 1
 	if left {
 		side = 0
 	}
-	headerSides[side] += visible
-	headerRow.Padding(0, px(t, sp4)+headerSides[1], 0, px(t, sp6)+headerInset+headerSides[0])
+	headerPanelsNext.sides[side] += visible
+	headerPanelsNext.room += room
+	headerPanelsNext.page = headerBuilt
+}
+
+// headerBuilt is the page whose header built last (its parent and title):
+// what the panels took is that page's, and no other's (headerFor).
+var headerBuilt string
+
+// headerSettle asks for another frame at once when this frame's panels
+// took other room of the page header than the last frame's, which the
+// header (built before them) kept clear of: the header catches up.
+func headerSettle(c *ui.Context) {
+	want := headerTake{page: headerBuilt}
+	if headerPanelsNext.page == headerBuilt {
+		want = headerPanelsNext
+	}
+	if want.sides != headerTook.sides || want.room != headerTook.room {
+		c.Invalidate()
+	}
+}
+
+// headerTook is what the panels take of the page header built last: rows
+// under the header keep clear of them too (the dub's steps).
+var headerTook headerTake
+
+// headerFor is what the last frame's panels took of the header of page.
+func headerFor(page string) headerTake {
+	if headerPanels.page != page {
+		return headerTake{}
+	}
+	return headerPanels
 }
 
 // headerSearch is the header's search field; narrow and empty, a
