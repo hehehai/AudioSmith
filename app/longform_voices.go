@@ -128,6 +128,7 @@ func (a *app) useVoiceInStories(v *core.Voice) {
 	}
 	a.lfFitModel(p, v)
 	p.open["cast"] = true
+	p.opened, p.listing = true, false
 	a.navigate("/stories")
 }
 
@@ -137,6 +138,7 @@ func (a *app) useVoiceInAudiobook(v *core.Voice) {
 	p := a.lfBook
 	p.doc.Voice = v.ID
 	a.lfFitModel(p, v)
+	p.opened, p.listing = true, false
 	a.navigate("/audiobook")
 }
 

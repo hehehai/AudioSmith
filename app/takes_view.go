@@ -1,9 +1,9 @@
 package main
 
-// The History page: every take, newest first, with search (the library's
-// full-text index), filters (all / starred, by model), star, play, reuse
-// and delete, and a details pane with the take's whole recipe and render.
-// Its cap (Settings → Studio: keep at most N takes) prunes the oldest
+// The takes on the Assets page (assets*.go): the search (the library's
+// full-text index), the filters (all / starred, by model), a take's
+// details pane with its whole recipe and render, its waveform, and the
+// cap (Settings → Studio: keep at most N takes), which prunes the oldest
 // takes that are not starred.
 
 import (
@@ -17,19 +17,25 @@ import (
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
-	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/settings"
 )
 
-// historyView is the History page's view state.
+// historyView is the Assets page's view state (History before 0.5 F5).
 type historyView struct {
 	query     string
-	filter    int    // 0 all, 1 starred
-	model     string // a model's name, or "" (shown as All models)
+	filter    int    // takes: 0 all, 1 starred
+	model     string // takes: a model's name, or "" (shown as All models)
+	kind      int    // into assetKinds (assets.go)
+	source    int    // into assetSources
 	selected  string // the take in the details pane
 	searchFor string // the query results are for
 	results   map[string]bool
 	keepTakes float64 // Settings → Studio
+
+	exports             []core.Export // the export records (assets.go)
+	exLoaded, exLoading bool
+	dirty               bool            // the records changed: read again
+	details             map[string]bool // renders' "How it was made" shown
 }
 
 // searchTakes looks the query up in the library's full-text index in
@@ -98,147 +104,12 @@ func (a *app) historyModels() []string {
 	return out
 }
 
-func (a *app) historyPage(c *ui.Context) {
-	t := c.Theme()
-	h := &a.history
-	takes := a.historyTakes()
-	sel := a.findTake(h.selected)
-	w := px(t, 360)
-	inline := a.panelFits(c, w)
-	count := i18n.N(len(a.takes), "%d take", "%d takes", len(a.takes))
-	if len(takes) != len(a.takes) {
-		count = i18n.N(len(takes), "%d found", "%d found", len(takes))
-	}
-	models := append([]string{i18n.T("All models")}, a.historyModels()...)
-	pageHeaderBar(c, pageHead{
-		title: i18n.T("Assets"),
-		count: count,
-		search: &headSearch{key: "history-search", value: &h.query, placeholder: i18n.T("Search the scripts"), label: i18n.T("Search takes"),
-			changed: a.searchTakes},
-		tools: func(narrow bool) {
-			if !narrow {
-				ui.Segmented(c.Key("history-filter"), &h.filter, i18n.T("All"), i18n.T("Starred")).Label(i18n.T("Show")).Shrink(0)
-				choice := h.model
-				if choice == "" {
-					choice = models[0]
-				}
-				if ui.Select(c.Key("history-model"), &choice, models).Label(i18n.T("Model")).Width(px(t, 160)).Shrink(1).MinWidth(px(t, 110)).Changed() {
-					h.model = choice
-					if choice == models[0] {
-						h.model = ""
-					}
-				}
-			}
-			if iconButton(c.Key("open-folder"), icons.FolderOpen, i18n.T("Open folder")).Tooltip(i18n.T("Open the folder of the takes in Finder")).Clicked() {
-				a.openTakesFolder()
-			}
-		},
-		more: func(m *ui.Menu) {
-			if m.Item(i18n.T("Starred")).Checked(h.filter == 1).Chosen() {
-				h.filter = 1 - h.filter
-			}
-			m.Submenu(i18n.T("Model"), func(m *ui.Menu) {
-				for i, name := range models {
-					on := h.model == name || i == 0 && h.model == ""
-					if m.Item(name).Checked(on).Chosen() {
-						h.model = name
-						if i == 0 {
-							h.model = ""
-						}
-					}
-				}
-			})
-		},
-	})
-	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.List(c, &a.historyList, len(takes)).Grow(1).MinWidth(0).Padding(0, 0, px(t, sp4)).ItemKey(func(i int) any { return takes[i].ID }).Rows(func(r ui.ListRow) {
-			tk := &takes[r.Index]
-			ui.Column(c).Padding(px(t, sp1), px(t, sp6)).Children(func() {
-				a.takeRow(c, a.findTake(tk.ID))
-			})
-		})
-		if sel != nil {
-			sidePanel(c, "details", w, inline, i18n.T("Take details"), func() { h.selected = "" }, func() {
-				a.takeDetails(c, sel)
-			})
-		}
-	})
-	if len(takes) == 0 {
-		ui.Column(c).Absolute().Left(0).Top(pageTop).Right(0).Bottom(0).Center().PassThrough().Children(func() {
-			if len(a.takes) == 0 {
-				emptyState(c, icons.History, i18n.T("No takes yet"), i18n.T("What you generate in the studio shows up here."), nil)
-			} else {
-				emptyState(c, icons.Magnifer, i18n.T("No take matches"), "", nil)
-			}
-		})
-	}
-}
-
 // openPath opens a folder or file with the system (Finder); tests
 // replace it.
 var openPath = func(path string) { mygo.Shell.OpenPath(path) }
 
 // openTakesFolder shows the takes' folder in Finder (Assets' header).
 func (a *app) openTakesFolder() { openPath(a.takeStore.AudioDir()) }
-
-// takeRow is a take in the History list: a flat card with the round play
-// button, the waveform, the script, its meta line, star, Reuse, Export…
-// and ⋯.
-func (a *app) takeRow(c *ui.Context, cl *core.Take) {
-	if cl == nil {
-		return
-	}
-	t := c.Theme()
-	k := tok(t)
-	selected := a.history.selected == cl.ID
-	card := card(c.Key("card-"+cl.ID)).Padding(px(t, sp3), px(t, sp4)).Gap(px(t, sp2))
-	if selected {
-		card.Border(1, k.G[5]).Background(k.Subtle)
-	}
-	card.Children(func() {
-		ui.Row(c).Gap(px(t, sp3)).AlignItems(ui.Center).Children(func() {
-			if playButton(c.Key("play"), a.pl.Playing(cl.ID), false, 32).Clicked() {
-				a.play(cl)
-			}
-			a.waveform(c, cl)
-		})
-		ui.Text(c, cl.Text).MaxLines(2).Ellipsis("…")
-		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
-			truncText(c, clipMeta(cl)).FontSize(px(t, fsCaption)).TextColor(k.Text2).Grow(1)
-			a.starButton(c, cl)
-			if ghostButton(c.Key("reuse"), i18n.T("Reuse")).Tooltip(i18n.T("Load this take's text and settings into the studio")).Clicked() {
-				a.reuse(cl)
-			}
-			if iconButton(c.Key("export"), icons.Export, i18n.T("Export audio…")).Tooltip(i18n.T("Export the audio: format, quality, loudness")).Clicked() {
-				a.openExport(cl) // export_dialog.go (thread #31)
-			}
-			details := i18n.T("Details")
-			if selected {
-				details = i18n.T("Hide details")
-			}
-			path := a.takeStore.AudioPath(*cl)
-			moreMenu(c.Key("take-more"), "", func(m *ui.Menu) {
-				if m.Item(details).Chosen() {
-					if selected {
-						a.history.selected = ""
-					} else {
-						a.history.selected = cl.ID
-					}
-				}
-				if m.Item(i18n.T("Export…")).Chosen() {
-					a.openExport(cl)
-				}
-				if m.Item(i18n.T("Show in Finder")).Chosen() {
-					mygo.Shell.ShowItemInFolder(path)
-				}
-				m.Separator()
-				if m.Item(i18n.T("Delete")).Chosen() {
-					a.deleteClip(cl)
-				}
-			})
-		})
-	})
-}
 
 // recipeRows are a take's recipe as label/value pairs.
 func recipeRows(t *core.Take) [][2]string {

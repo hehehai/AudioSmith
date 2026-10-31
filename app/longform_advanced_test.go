@@ -75,7 +75,7 @@ func TestLongformProjectMenu(t *testing.T) {
 	p := a.lfStories
 	kittenDoc(&p.doc)
 	tt.Frame()
-	if err := tt.Click("Project"); err != nil {
+	if err := tt.Click("More actions"); err != nil { // the old Project menu's items are in ⋯ (0.5 F5)
 		t.Fatal(err)
 	}
 	if err := tt.ChooseMenuItem("Save"); err != nil {
@@ -85,7 +85,7 @@ func TestLongformProjectMenu(t *testing.T) {
 	if p.project == "" || len(p.projects) == 0 || p.projects[0].Title != "我想领养一只小猫" {
 		t.Fatalf("saved %q %+v", p.project, p.projects)
 	}
-	tt.Click("Project")
+	tt.Click("More actions")
 	if err := tt.ChooseMenuItem("All projects…"); err != nil {
 		t.Fatal(err)
 	}

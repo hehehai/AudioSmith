@@ -1,16 +1,13 @@
 package main
 
-// The project library (/projects, M3): one list of everything the app has
-// made — Stories and Audiobook projects and their finished renders, voices,
-// transcripts, takes and export records — with a filter per kind (with
-// counts), full-text search (the store's FTS indexes), list or cards,
-// inline rename, open (asking before replacing an unsaved draft), Show in
-// Finder, delete (several at once, with a retry for those that failed)
-// and "How it was made" for renders.
+// The library's items (M3) as the app shows them: their kind, icon and
+// second line, opening one, renaming a project, and recording exports.
+// The Projects page (0.5 F5) lists the long pieces of work
+// (projects_list.go, projects_view.go); Assets every output
+// (assets*.go).
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -23,119 +20,37 @@ import (
 	"github.com/hehehai/AudioSmith/internal/store"
 )
 
-// libCategories are the filters, in order.
-var libCategories = []string{store.LibAll, store.LibDub, store.LibStory, store.LibAudiobook, store.LibVoice, store.LibTranscript, store.LibTake, store.LibExport, store.LibWorkflow /* M6 */, store.LibCall /* M6b */}
-
-// libPageSize is how many items the page reads at a time.
-const libPageSize = 200
-
-// projectsState is the Projects page's state.
+// projectsState is the Projects page's state (0.5 F5, projects_view.go).
 type projectsState struct {
-	query    string
-	category int // into libCategories
-	cards    int // 0 list, 1 cards
-	items    []store.LibraryItem
-	counts   map[string]int
-	limit    int
-	loaded   string // query|category|limit the items are of
-	loading  bool
-	dirty    bool // something changed: read again when shown
-	list     ui.ListState
-	grid     ui.GridState
+	query   string
+	filter  int                 // into projFilters
+	cards   int                 // 0 list, 1 cards
+	lf      []store.LibraryItem // the stories and books (projects_list.go)
+	loaded  bool
+	loading bool
+	dirty   bool // something changed: read again when shown
+	grid    ui.GridState
 
-	selected   map[string]bool // item keys
-	errors     map[string]string
-	renaming   string // item key
-	renameText string
-	deleteOpen bool
-	details    map[string]bool
-	asked      map[string]bool // renders read for their details
+	renaming    string // a row's key
+	renameText  string
+	confirm     projItem // the row the delete asks about
+	confirmOpen bool
+	details     map[string]bool // renders' "How it was made" shown (Assets)
+	asked       map[string]bool // renders read for their details
 }
 
 // libKey is an item's key: source and id.
 func libKey(it store.LibraryItem) string { return it.Source + ":" + it.ID }
 
-// openProjects subscribes the library to the changes it lists.
+// openProjects subscribes the lists to the changes they show.
 func (a *app) openProjects(lib *library) {
-	a.projects.selected, a.projects.errors, a.projects.details = map[string]bool{}, map[string]string{}, map[string]bool{}
-	a.projects.asked = map[string]bool{}
-	a.projects.limit = libPageSize
+	a.projects.details, a.projects.asked = map[string]bool{}, map[string]bool{}
 	a.projects.dirty = true
-	mark := func() { a.post(func() { a.projects.dirty = true }) }
+	mark := func() { a.post(func() { a.projects.dirty = true; a.history.dirty = true }) }
 	core.On(lib.bus, func(core.TakeCreated) { mark() })
 	core.On(lib.bus, func(core.TakeDeleted) { mark() })
 	core.On(lib.bus, func(core.VoiceChanged) { mark() })
 	core.On(lib.bus, func(core.ExportChanged) { mark() })
-}
-
-// refreshLibrary reads the items and counts when the query changed or
-// something in the library did.
-func (a *app) refreshLibrary() {
-	s := &a.projects
-	cat := libCategories[min(max(s.category, 0), len(libCategories)-1)]
-	key := strings.TrimSpace(s.query) + "|" + cat + "|" + fmt.Sprint(s.limit)
-	if (key == s.loaded && !s.dirty) || s.loading {
-		return
-	}
-	s.loading, s.dirty = true, false
-	lib := a.lib.svc.Library
-	q := store.LibraryQuery{Category: cat, Search: strings.TrimSpace(s.query), Limit: s.limit}
-	a.background(func() {
-		ctx := context.Background()
-		items, err := lib.Search(ctx, q)
-		var counts map[string]int
-		if err == nil {
-			counts, err = lib.Counts(ctx, q.Search)
-		}
-		a.post(func() {
-			s.loading = false
-			if err != nil {
-				a.toastWarn(i18n.T("Could not read the library: %v", err))
-				return
-			}
-			s.items, s.counts, s.loaded = items, counts, key
-			// Keep only selections still shown.
-			for k := range s.selected {
-				if !s.has(k) {
-					delete(s.selected, k)
-				}
-			}
-		})
-	})
-}
-
-func (s *projectsState) has(key string) bool {
-	for _, it := range s.items {
-		if libKey(it) == key {
-			return true
-		}
-	}
-	return false
-}
-
-// categoryLabel names a filter.
-func categoryLabel(cat string) string {
-	switch cat {
-	case store.LibDub:
-		return i18n.T("Dubbing projects")
-	case store.LibWorkflow: // M6 (thread #21)
-		return i18n.T("Workflows")
-	case store.LibCall: // M6b (thread #23)
-		return i18n.T("Calls")
-	case store.LibStory:
-		return i18n.T("Stories")
-	case store.LibAudiobook:
-		return i18n.T("Audiobooks")
-	case store.LibVoice:
-		return i18n.T("Voices")
-	case store.LibTranscript:
-		return i18n.T("Transcripts")
-	case store.LibTake:
-		return i18n.T("History")
-	case store.LibExport:
-		return i18n.T("Exports")
-	}
-	return i18n.T("All")
 }
 
 // itemKind names what an item is.
@@ -319,11 +234,9 @@ func (a *app) openItem(it store.LibraryItem) {
 		if t := a.findTake(it.ID); t != nil {
 			a.reuse(t)
 		}
-	case "render":
+	case "render": // its project, whose page shows it (assets.go)
 		if r := a.lfRenders[it.ID]; r != nil {
-			p := a.lfPageOf(r.rec.Kind)
-			p.render = r.rec.ID
-			a.navigate("/" + lfRoute(r.rec.Kind))
+			a.openRenderAsset(r.rec)
 		}
 	}
 }
@@ -372,63 +285,6 @@ func (a *app) renameItem(it store.LibraryItem, title string) {
 				a.toastWarn(i18n.T("Could not rename: %v", err))
 			}
 			a.projects.dirty = true
-		})
-	})
-}
-
-// deleteItems deletes items one after the other; those that fail stay
-// selected with their error.
-func (a *app) deleteItems(items []store.LibraryItem) {
-	svc := a.lib.svc
-	wfs := a.wfSvc // M6 (thread #21)
-	// M6b (thread #23).
-	calls := a.callSvc
-	for _, it := range items {
-		if it.Source == "take" && a.pl.Current() == it.ID {
-			a.pl.Stop()
-		}
-	}
-	a.background(func() {
-		errs := map[string]string{}
-		done := 0
-		for _, it := range items {
-			ctx := context.Background()
-			var err error
-			switch it.Source {
-			case "project":
-				err = svc.Projects.Delete(ctx, it.ID)
-			case "render":
-				err = svc.Longform.Delete(ctx, it.ID)
-			case "voice":
-				err = svc.Voices.Delete(ctx, it.ID)
-			case "take":
-				err = svc.Takes.Delete(ctx, it.ID)
-			case "export":
-				err = svc.Library.DeleteExport(ctx, it.ID)
-			case "workflow": // M6 (thread #21)
-				err = wfs.Delete(ctx, it.ID)
-			case "call": // M6b (thread #23)
-				err = calls.Delete(ctx, it.ID)
-			}
-			if err != nil && !errors.Is(err, core.ErrNotFound) {
-				errs[libKey(it)] = err.Error()
-				continue
-			}
-			done++
-		}
-		a.post(func() {
-			s := &a.projects
-			s.errors = errs
-			for _, it := range items {
-				if _, failed := errs[libKey(it)]; !failed {
-					delete(s.selected, libKey(it))
-				}
-			}
-			s.dirty = true
-			if len(errs) == 0 {
-				s.deleteOpen = false
-			}
-			a.toast(i18n.N(done, "Deleted: %d", "Deleted: %d", done))
 		})
 	})
 }

@@ -23,12 +23,17 @@ func (a *app) audiobookPage(c *ui.Context) {
 	p := a.lfBook
 	a.syncManuscript(p)
 	a.lfToasts(c)
+	if !a.lfEditing(p) {
+		a.lfEntryPage(c, p) // longform_entry.go (0.5 F5)
+		a.autosaveLf(p)
+		return
+	}
 	locked := a.lfLocked(p)
 	inline, shown := a.lfLayout(c, p)
 	n := len(p.spec.Chapters)
-	pageHeaderBar(c, pageHead{title: i18n.T("Audiobook"), count: i18n.N(n, "%d chapter", "%d chapters", n), tools: func(bool) {
+	pageHeaderBar(c, a.lfEditorHead(p, i18n.N(n, "%d chapter", "%d chapters", n), func(bool) {
 		a.bookHeader(c, p, locked, shown)
-	}})
+	}))
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
 			a.manuscriptToolbar(c, p, locked)
@@ -52,8 +57,8 @@ func (a *app) audiobookPage(c *ui.Context) {
 	a.autosaveLf(p)
 }
 
-// bookHeader is the Audiobook page's header: Import, the inspector
-// toggle, and ⋯ (the sample, Clear, Stories).
+// bookHeader is an open book's header: Import, the inspector toggle,
+// and ⋯ (Save, the sample, Clear, Stories).
 func (a *app) bookHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 	imp := i18n.T("Import…")
 	var b ui.Element
@@ -65,9 +70,9 @@ func (a *app) bookHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 	if b.Tooltip(i18n.T("TXT, Markdown, EPUB or DOCX, up to 64 MB, split into chapters")).Disabled(locked).Clicked() {
 		a.importBook(p)
 	}
-	a.lfProjectMenu(c, p, locked)
 	p.panel.toggle(c.Key("ab-panel"), icons.PanelRight, shown, i18n.T("Show the inspector"), i18n.T("Hide the inspector"))
 	moreMenu(c.Key("ab-more"), "", func(m *ui.Menu) {
+		a.lfSaveItems(m, p) // longform_entry.go
 		if m.Item(i18n.T("Load sample")).Disabled(locked).Chosen() {
 			a.loadSample(p)
 		}

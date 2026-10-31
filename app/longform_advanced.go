@@ -13,7 +13,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
-	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/services"
 )
 
@@ -115,65 +114,6 @@ func (a *app) lfAdvanced(c *ui.Context, p *lfPage, locked bool) {
 			sectionTitle(c, i18n.T("Pronunciation"))
 			a.lexiconCard(c, p, locked)
 		})
-	})
-}
-
-// lfProjectMenu is the header's 「项目 ▾」: save (the title is the
-// project's name), save a copy, new, the recent projects of the page's
-// kind, and the Projects page.
-func (a *app) lfProjectMenu(c *ui.Context, p *lfPage, locked bool) {
-	label := i18n.T("Project")
-	var b ui.Element
-	if p.narrow {
-		b = iconButton(c.Key("lf-proj"), icons.FolderWithFiles, label)
-	} else {
-		b = dropButton(c.Key("lf-proj"), icons.FolderWithFiles, label)
-	}
-	tip := i18n.T("Save, open or start a project")
-	if p.project != "" && p.unsaved() {
-		tip = i18n.T("Unsaved changes")
-	}
-	b.Tooltip(tip).Menu(func(m *ui.Menu) {
-		if p.project != "" && p.unsaved() {
-			m.Item(i18n.T("Unsaved changes")).Disabled(true)
-		}
-		if m.Item(i18n.T("Save")).Chosen() {
-			a.saveLf(p, false)
-		}
-		if p.project != "" && m.Item(i18n.T("Save a copy")).Chosen() {
-			a.saveLf(p, true)
-		}
-		if m.Item(i18n.T("New")).Disabled(locked).Chosen() {
-			if p.unsaved() {
-				p.confirm, p.confirmOpen = "new", true
-			} else {
-				a.newLf(p)
-			}
-		}
-		if len(p.projects) > 0 {
-			m.Separator()
-			for i, pr := range p.projects {
-				if i == 8 {
-					break
-				}
-				id := pr.ID
-				title := strings.TrimSpace(pr.Title)
-				if title == "" {
-					title = i18n.T("Untitled")
-				}
-				if m.Item(title).Checked(id == p.project).Disabled(locked || id == p.project).Chosen() {
-					if p.unsaved() {
-						p.confirm, p.confirmOpen = id, true
-					} else {
-						a.openLfProject(id)
-					}
-				}
-			}
-		}
-		m.Separator()
-		if m.Item(i18n.T("All projects…")).Chosen() {
-			a.navigate("/projects")
-		}
 	})
 }
 

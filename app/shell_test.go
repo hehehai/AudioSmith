@@ -233,7 +233,7 @@ func TestPalette(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyUp)
 	tt.Key(0, ui.KeyUp)
-	if n := len(a.paletteItems()); a.paletteSel != n-1 {
+	if n := len(a.paletteRows()); a.paletteSel != n-1 {
 		t.Errorf("up wraps: %d of %d", a.paletteSel, n)
 	}
 	tt.Key(0, ui.KeyEscape)

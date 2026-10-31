@@ -374,7 +374,7 @@ func TestHistoryStarFilterSearchAndDetails(t *testing.T) {
 		Render: &core.TakeRender{SeedPinned: true, Master: "broadcast", Chunks: []core.TakeChunk{{Text: "你好，", End: 1}, {Text: "世界。", Start: 1.2, End: 2, Cached: true}}}}, 0.3)
 	a.showPage("history")
 	tt.Frame()
-	if !tt.HasText("2 takes") || !tt.HasText("The quick brown fox.") || !tt.HasText("你好，世界。") {
+	if !tt.HasText("2 items") || !tt.HasText("The quick brown fox.") || !tt.HasText("你好，世界。") {
 		t.Fatalf("history: %q", tt.Texts())
 	}
 	// Star A, then show only starred takes.
@@ -402,7 +402,7 @@ func TestHistoryStarFilterSearchAndDetails(t *testing.T) {
 	a.history.query = "nothing like it"
 	a.searchTakes()
 	tt.Frame()
-	if !tt.HasText("No take matches") {
+	if !tt.HasText("Nothing matches.") {
 		t.Errorf("no match: %q", tt.Texts())
 	}
 	a.history.query = ""

@@ -24,7 +24,7 @@ func TestHistoryReuseAndDelete(t *testing.T) {
 	}
 	a.showPage("history")
 	tt.Frame()
-	if !tt.HasText("2 takes") || !tt.HasText("First take") || !tt.HasText("Second take") {
+	if !tt.HasText("2 items") || !tt.HasText("First take") || !tt.HasText("Second take") {
 		t.Fatalf("history: %q", tt.Texts())
 	}
 
@@ -62,8 +62,9 @@ func TestSnapshotFollowsEvents(t *testing.T) {
 		t.Fatalf("snapshot %v", a.takes)
 	}
 	a.showPage("history")
+	a.requestPeaks(a.findTake("A")) // the Studio's history draws them (Assets lists rows)
 	tt.Frame()
-	if !tt.HasText("3 takes") || len(a.peaks["A"]) != peakCount {
+	if !tt.HasText("3 items") || len(a.peaks["A"]) != peakCount {
 		t.Fatalf("history %q, peaks %d", tt.Texts(), len(a.peaks["A"]))
 	}
 	cache := filepath.Join(a.lib.peaks.Dir, "A.f32")
@@ -83,7 +84,7 @@ func TestSnapshotFollowsEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.findTake("A") != nil || a.pl.Current() == "A" || a.peaks["A"] != nil || !tt.HasText("2 takes") {
+	if a.findTake("A") != nil || a.pl.Current() == "A" || a.peaks["A"] != nil || !tt.HasText("2 items") {
 		t.Errorf("after delete: %v, playing %q", a.takes, a.pl.Current())
 	}
 	if _, err := os.Stat(cache); !os.IsNotExist(err) {
@@ -115,7 +116,7 @@ func TestEmptyHistory(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	a.showPage("history")
 	tt.Frame()
-	if !tt.HasText("No takes yet") {
+	if !tt.HasText("Nothing here yet") {
 		t.Errorf("texts %q", tt.Texts())
 	}
 }

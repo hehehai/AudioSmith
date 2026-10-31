@@ -342,43 +342,6 @@ func (a *app) homeRecent(c *ui.Context) {
 	})
 }
 
-// homeSample is a sample project of the Samples tab.
-type homeSample struct {
-	key, title, about string
-	icon              icons.Icon
-}
-
-// homeSamples is the Samples tab: the five sample projects, coming with
-// F6 (a click says so).
-func (a *app) homeSamples(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
-	samples := []homeSample{
-		{"story", i18n.T("A story for two voices"), i18n.T("A short scene, cast and performed"), storiesIcon},
-		{"chapter", i18n.T("An audiobook chapter"), i18n.T("A chapter narrated with its headings"), audiobookIcon},
-		{"narration", i18n.T("A product narration"), i18n.T("Thirty seconds of voice-over"), studioIcon},
-		{"dub", i18n.T("A dubbed clip"), i18n.T("A short video dubbed into Chinese"), dubIcon},
-		{"meeting", i18n.T("A meeting transcript"), i18n.T("Who said what, with timings"), transcribeIcon},
-	}
-	ui.Row(c.Key("home-samples")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).Children(func() {
-		for _, s := range samples {
-			b := ui.ButtonBase(c.Key("sample-" + s.key)).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
-				Grow(1).Basis(px(t, 200)).MinWidth(px(t, 170)).Label(s.title)
-			if b.Hovered() {
-				b.Background(k.Hover)
-			}
-			b.Children(func() {
-				ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-					ui.Icon(c, s.icon.Linear).Size(px(t, 18), px(t, 18)).TextColor(k.Text2)
-					ui.Spacer(c)
-					ui.Text(c, i18n.T("Coming soon")).FontSize(px(t, fsMicro)).TextColor(k.Text3).Padding(px(t, 1), px(t, 6)).Radius(px(t, 8)).Border(1, k.Line).SingleLine()
-				})
-				ui.Text(c, s.title).FontWeight(600)
-				ui.Text(c, s.about).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-			})
-			if b.Clicked() {
-				a.toast(i18n.T("The sample projects come with the next update."))
-			}
-		}
-	})
-}
+// homeSamples is the Samples tab: the samples to start from
+// (projects_templates.go, as on Projects).
+func (a *app) homeSamples(c *ui.Context) { a.templateCards(c) }

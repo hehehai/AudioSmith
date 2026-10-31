@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
+	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/store"
 )
 
@@ -20,10 +21,10 @@ func TestDeleteMenusHistoryAndProjects(t *testing.T) {
 	addTake(t, a, core.Take{ID: "T1", CreatedAt: at, Text: "First take", Model: kokoro, Voice: "af_heart", AudioSeconds: 1}, 0.3)
 	addTake(t, a, core.Take{ID: "T2", CreatedAt: at.Add(time.Minute), Text: "Second take", Model: kokoro, Voice: "af_heart", AudioSeconds: 1}, 0.3)
 
-	// History: Delete deletes at once (the newest take's menu is first).
+	// Assets: Delete deletes at once (the newest take's menu is first).
 	a.showPage("history")
 	tt.Frame()
-	chooseAway(t, tt, "More actions", "Delete")
+	chooseAway(t, tt, "Asset actions", "Delete")
 	if a.findTake("T2") != nil || a.findTake("T1") == nil {
 		t.Fatalf("history delete: %v", a.takes)
 	}
@@ -32,21 +33,27 @@ func TestDeleteMenusHistoryAndProjects(t *testing.T) {
 	}
 
 	// Projects: Delete… asks first.
+	d := services.NewLongformDoc(core.ProjectStory, kokoro)
+	d.Title = "Old story"
+	pr, err := a.lib.svc.Library.SaveDoc(context.Background(), core.Project{}, d)
+	if err != nil {
+		t.Fatal(err)
+	}
 	a.navigate("/projects")
 	tt.Frame()
 	tt.Frame()
-	chooseAway(t, tt, "Item actions", "Delete…")
-	if !a.projects.deleteOpen {
+	chooseAway(t, tt, "Project actions", "Delete…")
+	if !a.projects.confirmOpen {
 		t.Fatalf("projects: no confirmation: %q", tt.Texts())
 	}
-	if err := tt.Click("Delete 1 item"); err != nil {
+	if err := tt.Click("Delete"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.findTake("T1") != nil {
+	if _, err := a.lib.svc.Projects.Get(context.Background(), pr.ID); err == nil {
 		t.Fatal("projects delete")
 	}
-	if !hasOp(a, "take.delete", "id=T1") {
+	if !hasOp(a, "story.delete", "id="+pr.ID) {
 		t.Errorf("not logged: %q", opLines(a))
 	}
 }

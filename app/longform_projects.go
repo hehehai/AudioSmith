@@ -124,7 +124,11 @@ func (p *lfPage) empty() bool {
 func (a *app) saveLf(p *lfPage, copy bool) { a.saveLfAs(p, copy, false) }
 
 // saveLfAs is saveLf; force overwrites a project changed elsewhere.
-func (a *app) saveLfAs(p *lfPage, copy, force bool) {
+func (a *app) saveLfAs(p *lfPage, copy, force bool) { a.saveLfWith(p, copy, force, false) }
+
+// saveLfWith is saveLfAs; quiet says nothing once saved (a new project
+// from the composer, longform_entry.go).
+func (a *app) saveLfWith(p *lfPage, copy, force, quiet bool) {
 	// The title is the project's name (an older page may only have a
 	// name to save under).
 	name := strings.TrimSpace(p.doc.Title)
@@ -162,7 +166,10 @@ func (a *app) saveLfAs(p *lfPage, copy, force bool) {
 			p.doc.Title = doc.Title
 			p.saveName = saved.Title
 			p.savedJSON = docJSON(&p.doc)
-			a.toast(i18n.T("Saved “%s”", saved.Title))
+			a.projects.dirty = true
+			if !quiet {
+				a.toast(i18n.T("Saved “%s”", saved.Title))
+			}
 		})
 	})
 }
@@ -187,6 +194,7 @@ func (a *app) openLfProject(id string) {
 			p.savedJSON = docJSON(&p.doc)
 			p.saveName = pr.Title
 			p.render = d.Render
+			p.opened, p.listing = true, false
 			a.navigate("/" + lfRoute(pr.Kind))
 		})
 	})
@@ -239,6 +247,7 @@ func (a *app) projectUsageLink(c *ui.Context, u core.VoiceProjectUsage) {
 // changes.
 func (a *app) askOpenProject(id string, kind core.ProjectKind, title string) {
 	p := a.lfPageOf(kind)
+	p.listing = false
 	if p.project == id {
 		a.navigate("/" + lfRoute(kind))
 		return

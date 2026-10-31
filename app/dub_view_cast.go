@@ -315,6 +315,7 @@ func (a *app) dubToStory() {
 		d.Lines = append(d.Lines, services.StoryLine{ID: "l" + strconv.Itoa(i+1), Text: l.Text, Character: ids[l.Character], Voice: l.Voice, Speed: l.Speed})
 	}
 	a.setLfDoc(a.lfStories, d, "", "")
+	a.lfStories.opened, a.lfStories.listing = true, false
 	a.navigate("/stories")
 	a.toast(i18n.T("The dub is a Stories script now."))
 }

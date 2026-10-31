@@ -127,7 +127,7 @@ func (a *app) importBookFrom(p *lfPage, path string) {
 	if p.importing {
 		return
 	}
-	p.importing = true
+	p.importing, p.opened, p.listing = true, true, false
 	a.background(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
