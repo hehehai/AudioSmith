@@ -23,7 +23,7 @@ func (a *app) designPage(c *ui.Context) {
 	if v := a.findVoice(d.linked); v != nil {
 		title = i18n.T("Design · %s", v.Name)
 	}
-	pageHeader(c, title, func() {
+	pageHeaderBar(c, pageHead{title: title, parent: i18n.T("New voice"), up: "/voices/new", tools: func(bool) {
 		if ghostIconButton(c.Key("design-new"), icons.AddCircle, i18n.T("New design")).Label(i18n.T("New design")).Clicked() {
 			script := d.script
 			d.reset()
@@ -32,7 +32,7 @@ func (a *app) designPage(c *ui.Context) {
 		if iconButton(c.Key("design-gallery"), icons.Widget, i18n.T("Discover voices")).Tooltip(i18n.T("Start from a voice in Discover voices")).Clicked() {
 			a.navigate("/gallery")
 		}
-	})
+	}})
 	k := tok(t)
 	recipe := func() {
 		a.designDescribe(c)

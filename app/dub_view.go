@@ -61,12 +61,10 @@ func (a *app) dubPage(c *ui.Context) {
 	if embed {
 		shown = false
 	}
-	// The breadcrumb names the dub (视频配音 › title); this row leads back
-	// to the list and holds the editor's actions.
-	backRow(c, "dub-back", pageTitle("/dub"), func() {
-		a.dubCommitEdit()
-		a.navigate("/dub")
-	}, func() { a.dubHeaderActions(c, shown, embed) })
+	// The header names the dub under its list (视频配音 / title; ‹ and the
+	// list's name lead back to it) and holds the editor's actions.
+	pageHeaderBar(c, pageHead{title: a.dubTitleOf(a.dub.ID), parent: pageTitle("/dub"), up: "/dub",
+		tools: func(bool) { a.dubHeaderActions(c, shown, embed) }})
 	a.dubStepper(c)
 	ui.Box(c).Height(1).Background(k.Line).Shrink(0)
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {

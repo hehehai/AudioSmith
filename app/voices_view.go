@@ -50,22 +50,28 @@ func voiceMatches(v *core.Voice, q string) bool {
 // narrow).
 func (a *app) voicesPage(c *ui.Context) {
 	t := c.Theme()
-	narrow := a.pageWidth(c) < px(t, 640)
-	pageHeader(c, i18n.T("My voices"), func() {
-		// The count, like History's and the Gallery's; it goes when the
-		// window leaves the actions little room.
-		if !narrow {
-			caption(c, i18n.N(len(a.voices), "%d voice", "%d voices", len(a.voices))).SingleLine().Shrink(0)
-		}
-		if iconButton(c.Key("voices-import"), icons.Import, i18n.T("Import…")).Tooltip(i18n.T("Import a .asvoice or .ovsvoice file")).Clicked() {
-			a.chooseVoiceFile()
-		}
-		if labelOrIcon(c.Key("voices-design"), icons.MagicStick3, i18n.T("Design a voice"), narrow).Clicked() {
-			a.navigate("/design")
-		}
-		if primaryButton(c.Key("voices-new"), i18n.T("Clone a voice")).Clicked() {
-			a.startClone("")
-		}
+	pageHeaderBar(c, pageHead{
+		title:  i18n.T("My voices"),
+		count:  i18n.N(len(a.voices), "%d voice", "%d voices", len(a.voices)),
+		search: &headSearch{key: "voices-search", value: &a.voiceQuery, placeholder: i18n.T("Search voices")},
+		tools: func(hn bool) {
+			if !hn {
+				ui.Segmented(c.Key("voices-kind"), &a.voiceKind, i18n.T("All"), i18n.T("Cloned"), i18n.T("Designed")).Label(i18n.T("Kind")).Shrink(0)
+			}
+			if iconButton(c.Key("voices-import"), icons.Import, i18n.T("Import…")).Tooltip(i18n.T("Import a .asvoice or .ovsvoice file")).Clicked() {
+				a.chooseVoiceFile()
+			}
+		},
+		more: func(m *ui.Menu) {
+			m.Submenu(i18n.T("Kind"), func(m *ui.Menu) {
+				for i, l := range []string{i18n.T("All"), i18n.T("Cloned"), i18n.T("Designed")} {
+					if m.Item(l).Checked(a.voiceKind == i).Chosen() {
+						a.voiceKind = i
+					}
+				}
+			})
+		},
+		primary: a.newVoiceButton(c),
 	})
 	w := px(t, 360)
 	inline := a.panelFits(c, w)
@@ -75,11 +81,7 @@ func (a *app) voicesPage(c *ui.Context) {
 	}
 	body.Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Children(func() {
-			room := a.pageWidth(c)
-			if a.edit != nil && inline {
-				room -= w + 1
-			}
-			a.voicesToolbar(c, room)
+			ui.Box(c).Height(px(t, sp2)).Shrink(0)
 			a.voicesGrid(c)
 		})
 		if a.edit != nil {
@@ -90,19 +92,6 @@ func (a *app) voicesPage(c *ui.Context) {
 	})
 	a.voiceDeleteAlert(c)
 	a.personaDialogs(c)
-}
-
-// voicesToolbar is the search and the kind filter, on two lines when
-// the list is room wide and narrow.
-func (a *app) voicesToolbar(c *ui.Context, room float32) {
-	t := c.Theme()
-	ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp3)).Children(func() {
-		filterBar(c, room-px(t, 2*sp6), 210, func() {
-			searchField(c, "voices-search", &a.voiceQuery, i18n.T("Search voices"), px(t, 320))
-		}, func() {
-			ui.Segmented(c.Key("voices-kind"), &a.voiceKind, i18n.T("All"), i18n.T("Cloned"), i18n.T("Designed")).Label(i18n.T("Kind")).Shrink(0)
-		})
-	})
 }
 
 func (a *app) voicesGrid(c *ui.Context) {

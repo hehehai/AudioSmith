@@ -15,8 +15,8 @@ import (
 // studioPage is Text to speech (0.5 F3, after ElevenLabs): on the left
 // the script — its toolbar, the editor, example chips while it is empty,
 // then the latest take and the generate bar at the foot; on the right the
-// panel, 设置 | 历史 (studio_panel.go). The top bar's breadcrumb is the
-// page's title.
+// panel, 设置 | 历史 (studio_panel.go). Its header: the title, ‹ ›, and
+// the panel's toggle.
 func (a *app) studioPage(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
@@ -31,6 +31,15 @@ func (a *app) studioPage(c *ui.Context) {
 	if strings.TrimSpace(a.text) == "" {
 		a.ttsUI.use = "" // an example's use lasts as long as its text
 	}
+	pageHeaderBar(c, pageHead{title: pageTitle("/studio"), tools: func(bool) {
+		tip := i18n.T("Show settings and history")
+		if shown {
+			tip = i18n.T("Hide settings and history")
+		}
+		if panelToggle(c.Key("inspector-toggle"), icons.PanelRight, shown, tip).Clicked() {
+			a.composer.panel, a.composer.panelSet = !shown, true
+		}
+	}})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		a.scriptColumn(c, shown)
 		if shown && inline {
@@ -68,7 +77,7 @@ func (a *app) scriptColumn(c *ui.Context, panelShown bool) {
 	t := c.Theme()
 	ui.Column(c.Key("script-column")).Grow(1).MinWidth(0).Children(func() {
 		ui.Column(c).Padding(px(t, sp2), px(t, sp6), 0).Shrink(0).Children(func() {
-			a.composerToolbar(c, panelShown)
+			a.composerToolbar(c)
 		})
 		sc := ui.Scroll(c.Key("composer-scroll")).Grow(1).MinHeight(0)
 		// The script fills what the scroll shows (last frame's height);
@@ -138,9 +147,9 @@ func (a *app) studioNarrow(c *ui.Context) bool {
 	return w-side < px(t, 500)
 }
 
-// composerToolbar: insert menu, import, pronunciation; on the right the
-// panel's toggle.
-func (a *app) composerToolbar(c *ui.Context, panelShown bool) {
+// composerToolbar: insert menu, import, pronunciation (the panel's
+// toggle is in the page's header).
+func (a *app) composerToolbar(c *ui.Context) {
 	t := c.Theme()
 	narrow := a.studioNarrow(c)
 	ui.Row(c.Key("script-toolbar")).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
@@ -152,14 +161,6 @@ func (a *app) composerToolbar(c *ui.Context, panelShown bool) {
 		pron := i18n.T("Pronunciation…")
 		if labelOrIcon(c.Key("pronunciation"), icons.TextSquare, pron, narrow).Tooltip(i18n.T("How words are said: your pronunciation dictionary")).Clicked() {
 			a.navigate("/settings/pronunciation")
-		}
-		ui.Spacer(c)
-		tip := i18n.T("Show settings and history")
-		if panelShown {
-			tip = i18n.T("Hide settings and history")
-		}
-		if panelToggle(c.Key("inspector-toggle"), icons.PanelRight, panelShown, tip).Clicked() {
-			a.composer.panel, a.composer.panelSet = !panelShown, true
 		}
 	})
 }

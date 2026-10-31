@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -150,7 +151,17 @@ func (a *app) shortcuts(c *ui.Context) {
 		a.openPalette()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyF) {
-		a.focusSearch()
+		a.focusSearch() // shell_search.go
+	}
+	if runtime.GOOS != "darwin" {
+		// ⌘[ ⌘] are the router's on the Mac (with a mouse's back and
+		// forward buttons); elsewhere it takes Alt+arrows, and these too.
+		if c.Shortcut(ui.Cmd, ui.KeyBracketLeft) {
+			a.goBack()
+		}
+		if c.Shortcut(ui.Cmd, ui.KeyBracketRight) {
+			a.goForward()
+		}
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyE) {
 		a.switchOpen = true
@@ -169,14 +180,6 @@ func (a *app) shortcuts(c *ui.Context) {
 	if !a.scriptFocused() && c.Shortcut(ui.Shift, ui.KeySlash) { // M1-G: "?" is text in the script editor
 		a.sheetOpen = true
 	}
-}
-
-// focusSearch puts the keyboard in the library's search field (⌘F), at
-// the top of the Projects page.
-func (a *app) focusSearch() {
-	a.settingsOpen = false
-	a.navigate("/projects")
-	a.searchFocus = true
 }
 
 // commandIcon is a command's icon in the palette: its page's for "Go
@@ -293,7 +296,7 @@ func (a *app) shortcutSheet(c *ui.Context) {
 			rows  [][2]string
 		}{
 			{i18n.T("Navigation"), [][2]string{
-				{"⌘F", i18n.T("Search the library")},
+				{"⌘F", i18n.T("Search everything")},
 				{"⌘K", i18n.T("Command palette")},
 				{"⌘1 … ⌘4", i18n.T("Home, Text to speech, Voices, Projects")},
 				{"⌘5 … ⌘8", i18n.T("Dub, Speech to text, Stories, Audiobook")},

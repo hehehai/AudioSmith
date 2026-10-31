@@ -73,7 +73,10 @@ func (a *app) openSettings(sub string) {
 		}
 	}
 	changed := a.setRouter.Path() != sub
-	if changed {
+	switch {
+	case changed && a.settingsOpen:
+		a.setRouter.Push(sub) // a section from another: 设置 ‹ › go back to it
+	case changed:
 		a.setRouter.Replace(sub)
 	}
 	if (!a.settingsOpen || changed) && strings.HasPrefix(sub, "/models") {
@@ -126,6 +129,15 @@ var settingsH float32 = settingsHMax
 
 // settingsDialog is Settings (⌘,): a dialog over the page, its sections
 // in a column on the left, each a column of groups (settingGroup).
+// syncLastSettings remembers the section the dialog's history went to
+// (‹ ›), as navigate does.
+func (a *app) syncLastSettings() {
+	sec := strings.TrimPrefix(a.setRouter.Path(), "/")
+	if sec, _, _ = strings.Cut(sec, "/"); sec != "" {
+		a.lastSettings = sec
+	}
+}
+
 func (a *app) settingsDialog(c *ui.Context) {
 	if !a.settingsOpen {
 		if len(a.otherShown) > 0 {
@@ -144,8 +156,19 @@ func (a *app) settingsDialog(c *ui.Context) {
 			Shadow(0, 16, 48, 0, ui.RGBA(0, 0, 0, 0.28)).Label(i18n.T("Settings"))
 		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 			ui.Column(c).Width(min(px(t, settingsNavW), dw*0.3)).Shrink(0).Background(k.Sidebar).Children(func() {
-				ui.Row(c).Height(px(t, 52)).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4)).Children(func() {
-					ui.Text(c, i18n.T("Settings")).FontSize(px(t, fsSection)).FontWeight(600).SingleLine()
+				// 设置 ‹ ›: back and forward through the sections shown.
+				ui.Row(c).Height(px(t, 52)).Shrink(0).AlignItems(ui.Center).Gap(px(t, sp1)).Padding(0, px(t, sp2), 0, px(t, sp4)).Children(func() {
+					ui.Text(c, i18n.T("Settings")).FontSize(px(t, fsSection)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+					ui.Row(c.Key("settings-history")).Gap(px(t, 2)).Shrink(0).Children(func() {
+						if iconButton(c.Key("settings-back"), icons.AltArrowLeft, tip(i18n.X("window history", "Back"), "⌘[")).Disabled(!a.setRouter.CanGoBack()).Clicked() {
+							a.setRouter.Back()
+							a.syncLastSettings()
+						}
+						if iconButton(c.Key("settings-forward"), icons.AltArrowRight, tip(i18n.X("window history", "Forward"), "⌘]")).Disabled(!a.setRouter.CanGoForward()).Clicked() {
+							a.setRouter.Forward()
+							a.syncLastSettings()
+						}
+					})
 				})
 				ui.Scroll(c).Grow(1).Children(func() {
 					ui.Column(c).Padding(0, px(t, sp2), px(t, sp2)).Gap(px(t, 2)).Children(func() {

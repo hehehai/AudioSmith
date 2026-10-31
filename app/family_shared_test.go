@@ -165,6 +165,7 @@ func TestSharedNoFamilyWording(t *testing.T) {
 	}, img func() []byte) [][]byte {
 		var out [][]byte
 		for _, p := range pages {
+			a.settingsOpen = false // opened afresh: the same 设置 ‹ › each time
 			a.openSettings(p)
 			tt.Frame()
 			tt.Frame()

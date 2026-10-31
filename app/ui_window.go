@@ -1,15 +1,12 @@
 package main
 
 // The kit's parts of the ActNow family's window layout (the family's
-// window spec, research/window-ui/spec.md of the ActNow project): the
-// main pages' header with the window's history and a count, tooltips
-// with their keys and under the title bar, the sidebar's search field
-// with a button in it, and Settings' groups of rows with a line under
-// each name.
+// window spec, research/window-ui/spec.md of the ActNow project):
+// tooltips with their keys and under the title bar, and Settings'
+// groups of rows with a line under each name. The pages' headers are ui_page_header.go.
 
 import (
 	"github.com/egoist/mygo/ui"
-	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
@@ -75,108 +72,6 @@ func iconButtonBelow(c *ui.Context, ic icons.Icon, label string) ui.Element {
 			col = tok(t).Text
 		}
 		ui.Icon(c, ic.Linear).Size(px(t, 16), px(t, 16)).TextColor(col)
-	})
-	return b
-}
-
-// headerNav is the window's history for the main pages' ‹ ›: set by the
-// view each frame.
-var headerNav struct {
-	canBack, canForward bool
-	back, forward       func()
-}
-
-// browseHeader is a main page's header (Projects, History): ‹ › (⌘[ ⌘]),
-// the title, note in the secondary grey (a count, "3 found"; "" none),
-// then trailing on the right: the views, +, the toggles, ⋯.
-func browseHeader(c *ui.Context, title, note string, trailing func()) {
-	headerRow(c, title, note, true, trailing)
-}
-
-// pageHeaderNote is pageHeader with note after the title (a count).
-func pageHeaderNote(c *ui.Context, title, note string, trailing func()) {
-	headerRow(c, title, note, false, trailing)
-}
-
-func headerRow(c *ui.Context, title, note string, history bool, trailing func()) {
-	t := c.Theme()
-	k := tok(t)
-	title, below := hostedHeader(title) // ui_layout.go
-	defer func() {
-		if below != nil {
-			below()
-		}
-	}()
-	left := px(t, sp6)
-	if history && headerNav.back != nil {
-		left = px(t, sp4)
-	}
-	ui.Row(c).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, left+headerInset).Gap(px(t, sp2)).DragWindow().Children(func() {
-		if history && headerNav.back != nil {
-			if iconButton(c.Key("go-back"), icons.AltArrowLeft, tip(i18n.X("window history", "Back"), "⌘[")).Disabled(!headerNav.canBack).Clicked() {
-				headerNav.back()
-			}
-			if iconButton(c.Key("go-forward"), icons.AltArrowRight, tip(i18n.X("window history", "Forward"), "⌘]")).Disabled(!headerNav.canForward).Clicked() {
-				headerNav.forward()
-			}
-		}
-		ui.Text(c, title).FontSize(px(t, fsPageTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
-		if note != "" {
-			ui.Text(c, note).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
-		}
-		ui.Box(c).Grow(1).MinWidth(0)
-		if trailing != nil {
-			trailing()
-		}
-	})
-}
-
-// fieldButtonSize is a fieldButton's side, DIPs at 100 %.
-const fieldButtonSize = 22
-
-// searchFieldWith is searchField with n small buttons inside it on the
-// right (fieldButton), which trailing builds; the text stops short of
-// them.
-func searchFieldWith(c *ui.Context, key string, value *string, placeholder string, maxW float32, n int, trailing func()) ui.Element {
-	t := c.Theme()
-	k := tok(t)
-	var in ui.Element
-	box := ui.Row(c.Key(key + "-box")).Grow(1).Shrink(1).Basis(0).MinWidth(px(t, 120)).AlignItems(ui.Stretch)
-	if maxW > 0 {
-		box.MaxWidth(maxW)
-	}
-	right := px(t, float32(n)*(fieldButtonSize+2)+4)
-	box.Children(func() {
-		in = ui.TextInput(c.Key(key), value).Placeholder(placeholder).Label(placeholder).Grow(1).MinWidth(0).
-			Padding(t.Space(1.5), right, t.Space(1.5), px(t, 30))
-		ui.Column(c).Absolute().Left(0).Top(0).Bottom(0).Width(px(t, 30)).Center().PassThrough().Children(func() {
-			ui.Icon(c, icons.Magnifer.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text3)
-		})
-		if trailing != nil {
-			ui.Row(c.Key(key + "-buttons")).Absolute().Right(px(t, 3)).Top(0).Bottom(0).Gap(px(t, 2)).AlignItems(ui.Center).Children(trailing)
-		}
-	})
-	return in
-}
-
-// fieldButton is a small icon button inside a field: its tip is its name
-// for VoiceOver too.
-func fieldButton(c *ui.Context, ic icons.Icon, label string, size float32) ui.Element {
-	t := c.Theme()
-	k := tok(t)
-	b := ui.ButtonBase(c).Size(px(t, fieldButtonSize), px(t, fieldButtonSize)).Radius(px(t, 5)).Center().Label(label).Tooltip(label)
-	switch {
-	case b.Pressed():
-		b.Background(k.Pressed)
-	case b.Hovered():
-		b.Background(k.Hover)
-	}
-	b.Children(func() {
-		col := k.Text3
-		if b.Hovered() {
-			col = k.Text
-		}
-		ui.Icon(c, ic.Linear).Size(px(t, size), px(t, size)).TextColor(col)
 	})
 	return b
 }

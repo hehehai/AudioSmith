@@ -17,6 +17,7 @@ import (
 
 // isolatePage is /isolate.
 func (a *app) isolatePage(c *ui.Context) {
+	pageHeaderBar(c, pageHead{title: pageTitle("/isolate"), count: listCount(len(a.isoList), a.isoLoaded)})
 	a.toolPage(c, "iso-page", func() {
 		a.isoNeedNotice(c)
 		a.isoComposer(c)
@@ -216,7 +217,11 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 	t := c.Theme()
 	k := tok(t)
 	x, ok := a.isoByID(id)
-	backRow(c, "iso-back", pageTitle("/isolate"), func() { a.navigate("/isolate") }, func() {
+	title := x.Title
+	if !ok {
+		title = a.isoTitleOf(id)
+	}
+	pageHeaderBar(c, pageHead{title: title, parent: pageTitle("/isolate"), up: "/isolate", tools: func(bool) {
 		if !ok {
 			return
 		}
@@ -225,7 +230,7 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 				a.isoConfirm, a.isoConfirmOpen = id, true
 			}
 		})
-	})
+	}})
 	a.isoConfirmDialog(c)
 	if !ok {
 		if a.isoLoaded {
@@ -237,7 +242,6 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(px(t, 760)).Gap(px(t, sp3)).Children(func() {
 				ui.Column(c).Gap(px(t, 2)).Children(func() {
-					sectionHeading(c, x.Title).Tooltip(x.Title)
 					meta := []string{shortPath(x.Input)}
 					if x.Duration > 0 {
 						meta = append(meta, tlClock(x.Duration))

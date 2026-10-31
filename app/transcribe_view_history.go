@@ -167,9 +167,6 @@ func (a *app) trListView(c *ui.Context) {
 		if searchField(c, "tr-search", &a.trQuery, i18n.T("Search transcripts"), 0).Changed() {
 			a.searchTranscripts()
 		}
-		if len(a.trList) > 0 && iconButton(c.Key("tr-export-all"), icons.Export, i18n.T("Export all")).Tooltip(i18n.T("Every transcript in one text file")).Clicked() {
-			a.exportAllTranscripts()
-		}
 	})
 	ui.Column(c.Key("tr-table")).Shrink(0).Children(func() {
 		listHead(c, narrow, listColumn{title: i18n.T("Title")}, listColumn{title: i18n.T("Language"), w: 110, wide: true},

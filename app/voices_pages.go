@@ -89,6 +89,23 @@ func (a *app) voicesTabbed(c *ui.Context, tab string, view func(*ui.Context)) {
 	view(c)
 }
 
+// newVoiceButton is Voices' primary button, 「+ 新建音色」: New voice's
+// page (Clone, Design); its icon alone when the window is narrow.
+func (a *app) newVoiceButton(c *ui.Context) func(narrow bool) {
+	return func(narrow bool) {
+		label := i18n.T("New voice")
+		var b ui.Element
+		if narrow {
+			b = iconButton(c.Key("voices-new"), icons.AddCircle, label)
+		} else {
+			b = primaryIconButton(c.Key("voices-new"), icons.AddCircle, label)
+		}
+		if b.Clicked() {
+			a.navigate("/voices/new")
+		}
+	}
+}
+
 // newVoicePage is New voice: the two ways to make a voice, as cards.
 func (a *app) newVoicePage(c *ui.Context) {
 	t := c.Theme()

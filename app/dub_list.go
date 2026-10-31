@@ -38,6 +38,7 @@ type dubListState struct {
 
 // dubListPage is /dub: the composer and the list.
 func (a *app) dubListPage(c *ui.Context) {
+	pageHeaderBar(c, pageHead{title: pageTitle("/dub"), count: listCount(len(a.dubList), a.dubLoaded)})
 	a.toolPage(c, "dub-list-page", func() {
 		a.dubComposer(c)
 		if a.dubErr != "" {

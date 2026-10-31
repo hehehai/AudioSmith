@@ -6,9 +6,10 @@ package main
 // Appearance, or the ▯ button) that keeps only the icons; then the full
 // sidebar itself: the places (Home, Voices, Projects, Assets), the tools
 // (a section that folds) with "··· More" (a menu of Workflows, Batch and
-// Calls), and at its foot the update line, Developers and Settings. What
-// goes on is the top bar's bell (shell_topbar.go). Its pages are in
-// shell_pages.go.
+// Calls), and at its foot the update line, Developers, Settings and the
+// tasks bell (shell_bell.go). Its top is the search (shell_search.go).
+// Its pages are in shell_pages.go. There is no bar over the pages: each
+// page's header is its own (ui_page_header.go).
 
 import (
 	"slices"
@@ -25,14 +26,14 @@ const railWidth = 52
 
 // navState is the sidebar's view state.
 type navState struct {
-	navOpen     map[string]*bool // sections: open or closed
-	sideW       float32          // the sidebar's width, DIPs at the theme's scale
-	sideWScale  float32          // the px factor sideW was computed at
-	sideWAt     time.Time        // when the user last resized it (saved after a pause)
-	searchFocus bool             // ⌘F: the library's search field (Projects) takes the focus
-	moreOpen    bool             // the "··· More" menu shows
-	railMore    bool             // … from the icon rail
-	voicesTab   string           // the Voices tab shown last: "discover", "mine" (voices_pages.go)
+	navOpen    map[string]*bool // sections: open or closed
+	sideW      float32          // the sidebar's width, DIPs at the theme's scale
+	sideWScale float32          // the px factor sideW was computed at
+	sideWAt    time.Time        // when the user last resized it (saved after a pause)
+	moreOpen   bool             // the "··· More" menu shows
+	railMore   bool             // … from the icon rail
+	voicesTab  string           // the Voices tab shown last: "discover", "mine" (voices_pages.go)
+	sideSearchState
 }
 
 func (a *app) railMode() bool { return a.prefs.Appearance.Rail }
@@ -78,15 +79,12 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 	headerInset = 0
 	if a.railMode() {
 		// The window controls (the traffic lights) reach past the rail:
-		// page titles move over to keep clear of them.
-		inset := max(0, c.TitleBar().Left-px(t, railWidth)-px(t, sp6)+px(t, sp3))
+		// the pages' headers move over to keep clear of them.
+		headerInset = max(0, c.TitleBar().Left-px(t, railWidth)-px(t, sp6)+px(t, sp3))
 		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 			ui.Column(c).Width(px(t, railWidth)).Shrink(0).Background(k.Sidebar).Children(func() { a.navRail(c) })
 			ui.Box(c).Width(1).Background(k.Line)
-			ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(func() {
-				a.topBar(c, inset) // shell_topbar.go
-				page()
-			})
+			ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(page)
 		})
 		return
 	}
@@ -101,10 +99,7 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 	split := ui.Split(c.Key("sidebar-split"), &a.sideW, func() {
 		ui.Column(c).Fill().Background(k.Sidebar).Children(func() { a.sidebar(c) })
 	}, func() {
-		ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(func() {
-			a.topBar(c, 0) // shell_topbar.go
-			page()
-		})
+		ui.Column(c).Grow(1).MinWidth(0).Background(k.Bg).Children(page)
 	}).Grow(1).MinHeight(0)
 	// Keep the width in its bounds, and save it once the drag rests.
 	lo, hi := px(t, settings.MinSidebarWidth), px(t, settings.MaxSidebarWidth)
@@ -147,6 +142,8 @@ func (a *app) navRail(c *ui.Context) {
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).AlignItems(ui.Center).Gap(px(t, 2)).Padding(px(t, sp1), 0).Children(func() {
+			a.railSearch(c) // shell_search.go
+			ui.Box(c).Height(px(t, 4)).Shrink(0)
 			for gi, g := range navGroups {
 				if gi > 0 {
 					ui.Box(c).Height(1).Width(px(t, 20)).Background(k.Line).Margin(px(t, 6), 0)
@@ -167,6 +164,7 @@ func (a *app) navRail(c *ui.Context) {
 			a.railItem(c, p.path, p.icon, pageTitle(p.path))
 		}
 		a.railButton(c, "rail/settings", icons.Settings, i18n.T("Settings"), tip(i18n.T("Settings"), "⌘,"), a.settingsOpen, "", func() { a.navigate("/settings") })
+		a.tasksBell(c, true) // shell_bell.go
 	})
 }
 
@@ -224,6 +222,7 @@ func (a *app) sidebar(c *ui.Context) {
 			a.setRail(true)
 		}
 	})
+	a.sideSearch(c) // shell_search.go
 	// The sidebar's own theme: icons in the secondary grey, the chosen
 	// page's in the text colour (MyGo draws a sidebar item's icon in the
 	// accent, and the chosen one's in the accent's text colour).
@@ -289,8 +288,12 @@ func (a *app) sidebar(c *ui.Context) {
 			for _, p := range footPages {
 				item(p, "")
 			}
-			s := item(navPage{"/settings", "Settings", icons.Settings}, "")
-			s.Tooltip(tip(i18n.T("Settings"), "⌘,"))
+			// Settings, and the tasks bell beside it.
+			ui.Row(c.Key("nav-foot-settings")).Gap(px(t, 4)).AlignItems(ui.Center).Children(func() {
+				s := item(navPage{"/settings", "Settings", icons.Settings}, "")
+				s.Tooltip(tip(i18n.T("Settings"), "⌘,")).Grow(1).MinWidth(0)
+				a.tasksBell(c, false) // shell_bell.go
+			})
 		}).Background(ui.Transparent).Padding(0, px(t, 10)).Label(i18n.T("Developers and Settings")).OnChange(func() {
 			a.navClicked()
 		})

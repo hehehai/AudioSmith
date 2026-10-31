@@ -68,7 +68,7 @@ var footPages = []navPage{
 // Go menu, links and buttons reach them. Models, Engine, Logs and
 // Integrations are Settings sections (routeAlias).
 var otherPages = []navPage{
-	{"/tasks", "Tasks", tasksIcon}, // shell_tasks.go; the top bar's bell
+	{"/tasks", "Tasks", tasksIcon}, // shell_tasks.go; the sidebar's bell
 }
 
 // shortcutPages are the pages ⌘1…⌘8 open, in that order: the ones used

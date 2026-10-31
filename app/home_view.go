@@ -69,9 +69,11 @@ func (a *app) homePage(c *ui.Context) {
 	k := tok(t)
 	_, h := c.Size()
 	a.homeReadRecent()
-	top := px(t, sp8) * 2
+	// No title: the question is; ‹ › only.
+	pageHeaderBar(c, pageHead{title: i18n.T("Home"), bare: true})
+	top := px(t, sp8) + px(t, sp4)
 	if h < px(t, 640) {
-		top = px(t, sp6)
+		top = px(t, sp2)
 	}
 	ui.Scroll(c.Key("home")).Grow(1).Children(func() {
 		ui.Column(c).Padding(top, px(t, sp6), px(t, sp8)).AlignItems(ui.Center).Children(func() {

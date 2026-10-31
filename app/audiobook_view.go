@@ -25,9 +25,10 @@ func (a *app) audiobookPage(c *ui.Context) {
 	a.lfToasts(c)
 	locked := a.lfLocked(p)
 	inline, shown := a.lfLayout(c, p)
-	pageHeader(c, i18n.T("Audiobook"), func() {
+	n := len(p.spec.Chapters)
+	pageHeaderBar(c, pageHead{title: i18n.T("Audiobook"), count: i18n.N(n, "%d chapter", "%d chapters", n), tools: func(bool) {
 		a.bookHeader(c, p, locked, shown)
-	})
+	}})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
 			a.manuscriptToolbar(c, p, locked)
