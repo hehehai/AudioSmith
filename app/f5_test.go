@@ -353,10 +353,10 @@ func TestLongformComposer(t *testing.T) {
 		t.Fatalf("made: %q editing %v title %q", p.project, a.lfEditing(p), p.doc.Title)
 	}
 	id := p.project
-	// An edit, then ‹: saved, closed, listed.
+	// An edit, then the list's name: saved, closed, listed.
 	p.doc.ImportText += "\nThe end."
 	tt.Frame()
-	if err := tt.Click("Back (⌘[)"); err != nil {
+	if err := tt.Click("Back to Stories"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

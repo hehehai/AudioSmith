@@ -69,11 +69,6 @@ func TestDubComposerFlow(t *testing.T) {
 	if p := a.router.Path(); p != "/dub" {
 		t.Fatalf("back: %s", p)
 	}
-	d.click(t, "Interview")
-	d.click(t, "Back (⌘[)") // the header's ‹
-	if p := a.router.Path(); p != "/dub" {
-		t.Fatalf("‹: %s", p)
-	}
 	// Filters: a failed filter hides it; the search finds it.
 	a.dubFilter = 3
 	tt.Frame()

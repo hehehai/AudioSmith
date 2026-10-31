@@ -80,7 +80,6 @@ func (a *app) voicesPage(c *ui.Context) {
 	t := c.Theme()
 	pageHeaderBar(c, pageHead{
 		title:  i18n.T("My voices"),
-		count:  i18n.N(len(a.voices), "%d voice", "%d voices", len(a.voices)),
 		search: &headSearch{key: "voices-search", value: &a.voiceQuery, placeholder: i18n.T("Search voices")},
 		tools: func(hn bool) {
 			if !hn {
@@ -153,12 +152,6 @@ func (a *app) voicesTable(c *ui.Context, narrow bool) {
 		}
 		return
 	}
-	voiceTableHead(c, "voices-head", narrow,
-		voiceCol{title: i18n.T("Name")},
-		voiceCol{title: i18n.T("Kind"), w: 76},
-		voiceCol{title: i18n.T("Language"), w: 84, wide: true},
-		voiceCol{title: i18n.T("Created"), w: voiceDateW, wide: true},
-		voiceCol{title: i18n.T("Used"), w: 64, wide: true})
 	for i := range vs {
 		v := &vs[i]
 		a.voiceTableRow(c, v, narrow)
