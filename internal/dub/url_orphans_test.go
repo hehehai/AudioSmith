@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -37,6 +39,20 @@ func TestKillOrphans(t *testing.T) {
 		return cmd
 	}
 	ours, other := start(fake), start(sleep)
+	// ps shows a child by the command it runs only once it has exec'd:
+	// wait for that, or a slow runner sees the test binary's own name.
+	waitExec := func(cmd *exec.Cmd, bin string) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+			out, _ := exec.Command("ps", "-o", "args=", "-p", strconv.Itoa(cmd.Process.Pid)).Output()
+			if strings.HasPrefix(strings.TrimSpace(string(out)), bin) {
+				return
+			}
+		}
+		t.Fatalf("%s did not start", bin)
+	}
+	waitExec(ours, fake)
+	waitExec(other, sleep)
 	if got := killOrphans(dir, os.Getpid()); len(got) != 0 {
 		t.Fatalf("killed this process's own run: %v", got)
 	}
