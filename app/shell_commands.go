@@ -71,7 +71,7 @@ func (a *app) commands() []command {
 	})
 
 	view := i18n.T("View")
-	add("search", view, i18n.T("Search the library"), "Search the library find projects voices takes", "⌘F", true, a.focusSearch)
+	add("search", view, i18n.T("Search everything"), "Search everything library find projects voices takes", "⌘F", true, a.focusSearch)
 	add("palette", view, i18n.T("Command palette"), "Command palette", "⌘K", true, a.openPalette)
 	add("switch", view, i18n.T("Engine quick switch"), "Engine quick switch", "⌘E", true, func() { a.switchOpen = true })
 	add("logs-panel", view, i18n.T("Show or hide the logs panel"), "Show or hide the logs panel", "⇧⌘L", true, func() { a.logsPanel = !a.logsPanel })
@@ -381,7 +381,7 @@ func (a *app) buildMenu() {
 			{Role: mygo.RoleSelectAll, Label: i18n.T("Select All")},
 		}},
 		{Label: i18n.T("View"), Submenu: []*mygo.MenuItem{
-			{Label: i18n.T("Search the library"), Accelerator: "CmdOrCtrl+F", Click: act(a.focusSearch)},
+			{Label: i18n.T("Search everything"), Accelerator: "CmdOrCtrl+F", Click: act(a.focusSearch)},
 			{Label: i18n.T("Command palette"), Accelerator: "CmdOrCtrl+K", Click: act(a.openPalette)},
 			{Label: i18n.T("Engine quick switch"), Accelerator: "CmdOrCtrl+E", Click: act(func() { a.switchOpen = true })},
 			{Label: i18n.T("Show or hide the logs panel"), Click: act(func() { a.logsPanel = !a.logsPanel })},
