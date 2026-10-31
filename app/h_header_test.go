@@ -27,24 +27,23 @@ func TestHeaderHistory(t *testing.T) {
 	tt.Frame()
 	a.navigate("/assets")
 	tt.Frame()
-	back, fwd := "Back (⌘[)", "Forward (⌘])"
-	click := func(s, want string) {
+	// No ‹ › in the headers (user, 10-31): ⌘[ ⌘] and the mouse's
+	// buttons go through the history.
+	key := func(k ui.Key, want string) {
 		t.Helper()
-		if err := tt.Click(s); err != nil {
-			t.Fatal(err)
-		}
+		tt.Key(ui.Cmd, k)
 		tt.Frame()
 		if p := a.router.Path(); p != want {
-			t.Fatalf("%s: %s, want %s", s, p, want)
+			t.Fatalf("key %v: %s, want %s", k, p, want)
 		}
 	}
-	click(back, "/projects")
-	click(back, "/home")
+	key(ui.KeyBracketLeft, "/projects")
+	key(ui.KeyBracketLeft, "/home")
 	if headerNav.canBack || !headerNav.canForward {
 		t.Errorf("at Home: back %v forward %v", headerNav.canBack, headerNav.canForward)
 	}
-	click(back, "/home") // disabled: nothing before
-	click(fwd, "/projects")
+	key(ui.KeyBracketLeft, "/home") // nothing before
+	key(ui.KeyBracketRight, "/projects")
 	tt.Key(ui.Cmd, ui.KeyBracketRight)
 	tt.Frame()
 	if p := a.router.Path(); p != "/assets" {
@@ -53,7 +52,7 @@ func TestHeaderHistory(t *testing.T) {
 	if headerNav.canForward {
 		t.Error("forward at the end")
 	}
-	click(fwd, "/assets") // disabled at the end
+	key(ui.KeyBracketRight, "/assets") // nothing after
 	tt.Key(ui.Cmd, ui.KeyBracketLeft)
 	tt.Frame()
 	if p := a.router.Path(); p != "/projects" {
@@ -77,7 +76,7 @@ func TestHeaderHistory(t *testing.T) {
 }
 
 // There is no bar over the pages: each page's header is at the window's
-// top, Home's has only ‹ ›, and no breadcrumb or top search is left.
+// top, Home's has no title, there is no ‹ ›, and no breadcrumb or top search is left.
 func TestNoTopBar(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	for _, p := range []string{"/home", "/studio", "/voices/mine", "/projects", "/assets", "/dub", "/transcripts", "/isolate",
@@ -94,8 +93,8 @@ func TestNoTopBar(t *testing.T) {
 				t.Errorf("%s: %q shows", p, s)
 			}
 		}
-		if _, ok := tt.Find("Back (⌘[)"); !ok {
-			t.Errorf("%s: no ‹", p)
+		if _, ok := tt.Find("Back (⌘[)"); ok {
+			t.Errorf("%s: ‹ shows", p)
 		}
 	}
 	a.navigate("/home")
@@ -314,9 +313,9 @@ func TestHeaderNarrow(t *testing.T) {
 		t.Errorf("⋯ menu %q", m)
 	}
 	tt.CloseMenu()
-	// The header keeps its title and ‹ › in the narrow window.
-	if r, ok := tt.Find("Back (⌘[)"); !ok || r.Y > titleBarHeight {
-		t.Errorf("‹ %+v %v", r, ok)
+	// The header keeps its tools in the narrow window.
+	if r, ok := tt.Find("More tools"); !ok || r.Y > titleBarHeight {
+		t.Errorf("⋯ %+v %v", r, ok)
 	}
 }
 

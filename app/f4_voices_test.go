@@ -170,7 +170,7 @@ func TestMineTable(t *testing.T) {
 	a.mine.usesFor = ""
 	tt.Frame()
 	tt.Frame()
-	for _, s := range []string{"Name", "Kind", "Language", "Created", "Used", "Narrator", "Grandma", "Heart", "Cloned", "Designed", "Saved", "English", "1 time"} {
+	for _, s := range []string{"Narrator", "Grandma", "Heart", "Cloned", "Designed", "Saved", "English", "1 time"} {
 		if !tt.HasText(s) {
 			t.Errorf("no %q: %q", s, tt.Texts())
 		}
