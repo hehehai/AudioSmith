@@ -255,7 +255,7 @@ func (a *app) callAfter(c *ui.Context, call *services.Call) {
 			if p := a.callSvc.RecordingPath(*call); p != "" {
 				label, ic := i18n.T("Play recording"), icons.Play
 				if a.pl.Playing("call-rec:" + call.ID) {
-					label, ic = i18n.T("Stop"), icons.Stop
+					label, ic = i18n.T("Stop"), icons.Pause
 				}
 				if iconButton(c.Key("cv-rec"), ic, label).Clicked() {
 					if err := a.pl.Toggle("call-rec:"+call.ID, p); err != nil {

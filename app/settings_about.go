@@ -432,7 +432,7 @@ func (a *app) aboutBlocks(c *ui.Context) {
 		caption(c, i18n.T("AudioSmith runs every model on this Mac. Each model keeps its own licence: see Settings → Models & network."))
 		// 0.3: the icons' attribution (CC BY 4.0; NOTICE has it too).
 		ui.Row(c.Key("about-icons")).Gap(px(t, 6)).AlignItems(ui.Center).Wrap().Children(func() {
-			caption(c, i18n.T("Icons: Solar by 480 Design, under CC BY 4.0 (@iconify-json/solar %s).", icons.SolarVersion))
+			caption(c, i18n.T("Icons: Solar by 480 Design, under CC BY 4.0 (@iconify-json/solar %s); play and pause: Hugeicons, under the MIT licence (@iconify-json/hugeicons %s).", icons.SolarVersion, icons.HugeiconsVersion))
 			ui.Link(c, i18n.T("Licence"), "https://creativecommons.org/licenses/by/4.0/").FontSize(px(t, fsCaption))
 		})
 	})

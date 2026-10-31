@@ -46,6 +46,13 @@ Solar icon set
   included, converted to Go source in internal/icons/solar_gen.go
   (internal/icons/gen); their shapes are unchanged.
 
+Hugeicons (the play and pause icons)
+  Copyright (c) Hugeicons — https://icon-sets.iconify.design/hugeicons/
+  Licensed under the MIT License (third_party/licenses/texts/MIT-Hugeicons.txt).
+  Taken from the npm package @iconify-json/hugeicons 1.2.35 (Iconify). Only
+  "play" and "pause" are included, in internal/icons/hugeicons.go; the filled
+  variant fills the same shape.
+
 MyGo
   Copyright (c) 2026 MyGo contributors — https://github.com/egoist/mygo
   Licensed under the MIT License (third_party/mygo/LICENSE). AudioSmith

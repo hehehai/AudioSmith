@@ -41,8 +41,6 @@ info-circle             # ⓘ info tooltip
 danger-triangle         # warning
 danger-circle           # error
 check-circle            # success
-play
-pause
 star
 export                  # save as, export
 import                  # import

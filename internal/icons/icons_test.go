@@ -39,3 +39,16 @@ func TestGenerated(t *testing.T) {
 		t.Error("variants")
 	}
 }
+
+// TestHugeicons checks that Play and Pause are the Hugeicons ones, not
+// Solar's, in both variants.
+func TestHugeicons(t *testing.T) {
+	for _, ic := range []Icon{Play, Pause} {
+		if !strings.HasPrefix(ic.Name, "hugeicons:") || ic.Linear == nil || ic.Bold == nil || ic.Linear == ic.Bold {
+			t.Errorf("%q: want a Hugeicon with two variants", ic.Name)
+		}
+	}
+	if Play.Name != "hugeicons:play" || Pause.Name != "hugeicons:pause" {
+		t.Errorf("names %q %q", Play.Name, Pause.Name)
+	}
+}

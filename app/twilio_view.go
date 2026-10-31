@@ -411,7 +411,7 @@ func (a *app) twTest(c *ui.Context) {
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			label, ic := i18n.T("Play phone-quality preview"), icons.Play
 			if a.pl.Playing("phone-preview") {
-				label, ic = i18n.T("Stop"), icons.Stop
+				label, ic = i18n.T("Stop"), icons.Pause
 			}
 			if secondaryIconButton(c.Key("tw-preview"), ic, label).Label(label).Disabled(len(labels) == 0 || w.previewBusy).Clicked() {
 				if a.pl.Playing("phone-preview") {
