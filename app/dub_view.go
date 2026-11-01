@@ -1,6 +1,6 @@
 package main
 
-// The Dub page (/dub): a stepper (Source → Transcribe → Translate → Cast
+// The Dub page (/dub): the steps in its header (dub_steps.go: Source → Transcribe → Translate → Cast
 // → Generate → Export) whose step shows its panel on the left, and the
 // workspace on the right: banners (an interrupted run, errors with their
 // fix, review checkpoints, stage warnings), the A/B player and video
@@ -9,7 +9,6 @@ package main
 
 import (
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -36,7 +35,7 @@ var dubDialects = map[string][]string{
 	"fr": {"fr-FR", "fr-CA", "fr-BE"}, "de": {"de-DE", "de-AT", "de-CH"}, "ar": {"ar-EG", "ar-SA", "ar-MA"}, "nl": {"nl-NL", "nl-BE"},
 }
 
-// dubPage is /dub: the stepper, the workspace, and the step's panel on
+// dubPage is /dub: the steps in the header, the workspace, and the step's panel on
 // the right (a drawer when the window is narrow); the footer says what
 // runs and holds the step's one primary action.
 func (a *app) dubPage(c *ui.Context) {
@@ -64,14 +63,12 @@ func (a *app) dubPage(c *ui.Context) {
 	// The header names the dub under its list (视频配音 / title; ‹ and the
 	// list's name lead back to it) and holds the editor's actions.
 	pageHeaderBar(c, pageHead{title: a.dubTitleOf(a.dub.ID), parent: pageTitle("/dub"), up: "/dub",
-		tools: func(bool) { a.dubHeaderActions(c, shown, embed) }})
-	a.dubStepper(c)
-	ui.Box(c).Height(1).Background(k.Line).Shrink(0)
+		inline: func() { a.dubSteps(c) }, tools: func(bool) { a.dubHeaderActions(c, shown, embed) }})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		// The workspace fills the page; when the window is too short for
 		// its notices, player, timeline and some lines, it scrolls.
 		_, winH := c.Size()
-		avail := winH - pageTop - px(t, 46) - px(t, 52) - 4
+		avail := winH - pageTop - px(t, 52) - 4
 		// With lines, exactly the scroll's height once it was laid out, so
 		// the list of lines (which scrolls itself, dub_editor.go) reaches
 		// its foot; one more frame after the window's height changes.
@@ -152,110 +149,6 @@ func (a *app) dubHeaderActions(c *ui.Context, shown, embed bool) {
 		}
 		if m.Item(i18n.T("Batch dubbing")).Chosen() {
 			a.navigate("/batch")
-		}
-	})
-}
-
-// --- the stepper ------------------------------------------------------------------------
-
-// dubStepState is a step's state for the stepper.
-func (a *app) dubStepState(step int) (done, running, failed bool) {
-	p := a.dub
-	running = false
-	for _, j := range a.dubJobs {
-		st := dubStageOfKind(j.Kind)
-		switch {
-		case step == dubStepSource && (st == dub.StageFetch || st == dub.StageIngest),
-			step == dubStepTranscribe && (st == dub.StageSeparate || st == dub.StageTranscribe || st == dub.StageReferences),
-			step == dubStepTranslate && st == dub.StageTranslate,
-			step == dubStepGenerate && (st == dub.StageSynthesize || st == dub.StageMix || st == dub.StageQC):
-			running = true
-		}
-	}
-	if step == dubStepSource && a.dubProbing() {
-		running = true // reading the link's details, as the footer says
-	}
-	for k, st := range p.Stages {
-		if st.Status != dub.StatusFailed {
-			continue
-		}
-		s := dub.Stage(strings.Split(k, ":")[0])
-		switch {
-		case step == dubStepSource && (s == dub.StageFetch || s == dub.StageIngest),
-			step == dubStepTranscribe && (s == dub.StageSeparate || s == dub.StageTranscribe || s == dub.StageReferences),
-			step == dubStepTranslate && s == dub.StageTranslate,
-			step == dubStepGenerate && (s == dub.StageSynthesize || s == dub.StageMix):
-			failed = true
-		}
-	}
-	switch step {
-	case dubStepSource:
-		done = p.Source.Path != "" && p.Media.Audio != ""
-	case dubStepTranscribe:
-		done = len(p.Segments) > 0
-	case dubStepTranslate:
-		done = p.AllTranslated()
-	case dubStepCast:
-		done = len(p.Segments) > 0 && p.Stage(dub.StageReferences, "").Status != ""
-	case dubStepGenerate:
-		done = p.TracksReady()
-	case dubStepExport:
-		done = a.dubExport.last != ""
-	}
-	return done, running, failed
-}
-
-// dubStepper is the row of steps: a quiet row where done steps show a
-// check, the current one is on the pressed face, and the rest are grey.
-// When the workspace is narrow only the current step shows its name.
-func (a *app) dubStepper(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
-	names := []string{i18n.T("Source"), i18n.T("Transcribe"), i18n.T("Translate"), i18n.T("Cast"), i18n.T("Generate"), i18n.T("Export")}
-	compact := a.dubNarrow || a.pageWidth(c) < px(t, 760)
-	ui.Row(c.Key("dub-steps")).Gap(px(t, 2)).Padding(bodyTop(t), gutterR(t), px(t, sp2), gutterL(t)).AlignItems(ui.Center).FocusGroup(ui.Horizontal).Shrink(0).ClipX().Children(func() {
-		for i, name := range names {
-			done, running, failed := a.dubStepState(i)
-			cur := a.dubStep == i
-			label := i18n.T("Step %d: %s", i+1, name)
-			b := ghostBase(c.Key("step-"+strconv.Itoa(i))).Padding(px(t, 5), px(t, sp2)).Gap(px(t, 6)).AlignItems(ui.Center).Label(label).Tooltip(name).Shrink(0)
-			if cur {
-				b.Background(k.Pressed)
-			}
-			b.Children(func() {
-				col := k.Text3
-				switch {
-				case cur:
-					col = k.Text
-				case done:
-					col = k.Text2
-				}
-				ui.Box(c).Size(px(t, 16), px(t, 16)).Center().Shrink(0).Children(func() {
-					switch {
-					case running:
-						ui.Spinner(c).Size(px(t, 14), px(t, 14))
-					case failed:
-						iconMark(c, icons.DangerCircle, k.Danger, "")
-					case done:
-						iconMark(c, icons.CheckCircle, k.AccentInk, "")
-					default:
-						ui.Text(c, strconv.Itoa(i+1)).FontSize(px(t, fsMicro)).FontWeight(600).TextColor(col)
-					}
-				})
-				if cur || !compact {
-					txt := ui.Text(c, name).SingleLine().TextColor(col)
-					if cur {
-						txt.FontWeight(600)
-					}
-				}
-			})
-			if b.Clicked() {
-				a.dubCommitEdit()
-				a.dubStep = i
-			}
-			if i < len(names)-1 {
-				ui.Icon(c, icons.AltArrowRight.Linear).Size(px(t, 12), px(t, 12)).TextColor(k.Text3).Shrink(0)
-			}
 		}
 	})
 }
