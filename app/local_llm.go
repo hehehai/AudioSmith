@@ -120,6 +120,8 @@ func localLLMQueue(ctx context.Context, sched jobs.Scheduler) (context.Context, 
 // localLLMCall sends llm.generate to the gpu worker, with the model's
 // snapshot (the engine runs offline). Any goroutine.
 func (a *app) localLLMCall(ctx context.Context, method string, params any, notify func(string, json.RawMessage)) (json.RawMessage, error) {
+	a.llmBusy(1)
+	defer a.llmBusy(-1)
 	if a.localLLMHook != nil {
 		return a.localLLMHook(ctx, method, params, notify)
 	}

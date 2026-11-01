@@ -348,7 +348,7 @@ LICENSE — Apache-2.0
 [3] github.com/egoist/mygo v0.5.5
     Source:  https://github.com/egoist/mygo (vendored: third_party/mygo)
     Licence: MIT
-    Note:    AudioSmith builds against a copy in third_party/mygo with 12 patches of its own (third_party/mygo-patches), made by scripts/vendor-mygo.sh.
+    Note:    AudioSmith builds against a copy in third_party/mygo with 13 patches of its own (third_party/mygo-patches), made by scripts/vendor-mygo.sh.
 --------------------------------------------------------------------------------
 LICENSE — MIT
 

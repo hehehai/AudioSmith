@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
@@ -59,6 +60,9 @@ type llmState struct {
 	// localLLMHook replaces the engine call of the engine's own language
 	// model (local_llm.go) in tests.
 	localLLMHook llm.EngineCaller
+	// llmCalls counts the engine language model's requests under way,
+	// for the menu bar icon's dot (dictation_tray.go).
+	llmCalls     atomic.Int32
 	llmWarmState // local_llm_warm.go
 }
 

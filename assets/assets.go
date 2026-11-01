@@ -10,7 +10,8 @@ package assets
 import "embed"
 
 // Tray icons, 36×36 px templates: AudioSmith's anvil and spark, and the
-// same with a larger dot while dictation listens.
+// anvil with a gap for the coloured dot MyGo draws over it (red while
+// generating or dictating, violet while an agent is connected).
 var (
 	//go:embed tray/tray.png
 	TrayIcon []byte

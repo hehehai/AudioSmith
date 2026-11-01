@@ -1093,7 +1093,15 @@ func (b *Backend) PreferenceReads() int {
 	return b.prefsReads
 }
 
-type tray struct{}
+type tray struct {
+	dot   platform.Color
+	dotOn bool
+}
+
+func (t *tray) SetDot(c platform.Color, on bool) { t.dot, t.dotOn = c, on }
+
+// Dot is the dot SetDot shows, ok false when none.
+func (t *tray) Dot() (c platform.Color, ok bool) { return t.dot, t.dotOn }
 
 func (*tray) SetImage([]byte, bool) error { return nil }
 func (*tray) SetTitle(string)             {}

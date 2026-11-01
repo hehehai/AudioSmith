@@ -191,6 +191,7 @@ func (p *proxy) headers(req *http.Request) {
 	if p.o.Client != "" {
 		req.Header.Set(api.HeaderClient, p.o.Client)
 	}
+	req.Header.Set(HeaderTransport, "stdio") // it ends its session (sessions.go)
 }
 
 // reopen opens a new session with the client's initialize (its answer is

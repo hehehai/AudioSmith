@@ -714,6 +714,29 @@ func (t *Tray) SetIcon(png []byte, template bool) error {
 	return err
 }
 
+// SetDot shows a dot of a CSS color (see WindowOptions.BackgroundColor's
+// forms) over the icon's top right corner, 5 points across, its centre 3.5
+// points in from the icon's top and right edges; "" removes it. The dot
+// keeps its color over a template icon, which macOS tints to the menu bar,
+// so a template can say "busy" in red: leave a gap in the icon where the
+// dot goes. It places the dot for an icon without a title, and does
+// nothing on other platforms.
+func (t *Tray) SetDot(color string) error {
+	var c platform.Color
+	if color != "" {
+		var err error
+		if c, err = parseColor(color); err != nil {
+			return err
+		}
+	}
+	t.do(func(n platform.Tray) {
+		if d, ok := n.(platform.TrayDot); ok {
+			d.SetDot(c, color != "")
+		}
+	})
+	return nil
+}
+
 // SetTitle sets the text next to the icon (macOS).
 func (t *Tray) SetTitle(title string) { t.do(func(n platform.Tray) { n.SetTitle(title) }) }
 

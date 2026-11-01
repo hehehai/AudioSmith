@@ -1,7 +1,9 @@
 package main
 
 // The menu bar icon: Start/Stop dictation, Open AudioSmith, Transcribe,
-// Settings, Quit; a dot marks it while dictation listens. With Settings → General →
+// Settings, Quit; its dot (thread #132) is red while AudioSmith generates
+// or dictation listens, violet while an agent is connected over MCP and
+// nothing generates, and absent otherwise. With Settings → General →
 // "Keep running in the menu bar", closing the window hides it, so the
 // shortcut keeps working; the Dock icon or the menu brings it back.
 
@@ -10,14 +12,19 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/hehehai/AudioSmith/internal/dictation"
+	"github.com/hehehai/AudioSmith/internal/engine/proto"
+	"github.com/hehehai/AudioSmith/internal/hub"
 	"github.com/hehehai/AudioSmith/internal/i18n"
+	"github.com/hehehai/AudioSmith/internal/jobs"
 )
 
 // trayState is the menu bar icon.
 type trayState struct {
 	tray      *mygo.Tray
-	recording bool   // the icon shows recording
-	locale    string // the menu's language
+	recording bool    // dictation listens
+	dot       trayDot // the dot the icon shows
+	tip       string  // its tooltip
+	locale    string  // the menu's language
 	shortcut  string
 	live      bool // the menu says Stop
 	quitting  bool
@@ -25,13 +32,82 @@ type trayState struct {
 
 // Tray icons: AudioSmith's anvil and spark (assets/tray/tray.svg, the
 // ActNow flat brand kit's menu bar version) at 36×36 px (18 pt @2x), both
-// templates (macOS tints them to the menu bar); while dictation listens
-// a larger dot takes the spark's place (assets/tray/tray-active.svg).
+// templates (macOS tints them to the menu bar); under a dot, the anvil
+// without the spark, with a gap where MyGo's Tray.SetDot draws the dot in
+// its colour, which a template cannot have (assets/tray/tray-active.svg).
 // The PNGs come from the kit; the SVGs render the same shapes.
 var (
 	trayIcon       = assets.TrayIcon
 	trayActiveIcon = assets.TrayActiveIcon
 )
+
+// trayDot is what the icon's dot says; the more urgent wins.
+type trayDot int
+
+const (
+	trayDotNone  trayDot = iota
+	trayDotAgent         // violet: an agent is connected over MCP
+	trayDotBusy          // red: AudioSmith generates, or dictation listens
+)
+
+// The dots' colours: macOS's system red, and a blue violet that reads on
+// light and dark menu bars alike.
+const (
+	trayRed    = "#ff3b30"
+	trayViolet = "#7b61ff"
+)
+
+// trayDotOf is the dot for what goes on.
+func trayDotOf(busy, agent bool) trayDot {
+	switch {
+	case busy:
+		return trayDotBusy
+	case agent:
+		return trayDotAgent
+	}
+	return trayDotNone
+}
+
+// color is the dot's CSS colour, "" for none.
+func (d trayDot) color() string {
+	switch d {
+	case trayDotBusy:
+		return trayRed
+	case trayDotAgent:
+		return trayViolet
+	}
+	return ""
+}
+
+// generatingKind reports whether a running job of kind makes something
+// (audio, text, a file): downloads, moving the models and loading one
+// into memory do not.
+func generatingKind(kind string) bool {
+	return kind != hub.KindDownload && kind != kindMoveModels && kind != proto.MethodModelsLoad
+}
+
+// generating reports whether AudioSmith makes something now: a job runs
+// that generates, or the engine's language model writes. Main thread.
+func (a *app) generating() bool {
+	for _, j := range a.jobList {
+		if j.State == jobs.StateRunning && generatingKind(j.Kind) {
+			return true
+		}
+	}
+	return a.llmCalls.Load() > 0
+}
+
+// agentConnected reports whether an MCP client is connected.
+func (a *app) agentConnected() bool { return a.apiMCP != nil && a.apiMCP.AgentConnected() }
+
+// llmBusy counts a request of the engine's language model in or out, for
+// the dot. Any goroutine.
+func (a *app) llmBusy(n int32) {
+	a.llmCalls.Add(n)
+	if a.win != nil {
+		a.post(a.updateTray)
+	}
+}
 
 // openTray makes the menu bar icon.
 func (a *app) openTray() {
@@ -41,7 +117,9 @@ func (a *app) openTray() {
 		return
 	}
 	a.dictTray.tray = t
+	a.dictTray.dot, a.dictTray.tip = trayDotNone, "AudioSmith"
 	a.updateTrayMenu()
+	a.updateTray()
 }
 
 func (a *app) closeTray() {
@@ -51,18 +129,35 @@ func (a *app) closeTray() {
 	}
 }
 
-// updateTray shows the recording state, and the menu that goes with it.
+// updateTray shows the dot, and the menu that goes with dictation's
+// state. It runs when a job, dictation or the MCP clients change, and
+// touches the icon only when its dot does. Main thread.
 func (a *app) updateTray() {
 	tr := &a.dictTray
 	rec := a.dict != nil && (a.dict.phase == dictStarting || a.dict.phase == dictListening)
-	if tr.tray != nil && rec != tr.recording {
-		if rec {
-			tr.tray.SetIcon(trayActiveIcon, true)
-		} else {
+	dot := trayDotOf(rec || a.generating(), a.agentConnected())
+	tip := "AudioSmith"
+	switch {
+	case rec:
+		tip += " · " + i18n.T("Dictating")
+	case dot == trayDotBusy:
+		tip += " · " + i18n.T("Generating")
+	case dot == trayDotAgent:
+		tip += " · " + i18n.T("Agent connected (MCP)")
+	}
+	if tr.tray != nil && dot != tr.dot {
+		if dot == trayDotNone {
+			tr.tray.SetDot("")
 			tr.tray.SetIcon(trayIcon, true)
+		} else {
+			tr.tray.SetIcon(trayActiveIcon, true)
+			tr.tray.SetDot(dot.color())
 		}
 	}
-	tr.recording = rec
+	if tr.tray != nil && tip != tr.tip {
+		tr.tray.SetToolTip(tip)
+	}
+	tr.dot, tr.tip, tr.recording = dot, tip, rec
 	if tr.live != rec || tr.locale != i18n.Locale() || tr.shortcut != a.dictShortcut {
 		a.updateTrayMenu()
 	}

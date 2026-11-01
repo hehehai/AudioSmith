@@ -63,6 +63,8 @@ type Server struct {
 
 	mu      sync.Mutex
 	clients map[string]*Client
+
+	sessions *sessions // connected agents (sessions.go)
 }
 
 // Client is an agent that called the server, for Settings → Local API's
@@ -108,15 +110,30 @@ const Instructions = "AudioSmith is a speech app on this Mac, all local (MLX mod
 
 // New makes the MCP server.
 func New(o Options) *Server {
-	s := &Server{o: o, clients: map[string]*Client{}}
+	s := &Server{o: o, clients: map[string]*Client{}, sessions: newSessions()}
 	s.srv = sdk.NewServer(&sdk.Implementation{Name: "audiosmith", Title: "AudioSmith", Version: o.Version},
-		&sdk.ServerOptions{Instructions: Instructions})
+		&sdk.ServerOptions{Instructions: Instructions, InitializedHandler: s.sessionInitialized})
 	s.addTools()
 	s.addResources()
 	s.srv.AddReceivingMiddleware(logTools)
-	s.handler = sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return s.srv },
-		&sdk.StreamableHTTPOptions{SessionTimeout: 30 * time.Minute, MaxRequestBodyBytes: 64 << 20})
+	s.handler = s.sessions.wrap(sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return s.srv },
+		&sdk.StreamableHTTPOptions{SessionTimeout: 30 * time.Minute, MaxRequestBodyBytes: 64 << 20}))
 	return s
+}
+
+// sessionInitialized opens a session for AgentConnected, until the SDK
+// closes it.
+func (s *Server) sessionInitialized(_ context.Context, req *sdk.InitializedRequest) {
+	ss := req.Session
+	if ss == nil || ss.ID() == "" {
+		return
+	}
+	id := ss.ID()
+	s.sessions.opened(id)
+	go func() {
+		ss.Wait()
+		s.sessions.closed(id)
+	}()
 }
 
 // Handler serves MCP's Streamable HTTP (mounted at /mcp by the API).
