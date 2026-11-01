@@ -259,7 +259,6 @@ func (a *app) voiceEditor(c *ui.Context) {
 // built-in speaker's clip), and Replace / Open in Design.
 func (a *app) editorAudio(c *ui.Context, v *core.Voice) {
 	t := c.Theme()
-	k := tok(t)
 	what := i18n.T("Reference clip")
 	line := v.RefText
 	switch {
@@ -275,29 +274,11 @@ func (a *app) editorAudio(c *ui.Context, v *core.Voice) {
 	if v.Kind == core.VoiceCloned && !v.Locked && v.RefSeconds > 0 {
 		what += " · " + i18n.T("%.1f s", v.RefSeconds)
 	}
-	ui.Row(c.Key("editor-audio")).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
-		if j := a.voiceJob("sample", v.ID); j.running() {
-			ui.Spinner(c)
-			caption(c, j.status).Grow(1).MinWidth(0)
-			return
-		}
-		playing := a.savedPlaying(v)
-		b := playButton(c.Key("editor-play"), playing, true, 44)
-		if !playing {
-			b.Label(i18n.T("Preview voice")).Tooltip(i18n.T("Preview voice"))
-		}
-		if b.Clicked() {
-			a.previewSaved(v)
-		}
-		ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
-			tx := ui.Text(c, what).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
-			if playing {
-				tx.TextColor(k.AccentInk)
-			}
-			if line != "" {
-				ui.Text(c, line).FontSize(px(t, fsCaption)).TextColor(k.Text2).MaxLines(2).Ellipsis("…").MinWidth(0).Tooltip(line)
-			}
-		})
+	busy := ""
+	if j := a.voiceJob("sample", v.ID); j.running() {
+		busy = j.status
+	}
+	detailPlayer(c, "editor-audio", "editor-play", a.savedPlaying(v), what, line, busy, func() { a.previewSaved(v) }, func() {
 		if v.Kind == core.VoiceCloned && iconButton(c.Key("editor-replace"), icons.UploadMinimalistic, i18n.T("Replace reference")).Clicked() {
 			a.startClone(v.ID)
 		}

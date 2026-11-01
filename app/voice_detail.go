@@ -83,8 +83,10 @@ func detailHead(c *ui.Context, name, sub, desc string, tags []string, avatar, ma
 	}
 }
 
-// detailPlayer is the large preview: a round ▶ and what plays.
-func detailPlayer(c *ui.Context, key string, playing bool, title, line string, busy string, play func()) {
+// detailPlayer is the large preview (a voice's detail, its editor): a
+// round ▶ keyed playKey and what plays, or busy with a spinner, then
+// trailing (nil none: the editor's Replace / Open in Design).
+func detailPlayer(c *ui.Context, key, playKey string, playing bool, title, line string, busy string, play, trailing func()) {
 	t := c.Theme()
 	k := tok(t)
 	ui.Row(c.Key(key)).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
@@ -93,7 +95,7 @@ func detailPlayer(c *ui.Context, key string, playing bool, title, line string, b
 			caption(c, busy).Grow(1).MinWidth(0)
 			return
 		}
-		b := playButton(c.Key("detail-play"), playing, true, 44)
+		b := playButton(c.Key(playKey), playing, true, 44)
 		if !playing {
 			b.Label(i18n.T("Preview voice")).Tooltip(i18n.T("Preview voice"))
 		}
@@ -109,6 +111,9 @@ func detailPlayer(c *ui.Context, key string, playing bool, title, line string, b
 				ui.Text(c, line).FontSize(px(t, fsCaption)).TextColor(k.Text2).MaxLines(2).Ellipsis("…").MinWidth(0).Tooltip(line)
 			}
 		})
+		if trailing != nil {
+			trailing()
+		}
 	})
 }
 
@@ -198,7 +203,7 @@ func (a *app) archetypeDetail(c *ui.Context, arch gallery.Archetype) {
 			a.dismissPanel("voice-detail"))
 		line, _ := arch.PreviewLine()
 		if p.ok() {
-			detailPlayer(c, "detail-player", playing, i18n.T("Preview"), line, "", func() { a.previewArchetype(arch) })
+			detailPlayer(c, "detail-player", "detail-play", playing, i18n.T("Preview"), line, "", func() { a.previewArchetype(arch) }, nil)
 		}
 		handoffRow(c, "detail-handoffs", func() {
 			if primaryButton(c.Key("detail-tts"), i18n.T("Use in Text to speech")).Disabled(g.using).Clicked() {
