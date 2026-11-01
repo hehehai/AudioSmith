@@ -32,8 +32,9 @@ func underlineTabs(c *ui.Context, selected *int, labels ...string) ui.Element {
 			}
 			tab.DrawOver(func(p *ui.Painter, r ui.Rect) {
 				if on {
-					h := px(t, 2)
-					p.Fill(ui.Rect{X: r.X, Y: r.Y + r.H - h, W: r.W, H: h}, k.Ink, 0)
+					// A 3-DIP bar with round ends (user, 11-01).
+					h := px(t, 3)
+					p.Fill(ui.Rect{X: r.X, Y: r.Y + r.H - h, W: r.W, H: h}, k.Ink, h/2)
 				}
 			})
 			tab.Children(func() {
