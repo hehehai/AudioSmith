@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 )
 
@@ -96,4 +97,19 @@ func (a *app) exportCopy(src, name string, filters []mygo.FileFilter) {
 		}
 		a.writeInBackground(dst, func(dst string) error { return copyFile(src, dst) })
 	})
+}
+
+// dropZone makes zone a drop target for files: a dashed border, the
+// accent while files are dragged over it; drop gets what is dropped on
+// it. Batch and Dub's source zones can adopt it.
+func dropZone(t *ui.Theme, zone ui.Element, drop func(paths []string)) ui.Element {
+	k := tok(t)
+	zone.Border(1, k.G[5]).BorderStyle(ui.BorderDashed)
+	if files := zone.DroppedFiles(); len(files) > 0 {
+		drop(files)
+	}
+	if zone.FileDragOver() {
+		zone.Border(2, k.Accent).Background(k.AccentSoft)
+	}
+	return zone
 }

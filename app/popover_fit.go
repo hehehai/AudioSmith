@@ -61,10 +61,15 @@ func fitPopover(c *ui.Context, anchor ui.Element, open *bool, want float32, fn f
 // rail ("··· More").
 func sidePopover(c *ui.Context, anchor ui.Element, open *bool, fn func()) {
 	t := c.Theme()
-	k := tok(t)
 	ui.PopoverBase(c, anchor, open, func(panel ui.Element) {
-		panel.AttachTo(anchor, ui.AnchorTopEnd, ui.AnchorTopStart).MarginStart(px(t, 6)).Padding(px(t, 4)).
-			Radius(px(t, radiusCard)).Background(k.Bg).Border(1, k.Line).Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 0.18))
+		popoverShell(t, panel.AttachTo(anchor, ui.AnchorTopEnd, ui.AnchorTopStart).MarginStart(px(t, 6)).Padding(px(t, 4)))
 		fn()
 	})
+}
+
+// popoverShell gives a floating panel the kit's look: the card radius on
+// the background, a hairline and a soft shadow.
+func popoverShell(t *ui.Theme, panel ui.Element) ui.Element {
+	k := tok(t)
+	return panel.Radius(px(t, radiusCard)).Background(k.Bg).Border(1, k.Line).Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 0.18))
 }

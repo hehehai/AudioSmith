@@ -70,15 +70,9 @@ func (a *app) cloneSources(c *ui.Context) {
 	}
 	ui.Row(c).Wrap().Gap(px(t, sp4)).AlignItems(ui.Stretch).Children(func() {
 		// Upload zone.
-		zone := ui.ButtonBase(c.Key("clone-upload")).Grow(1).Basis(px(t, 260)).MinHeight(px(t, 180)).Padding(px(t, sp4)).
-			Radius(px(t, radiusCard)).Border(1, k.G[5]).BorderStyle(ui.BorderDashed).Label(i18n.T("Choose a file"))
-		if files := zone.DroppedFiles(); files != nil {
-			a.cloneDropped(files)
-		}
-		switch {
-		case zone.FileDragOver():
-			zone.Border(2, k.Accent).Background(k.AccentSoft)
-		case zone.Hovered():
+		zone := dropZone(t, ui.ButtonBase(c.Key("clone-upload")).Grow(1).Basis(px(t, 260)).MinHeight(px(t, 180)).Padding(px(t, sp4)).
+			Radius(px(t, radiusCard)).Label(i18n.T("Choose a file")), a.cloneDropped)
+		if !zone.FileDragOver() && zone.Hovered() {
 			zone.Background(k.Subtle)
 		}
 		if zone.Clicked() {
