@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
@@ -99,6 +100,25 @@ func (a *app) historyPage(c *ui.Context) {
 		a.floating(c, floatPanel{key: "details", label: i18n.T("Take details"), w: px(t, 360), item: h.selected,
 			close: func() { h.selected = "" }}, sel != nil, build)
 	})
+	a.assetAsk(c)
+}
+
+// assetAsk asks before Delete on a focused row deletes its asset (or,
+// for an export, removes its record: the file stays).
+func (a *app) assetAsk(c *ui.Context) {
+	h := &a.history
+	if !h.askOpen {
+		return
+	}
+	as := h.ask
+	name := core.TruncateName(strings.Join(strings.Fields(as.title), " "), 40) // a take's title is its whole script
+	title, body, ok := i18n.T("Delete “%s”?", name), i18n.T("This cannot be undone."), i18n.T("Delete")
+	if as.delRecord {
+		title, body, ok = i18n.T("Remove “%s” from Assets?", name), i18n.T("The file stays."), i18n.T("Remove")
+	}
+	if ui.AlertDialog(c.Key("asset-ask"), &h.askOpen, title, body, i18n.T("Cancel"), ok) == 1 && as.del != nil {
+		as.del()
+	}
 }
 
 // assetTypeMenu is the type filter, and the takes' star and model.
@@ -148,6 +168,9 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 	playing := a.assetPlaying(as)
 	ui.Column(c.Key("as-" + as.key)).Shrink(0).Children(func() {
 		spec := listRowSpec{key: "row", label: as.title, tip: as.title, state: rowState{selected: as.take != nil && h.selected == as.take.ID, playing: playing}}
+		if as.del != nil {
+			spec.del = func() { h.ask, h.askOpen = as, true }
+		}
 		if assetPlayable(as.path) {
 			spec.lead = func() {
 				ui.Box(c).Size(px(t, listThumbD), px(t, listThumbD)).Radius(px(t, radiusControl)).Background(k.Subtle).Center().Shrink(0).Children(func() {

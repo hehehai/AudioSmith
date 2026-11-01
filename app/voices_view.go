@@ -169,7 +169,7 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 	playing := a.savedPlaying(v)
 	st := rowState{selected: e != nil && e.id == v.ID, playing: playing}
 	id := v.ID
-	if voiceRow(c, "voice-"+v.ID, v.Name, st, func() {
+	if voiceRowDel(c, "voice-"+v.ID, v.Name, st, func() { a.askDeleteVoice(id) }, func() {
 		voiceNameCell(c, v.Name, voiceLine(v), a.portrait(v), playing, func() { voiceMarks(c, v) })
 		metaCell(c, icons.Tag, i18n.T("Kind"), mineKind(v), 92)
 		if !narrow {

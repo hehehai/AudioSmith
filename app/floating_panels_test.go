@@ -175,3 +175,40 @@ func TestFloatingPanelLane(t *testing.T) {
 	}
 	_ = a
 }
+
+// A tool panel over the page (the window too narrow for its lane) has a
+// ✕, as the Studio's does; in its lane it has none (Mac check #128: a
+// story's inspector and a dub step's had only their header toggle).
+func TestFloatingToolPanelClose(t *testing.T) {
+	a, _, tt := newTestApp(t)
+	a.testMotion = true
+	a.navigate("/stories")
+	p := a.lfStories
+	p.opened = true // a new story's editor
+	tt.Frame()
+	tt.Frame()
+	if _, ok := tt.Find("Inspector"); !ok {
+		t.Fatal("no inspector at 1100")
+	}
+	if tt.HasText("Close") {
+		t.Error("a ✕ on the inspector in its lane")
+	}
+	tt.SetSize(820, 520)
+	tt.Frame()
+	if err := tt.Click("Show the inspector"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Advance(400 * time.Millisecond)
+	tt.Frame()
+	if err := tt.Click("Close"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Advance(400 * time.Millisecond)
+	tt.Frame()
+	tt.Frame()
+	if tt.HasText("Inspector") {
+		t.Error("the ✕ left the inspector open")
+	}
+}

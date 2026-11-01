@@ -36,6 +36,9 @@ type historyView struct {
 	exLoaded, exLoading bool
 	dirty               bool            // the records changed: read again
 	details             map[string]bool // renders' "How it was made" shown
+
+	ask     asset // the asset Delete on its focused row asks about
+	askOpen bool  // that question shows
 }
 
 // searchTakes looks the query up in the library's full-text index in

@@ -203,3 +203,39 @@ func TestListActionsFitNarrow(t *testing.T) {
 		}
 	}
 }
+
+// TestListRowDeleteKeyMineAssets: Delete on a focused saved voice or
+// asset asks too (Mac check #128: Mine and Assets did nothing).
+func TestListRowDeleteKeyMineAssets(t *testing.T) {
+	d := listFixture(t)
+	a, tt := d.a, d.tt
+	focusDelete := func(label string) {
+		t.Helper()
+		r, ok := tt.Find(label)
+		if !ok {
+			t.Fatalf("no row %q", label)
+		}
+		tt.Press(r.X+r.W/2, r.Y+r.H/2)
+		tt.Release(1, 1)
+		settle(tt)
+		tt.Key(0, ui.KeyBackspace)
+		settle(tt)
+	}
+	a.navigate("/voices/mine")
+	settle(tt)
+	focusDelete("Ada")
+	if !a.deleteOpen || a.findVoice(a.deleteVoice) == nil || a.findVoice(a.deleteVoice).Name != "Ada" {
+		t.Fatalf("Mine: ask %v %q", a.deleteOpen, a.deleteVoice)
+	}
+	a.deleteOpen = false
+	a.navigate("/assets")
+	settle(tt)
+	focusDelete("The last ferry leaves at eleven.")
+	h := &a.history
+	if !h.askOpen || h.ask.take == nil || h.ask.take.ID != "T0" {
+		t.Fatalf("Assets: ask %v %+v", h.askOpen, h.ask.take)
+	}
+	if _, ok := tt.Find("This cannot be undone."); !ok {
+		t.Error("Assets: no confirmation shown")
+	}
+}

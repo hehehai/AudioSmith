@@ -57,6 +57,7 @@ type floatPanel struct {
 	left       bool    // at the left of the page, sliding from there
 	lane       bool    // the page keeps a lane for it (a tool panel that fits)
 	fill       bool    // the content fills the panel (it scrolls itself)
+	x          bool    // a ✕ row tops the content (a tool panel over the page, whose content has none)
 	item       any     // what it shows: another item swaps the content
 	// close runs once the panel slid out after its ✕ or Escape (nil:
 	// only the host's own controls close it).
@@ -166,6 +167,13 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 		})
 	}
 	card.Children(func() {
+		if p.x && p.close != nil {
+			ui.Row(c).Padding(px(t, sp2), px(t, sp2), 0).Justify(ui.End).Shrink(0).Children(func() {
+				if iconButton(c.Key(p.key+"-x"), icons.Close, i18n.T("Close")).Clicked() {
+					a.dismissPanel(p.key)()
+				}
+			})
+		}
 		if p.fill {
 			ui.Column(c).Grow(1).MinHeight(0).Children(build)
 			return
@@ -223,5 +231,5 @@ func (sp *panelState) toggle(c *ui.Context, ic icons.Icon, shown bool, showTip, 
 // in the body's row): in its lane when inline, else over the page.
 func (sp *panelState) view(a *app, c *ui.Context, key, label string, inline, shown bool, width float32, build func()) {
 	hide := func() { sp.open, sp.set = false, true }
-	a.floating(c, floatPanel{key: key, label: label, w: width, lane: inline, close: hide}, shown, build)
+	a.floating(c, floatPanel{key: key, label: label, w: width, lane: inline, x: !inline, close: hide}, shown, build)
 }
