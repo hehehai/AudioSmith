@@ -326,7 +326,7 @@ func TestOutputPanel(t *testing.T) {
 	// The Studio's latest take says who spoke it, how long, when (0.5 F3);
 	// the file's details are in its tooltip and in Assets.
 	for _, want := range []string{"Latest take", "af_heart · 1.0 s · ", "Another voice",
-		"Chunk 2 is 0.2 s long where its text needs about 2.5 s: words may be missing.", "Check audio", "Export audio…"} {
+		"Chunk 2 is 0.2 s long where its text needs about 2.5 s: words may be missing.", "Check audio", "Export audio"} {
 		if !strings.Contains(strings.Join(tt.Texts(), "|"), want) {
 			t.Errorf("lacks %q: %q", want, tt.Texts())
 		}
@@ -356,7 +356,7 @@ func TestOutputPanel(t *testing.T) {
 		t.Error("not starred")
 	}
 	// Export audio… opens the Export audio dialog (export_dialog.go).
-	if err := tt.Click("Export audio…"); err != nil {
+	if err := tt.Click("Export audio"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

@@ -186,7 +186,7 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 				a.isoToDub(x)
 			}
 			m.Separator()
-			if m.Item(i18n.T("Delete…")).Chosen() {
+			if m.Item(i18n.T("Delete")).Chosen() {
 				del()
 			}
 		})
@@ -226,7 +226,7 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 			return
 		}
 		moreMenu(c.Key("iso-more"), i18n.T("Isolation actions"), func(m *ui.Menu) {
-			if m.Item(i18n.T("Delete…")).Chosen() {
+			if m.Item(i18n.T("Delete")).Chosen() {
 				a.isoConfirm, a.isoConfirmOpen = id, true
 			}
 		})

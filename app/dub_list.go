@@ -59,7 +59,7 @@ func (a *app) dubComposer(c *ui.Context) {
 			fileChip(c, "dub-pend", dubIcon, a.dubPend, func() { a.dubPend = "" })
 		} else {
 			composerPrompt(c, icons.UploadMinimalistic, i18n.T("Drop a video or audio file here"), "MP4 · MOV · M4V · MKV · WEBM · MP3 · WAV · M4A · FLAC", a.toolCompact(c))
-			if ghostIconButton(c.Key("dub-choose"), icons.UploadMinimalistic, i18n.T("Choose file…")).Label(i18n.T("Choose file…")).Clicked() {
+			if ghostIconButton(c.Key("dub-choose"), icons.UploadMinimalistic, i18n.T("Choose file")).Label(i18n.T("Choose file")).Clicked() {
 				a.chooseDubSource()
 			}
 		}
@@ -102,7 +102,7 @@ func (a *app) dubLinkOptions(c *ui.Context) {
 	collapsible(c.Key("dub-url-more"), i18n.T("Link options"), &a.dubURLMore, nil, func() {
 		ui.Checkbox(c.Key("dub-captions"), &a.dubCaptions, i18n.T("Use the video's captions when it has them (written by people)"))
 		ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
-			label := i18n.T("Sign-in cookies (cookies.txt)…")
+			label := i18n.T("Sign-in cookies (cookies.txt)")
 			if a.dubCookies != "" {
 				label = shortPath(a.dubCookies)
 			}
@@ -388,12 +388,12 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 			if m.Item(i18n.T("Open")).Chosen() {
 				a.openDub(id)
 			}
-			if m.Item(i18n.T("Export…")).Disabled(dub.Phase(r.Phase) != dub.PhaseDone).Chosen() {
+			if m.Item(i18n.T("Export")).Disabled(dub.Phase(r.Phase) != dub.PhaseDone).Chosen() {
 				a.dubWant = dubStepExport
 				a.openDub(id)
 			}
 			m.Separator()
-			if m.Item(i18n.T("Delete…")).Chosen() {
+			if m.Item(i18n.T("Delete")).Chosen() {
 				del()
 			}
 		})

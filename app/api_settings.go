@@ -168,7 +168,7 @@ func (a *app) apiAgentSettings(c *ui.Context) {
 			}
 		})
 		settingRowNote(c, "api-mcp-dir", i18n.T("Folder for agents' audio"), a.apiSandbox(), func() {
-			if ui.Button(c.Key("api-dir-choose"), i18n.T("Choose…")).Clicked() {
+			if ui.Button(c.Key("api-dir-choose"), i18n.T("Choose")).Clicked() {
 				a.chooseAPIDir()
 			}
 			if ui.Button(c.Key("api-dir-reveal"), i18n.T("Show in Finder")).Clicked() {

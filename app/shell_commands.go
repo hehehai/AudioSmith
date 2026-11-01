@@ -65,7 +65,7 @@ func (a *app) commands() []command {
 	// M2 (thread #17).
 	speech := i18n.T("Speech to text")
 	add("dictate", speech, i18n.T("Start or stop dictation"), "Start or stop dictation dictate", dictationGlyphs(a.dictShortcut), true, a.dictToggle)
-	add("transcribe-file", speech, i18n.T("Transcribe a file…"), "Transcribe a file", "", a.trJob == nil, func() {
+	add("transcribe-file", speech, i18n.T("Transcribe a file"), "Transcribe a file", "", a.trJob == nil, func() {
 		a.navigate("/transcripts")
 		a.chooseTranscribeFile()
 	})
@@ -77,7 +77,7 @@ func (a *app) commands() []command {
 	add("logs-panel", view, i18n.T("Show or hide the logs panel"), "Show or hide the logs panel", "⇧⌘L", true, func() { a.logsPanel = !a.logsPanel })
 	add("notifications", view, i18n.T("Notifications"), "Notifications", "", true, func() { a.noticesOpen = true })
 	add("shortcuts", view, i18n.T("Keyboard shortcuts"), "Keyboard shortcuts", "?", true, func() { a.sheetOpen = true })
-	add("updates", view, i18n.T("Check for Updates…"), "Check for updates software update new version", "", true, a.checkForUpdates)   // updates.go
+	add("updates", view, i18n.T("Check for Updates"), "Check for updates software update new version", "", true, a.checkForUpdates)    // updates.go
 	add("setup", view, i18n.T("Run the setup again"), "Run the setup again first run wizard welcome", "", !a.obOpen, a.openOnboarding) // M7a
 
 	look := i18n.T("Appearance")
@@ -288,10 +288,10 @@ func (a *app) buildMenu() {
 	mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
 		{Label: "AudioSmith", Submenu: []*mygo.MenuItem{
 			{Role: mygo.RoleAbout, Label: i18n.T("About AudioSmith")},
-			// Check for Updates… opens the update panel (updates.go).
-			{Label: i18n.T("Check for Updates…"), Click: act(a.checkForUpdates)},
+			// Check for Updates opens the update panel (updates.go).
+			{Label: i18n.T("Check for Updates"), Click: act(a.checkForUpdates)},
 			mygo.Separator(),
-			{Label: i18n.T("Settings…"), Accelerator: "CmdOrCtrl+,", Click: act(func() { a.navigate("/settings") })},
+			{Label: i18n.T("Settings"), Accelerator: "CmdOrCtrl+,", Click: act(func() { a.navigate("/settings") })},
 			mygo.Separator(),
 			{Role: mygo.RoleServices, Label: i18n.T("Services")},
 			mygo.Separator(),

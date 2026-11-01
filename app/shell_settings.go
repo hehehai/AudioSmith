@@ -223,19 +223,19 @@ func languageOptions() []string {
 
 // sourceOptions: the download source covers models (Hugging Face) and
 // tools (GitHub); the wordings are actnowkit's mirror.TextSource*.
-// "Custom…" names Hugging Face endpoints; tools then come from both
+// "Custom" names Hugging Face endpoints; tools then come from both
 // github.com and the ActNow mirror.
 func sourceOptions() []string {
 	return []string{
 		i18n.T("Automatic (the fastest of the official sites and mirrors)"),
 		i18n.T("Official sites only (huggingface.co, github.com)"),
 		i18n.T("Mirrors only (hf-mirror.com, mirror.actnow.dev)"),
-		i18n.T("Custom…"),
+		i18n.T("Custom"),
 	}
 }
 
 func proxyOptions() []string {
-	return []string{i18n.T("Automatic (system proxy)"), i18n.T("None"), i18n.T("Custom…")}
+	return []string{i18n.T("Automatic (system proxy)"), i18n.T("None"), i18n.T("Custom")}
 }
 
 var scaleLabels = []string{"90%", "100%", "110%", "125%"}

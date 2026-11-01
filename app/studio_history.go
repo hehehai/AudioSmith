@@ -109,7 +109,7 @@ func scriptStart(s string) string {
 // settings (history rows: reuse), 换个音色再生成, 存为项目 when the script
 // is long, Show in Finder and, in the history, Delete.
 func (a *app) takeHandoffs(m *ui.Menu, tk *core.Take, history bool) {
-	if m.Item(i18n.T("Export…")).Chosen() {
+	if m.Item(i18n.T("Export")).Chosen() {
 		a.openExport(tk) // export_dialog.go
 	}
 	if history && m.Item(i18n.T("Reuse settings")).Chosen() {

@@ -60,7 +60,7 @@ func toolFile(c *ui.Context, key, name string, busy bool) bool {
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, icons.FileText.Linear).Size(px(t, 16), px(t, 16)).TextColor(k.Text2).Shrink(0)
 			truncText(c, name).Grow(1)
-			chosen = secondaryIconButton(c.Key("choose"), icons.FolderOpen, i18n.T("Choose…")).Label(i18n.T("Choose…")).Disabled(busy).Clicked()
+			chosen = secondaryIconButton(c.Key("choose"), icons.FolderOpen, i18n.T("Choose")).Label(i18n.T("Choose")).Disabled(busy).Clicked()
 		})
 	})
 	return chosen

@@ -145,7 +145,7 @@ func (a *app) dubHeaderActions(c *ui.Context, shown, embed bool) {
 			if m.Item(i18n.T("Create Story")).Disabled(len(a.dub.Segments) == 0).Chosen() {
 				a.dubAskStory()
 			}
-			if m.Item(i18n.T("Delete…")).Chosen() {
+			if m.Item(i18n.T("Delete")).Chosen() {
 				a.dubConfirm, a.dubConfirmOpen = "delete:"+a.dub.ID, true
 			}
 			m.Separator()

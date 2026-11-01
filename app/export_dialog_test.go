@@ -102,7 +102,7 @@ func TestExportDialogState(t *testing.T) {
 	a.setAdvancedOpen("export", true)
 	tt.Frame()
 	for _, s := range []string{"Export audio", "Studio take", "Bit depth", "Sample rate", "Original (24 kHz)", "Loudness", "Trim silence",
-		"File name", ".wav", "Also save", "Subtitles timed to the audio (.srt)", "About 144 KB · 2.0 s", "Export…", "Cancel"} {
+		"File name", ".wav", "Also save", "Subtitles timed to the audio (.srt)", "About 144 KB · 2.0 s", "Export", "Cancel"} {
 		if !tt.HasText(s) {
 			t.Errorf("no %q in %q", s, tt.Texts())
 		}
@@ -169,7 +169,7 @@ func TestExportDialogState(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, shown := tt.Find("Export audio"); a.exp != nil || shown {
+	if _, shown := tt.Find("File name"); a.exp != nil || shown { // "Export audio" also names the Studio's button
 		t.Errorf("still open: %v %v", a.exp != nil, shown)
 	}
 }
@@ -322,7 +322,7 @@ func TestHistoryExportButton(t *testing.T) {
 	t.Cleanup(func() { exportSaveDir = "" })
 	a.showPage("history")
 	tt.Frame()
-	chooseAway(t, tt, "Asset actions", "Export…") // Assets' ⋯ (0.5 F5)
+	chooseAway(t, tt, "Asset actions", "Export") // Assets' ⋯ (0.5 F5)
 	if a.exp == nil || !tt.HasText("Export audio") {
 		t.Fatalf("no dialog: %q", tt.Texts())
 	}
@@ -330,7 +330,7 @@ func TestHistoryExportButton(t *testing.T) {
 	a.exp.loud = loudnessLabel("broadcast")
 	*a.exp.extras["script"], *a.exp.extras["subtitles"] = true, true
 	tt.Frame()
-	if err := tt.Click("Export…"); err != nil {
+	if err := tt.Click("Export"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -351,7 +351,7 @@ func TestHistoryExportButton(t *testing.T) {
 	a.showPage("studio")
 	a.lastClipID = "T1"
 	tt.Frame()
-	if err := tt.Click("Export audio…"); err != nil {
+	if err := tt.Click("Export audio"); err != nil {
 		t.Fatal(err)
 	}
 	if a.exp == nil || a.exp.take.ID != "T1" {

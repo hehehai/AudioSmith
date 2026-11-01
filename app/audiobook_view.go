@@ -60,7 +60,7 @@ func (a *app) audiobookPage(c *ui.Context) {
 // bookHeader is an open book's header: Import, the inspector toggle,
 // and ⋯ (Save, the sample, Clear, Stories).
 func (a *app) bookHeader(c *ui.Context, p *lfPage, locked, shown bool) {
-	imp := i18n.T("Import…")
+	imp := i18n.T("Import")
 	var b ui.Element
 	if p.narrow {
 		b = iconButton(c.Key("ab-import"), icons.Import, imp)
@@ -76,7 +76,7 @@ func (a *app) bookHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 		if m.Item(i18n.T("Load sample")).Disabled(locked).Chosen() {
 			a.loadSample(p)
 		}
-		if m.Item(i18n.T("Clear…")).Disabled(locked || strings.TrimSpace(p.doc.Script) == "").Chosen() {
+		if m.Item(i18n.T("Clear")).Disabled(locked || strings.TrimSpace(p.doc.Script) == "").Chosen() {
 			p.confirm, p.confirmOpen = "clear", true
 		}
 		m.Separator()

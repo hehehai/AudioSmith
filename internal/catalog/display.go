@@ -84,7 +84,7 @@ func (t Tag) Label() string {
 func (e Entry) DisplayName() string {
 	switch {
 	case e.ID == "custom":
-		return i18n.T("Custom Hugging Face repo…")
+		return i18n.T("Custom Hugging Face repo")
 	case e.Name == "":
 		return e.Label
 	}

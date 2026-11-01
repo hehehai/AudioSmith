@@ -420,7 +420,7 @@ func TestReplaceReference(t *testing.T) {
 	if !tt.HasText("Verified") || !tt.HasText("Locked") || !tt.HasText("Locked take") {
 		t.Fatalf("badges: %q", tt.Texts())
 	}
-	tt.Click("Replace reference…")
+	tt.Click("Replace reference")
 	tt.Frame()
 	if !tt.HasText("Replace the reference of “Me”") {
 		t.Fatalf("replace page: %q", tt.Texts())

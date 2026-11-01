@@ -184,7 +184,7 @@ func (a *app) wfScriptsPanel(c *ui.Context, n *workflow.Node) {
 				p.Scripts = append(p.Scripts, workflow.Script{})
 			})
 		}
-		if ui.Button(c.Key("wf-script-import-"+id), i18n.T("Import scripts…")).Tooltip(i18n.T("TXT, Markdown, DOCX or EPUB: one script per file")).
+		if ui.Button(c.Key("wf-script-import-"+id), i18n.T("Import scripts")).Tooltip(i18n.T("TXT, Markdown, DOCX or EPUB: one script per file")).
 			Disabled(locked).Clicked() {
 			a.wfImportScripts(id)
 		}
@@ -224,7 +224,7 @@ func (a *app) wfClipsPanel(c *ui.Context, n *workflow.Node) {
 	}
 	zone.Children(func() {
 		ui.Text(c, i18n.T("Drop audio files here, up to 50 clips of 64 MiB each.")).FontSize(px(t, 12)).TextColor(t.TextMuted).TextAlign(ui.Center)
-		if ui.Button(c.Key("wf-clip-add-"+id), i18n.T("Add audio…")).Disabled(locked || len(n.P.Clips) >= workflow.MaxClips).Clicked() {
+		if ui.Button(c.Key("wf-clip-add-"+id), i18n.T("Add audio")).Disabled(locked || len(n.P.Clips) >= workflow.MaxClips).Clicked() {
 			a.wfAddClips(id)
 		}
 	})
@@ -403,7 +403,7 @@ func (a *app) wfTranslatorSelect(c *ui.Context, n *workflow.Node) {
 	if ok, name := a.dubTranslatorReady(dub.Settings{Translator: n.P.Translator}); ok && name != "" {
 		ui.Text(c, i18n.T("Translates with %s.", name)).FontSize(px(t, 12)).TextColor(t.TextMuted)
 	} else if n.P.Translator == "" {
-		if ui.Button(c.Key("wf-llm-settings"), i18n.T("Set up a language model…")).Clicked() {
+		if ui.Button(c.Key("wf-llm-settings"), i18n.T("Set up a language model")).Clicked() {
 			a.navigate("/settings/writing")
 		}
 	}
@@ -464,7 +464,7 @@ func (a *app) wfExportPanel(c *ui.Context, n *workflow.Node) {
 				ui.Text(c, n.P.Folder).FontSize(px(t, 12)).MaxLines(2).Ellipsis("…")
 			}
 			ui.Row(c).Gap(px(t, 6)).Children(func() {
-				if ui.Button(c.Key("wf-folder-"+id), i18n.T("Choose…")).Disabled(locked).Clicked() {
+				if ui.Button(c.Key("wf-folder-"+id), i18n.T("Choose")).Disabled(locked).Clicked() {
 					a.wfChooseFolder(id)
 				}
 				if n.P.Folder != "" && ui.Button(c.Key("wf-folder-clear-"+id), i18n.T("Clear")).Disabled(locked).Clicked() {

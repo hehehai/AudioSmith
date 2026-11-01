@@ -64,10 +64,10 @@ func (a *app) lfOutputs(c *ui.Context, p *lfPage) {
 					}
 					a.ffmpegBookItems(m, r) // M7a: MP3/Opus with chapters (ffmpeg_formats.go)
 				})
-				if m.Item(i18n.T("One WAV per chapter…")).Chosen() {
+				if m.Item(i18n.T("One WAV per chapter")).Chosen() {
 					a.saveChapters(r)
 				}
-				if m.Item(i18n.T("Chapter times (.txt)…")).Chosen() {
+				if m.Item(i18n.T("Chapter times (.txt)")).Chosen() {
 					a.saveOutput(r, "cues", out.Cues, "txt", 0)
 				}
 				if len(out.Stems) > 0 {
@@ -242,7 +242,7 @@ func (a *app) writeOutput(lib *services.Library, rec core.Render, kind, src, dst
 func (a *app) saveChapters(r *lfRender) {
 	rec, chs, lib := r.rec, slices.Clone(r.body.Output.Chapters), a.lib.svc.Library
 	go func() {
-		dirs, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Save chapters…"), Directory: true,
+		dirs, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Save chapters"), Directory: true,
 			ButtonLabel: i18n.T("Save here")})
 		if err != nil || len(dirs) == 0 {
 			return

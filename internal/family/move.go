@@ -1,6 +1,6 @@
 package family
 
-// "Move models…" (spec §15.2 step 5): AudioSmith's models go from its own
+// "Move models" (spec §15.2 step 5): AudioSmith's models go from its own
 // model folder to the family's, repo by repo, each under the repo's
 // exclusive lock in both folders:
 //

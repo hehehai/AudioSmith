@@ -241,7 +241,7 @@ func (a *app) dubPastePanel(c *ui.Context) {
 	ui.Column(c.Key("dub-paste")).Gap(px(t, sp2)).Width(min(px(t, 620), w-px(t, 64))).Children(func() {
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 			sectionHeading(c, i18n.T("Paste translation · %s", dubLangName(a.dubLang))).Grow(1)
-			if ghostIconButton(c.Key("p-file"), icons.Import, i18n.T("Load .srt / .vtt…")).Label(i18n.T("Load .srt / .vtt…")).Clicked() {
+			if ghostIconButton(c.Key("p-file"), icons.Import, i18n.T("Load .srt / .vtt")).Label(i18n.T("Load .srt / .vtt")).Clicked() {
 				a.dubPasteFile()
 			}
 			if iconButton(c.Key("p-close"), icons.Close, i18n.T("Close")).Clicked() {

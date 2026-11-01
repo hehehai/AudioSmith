@@ -275,7 +275,7 @@ func TestRemovedNotOffered(t *testing.T) {
 		a.pickerAll = map[string]bool{page.key: true}
 		tt.Frame()
 		tt.Frame()
-		if !tt.HasText("Custom Hugging Face repo…") && page.key == "model" {
+		if !tt.HasText("Custom Hugging Face repo") && page.key == "model" {
 			t.Errorf("%s: the list is not open: %q", page.path, tt.Texts())
 		}
 		check(page.path)

@@ -145,7 +145,7 @@ func TestWorkflowsTemplateRunAndResults(t *testing.T) {
 	a.wfEdit(func(*workflow.Workflow) {})
 	a.wfSel = d.node(workflow.KindExport).ID
 	tt.Frame()
-	d.click(t, "Choose…")
+	d.click(t, "Choose")
 	if d.node(workflow.KindExport).P.Folder != d.out {
 		t.Fatalf("folder %q", d.node(workflow.KindExport).P.Folder)
 	}
@@ -181,7 +181,7 @@ func TestWorkflowsTemplateRunAndResults(t *testing.T) {
 	// Export all copies the results.
 	all := t.TempDir()
 	wfExportDir = all
-	d.click(t, "Export all…")
+	d.click(t, "Export all")
 	if got, _ := filepath.Glob(filepath.Join(all, "*.wav")); len(got) != 2 {
 		t.Errorf("export all %v", got)
 	}

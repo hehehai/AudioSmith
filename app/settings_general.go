@@ -76,7 +76,7 @@ func (a *app) modelSettings(c *ui.Context) {
 			shown = hub.CacheDir()
 		}
 		settingRowNote(c, "cache-dir", i18n.T("Model folder"), shown, func() {
-			if ui.Button(c.Key("cache-choose"), i18n.T("Choose…")).Clicked() {
+			if ui.Button(c.Key("cache-choose"), i18n.T("Choose")).Clicked() {
 				a.chooseCacheDir()
 			}
 			if ui.Button(c.Key("cache-default"), i18n.T("Use the default")).Disabled(dir == "").

@@ -65,7 +65,7 @@ func (a *app) callsCommands(nav string, add func(id, group, title, en, keys stri
 		a.navigate("/calls")
 		a.callTab = 0
 	})
-	add("calls-inbound", group, i18n.T("Incoming calls…"), "Incoming calls", "", true, func() {
+	add("calls-inbound", group, i18n.T("Incoming calls"), "Incoming calls", "", true, func() {
 		a.navigate("/calls")
 		a.openInbound()
 	})

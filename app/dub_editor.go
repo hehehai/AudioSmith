@@ -94,8 +94,8 @@ func (a *app) dubToolbar(c *ui.Context) {
 			m.Separator()
 			menuDo(m, i18n.T("Clean up fragments"), locked, a.dubCleanup)
 			menuDo(m, i18n.T("Mirror source delivery"), locked || p.Media.Audio == "", a.dubMirror)
-			menuDo(m, i18n.T("Import subtitles as the transcript…"), locked || a.dubBusy(), a.dubImportSubtitles)
-			menuDo(m, i18n.T("Transcribe again…"), a.dubBusy(), func() { a.dubConfirm, a.dubConfirmOpen = "transcribe", true })
+			menuDo(m, i18n.T("Import subtitles as the transcript"), locked || a.dubBusy(), a.dubImportSubtitles)
+			menuDo(m, i18n.T("Transcribe again"), a.dubBusy(), func() { a.dubConfirm, a.dubConfirmOpen = "transcribe", true })
 			menuDo(m, i18n.T("Translate everything again"), locked || a.dubBusy(), func() { a.dubTranslate(true) })
 			m.Separator()
 			menuDo(m, i18n.T("Restore the source (drop translations)"), locked, a.dubRestore)
@@ -120,7 +120,7 @@ func (a *app) dubBulkBar(c *ui.Context, n int) {
 	ui.Row(c.Key("dub-bulk")).Gap(px(t, sp1)).AlignItems(ui.Center).Padding(px(t, 4), px(t, 4), px(t, 4), px(t, sp3)).Radius(px(t, radiusControl)).
 		Background(k.Subtle).Shrink(0).Children(func() {
 		ui.Text(c, i18n.N(n, "%d selected", "%d selected", n)).FontWeight(600).SingleLine().Shrink(0).Margin(0, px(t, sp2), 0, 0)
-		dropButton(c.Key("bulk-voice"), icons.UserSpeakRounded, i18n.T("Set voice…")).Menu(func(m *ui.Menu) {
+		dropButton(c.Key("bulk-voice"), icons.UserSpeakRounded, i18n.T("Set voice")).Menu(func(m *ui.Menu) {
 			for _, v := range a.dubVoiceChoices() {
 				ref := v.ref
 				label := v.label
@@ -130,7 +130,7 @@ func (a *app) dubBulkBar(c *ui.Context, n int) {
 				menuDo(m, label, locked, func() { a.dubBulkVoice(ref) })
 			}
 		})
-		dropButton(c.Key("bulk-lang"), icons.Global, i18n.T("Set language…")).Menu(func(m *ui.Menu) {
+		dropButton(c.Key("bulk-lang"), icons.Global, i18n.T("Set language")).Menu(func(m *ui.Menu) {
 			menuDo(m, i18n.T("The track's (default)"), locked, func() { a.dubBulkLang("") })
 			if src := a.dub.SourceLanguage(); src != "" {
 				menuDo(m, i18n.T("Keep the source language (%s)", dubLangName(src)), locked, func() { a.dubBulkLang(src) })

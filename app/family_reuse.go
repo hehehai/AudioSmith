@@ -58,7 +58,7 @@ type reuseChoice int
 const (
 	reuseDefault reuseChoice = iota // nothing chosen: the models are used when the setup finishes
 	reuseUsed                       // "Use them": claimed
-	reuseChoose                     // "Choose models…": the Models page after the setup
+	reuseChoose                     // "Choose models": the Models page after the setup
 )
 
 // readShares fills v's per-model part for the model folder hub (on a
@@ -244,7 +244,7 @@ func (a *app) reusePack(id string, then func()) {
 
 // reuseCard is the first run's card over the models step (spec §7.10.1):
 // the chosen pack's models already on this Mac, by whom, their size, what
-// is still to download; "Use them" or "Choose models…". Only when
+// is still to download; "Use them" or "Choose models". Only when
 // another family app's release build is installed.
 func (a *app) reuseCard(c *ui.Context) {
 	s := a.obSurvey
@@ -287,7 +287,7 @@ func (a *app) reuseCard(c *ui.Context) {
 				pack := a.obPack
 				a.reusePack(pack, func() { a.obReuse = reuseUsed })
 			}
-			if a.obReuse != reuseChoose && ghostButton(c.Key("ob-reuse-choose"), i18n.T("Choose models…")).Clicked() {
+			if a.obReuse != reuseChoose && ghostButton(c.Key("ob-reuse-choose"), i18n.T("Choose models")).Clicked() {
 				a.obReuse = reuseChoose
 			}
 		})

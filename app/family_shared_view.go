@@ -5,7 +5,7 @@ package main
 // download source and proxy rows — "Applies to all ActNow apps · Use a
 // different setting for this app", or "Only for this app · Follow other
 // ActNow apps", or once after the migration "Dicta uses a different
-// proxy. [Use theirs]" — and the Models page's "Move models…" banner with
+// proxy. [Use theirs]" — and the Models page's "Move models" banner with
 // the move's progress. All of it only with another ActNow app's release
 // build installed (sharedUI): otherwise the rows are as they always were.
 
@@ -102,7 +102,7 @@ func (a *app) moveModelsBanner(c *ui.Context) {
 		text = i18n.T("%s keeps models in %s. Move AudioSmith's models there to share them?", by, path)
 	}
 	notice(c, "move-models", noticeInfo, text, "", func() {
-		if ui.Button(c.Key("move-models"), i18n.T("Move models…")).Disabled(a.modelsMoveLoading).Clicked() {
+		if ui.Button(c.Key("move-models"), i18n.T("Move models")).Disabled(a.modelsMoveLoading).Clicked() {
 			a.planModelsMove()
 		}
 		if ghostButton(c.Key("keep-separate"), i18n.T("Keep separate")).Clicked() {

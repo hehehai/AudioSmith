@@ -456,7 +456,7 @@ func TestAgentSkillPage(t *testing.T) {
 	if !tt.HasText("Agent skill") || tt.HasText("Installed: ~/.claude/skills/audiosmith/") {
 		t.Fatal("skill card")
 	}
-	if err := tt.Click("Install skill…"); err != nil {
+	if err := tt.Click("Install skill"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -485,7 +485,7 @@ func TestAgentSkillPage(t *testing.T) {
 	if !tt.HasText("~/.claude/skills/audiosmith/ holds another version (your voices or settings changed since): install again to update it.") {
 		t.Error("no out-of-date note")
 	}
-	tt.Click("Install skill…")
+	tt.Click("Install skill")
 	tt.Frame()
 	if !tt.HasText("Different files are there: each is kept beside it as a backup (SKILL.md.bak-…).") {
 		t.Error("no backup note")
@@ -498,7 +498,7 @@ func TestAgentSkillPage(t *testing.T) {
 	// Save skill… and Copy skill.
 	integSaveDir = t.TempDir()
 	t.Cleanup(func() { integSaveDir = "" })
-	if err := tt.Click("Save skill…"); err != nil {
+	if err := tt.Click("Save skill"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -532,7 +532,7 @@ func TestAgentSkillPage(t *testing.T) {
 	// The generic page: no Install; the other pages: no card.
 	a.navigate("/integrations/mcp")
 	tt.Frame()
-	if !tt.HasText("Agent skill") || tt.HasText("Install skill…") || !tt.HasText("Save skill…") {
+	if !tt.HasText("Agent skill") || tt.HasText("Install skill") || !tt.HasText("Save skill") {
 		t.Error("generic MCP page")
 	}
 	for _, in := range integrations {

@@ -221,7 +221,7 @@ func (a *app) dubFooter(c *ui.Context) {
 			if ex.job != "" {
 				ui.Spinner(c)
 			}
-			b := primaryIconButton(c.Key("dx-go"), icons.Export, i18n.T("Export…")).Label(i18n.T("Export…")).Disabled(blocked != "" || ready != "" || ex.job != "")
+			b := primaryIconButton(c.Key("dx-go"), icons.Export, i18n.T("Export")).Label(i18n.T("Export")).Disabled(blocked != "" || ready != "" || ex.job != "")
 			if why := firstOf(blocked, ready); why != "" {
 				b.Tooltip(why)
 			}

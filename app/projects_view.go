@@ -186,7 +186,7 @@ func (a *app) projMenu(c *ui.Context, it projItem) {
 			a.duplicateProj(it)
 		}
 		m.Separator()
-		if m.Item(i18n.T("Delete…")).Chosen() {
+		if m.Item(i18n.T("Delete")).Chosen() {
 			s.confirm, s.confirmOpen = it, true
 		}
 	})

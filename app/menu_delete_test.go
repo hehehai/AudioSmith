@@ -25,7 +25,7 @@ func TestDeleteMenusHistoryAndProjects(t *testing.T) {
 	// newest take's menu is first.
 	a.showPage("history")
 	tt.Frame()
-	chooseAway(t, tt, "Asset actions", "Delete…")
+	chooseAway(t, tt, "Asset actions", "Delete")
 	if a.findTake("T2") == nil || !a.history.askOpen {
 		t.Fatalf("history: deleted without asking, or no question")
 	}
@@ -51,7 +51,7 @@ func TestDeleteMenusHistoryAndProjects(t *testing.T) {
 	a.navigate("/projects")
 	tt.Frame()
 	tt.Frame()
-	chooseAway(t, tt, "Project actions", "Delete…")
+	chooseAway(t, tt, "Project actions", "Delete")
 	if !a.projects.confirmOpen {
 		t.Fatalf("projects: no confirmation: %q", tt.Texts())
 	}
@@ -74,7 +74,7 @@ func TestDeleteMenuTranscript(t *testing.T) {
 	a.selectTranscript(tr.ID)
 	tt.Frame()
 	tt.Frame()
-	chooseAway(t, tt, "Transcript actions", "Delete…")
+	chooseAway(t, tt, "Transcript actions", "Delete")
 	tt.Frame()
 	if err := tt.Click("Delete"); err != nil {
 		t.Fatalf("%v: %q", err, tt.Texts())
@@ -123,7 +123,7 @@ func TestDeleteMenusDubAndBatch(t *testing.T) {
 	if !hasOp(a, "dub.create", "id="+id) {
 		t.Errorf("create not logged: %q", opLines(a))
 	}
-	chooseAway(t, tt, "More actions", "Delete…")
+	chooseAway(t, tt, "More actions", "Delete")
 	if !a.dubConfirmOpen {
 		t.Fatalf("dub: no confirmation: %q", tt.Texts())
 	}
@@ -150,7 +150,7 @@ func TestDeleteMenusDubAndBatch(t *testing.T) {
 		a.batch.tab = 1
 		tt.Frame()
 	}
-	chooseAway(t, tt, "Dub actions", "Delete…")
+	chooseAway(t, tt, "Dub actions", "Delete")
 	if a.batch.confirm != bid {
 		t.Fatalf("batch: no confirmation: %q", tt.Texts())
 	}

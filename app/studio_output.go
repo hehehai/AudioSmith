@@ -253,7 +253,7 @@ func (a *app) takePanel(c *ui.Context, t *core.Take, latest, studio bool) {
 					a.checkTake(t)
 				}
 			}
-			if iconButton(c.Key("export"), icons.Export, i18n.T("Export audio…")).Tooltip(i18n.T("Export the audio: format, quality, loudness")).Clicked() {
+			if iconButton(c.Key("export"), icons.Export, i18n.T("Export audio")).Tooltip(i18n.T("Export the audio: format, quality, loudness")).Clicked() {
 				a.openExport(t) // export_dialog.go
 			}
 			path := a.takeStore.AudioPath(*t)

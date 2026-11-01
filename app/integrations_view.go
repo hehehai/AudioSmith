@@ -98,7 +98,7 @@ func (a *app) codeBlock(c *ui.Context, key string, blk integBlock) {
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Start).Padding(px(t, sp3), px(t, 6), px(t, sp3), px(t, sp3)).Radius(px(t, radiusControl)).Background(tok(t).Subtle).Children(func() {
 			ui.Text(c, blk.Code).Font(monoFont).FontSize(px(t, fsCaption)).Wrap().Selectable().Grow(1).MinWidth(0)
 			if blk.File != "" {
-				if iconButton(c.Key("save"), icons.Export, i18n.T("Save…")).Clicked() {
+				if iconButton(c.Key("save"), icons.Export, i18n.T("Save")).Clicked() {
 					a.saveBlock(blk)
 				}
 			}
@@ -146,7 +146,7 @@ func (a *app) agentPromptCard(c *ui.Context, in integration) {
 				c.Services().WriteClipboard(text)
 				a.toast(i18n.T("Copied: paste it into %s", name))
 			}
-			save := i18n.T("Save as .txt…")
+			save := i18n.T("Save as .txt")
 			if secondaryIconButton(c.Key("integ-prompt-save"), icons.Export, save).Label(save).Clicked() {
 				a.saveBlock(integBlock{Code: text, File: agentPromptFile(in.Slug)})
 			}
@@ -174,7 +174,7 @@ func (a *app) saveBlock(blk integBlock) {
 		return
 	}
 	go func() {
-		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save…"), DefaultPath: blk.File})
+		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save"), DefaultPath: blk.File})
 		if err != nil || path == "" {
 			return
 		}

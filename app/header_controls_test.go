@@ -50,7 +50,7 @@ func headerFixture(t *testing.T) (*dubTest, []headerPage) {
 		{"home", func(a *app) { a.navigate("/home") }, nil},
 		{"studio", func(a *app) { a.navigate("/studio") }, []string{"Show settings and history|Hide settings and history"}},
 		{"voices-discover", func(a *app) { a.navigate("/voices/discover") }, []string{"Search Discover voices", "Favorites"}},
-		{"voices-mine", func(a *app) { a.navigate("/voices/mine") }, []string{"Search voices", "Kind", "Import…"}},
+		{"voices-mine", func(a *app) { a.navigate("/voices/mine") }, []string{"Search voices", "Kind", "Import"}},
 		{"voices-new", func(a *app) { a.navigate("/voices/new") }, []string{"My voices ›"}},
 		{"clone", func(a *app) { a.startClone("") }, []string{"Cancel"}},
 		{"design", func(a *app) { a.startDesign() }, []string{"New design", "Discover voices"}},
@@ -62,20 +62,20 @@ func headerFixture(t *testing.T) (*dubTest, []headerPage) {
 		{"transcript", func(a *app) { a.navigate("/transcripts/" + tr.ID) }, nil},
 		{"isolate", func(a *app) { a.navigate("/isolate") }, []string{"Search isolations"}},
 		{"isolate-result", func(a *app) { a.navigate("/isolate/" + a.isoList[0].ID) }, []string{"Isolation actions"}},
-		{"dictation", func(a *app) { a.navigate("/dictation") }, []string{"Settings…"}},
+		{"dictation", func(a *app) { a.navigate("/dictation") }, []string{"Dictation settings"}},
 		{"stories", func(a *app) {
 			a.lfCreate(a.lfStories, func() { a.loadSampleStory(a.lfStories) })
-		}, []string{"Import…", "Add", inspector, "More actions"}},
+		}, []string{"Import", "Add", inspector, "More actions"}},
 		{"stories-list", func(a *app) { a.lfClose(a.lfStories); a.navigate("/stories") }, []string{"Search stories"}},
 		{"audiobook", func(a *app) {
 			a.lfCreate(a.lfBook, func() { a.loadSample(a.lfBook) })
-		}, []string{"Import…", inspector, "More actions"}},
+		}, []string{"Import", inspector, "More actions"}},
 		{"workflows", func(a *app) { a.navigate("/workflows"); a.wfNew("translate-narrate") }, []string{"Show workflows and steps|Hide workflows and steps", "Run workflow"}},
 		{"batch", func(a *app) { a.navigate("/batch") }, []string{"Dub page"}},
-		{"calls", func(a *app) { a.navigate("/calls") }, []string{"Incoming calls…", "Set up Twilio"}},
+		{"calls", func(a *app) { a.navigate("/calls") }, []string{"Incoming calls", "Set up Twilio"}},
 		{"calls-setup", func(a *app) { a.navigate("/calls/setup") }, []string{"Turn on calls", "Open Calls"}},
 		{"developers", func(a *app) { a.navigate("/developers") }, []string{"API reference", "Developer sections"}},
-		{"api-reference", func(a *app) { a.navigate("/api-reference") }, []string{"Open in the browser", "Settings…"}},
+		{"api-reference", func(a *app) { a.navigate("/api-reference") }, []string{"Open in the browser", "Local API settings"}},
 		{"tasks", func(a *app) { a.navigate("/tasks") }, nil},
 	}
 	return d, pages

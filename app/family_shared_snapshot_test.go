@@ -18,7 +18,7 @@ import (
 // to all ActNow apps"), Settings → Network with Dicta's other proxy found
 // at the migration ("Dicta uses a different proxy. Use theirs"), Settings
 // → Models with the model folder kept for AudioSmith ("Only for this
-// app"), the Models page's "Move models…" banner, its confirmation and
+// app"), the Models page's "Move models" banner, its confirmation and
 // the move's progress; English and Chinese at 1100×720:
 //
 //	AUDIOSMITH_SNAPSHOTS=/tmp/shots go test -run TestSnapshotsFamilyShared .

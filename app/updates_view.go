@@ -249,7 +249,7 @@ func (a *app) softwareUpdateSettings(c *ui.Context) {
 			note = i18n.T("Last checked %s.", i18n.DateTime(last))
 		}
 		settingRowNote(c, "about-update", i18n.T("Check for updates"), note, func() {
-			if ui.Button(c.Key("about-update"), i18n.T("Check for Updates…")).Disabled(st.Phase == akup.Checking).Clicked() {
+			if ui.Button(c.Key("about-update"), i18n.T("Check for Updates")).Disabled(st.Phase == akup.Checking).Clicked() {
 				a.checkForUpdates()
 			}
 		})
@@ -281,7 +281,7 @@ func (a *app) softwareUpdateSettings(c *ui.Context) {
 			}
 		})
 		settingRow(c, "about-changelog", i18n.T("Changelog"), i18n.T("What changed in each version, in AudioSmith's language."), func() {
-			if ui.Button(c.Key("about-changelog"), i18n.T("Show Changelog…")).Clicked() {
+			if ui.Button(c.Key("about-changelog"), i18n.T("Show Changelog")).Clicked() {
 				a.openHistory()
 			}
 		})

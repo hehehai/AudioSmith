@@ -134,7 +134,7 @@ func TestTranscribeFileAccurate(t *testing.T) {
 	a.navigate("/transcripts")
 	tt.Frame()
 	tt.Click("Transcript actions")
-	if err := tt.ChooseMenuItem("Delete…"); err != nil {
+	if err := tt.ChooseMenuItem("Delete"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

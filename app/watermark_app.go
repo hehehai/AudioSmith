@@ -250,7 +250,7 @@ func (a *app) watermarkTool(c *ui.Context) {
 				name = i18n.T("No file chosen")
 			}
 			ui.Text(c, name).Grow(1).SingleLine()
-			if ui.Button(c.Key("wm-choose"), i18n.T("Choose…")).Disabled(w.busy).Clicked() {
+			if ui.Button(c.Key("wm-choose"), i18n.T("Choose")).Disabled(w.busy).Clicked() {
 				go func() {
 					paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("An audio or video file")})
 					if err != nil || len(paths) == 0 {

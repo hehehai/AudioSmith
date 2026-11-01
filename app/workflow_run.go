@@ -135,7 +135,7 @@ func (a *app) wfRunPanel(c *ui.Context) {
 	outs := services.Outputs(w, run)
 	if len(outs) > 0 {
 		ui.Row(c).Children(func() {
-			if secondaryIconButton(c.Key("wf-export-all"), icons.Export, i18n.T("Export all…")).Label(i18n.T("Export all…")).Tooltip(i18n.T("Copy every result into a folder")).Clicked() {
+			if secondaryIconButton(c.Key("wf-export-all"), icons.Export, i18n.T("Export all")).Label(i18n.T("Export all")).Tooltip(i18n.T("Copy every result into a folder")).Clicked() {
 				a.wfExportAll()
 			}
 		})

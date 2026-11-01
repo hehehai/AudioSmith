@@ -243,7 +243,7 @@ func (a *app) voiceEditor(c *ui.Context) {
 		a.editorConsent(c, v)
 		a.editorExport(c, v)
 		ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Center).Padding(px(t, sp2), 0, 0).BorderWidth(1, 0, 0, 0).BorderColor(tok(t).Line).Children(func() {
-			if ghostIconButton(c.Key("editor-delete"), icons.TrashBinMinimalistic, i18n.T("Delete…")).Label(i18n.T("Delete")).Clicked() {
+			if ghostIconButton(c.Key("editor-delete"), icons.TrashBinMinimalistic, i18n.T("Delete")).Label(i18n.T("Delete")).Clicked() {
 				a.askDeleteVoice(v.ID)
 			}
 			ui.Spacer(c)
@@ -298,7 +298,7 @@ func (a *app) editorAudio(c *ui.Context, v *core.Voice) {
 				ui.Text(c, line).FontSize(px(t, fsCaption)).TextColor(k.Text2).MaxLines(2).Ellipsis("…").MinWidth(0).Tooltip(line)
 			}
 		})
-		if v.Kind == core.VoiceCloned && iconButton(c.Key("editor-replace"), icons.UploadMinimalistic, i18n.T("Replace reference…")).Clicked() {
+		if v.Kind == core.VoiceCloned && iconButton(c.Key("editor-replace"), icons.UploadMinimalistic, i18n.T("Replace reference")).Clicked() {
 			a.startClone(v.ID)
 		}
 		if v.Kind == core.VoiceDesigned && iconButton(c.Key("editor-design"), icons.MagicStick3, i18n.T("Open in Design")).Clicked() {
@@ -530,7 +530,7 @@ func (a *app) editorExport(c *ui.Context, v *core.Voice) {
 				banner(c, icons.DangerTriangle, t.Warning, note, nil)
 			}
 			ui.Row(c).Children(func() {
-				if secondaryIconButton(c.Key("export-go"), icons.Export, i18n.T("Export…")).Label(i18n.T("Export…")).Clicked() {
+				if secondaryIconButton(c.Key("export-go"), icons.Export, i18n.T("Export")).Label(i18n.T("Export")).Clicked() {
 					a.exportVoice(v.ID, e.exportRef && v.Kind == core.VoiceCloned, e.exportLicence)
 				}
 			})

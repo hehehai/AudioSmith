@@ -257,7 +257,7 @@ func (a *app) audioToolsSettings(c *ui.Context) {
 				if ui.Button(c.Key("ff-rescan"), i18n.T("Look again")).Clicked() {
 					a.scanFFmpeg()
 				}
-				if a.win != nil && ui.Button(c.Key("ff-choose"), i18n.T("Choose a file…")).Clicked() {
+				if a.win != nil && ui.Button(c.Key("ff-choose"), i18n.T("Choose a file")).Clicked() {
 					a.chooseFFmpeg()
 				}
 			})

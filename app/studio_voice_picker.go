@@ -171,7 +171,7 @@ func (a *app) studioVoiceChoices(e catalog.Entry) (cur string, opts []voiceOptio
 		}
 	}
 	if e.Has(catalog.CapClone) {
-		label := i18n.T("Clone a clip…")
+		label := i18n.T("Clone a clip")
 		if ref {
 			label = i18n.T("Clip: %s", filepath.Base(a.refAudio))
 		}
@@ -181,12 +181,12 @@ func (a *app) studioVoiceChoices(e catalog.Entry) (cur string, opts []voiceOptio
 		})
 	}
 	if speaker != "" && saved == nil && !clip && !ref && !e.Has(catalog.CapClone) {
-		add(voiceOption{value: "portable", label: i18n.T("Make a portable copy of %s…", speaker), sub: i18n.T("An approximate clone of it, for models that clone"), action: true}, func() {
+		add(voiceOption{value: "portable", label: i18n.T("Make a portable copy of %s", speaker), sub: i18n.T("An approximate clone of it, for models that clone"), action: true}, func() {
 			a.makeSpeakerPortable(e, speaker)
 		})
 	}
 	add(voiceOption{value: "browse", label: i18n.T("Browse the voice library ›"), action: true}, func() { a.navigate("/voices/discover") })
-	add(voiceOption{value: "manage", label: i18n.T("Manage voices…"), action: true}, func() { a.navigate("/voices/mine") })
+	add(voiceOption{value: "manage", label: i18n.T("Manage voices"), action: true}, func() { a.navigate("/voices/mine") })
 	return cur, opts, acts
 }
 

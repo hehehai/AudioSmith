@@ -254,7 +254,7 @@ func (a *app) exportDialog(c *ui.Context) {
 		if ui.Button(c.Key("ex-cancel"), i18n.T("Cancel")).Clicked() {
 			f.open = false
 		}
-		if primaryButton(c.Key("ex-export"), i18n.T("Export…")).Disabled(!f.availOK[ef.id]).Clicked() {
+		if primaryButton(c.Key("ex-export"), i18n.T("Export")).Disabled(!f.availOK[ef.id]).Clicked() {
 			a.exportChoose(f)
 		}
 	})

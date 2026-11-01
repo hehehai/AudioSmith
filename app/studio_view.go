@@ -135,11 +135,11 @@ func (a *app) composerToolbar(c *ui.Context) {
 	narrow := a.studioNarrow(c)
 	ui.Row(c.Key("script-toolbar")).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 		a.insertMenu(c)
-		imp := i18n.T("Import script…")
+		imp := i18n.T("Import script")
 		if labelOrIcon(c.Key("import"), icons.Import, imp, narrow).Tooltip(i18n.T("TXT, Markdown, DOCX, EPUB, SRT or VTT, inserted at the caret")).Clicked() {
 			a.importScript()
 		}
-		pron := i18n.T("Pronunciation…")
+		pron := i18n.T("Pronunciation")
 		if labelOrIcon(c.Key("pronunciation"), icons.TextSquare, pron, narrow).Tooltip(i18n.T("How words are said: your pronunciation dictionary")).Clicked() {
 			a.navigate("/settings/pronunciation")
 		}

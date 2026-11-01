@@ -107,7 +107,7 @@ func TestDeleteSharedModel(t *testing.T) {
 		t.Fatalf("ask: open %v, shared %v", a.deleteAsk, a.deleteShared)
 	}
 	tt.Frame()
-	for _, want := range []string{"Remove “Chinese & English transcription” from AudioSmith?", "Dicta also uses this model", "Remove from AudioSmith", "Delete for all apps…"} {
+	for _, want := range []string{"Remove “Chinese & English transcription” from AudioSmith?", "Dicta also uses this model", "Remove from AudioSmith", "Delete for all apps"} {
 		if !tt.HasText(want) {
 			t.Errorf("the dialog lacks %q", want)
 		}

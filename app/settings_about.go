@@ -513,12 +513,12 @@ func (a *app) reportSettings(c *ui.Context) {
 			}
 		})
 		settingRow(c, "about-bundle", i18n.T("Save a diagnostic bundle"), i18n.T("A ZIP of the diagnostics, the logs and the settings (without keys), to attach to a report."), func() {
-			if ui.Button(c.Key("about-bundle"), i18n.T("Save…")).Clicked() {
+			if ui.Button(c.Key("about-bundle"), i18n.T("Save")).Clicked() {
 				a.saveBundle()
 			}
 		})
 		settingRow(c, "about-bug", i18n.T("Report a bug"), i18n.T("Opens a new issue on GitHub in your browser, with the diagnostics filled in. Nothing is sent until you submit it."), func() {
-			if ui.Button(c.Key("about-bug"), i18n.T("Report…")).Clicked() {
+			if ui.Button(c.Key("about-bug"), i18n.T("Report")).Clicked() {
 				u := a.bugReportURL()
 				if a.win == nil {
 					c.Services().OpenURL(u)

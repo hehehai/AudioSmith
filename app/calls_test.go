@@ -239,7 +239,7 @@ func TestCallsInboundDialog(t *testing.T) {
 	d := newCallTest(t, true)
 	a := d.a
 	a.navigate("/calls")
-	d.click(t, "Incoming calls…")
+	d.click(t, "Incoming calls")
 	d.shows(t, "Choose what happens when someone calls your Twilio number.", "Play your greeting, then hang up.")
 	a.callInMode = 1
 	a.callInBrief = "Take a message."
