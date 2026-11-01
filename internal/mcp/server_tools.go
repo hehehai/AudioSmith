@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/hehehai/AudioSmith/internal/api"
@@ -382,8 +383,15 @@ func (s *Server) listModels(ctx context.Context, req *sdk.CallToolRequest, in li
 }
 
 type listLanguagesIn struct {
-	Model string `json:"model,omitempty" jsonschema:"A model id; empty: every speech model."`
+	Model string `json:"model,omitempty" jsonschema:"A model id; empty: every speech model (models that speak more than 100 languages are named once, with their count)."`
+	Query string `json:"query,omitempty" jsonschema:"Only languages whose code or name contains this (zh, Chinese, 中文…)."`
 }
+
+// manyLanguages is the language count past which a model is one of the
+// "speaks almost every language" models: list_languages without a model
+// or query names them once instead of on hundreds of rows (OmniVoice made
+// the answer 650 rows, Mac test #136).
+const manyLanguages = 100
 
 func (s *Server) listLanguages(ctx context.Context, req *sdk.CallToolRequest, in listLanguagesIn) (*sdk.CallToolResult, any, error) {
 	s.caller(req)
@@ -391,7 +399,52 @@ func (s *Server) listLanguages(ctx context.Context, req *sdk.CallToolRequest, in
 	if err != nil {
 		return nil, nil, toolError(err)
 	}
-	return result(map[string]any{"count": len(langs), "languages": langs})
+	if q := strings.ToLower(strings.TrimSpace(in.Query)); q != "" {
+		langs = slices.DeleteFunc(langs, func(l api.LanguageJSON) bool {
+			return !strings.Contains(strings.ToLower(l.Code+" "+l.Name+" "+l.Native), q)
+		})
+		return result(map[string]any{"count": len(langs), "languages": langs})
+	}
+	if in.Model != "" {
+		return result(map[string]any{"count": len(langs), "languages": langs})
+	}
+	return result(compactLanguages(langs))
+}
+
+// compactLanguages lists every speech model's languages without the
+// models that speak more than manyLanguages: those come once, by count.
+func compactLanguages(langs []api.LanguageJSON) map[string]any {
+	count := map[string]int{}
+	for _, l := range langs {
+		for _, m := range l.Models {
+			count[m]++
+		}
+	}
+	var many []map[string]any
+	for m, n := range count {
+		if n > manyLanguages {
+			many = append(many, map[string]any{"model": m, "languages": n})
+		}
+	}
+	if len(many) == 0 {
+		return map[string]any{"count": len(langs), "languages": langs}
+	}
+	slices.SortFunc(many, func(a, b map[string]any) int { return strings.Compare(a["model"].(string), b["model"].(string)) })
+	var out []api.LanguageJSON
+	for _, l := range langs {
+		var ms []string
+		for _, m := range l.Models {
+			if count[m] <= manyLanguages {
+				ms = append(ms, m)
+			}
+		}
+		if len(ms) > 0 {
+			l.Models = ms
+			out = append(out, l)
+		}
+	}
+	return map[string]any{"count": len(out), "languages": out, "multilingual_models": many,
+		"note": "multilingual_models speak these languages too and many more: list_languages with their model (or a query) lists theirs."}
 }
 
 func (s *Server) checkHealth(ctx context.Context, req *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, any, error) {
@@ -401,7 +454,7 @@ func (s *Server) checkHealth(ctx context.Context, req *sdk.CallToolRequest, _ st
 
 func (s *Server) addTools() {
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "generate_speech", Title: "Generate speech",
-		Description: "Speak text with a voice on this Mac. Returns the audio (WAV) inline and/or as a file, and the take's details."}, s.generateSpeech)
+		Description: "Speak text with a voice on this Mac. Returns the audio (WAV) inline and/or as a file, and the take's details. Only to hear what a voice sounds like, preview_voice is instant."}, s.generateSpeech)
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "clone_voice", Title: "Clone a voice",
 		Description: "Save a voice cloned from a recording (a path on this Mac, or base64). Only with the speaker's consent."}, s.cloneVoice)
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "design_voice", Title: "Design a voice",

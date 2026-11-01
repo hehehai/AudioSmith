@@ -29,7 +29,7 @@ func skillTools() []skillTool {
 	arg := func(text string, names ...string) skillArg { return skillArg{Names: names, Text: text} }
 	must := func(text, name string) skillArg { return skillArg{Names: []string{name}, Text: text, Required: true} }
 	return append([]skillTool{
-		{Name: "generate_speech", Lead: i18n.T("text to speech, as a WAV."), Args: []skillArg{
+		{Name: "generate_speech", Lead: i18n.T("text to speech, as a WAV (only to hear a voice, preview_voice is instant)."), Args: []skillArg{
 			must(i18n.T("What to say. Long text is fine (up to 100,000 characters): AudioSmith splits it into sentences and joins the take; for a whole book, one call per chapter or section keeps each call short. %s inserts a pause.", "`[pause 500ms]`"), "text"),
 			arg(i18n.T("A saved voice's name or id (list_voices), a built-in speaker of the model (list_models → voices) or an OpenAI name (alloy, nova…). Empty: your own voice, else the model's default."), "voice"),
 			arg(i18n.T("A model id from list_models. Empty: AudioSmith's default, or a model that can speak the voice. Models marked needs_reference speak cloned voices only. A removed model's id is answered by its replacement (replaced_by in the result)."), "model"),
@@ -79,7 +79,8 @@ func skillTools() []skillTool {
 			arg(i18n.T("tts or stt; empty: both."), "task"),
 		}},
 		{Name: "list_languages", Lead: i18n.T("the languages a model speaks."), Args: []skillArg{
-			arg(i18n.T("A model id; empty: every speech model."), "model"),
+			arg(i18n.T("A model id; empty: every speech model (models that speak more than 100 languages are named once, with their count)."), "model"),
+			arg(i18n.T("Only languages whose code or name contains this (zh, Chinese, 中文…)."), "query"),
 		}},
 		{Name: "check_health", Lead: i18n.T("whether AudioSmith's engine is ready, starting or unavailable. No arguments.")},
 		// Thread #35: the app's modules.

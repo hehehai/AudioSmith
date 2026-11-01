@@ -300,7 +300,7 @@ func (s *Server) addKitTools() {
 	sdk.AddTool(s.srv, add("import_voice", "Import a voice file",
 		"Add a voice from an .asvoice (or VoiceStudio .ovsvoice) file to My voices; its reference is checked and cleaned afterwards."), s.importVoice)
 	sdk.AddTool(s.srv, add("preview_voice", "Hear a voice",
-		"A short preview clip of a saved voice, a Discover voice (gallery_id) or a model's built-in speaker (model + speaker), inline and/or as a file. Nothing is generated."), s.previewVoice)
+		"A short preview clip of a saved voice, a Discover voice (gallery_id) or a model's built-in speaker (model + speaker), inline and/or as a file. Nothing is generated: use it whenever the user wants to hear or audition a voice (before choosing, saving or using it), rather than generate_speech."), s.previewVoice)
 	sdk.AddTool(s.srv, add("check_reference", "Check a clone recording",
 		"Grade a recording as a voice-clone reference before clone_voice (good, fine or needs_work, with what to fix: noise, length, clipping, a text mismatch). Nothing is saved."), s.checkReference)
 	sdk.AddTool(s.srv, add("write_story", "Write a story draft",

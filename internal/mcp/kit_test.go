@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -393,6 +394,16 @@ func TestKitSmallTools(t *testing.T) {
 	if conv["text"] != "hello world" || !strings.HasSuffix(conv["file"].(string), "talk-af.wav") {
 		t.Fatalf("convert %+v", conv)
 	}
+	// Kokoro has no target length: match_length takes it again at the speed
+	// that fits (the fake's takes are 0.2 s); the voice speaks no Chinese.
+	conv = nil
+	succeeds(t, cs, "convert_voice", map[string]any{"path": src, "voice": "af_heart", "model": "kokoro-82m-bf16", "language": "zh", "match_length": true}, &conv)
+	k.mu.Lock()
+	g = k.generated[len(k.generated)-1]
+	k.mu.Unlock()
+	if conv["speed"] == nil || g.Speed == 0 || g.Speed > 1 || conv["warning"] == nil {
+		t.Fatalf("convert, match_length %+v, request %+v", conv, g)
+	}
 	failsWith(t, cs, "convert_voice", map[string]any{"path": src, "voice": ""}, api.CodeInvalid)
 
 	failsWith(t, cs, "download_model", map[string]any{"model": "kokoro-82m-bf16"}, api.CodeConfirmRequired)
@@ -413,6 +424,12 @@ func TestKitSmallTools(t *testing.T) {
 	succeeds(t, cs, "get_settings", nil, &st)
 	if st["agents_folder"] != filepath.Join(k.dir, "mcp") || st["output"] == "" {
 		t.Fatalf("settings %+v", st)
+	}
+	// Unset models are named by the default AudioSmith uses (#136).
+	tr, _ := st["transcribe"].(map[string]any)
+	dub, _ := st["dubbing"].(map[string]any)
+	if st["speech_model"] == "" || tr["accurate_model"] == "" || tr["fast_model"] == "" || fmt.Sprint(dub["targets"]) != "[zh-Hans]" {
+		t.Fatalf("settings defaults %+v", st)
 	}
 
 	succeeds(t, cs, "transcribe", map[string]any{"path": src, "mode": "fast"}, nil)

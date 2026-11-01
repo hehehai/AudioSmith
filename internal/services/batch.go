@@ -55,7 +55,7 @@ type BatchSettings struct {
 
 // DefaultBatchSettings are the batch queue's first settings.
 func DefaultBatchSettings() BatchSettings {
-	return BatchSettings{Targets: []string{dub.DefaultTarget}, TargetsAuto: true, KeepBackground: true, Translator: "llm", Quality: translate.Fast, Timing: dub.TimingSmart}
+	return BatchSettings{Targets: DefaultDubTargets(), TargetsAuto: true, KeepBackground: true, Translator: "llm", Quality: translate.Fast, Timing: dub.TimingSmart}
 }
 
 // WatchState is the watch folder, as persisted.
@@ -361,3 +361,6 @@ func (s *Dubs) ScanWatch(ctx context.Context) []string {
 	}
 	return ready
 }
+
+// DefaultDubTargets are the languages of a dub nobody chose any for.
+func DefaultDubTargets() []string { return []string{dub.DefaultTarget} }

@@ -269,7 +269,7 @@ func (b *apiBackend) ExportLongform(ctx context.Context, req api.LongformExport)
 		tool := b.tool()
 		if !tool.CanEncode(format) {
 			return api.ExportJSON{}, apiErr(http.StatusBadRequest, api.CodeUnsupportedFormat, "format",
-				"%s needs ffmpeg: the user can set it up in AudioSmith → Settings → Audio tools.", strings.ToUpper(format))
+				"%s needs ffmpeg: the user can set it up in AudioSmith → Settings → Audio tools; without it export wav or m4b (or m4a), or ask the user before converting the WAV yourself.", strings.ToUpper(format))
 		}
 		o := bookEncodeOptions(rec, &body.Spec, out, format)
 		o.Output = file(formatExt(format))

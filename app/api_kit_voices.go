@@ -26,6 +26,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/gallery"
 	"github.com/hehehai/AudioSmith/internal/gallery/persona"
+	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/jobs"
 	"github.com/hehehai/AudioSmith/internal/services"
 )
@@ -110,7 +111,7 @@ func (b *apiBackend) DuplicateVoice(ctx context.Context, req api.VoiceDuplicate)
 	}
 	name := core.CleanName(req.Name)
 	if name == "" {
-		name = core.CleanName(v.Name + " (copy)")
+		name = core.CleanName(i18n.T("%s (copy)", v.Name)) // as Voices → Mine names it
 	}
 	cp, files, portrait := voiceCopy(v, name, func(n string) string { return b.lib.svc.Voices.FilePath(v, n) })
 	if portrait != "" {

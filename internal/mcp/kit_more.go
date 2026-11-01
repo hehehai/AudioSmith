@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -105,7 +106,7 @@ type convertIn struct {
 	Voice       string `json:"voice" jsonschema:"The voice to say it in: a saved voice (id or name), a built-in speaker, or a Discover voice saved with use_gallery_voice."`
 	Model       string `json:"model,omitempty" jsonschema:"A speech model that speaks the voice (list_models); empty: the default for it."`
 	Language    string `json:"language,omitempty" jsonschema:"BCP-47 code of the recording; empty: detected."`
-	MatchLength bool   `json:"match_length,omitempty" jsonschema:"Aim at the recording's length (models with a target duration, such as OmniVoice)."`
+	MatchLength bool   `json:"match_length,omitempty" jsonschema:"Aim at the recording's length: a target duration on models with one (OmniVoice), else one more take at a matching speed."`
 	Output      string `json:"output,omitempty" jsonschema:"inline, file or both; empty: AudioSmith's setting."`
 	Filename    string `json:"filename,omitempty" jsonschema:"The WAV's name in file mode (no folders)."`
 }
@@ -138,13 +139,21 @@ func (s *Server) convertVoice(ctx context.Context, req *sdk.CallToolRequest, in 
 	if in.MatchLength {
 		p.Duration = tr.Transcript.Duration
 	}
-	sp, err := s.o.API.StartSpeech(ctx, p)
+	sp, res, err := s.speak(ctx, p)
 	if err != nil {
-		return nil, nil, toolError(err)
+		return nil, nil, err
 	}
-	res, err := sp.Wait(ctx, nil)
-	if err != nil {
-		return nil, nil, toolError(err)
+	// A model without a target length (Kokoro…) ignores duration: one
+	// more take at the speed that brings it near the recording's length,
+	// so match_length still means something (Mac test #136: 5 s for 12 s).
+	src := tr.Transcript.Duration
+	if in.MatchLength && slices.Contains(sp.Ignored, "duration") && src > 0 && res.Take.AudioSeconds > 0 {
+		if r := res.Take.AudioSeconds / src; r < 0.9 || r > 1.1 {
+			p.Duration, p.Speed = 0, min(max(r, 0.5), 2)
+			if sp2, res2, err := s.speak(ctx, p); err == nil && !slices.Contains(sp2.Ignored, "speed") {
+				sp, res = sp2, res2
+			}
+		}
 	}
 	name := firstNonEmpty(in.Filename, res.Take.ID+".wav")
 	if !strings.HasSuffix(strings.ToLower(name), ".wav") {
@@ -162,7 +171,26 @@ func (s *Server) convertVoice(ctx context.Context, req *sdk.CallToolRequest, in 
 	if len(sp.Ignored) > 0 {
 		out["ignored"] = sp.Ignored // duration on a model without a target length
 	}
+	if p.Speed != 0 {
+		out["speed"] = round2(p.Speed)
+	}
+	if slices.Contains(sp.Ignored, "language") && p.Language != "" {
+		out["warning"] = fmt.Sprintf("This voice does not speak %s on %s: the take may garble the text. Pick a voice that speaks it (list_models → voices, list_voices).", p.Language, sp.Model.ID)
+	}
 	return result(out, extra...)
+}
+
+// speak makes one take and waits for it.
+func (s *Server) speak(ctx context.Context, p api.SpeechParams) (*api.Speech, api.SpeechResult, error) {
+	sp, err := s.o.API.StartSpeech(ctx, p)
+	if err != nil {
+		return nil, api.SpeechResult{}, toolError(err)
+	}
+	res, err := sp.Wait(ctx, nil)
+	if err != nil {
+		return nil, api.SpeechResult{}, toolError(err)
+	}
+	return sp, res, nil
 }
 
 type downloadIn struct {
@@ -251,10 +279,24 @@ func (s *Server) getSettings(ctx context.Context, req *sdk.CallToolRequest, _ st
 		}
 		return model
 	}
+	// An unset model is AudioSmith's default, named so an agent does not
+	// report "none" (Mac test #136).
+	tts, accurate, fast := api.DefaultModels(st)
+	or := func(model, def string) string {
+		if model == "" {
+			return def
+		}
+		return id(model)
+	}
+	dubModel := id(st.Dubbing.Model)
+	if dubModel == "" {
+		dubModel = "auto (AudioSmith picks one per target language)"
+	}
+	targets := api.DubTargets(st)
 	out := map[string]any{
-		"speech_model":  id(st.Studio.Model),
-		"transcribe":    map[string]any{"accurate_model": id(st.Transcribe.AccurateModel), "fast_model": id(st.Transcribe.FastModel), "language": st.Transcribe.Language},
-		"dubbing":       map[string]any{"targets": st.Dubbing.Targets, "model": id(st.Dubbing.Model), "link_import": st.Dubbing.URLImport && st.Dubbing.YtDlp != ""},
+		"speech_model":  or(st.Studio.Model, tts),
+		"transcribe":    map[string]any{"accurate_model": or(st.Transcribe.AccurateModel, accurate), "fast_model": or(st.Transcribe.FastModel, fast), "language": orAuto(st.Transcribe.Language)},
+		"dubbing":       map[string]any{"targets": targets, "model": dubModel, "link_import": st.Dubbing.URLImport && st.Dubbing.YtDlp != ""},
 		"output":        st.API.Output(),
 		"agents_folder": s.sandbox(),
 		"watermark":     !st.Privacy.NoWatermark,
@@ -264,6 +306,14 @@ func (s *Server) getSettings(ctx context.Context, req *sdk.CallToolRequest, _ st
 		out["your_voice"] = b.Voice
 	}
 	return result(out)
+}
+
+// orAuto is a language setting as get_settings shows it: "" detects.
+func orAuto(language string) string {
+	if language == "" {
+		return "auto (detected)"
+	}
+	return language
 }
 
 func (s *Server) addMoreTools() {

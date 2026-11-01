@@ -11,6 +11,7 @@ import (
 
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
+	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/settings"
 )
 
@@ -122,6 +123,21 @@ func defaultTTS(st settings.Settings) catalog.Entry {
 		return l[0]
 	}
 	return catalog.Entry{}
+}
+
+// DefaultModels are the models a request without one gets: speech,
+// Transcribe's Accurate and Fast (MCP's get_settings shows them).
+func DefaultModels(st settings.Settings) (tts, accurate, fast string) {
+	return defaultTTS(st).ID, defaultSTT(st, false, "").ID, defaultSTT(st, true, "").ID
+}
+
+// DubTargets are the languages a new dub is made in: Settings →
+// Dubbing's, else the default (services.DefaultBatchSettings').
+func DubTargets(st settings.Settings) []string {
+	if len(st.Dubbing.Targets) > 0 {
+		return st.Dubbing.Targets
+	}
+	return services.DefaultDubTargets()
 }
 
 // defaultSTT is Transcribe's Accurate model (fast: its Fast model) when

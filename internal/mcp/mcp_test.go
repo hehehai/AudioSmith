@@ -404,6 +404,16 @@ func TestTools(t *testing.T) {
 	if !strings.Contains(textOf(res), `"code": "en-US"`) {
 		t.Fatalf("languages: %s", textOf(res))
 	}
+	// Every speech model: OmniVoice's 600+ languages come once, by count
+	// (Mac test #136); a query finds Chinese among them.
+	res = call(t, cs, "list_languages", nil)
+	if txt := textOf(res); !strings.Contains(txt, `"multilingual_models"`) || !strings.Contains(txt, `"omnivoice-bf16"`) || strings.Contains(txt, `"Abkhazian"`) || len(txt) > 20000 {
+		t.Fatalf("languages, every model: %d bytes %.600s", len(txt), txt)
+	}
+	res = call(t, cs, "list_languages", map[string]any{"query": "chinese"})
+	if txt := textOf(res); !strings.Contains(txt, `"zh"`) || strings.Contains(txt, `"en-US"`) || !strings.Contains(txt, "omnivoice-bf16") {
+		t.Fatalf("languages, query: %.800s", txt)
+	}
 	res = call(t, cs, "check_health", nil)
 	if !strings.Contains(textOf(res), `"status": "ok"`) {
 		t.Fatalf("health: %s", textOf(res))

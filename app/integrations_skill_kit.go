@@ -51,7 +51,7 @@ func kitSkillTools() []skillTool {
 			must(i18n.T("Absolute path of the recording (audio or video)."), "path"),
 			must(i18n.T("The voice to say it in: a saved voice's name or id, or a built-in speaker."), "voice"),
 			arg(i18n.T("A speech model that speaks the voice; empty: the default for it. The recording's language (BCP-47); empty: detected."), "model", "language"),
-			arg(i18n.T("true aims at the recording's length (models with a target duration, such as OmniVoice; others ignore it)."), "match_length"),
+			arg(i18n.T("true aims at the recording's length: a target duration on models with one (OmniVoice), else one more take at a matching speed."), "match_length"),
 			output,
 			arg(i18n.T("The WAV's name in file mode (no folders)."), "filename"),
 		}, After: i18n.T("Returns the text heard, the new take (take_id, file, audio_seconds) and its source's length.")},

@@ -194,7 +194,7 @@ func (b *apiBackend) dubSource(ctx context.Context, req api.DubCreate) (dub.Sour
 		}
 		if d := b.lib.settings.Get().Dubbing; !d.URLImport || d.YtDlp == "" {
 			return dub.Source{}, apiErr(http.StatusConflict, dub.CodeNoYtDlp, "url",
-				"Importing from a link is off: ask the user to turn it on in AudioSmith → Settings → Dubbing (it downloads yt-dlp), or download the video and give its path.")
+				"Importing from a link is off: ask the user whether to turn it on in AudioSmith → Settings → Dubbing (it downloads yt-dlp), or to give the path of the video downloaded; do not install a downloader yourself without asking.")
 		}
 		return dub.Source{Kind: dub.SourceURL, URL: req.URL, Name: req.URL}, nil
 	}
