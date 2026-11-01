@@ -98,7 +98,7 @@ const Instructions = "AudioSmith is a local speech app on this Mac (MLX; nothing
 	"list_workflows, run_workflow.\n" +
 	"- Tools: probe_media, detect_watermark, direct_performance, check_line_fit, get_settings, list_models, list_languages, check_health.\n" +
 	"- Long work returns job_id: get_job with wait_seconds (≤ 60) until done, then report its files; cancel_job stops it.\n" +
-	"- delete_item and download_model need confirm: true, only after the user said yes.\n" +
+	"- delete_item and download_model need confirm: true, only after you asked and the user said yes (\"delete X\" is not yet a yes: say what goes or the size, wait).\n" +
 	"Error codes: licence_required or model_not_downloaded → the user fixes it in AudioSmith → Models (or download_model " +
 	"with their OK); engine_unavailable, queue_timeout, busy → wait, retry; needs_reference → a cloned voice or another model; " +
 	"confirm_required → ask the user. Never change settings or accept licences. Use only 127.0.0.1; report the paths of files you make. " +
@@ -111,7 +111,7 @@ func New(o Options) *Server {
 		&sdk.ServerOptions{Instructions: Instructions, InitializedHandler: s.sessionInitialized})
 	s.addTools()
 	s.addResources()
-	s.srv.AddReceivingMiddleware(logTools)
+	s.srv.AddReceivingMiddleware(logTools, annotateTools)
 	s.handler = s.sessions.wrap(sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return s.srv },
 		&sdk.StreamableHTTPOptions{SessionTimeout: 30 * time.Minute, MaxRequestBodyBytes: 64 << 20}))
 	return s

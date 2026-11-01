@@ -234,6 +234,7 @@ func agentSkill(slug string, p promptEnv) string {
 	head(i18n.T("Manners"))
 	item(i18n.T("Ask before cloning anyone's voice, and pass %s only after the user has confirmed that the speaker agreed.", q("consent: true")))
 	item(i18n.T("Ask before deleting anything, and pass %s to delete_item only after the user said yes to that item.", q("confirm: true")))
+	item(i18n.T("A request that names the action (\"delete …\", \"download …\") is not the yes yet: first say exactly what goes, or how big the download is, and wait for the user's answer in a new message. Clients that can show a confirmation get AudioSmith's own dialog too; if it answers %s, the user said no.", q("declined")))
 	item(i18n.T("Long jobs: tell the user the job_id, follow it with wait_seconds rather than polling fast, and report its progress and files."))
 	item(i18n.T("AudioSmith stays on this Mac: use only 127.0.0.1 and never expose its API (no 0.0.0.0, tunnels or port forwarding)."))
 	item(i18n.T("Keep the audio in the agents' folder unless the user names another place (then pass it as directory), and always report the paths of the files you made."))

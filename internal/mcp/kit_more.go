@@ -195,7 +195,7 @@ func (s *Server) speak(ctx context.Context, p api.SpeechParams) (*api.Speech, ap
 
 type downloadIn struct {
 	Model   string `json:"model" jsonschema:"The model's id (list_models)."`
-	Confirm bool   `json:"confirm,omitempty" jsonschema:"true only after the user agreed to the download (models are 0.1–25 GB); without it nothing is downloaded (confirm_required)."`
+	Confirm bool   `json:"confirm,omitempty" jsonschema:"true only after you told the user the model's size (0.1–25 GB) and they agreed (a request to download is not yet the yes); without it nothing is downloaded (confirm_required)."`
 }
 
 func (s *Server) downloadModel(ctx context.Context, req *sdk.CallToolRequest, in downloadIn) (*sdk.CallToolResult, any, error) {
@@ -204,12 +204,15 @@ func (s *Server) downloadModel(ctx context.Context, req *sdk.CallToolRequest, in
 	}
 	id := strings.TrimSpace(in.Model)
 	e, ok := catalog.Builtin().ByID(id)
+	size := ""
+	if ok && e.Size > 0 {
+		size = fmt.Sprintf(" (%.1f GB)", float64(e.Size)/1e9)
+	}
 	if !in.Confirm {
-		size := ""
-		if ok && e.Size > 0 {
-			size = fmt.Sprintf(" (%.1f GB)", float64(e.Size)/1e9)
-		}
 		return nil, nil, fmt.Errorf("%s: downloading %s%s takes disk space and time: ask the user, then call again with confirm: true", api.CodeConfirmRequired, id, size)
+	}
+	if err := askUser(ctx, req, fmt.Sprintf("AudioSmith: download the model %s%s?", firstNonEmpty(e.Label, id), size)); err != nil {
+		return nil, nil, err
 	}
 	job, err := s.o.API.DownloadModel(ctx, id)
 	if err != nil {
@@ -298,6 +301,7 @@ func (s *Server) getSettings(ctx context.Context, req *sdk.CallToolRequest, _ st
 		"transcribe":    map[string]any{"accurate_model": or(st.Transcribe.AccurateModel, accurate), "fast_model": or(st.Transcribe.FastModel, fast), "language": orAuto(st.Transcribe.Language)},
 		"dubbing":       map[string]any{"targets": targets, "model": dubModel, "link_import": st.Dubbing.URLImport && st.Dubbing.YtDlp != ""},
 		"output":        st.API.Output(),
+		"output_means":  "how tools hand back audio by default: inline (in the reply), file (a WAV in agents_folder) or both; a call's output argument overrides it",
 		"agents_folder": s.sandbox(),
 		"watermark":     !st.Privacy.NoWatermark,
 		"note":          "Read only: the user changes settings in AudioSmith → Settings. The pronunciation dictionary (Settings → Pronunciation) applies to every take by itself.",

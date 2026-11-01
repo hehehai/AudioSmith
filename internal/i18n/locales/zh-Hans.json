@@ -1,4 +1,5 @@
 {
+  "A request that names the action (\"delete …\", \"download …\") is not the yes yet: first say exactly what goes, or how big the download is, and wait for the user's answer in a new message. Clients that can show a confirmation get AudioSmith's own dialog too; if it answers %s, the user said no.": "用户的要求里说了“删除…”“下载…”还不算同意：先讲清楚会删掉什么、要下载多大，再等用户在下一条消息里回答。能弹出确认框的客户端还会看到 AudioSmith 自己的确认框；如果返回 %s，就是用户拒绝了。",
   "# Chapter One\n\nOnce upon a time… [pause 500ms] the end.\n\n# Chapter Two\n\n[voice:Mara] Hello!": "# 第一章\n\n很久很久以前…… [pause 500ms] 故事结束。\n\n# 第二章\n\n[voice:Mara] 你好！",
   "# Harrow Point": "# 哈罗角",
   "# The Night Ferry": "# 夜航渡轮",

@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -188,12 +189,17 @@ func (s *Server) listTakes(ctx context.Context, req *sdk.CallToolRequest, in lis
 type deleteIn struct {
 	Kind    string `json:"kind" jsonschema:"take, voice, transcript, project (a story or audiobook), dub or isolation."`
 	ID      string `json:"id" jsonschema:"Its id."`
-	Confirm bool   `json:"confirm,omitempty" jsonschema:"true only after the user said yes to deleting it; without it nothing is deleted (confirm_required)."`
+	Confirm bool   `json:"confirm,omitempty" jsonschema:"true only after you asked the user about deleting this item and they said yes (a request to delete is not yet the yes); without it nothing is deleted (confirm_required)."`
 }
 
 func (s *Server) deleteItem(ctx context.Context, req *sdk.CallToolRequest, in deleteIn) (*sdk.CallToolResult, any, error) {
 	if err := s.local(req); err != nil {
 		return nil, nil, err
+	}
+	if in.Confirm {
+		if err := askUser(ctx, req, fmt.Sprintf("AudioSmith: delete the %s %s? This cannot be undone.", strings.TrimSpace(in.Kind), strings.TrimSpace(in.ID))); err != nil {
+			return nil, nil, err
+		}
 	}
 	if err := s.o.API.Delete(ctx, strings.TrimSpace(in.Kind), strings.TrimSpace(in.ID), in.Confirm); err != nil {
 		return nil, nil, toolError(err)
