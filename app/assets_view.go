@@ -103,7 +103,7 @@ func (a *app) historyPage(c *ui.Context) {
 	a.assetAsk(c)
 }
 
-// assetAsk asks before Delete on a focused row deletes its asset (or,
+// assetAsk asks before Delete on a focused row or ⋯ → Delete… deletes its asset (or,
 // for an export, removes its record: the file stays).
 func (a *app) assetAsk(c *ui.Context) {
 	h := &a.history
@@ -251,8 +251,8 @@ func (a *app) assetMenu(m *ui.Menu, as asset) {
 		if as.delRecord {
 			label = i18n.T("Remove from Assets (the file stays)")
 		}
-		if m.Item(label).Chosen() {
-			as.del()
+		if m.Item(label + "…").Chosen() { // asks first, as Delete on the row does
+			a.history.ask, a.history.askOpen = as, true
 		}
 	}
 }

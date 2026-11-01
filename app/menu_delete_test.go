@@ -21,10 +21,19 @@ func TestDeleteMenusHistoryAndProjects(t *testing.T) {
 	addTake(t, a, core.Take{ID: "T1", CreatedAt: at, Text: "First take", Model: kokoro, Voice: "af_heart", AudioSeconds: 1}, 0.3)
 	addTake(t, a, core.Take{ID: "T2", CreatedAt: at.Add(time.Minute), Text: "Second take", Model: kokoro, Voice: "af_heart", AudioSeconds: 1}, 0.3)
 
-	// Assets: Delete deletes at once (the newest take's menu is first).
+	// Assets: Delete… asks first, as Delete on the row does (#128); the
+	// newest take's menu is first.
 	a.showPage("history")
 	tt.Frame()
-	chooseAway(t, tt, "Asset actions", "Delete")
+	chooseAway(t, tt, "Asset actions", "Delete…")
+	if a.findTake("T2") == nil || !a.history.askOpen {
+		t.Fatalf("history: deleted without asking, or no question")
+	}
+	tt.Frame()
+	if err := tt.Click("Delete"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if a.findTake("T2") != nil || a.findTake("T1") == nil {
 		t.Fatalf("history delete: %v", a.takes)
 	}
