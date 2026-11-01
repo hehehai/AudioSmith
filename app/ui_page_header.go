@@ -26,10 +26,14 @@ type pageHead struct {
 	parent, up string
 	// upFn, when set, is what the list's name does instead (Stories
 	// and Audiobook close the open work: longform_entry.go).
-	upFn   func()
-	count  string // how many items the page lists ("3 项"); "" none
-	sub    string // a status or a short line after the count; "" none
-	bare   bool   // Home: no title (the page's question is)
+	upFn  func()
+	count string // how many items the page lists ("3 项"); "" none
+	sub   string // a status or a short line after the count; "" none
+	bare  bool   // Home: no title (the page's question is)
+	// inline is a control of the page's own after the title, at the
+	// header controls' height (the Dub editor's steps); it keeps its room
+	// and the title gives way. nil none.
+	inline func()
 	search *headSearch
 	// tools builds the page's tools on the right, after the search;
 	// narrow says the window is narrow (pageNarrow): leave out what more
@@ -177,6 +181,10 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 	k := tok(t)
 	var below, inline func()
 	h.title, below, inline = hostedHeader(h.title) // ui_layout.go
+	hosted := inline != nil
+	if !hosted {
+		inline = h.inline
+	}
 	defer func() {
 		if below != nil {
 			below()
@@ -187,7 +195,7 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 	head.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, gutterR(t), 0, gutterL(t)).
 		Gap(px(t, sp2)).DragWindow().Role(ui.RoleGroup).Label(i18n.T("Page header")).Children(func() {
 		left := ui.Row(c.Key("head-left"))
-		if inline != nil {
+		if hosted {
 			// A page's own tabs after its title (Voices' 发现 | 我的) keep
 			// their room: the tools give way (the search narrows).
 			left.Shrink(0)
@@ -240,7 +248,7 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				})
 			}
 		})
-		if inline != nil {
+		if hosted {
 			ui.Box(c.Key("head-gap")).Grow(1).MinWidth(0)
 		}
 		tools := ui.Row(c.Key("head-tools"))

@@ -3914,5 +3914,7 @@
   "%s: %s": "%s：%s",
   "Times used": "使用次数",
   "Use cases": "用途",
-  "All statuses": "全部状态"
+  "All statuses": "全部状态",
+  "Current step": "当前步骤",
+  "dub step\u0004Done": "已完成"
 }
