@@ -12,7 +12,6 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/doc"
 	"github.com/hehehai/AudioSmith/internal/services"
-	"github.com/hehehai/AudioSmith/internal/text/markup"
 )
 
 // lfKind is a project kind from the API's.
@@ -107,9 +105,9 @@ func (b *apiBackend) CreateLongform(ctx context.Context, req api.LongformCreate)
 		}
 		names := services.CastNames(d.Script)
 		for name, v := range req.Cast {
-			i := slices.IndexFunc(names, func(n string) bool { return markup.NameKey(n) == markup.NameKey(name) })
-			if i < 0 {
-				return api.LongformJSON{}, errBadRequest("cast", "The manuscript has no [voice:%s] nor a dialogue speaker %s; its names are: %s.", name, name, strings.Join(names, ", "))
+			cn, err := bookCastName(names, name)
+			if err != nil {
+				return api.LongformJSON{}, err
 			}
 			ref, err := voiceRef(voices, e, v, "cast")
 			if err != nil {
@@ -118,7 +116,7 @@ func (b *apiBackend) CreateLongform(ctx context.Context, req api.LongformCreate)
 			if d.VoiceCast == nil {
 				d.VoiceCast = map[string]string{}
 			}
-			d.VoiceCast[names[i]] = ref
+			d.VoiceCast[cn] = ref
 		}
 		bookDialogueDefault(&d) // api_studio_longform_dialogue.go
 	} else {

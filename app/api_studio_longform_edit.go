@@ -37,13 +37,9 @@ func (b *apiBackend) updatePerformance(ctx context.Context, p core.Project, d *s
 		d.Scene = strings.TrimSpace(*req.Scene)
 	}
 	for name, persona := range req.Personas {
-		i := slices.IndexFunc(d.Cast, func(m services.CastMember) bool { return strings.EqualFold(m.Name, strings.TrimSpace(name)) })
-		if i < 0 {
-			var names []string
-			for _, m := range d.Cast {
-				names = append(names, m.Name)
-			}
-			return errBadRequest("personas", "The story has no character %q; its characters are: %s.", name, strings.Join(names, ", "))
+		i, err := storyCastIndex(d, name, "personas")
+		if err != nil {
+			return err
 		}
 		d.Cast[i].Persona = strings.TrimSpace(persona)
 	}
@@ -163,58 +159,124 @@ func (b *apiBackend) UpdateLongform(ctx context.Context, req api.LongformUpdate)
 		return api.LongformJSON{}, errBadRequest("script", "script is for audiobooks; a story's lines change in AudioSmith (or make a new story).")
 	}
 	if p.Kind == core.ProjectAudiobook {
-		if len(req.Lines) > 0 {
-			return api.LongformJSON{}, errBadRequest("line_voices", "line_voices are for stories; an audiobook switches voices with [voice:NAME] in its text.")
-		}
-		if req.Script != nil {
-			if strings.TrimSpace(*req.Script) == "" {
-				return api.LongformJSON{}, errBadRequest("script", "The manuscript is empty.")
-			}
-			d.Script = *req.Script
-		}
-		names := services.CastNames(d.Script)
-		for name, v := range req.Cast {
-			i := slices.IndexFunc(names, func(n string) bool { return markup.NameKey(n) == markup.NameKey(name) })
-			if i < 0 {
-				return api.LongformJSON{}, errBadRequest("cast", "The manuscript has no [voice:%s] nor a dialogue speaker %s; its names are: %s.", name, name, strings.Join(names, ", "))
-			}
-			r, err := ref(v, "cast")
-			if err != nil {
-				return api.LongformJSON{}, err
-			}
-			if d.VoiceCast == nil {
-				d.VoiceCast = map[string]string{}
-			}
-			if r == "" {
-				delete(d.VoiceCast, names[i])
-			} else {
-				d.VoiceCast[names[i]] = r
-			}
-		}
+		err = updateBookVoices(&d, req, ref)
 	} else {
-		for name, v := range req.Cast {
-			i := slices.IndexFunc(d.Cast, func(m services.CastMember) bool { return strings.EqualFold(m.Name, strings.TrimSpace(name)) })
-			if i < 0 {
-				var names []string
-				for _, m := range d.Cast {
-					names = append(names, m.Name)
-				}
-				return api.LongformJSON{}, errBadRequest("cast", "The story has no character %q; its characters are: %s.", name, strings.Join(names, ", "))
-			}
-			if d.Cast[i].Voice, err = ref(v, "cast"); err != nil {
-				return api.LongformJSON{}, err
-			}
+		err = updateStoryVoices(&d, req, ref)
+	}
+	if err != nil {
+		return api.LongformJSON{}, err
+	}
+	if err := b.updateLongformSettings(&d, req); err != nil {
+		return api.LongformJSON{}, err
+	}
+	if t := strings.TrimSpace(req.Title); t != "" {
+		d.Title, p.Title = t, t
+	}
+	if err := b.updatePerformance(ctx, p, &d, req, voices); err != nil {
+		return api.LongformJSON{}, err
+	}
+	bookDialogueDefault(&d)
+	// Refused when the project was saved meanwhile (the page, another
+	// request): this edit was made on what it was before (#101 M7).
+	saved, err := b.lib.svc.Library.SaveDocIf(ctx, core.Project{ID: p.ID, Kind: p.Kind, Title: p.Title}, d, services.BodyIs(p))
+	if errors.Is(err, services.ErrChanged) {
+		return api.LongformJSON{}, errBusy("The project was saved elsewhere (in AudioSmith, or by another request) while this edit ran: read it again with get_longform and retry.")
+	}
+	if err != nil {
+		return api.LongformJSON{}, err
+	}
+	return b.longformJSON(ctx, saved, d, voices)
+}
+
+// voiceRefFunc resolves an agent's voice for a parameter ("" the
+// default).
+type voiceRefFunc func(v, param string) (string, error)
+
+// bookCastName is the manuscript's name (among names) an agent's cast
+// entry means.
+func bookCastName(names []string, name string) (string, error) {
+	i := slices.IndexFunc(names, func(n string) bool { return markup.NameKey(n) == markup.NameKey(name) })
+	if i < 0 {
+		return "", errBadRequest("cast", "The manuscript has no [voice:%s] nor a dialogue speaker %s; its names are: %s.", name, name, strings.Join(names, ", "))
+	}
+	return names[i], nil
+}
+
+// updateBookVoices applies an update's manuscript and cast to an
+// audiobook.
+func updateBookVoices(d *services.LongformDoc, req api.LongformUpdate, ref voiceRefFunc) error {
+	if len(req.Lines) > 0 {
+		return errBadRequest("line_voices", "line_voices are for stories; an audiobook switches voices with [voice:NAME] in its text.")
+	}
+	if req.Script != nil {
+		if strings.TrimSpace(*req.Script) == "" {
+			return errBadRequest("script", "The manuscript is empty.")
 		}
-		for id, v := range req.Lines {
-			i := slices.IndexFunc(d.Lines, func(l services.StoryLine) bool { return l.ID == id })
-			if i < 0 {
-				return api.LongformJSON{}, errBadRequest("line_voices", "The story has no line %q (get_longform lists them).", id)
-			}
-			if d.Lines[i].Voice, err = ref(v, "line_voices"); err != nil {
-				return api.LongformJSON{}, err
-			}
+		d.Script = *req.Script
+	}
+	names := services.CastNames(d.Script)
+	for name, v := range req.Cast {
+		cn, err := bookCastName(names, name)
+		if err != nil {
+			return err
+		}
+		r, err := ref(v, "cast")
+		if err != nil {
+			return err
+		}
+		if d.VoiceCast == nil {
+			d.VoiceCast = map[string]string{}
+		}
+		if r == "" {
+			delete(d.VoiceCast, cn)
+		} else {
+			d.VoiceCast[cn] = r
 		}
 	}
+	return nil
+}
+
+// updateStoryVoices applies an update's cast and line voices to a story.
+func updateStoryVoices(d *services.LongformDoc, req api.LongformUpdate, ref voiceRefFunc) error {
+	var err error
+	for name, v := range req.Cast {
+		i, err := storyCastIndex(d, name, "cast")
+		if err != nil {
+			return err
+		}
+		if d.Cast[i].Voice, err = ref(v, "cast"); err != nil {
+			return err
+		}
+	}
+	for id, v := range req.Lines {
+		i := slices.IndexFunc(d.Lines, func(l services.StoryLine) bool { return l.ID == id })
+		if i < 0 {
+			return errBadRequest("line_voices", "The story has no line %q (get_longform lists them).", id)
+		}
+		if d.Lines[i].Voice, err = ref(v, "line_voices"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// storyCastIndex is the index of a story's character an agent names
+// (for param).
+func storyCastIndex(d *services.LongformDoc, name, param string) (int, error) {
+	i := slices.IndexFunc(d.Cast, func(m services.CastMember) bool { return strings.EqualFold(m.Name, strings.TrimSpace(name)) })
+	if i < 0 {
+		var names []string
+		for _, m := range d.Cast {
+			names = append(names, m.Name)
+		}
+		return 0, errBadRequest(param, "The story has no character %q; its characters are: %s.", name, strings.Join(names, ", "))
+	}
+	return i, nil
+}
+
+// updateLongformSettings applies an update's language, speed, stems,
+// format, loudness and book details.
+func (b *apiBackend) updateLongformSettings(d *services.LongformDoc, req api.LongformUpdate) error {
 	if req.Language != "" {
 		d.Language = req.Language
 		if strings.EqualFold(req.Language, "auto") {
@@ -229,7 +291,7 @@ func (b *apiBackend) UpdateLongform(ctx context.Context, req api.LongformUpdate)
 	}
 	if req.Format != "" {
 		if req.Format == services.FormatM4B && !b.CanEncode() {
-			return api.LongformJSON{}, apiErr(http.StatusBadRequest, api.CodeUnsupportedFormat, "format", "M4B needs the engine's encoder, which is not available: use wav.")
+			return apiErr(http.StatusBadRequest, api.CodeUnsupportedFormat, "format", "M4B needs the engine's encoder, which is not available: use wav.")
 		}
 		d.Format = strings.ToLower(req.Format)
 	}
@@ -249,21 +311,5 @@ func (b *apiBackend) UpdateLongform(ctx context.Context, req api.LongformUpdate)
 			*f.dst = strings.TrimSpace(f.v)
 		}
 	}
-	if t := strings.TrimSpace(req.Title); t != "" {
-		d.Title, p.Title = t, t
-	}
-	if err := b.updatePerformance(ctx, p, &d, req, voices); err != nil {
-		return api.LongformJSON{}, err
-	}
-	bookDialogueDefault(&d)
-	// Refused when the project was saved meanwhile (the page, another
-	// request): this edit was made on what it was before (#101 M7).
-	saved, err := b.lib.svc.Library.SaveDocIf(ctx, core.Project{ID: p.ID, Kind: p.Kind, Title: p.Title}, d, services.BodyIs(p))
-	if errors.Is(err, services.ErrChanged) {
-		return api.LongformJSON{}, errBusy("The project was saved elsewhere (in AudioSmith, or by another request) while this edit ran: read it again with get_longform and retry.")
-	}
-	if err != nil {
-		return api.LongformJSON{}, err
-	}
-	return b.longformJSON(ctx, saved, d, voices)
+	return nil
 }
