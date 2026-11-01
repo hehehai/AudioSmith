@@ -70,8 +70,9 @@ func TestVoicesLibrary(t *testing.T) {
 	a.voiceQuery = ""
 	tt.Frame()
 
-	// The editor: rename and save.
-	if err := tt.Click("Narrator"); err != nil {
+	// The editor: rename and save. (A click on the row's line: its
+	// middle holds the kind badge, which filters.)
+	if err := tt.Click("calm"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
