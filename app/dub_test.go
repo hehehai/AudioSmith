@@ -166,6 +166,8 @@ func TestDubPageEndToEnd(t *testing.T) {
 	if a.dubStaleCount("es") != 0 {
 		t.Errorf("stale %d", a.dubStaleCount("es"))
 	}
+	tt.SetSize(1500, 800) // the transport row in full: A/B segmented (dubTransportLevel)
+	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("Dub · 🇪🇸 Spanish") && !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasPrefix(s, "Dub · ") }) {
 		t.Errorf("A/B track missing: %q", tt.Texts())

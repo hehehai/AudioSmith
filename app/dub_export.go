@@ -232,7 +232,7 @@ func (a *app) dubExportPanel(c *ui.Context) {
 	if !p.Settings.KeepBackground && (ex.format == dub.ExportMP4 || ex.format == dub.ExportWAV || ex.format == dub.ExportM4A) {
 		caption(c, i18n.T("Keep background is off: the dubbed tracks are speech only.")).TextColor(k.Text3)
 	}
-	// Export… itself is the footer's primary button.
+	// Export… itself is the transport row's primary button.
 	blocked := a.dubExportBlocked(ex.format)
 	ready := a.dubExportReady()
 	mark := func(ic icons.Icon, col ui.Color, text string) {

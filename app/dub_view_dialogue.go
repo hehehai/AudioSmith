@@ -15,7 +15,7 @@ package main
 //     bar, a line made line by line instead (and flagged when that one is
 //     not heard clearly either), and the ⋯ menu's 整段重录 and
 //     这一句不用多人对话;
-//   - the footer's count, and the audition of a line already recorded.
+//   - the count in the Generate button's tooltip, and the audition of a line already recorded.
 //
 // The switch is on for new projects (dub.DialogueAuto) and off for older
 // ones; only one dialogue model speaks dubs yet, so 高级 has no menu for it.
@@ -394,7 +394,7 @@ func (a *app) dubRetake(l, first string) {
 	})
 }
 
-// dubDialogueCount is the footer's note: how many of the lines are
+// dubDialogueCount is the Generate button's tooltip: how many of the lines are
 // recorded in conversations ("" none).
 func (a *app) dubDialogueCount() string {
 	d := a.dubDialogue()

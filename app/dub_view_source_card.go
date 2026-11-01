@@ -6,7 +6,7 @@ package main
 // description), with the download's progress under the cover; for a
 // file, its poster, name, length and picture. Once the video is on disk
 // the centre shows the video itself. The later steps' progress is in the
-// footer; the centre keeps the video and its details until the transcript
+// header's status; the centre keeps the video and its details until the transcript
 // comes.
 
 import (
@@ -103,7 +103,7 @@ func (a *app) dubSourceMedia(c *ui.Context, w, h float32) {
 		})
 	}
 	if video && p.Media.Audio != "" {
-		a.dubPlayControls(c, false)
+		a.dubPlayControls(c, nil)
 	}
 }
 

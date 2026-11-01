@@ -106,7 +106,8 @@ func TestTimelinePanBounds(t *testing.T) {
 	if pan(ui.InputEvent{Kind: ui.InputScroll, DY: 100}) || pan(ui.InputEvent{Kind: ui.InputScroll, DX: 10, DY: 30}) || s.offset != off {
 		t.Errorf("vertical scroll taken: offset %v → %v", off, s.offset)
 	}
-	// The middle button drags the view; a plain press still seeks.
+	// The middle button drags the view; a plain press on the empty lane
+	// does not seek (thread #134: it pans), a press on the ruler does.
 	var sought []float64
 	ev := tlEvents{Seek: func(at float64) { sought = append(sought, at) }}
 	s.offset = 100
@@ -116,10 +117,16 @@ func TestTimelinePanBounds(t *testing.T) {
 	if want := 100 + s.span(d)/10; !tlNear(s.offset, want) || len(sought) != 0 {
 		t.Errorf("middle drag: offset %v want %v, seeks %v", s.offset, want, sought)
 	}
-	timelineInput(s, m, ev, ui.InputEvent{Kind: ui.InputPointerDown, X: 500})
-	timelineInput(s, m, ev, ui.InputEvent{Kind: ui.InputPointerUp, X: 500})
-	if len(sought) != 1 {
-		t.Errorf("a press does not seek: %v", sought)
+	s.ruler = 16
+	timelineInput(s, m, ev, ui.InputEvent{Kind: ui.InputPointerDown, X: 500, Y: 40})
+	timelineInput(s, m, ev, ui.InputEvent{Kind: ui.InputPointerUp, X: 500, Y: 40})
+	if len(sought) != 0 {
+		t.Errorf("a press on the lane seeks: %v", sought)
+	}
+	timelineInput(s, m, ev, ui.InputEvent{Kind: ui.InputPointerDown, X: 500, Y: 5})
+	timelineInput(s, m, ev, ui.InputEvent{Kind: ui.InputPointerUp, X: 500, Y: 5})
+	if len(sought) != 1 || !tlNear(sought[0], tlTimeAt(s, d, 500)) {
+		t.Errorf("a press on the ruler does not seek there: %v", sought)
 	}
 	// The overview: drag the window, press beside it to centre it there.
 	s.ovW = 390 // 1 s a DIP

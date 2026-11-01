@@ -18,7 +18,9 @@ package main
 //	dub_text.go           texts: errors, stages, warnings, phases, languages, hints
 //	dub_edit.go           edits of the transcript with undo, paste translation, glossary, cast
 //	dub_view.go           the page: header, empty state, stepper, banners, workspace
-//	dub_view_player.go    the player bar, the timeline lane, the footer
+//	dub_view_player.go    the player bar, the timeline lane
+//	dub_transport.go      the transport row: play, A/B, timeline tools, the step's action
+//	dub_status.go         the header's status (what runs, the phase)
 //	dub_view_source.go    the Source and Transcribe panels
 //	dub_view_translate.go the Translate, glossary and paste panels
 //	dub_view_cast.go      the Cast and Generate panels, confirmations, Dub → Story

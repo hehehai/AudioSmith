@@ -13,10 +13,17 @@ package main
 // ⌘ or ⌥ with the wheel, ⌘= and ⌘−, anchored at the pointer, from fit
 // (1×) to tlMaxPxPerSec; ⌘0 or a double click on the readout fits. Pan: a
 // sideways swipe (with the system's inertia), ⇧ with the wheel, a drag
-// with the middle button, or the overview strip under the lane, which
+// with the middle button or on the empty lane, or the overview strip, which
 // shows the window over the whole source. A plain vertical wheel scrolls
 // the page. Playing while zoomed, the view turns a page as the playhead
 // reaches its edge, unless the user panned in the last tlFollowPause.
+//
+// The playhead (thread #134, user 11-01): a press on the time ruler along
+// the lane's top seeks there and drags on as a scrub; the playhead's
+// handle in the ruler (or its line, off a block's edge) drags it from
+// where it is; a press on a block selects it without moving the
+// playhead (a double click plays it); the empty lane never seeks
+// (timelinePress).
 //
 // It is one element painted by Draw and driven by HandleInput: the
 // pointer and keys reach it before the next frame, and a drag changes
@@ -60,7 +67,12 @@ type timelineState struct {
 	pan    *tlPan    // a middle-button drag, or the overview's
 	panned time.Time // when the user last panned or zoomed
 	width  float32   // the lane's width as last drawn
-	ovW    float32   // the overview's
+	ruler  float32   // the time ruler's height at the lane's top (tlRulerH)
+	unit   float32   // a DIP at the theme's scale
+	hoverX float32   // the pointer over the lane, for its cursor
+	hoverY float32
+	hover  bool
+	ovW    float32 // the overview's
 	focus  ui.Handle
 	bars   tlBars // the waveform as last drawn
 	ovBars tlBars // the overview's
@@ -71,8 +83,10 @@ type tlDrag struct {
 	id         string
 	mode       int // tlMove, tlStart, tlEnd, tlSeek
 	x0         float32
-	start, end float64 // as the drag started
-	curS, curE float64 // where it is now
+	grab       float64   // tlSeek: the playhead's time less the pointer's
+	seeked     time.Time // tlSeek: when the drag last seeked
+	start, end float64   // as the drag started
+	curS, curE float64   // where it is now
 	moved      bool
 }
 
@@ -80,7 +94,7 @@ const (
 	tlMove = iota
 	tlStart
 	tlEnd
-	tlSeek
+	tlSeek // the playhead, by its handle or the ruler
 )
 
 // tlPan is a pan in progress: the pointer's x and the offset as it
@@ -124,6 +138,8 @@ type tlEvents struct {
 	// Command performs an Edit menu command (undo, redo) that came to
 	// the focused lane, and reports whether it did.
 	Command func(name string) bool
+	// Key takes a key the lane leaves (the owner's transport keys); nil none.
+	Key func(e ui.InputEvent) bool
 }
 
 // maxZoom is the closest zoom: tlMaxPxPerSec, at least tlMinMaxZoom.
@@ -245,7 +261,16 @@ func (b *tlBars) get(p *dub.Peaks, from, to float64, n int) []float32 {
 	return b.v
 }
 
-// timelineLane draws a lane and handles its input.
+// tlLaneH is the lane's height and tlRulerH its time ruler's, DIPs at
+// 100 % (user, 11-01: lower than the 86 + tools row it was).
+const (
+	tlLaneH  = 76
+	tlRulerH = 16
+)
+
+// timelineLane draws a lane and handles its input. Its zoom controls
+// are the owner's to place (timelineZoomTools: the Dub editor's
+// transport row).
 func timelineLane(c *ui.Context, key string, s *timelineState, m tlModel, ev tlEvents) {
 	t := c.Theme()
 	d := m.Duration
@@ -255,41 +280,78 @@ func timelineLane(c *ui.Context, key string, s *timelineState, m tlModel, ev tlE
 	s.zoom = min(max(s.zoom, 1), s.maxZoom(d))
 	s.clampOffset(d)
 	s.follow(m, c.Now())
+	s.unit, s.ruler = px(t, 1), px(t, tlRulerH)
 	k := tok(t)
-	ui.Row(c.Key(key + "-tools")).Gap(px(t, 2)).AlignItems(ui.Center).Shrink(0).Children(func() {
-		// Zoom out, the zoom, zoom in, fit: the order of the Workflows canvas.
-		if iconButton(c.Key("zoom-out"), icons.MagnifierZoomOut, i18n.T("Zoom out")).Disabled(s.zoom <= 1).Clicked() {
-			s.zoomKey(0.5, m)
-		}
-		level := ui.Box(c.Key("zoom-level")).Shrink(0).Padding(0, px(t, 4)).
-			Tooltip(i18n.T("⌘+scroll or pinch to zoom · ⇧+scroll or swipe sideways to pan · double-click to fit (⌘0)"))
-		level.Children(func() {
-			ui.Text(c, tlZoomLabel(s.zoom)).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-		})
-		if level.DoubleClicked() {
-			s.fit()
-		}
-		if iconButton(c.Key("zoom-in"), icons.MagnifierZoomIn, i18n.T("Zoom in")).Disabled(s.zoom >= s.maxZoom(d)).Clicked() {
-			s.zoomKey(2, m)
-		}
-		if iconButton(c.Key("zoom-fit"), icons.FullScreenSquare, i18n.T("Fit all")).Disabled(s.zoom <= 1).Clicked() {
-			s.fit()
-		}
-		ui.Spacer(c)
-		if s.edit {
+	if s.edit {
+		ui.Row(c.Key(key + "-edit")).Shrink(0).Children(func() {
 			tagChip(c, i18n.T("Precise editing: ←/→ nudge · ⇧ end · ⌥ move · S snap · Esc")).Shrink(1).MinWidth(0).Ellipsis("…")
-		}
-		ui.Text(c, tlClock(s.offset)+" – "+tlClock(min(s.offset+s.span(d), d))+" / "+tlClock(d)).Font(monoFont).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine().Shrink(0)
-	})
+		})
+	}
 	if s.zoom > 1 {
 		timelineOverview(c, key+"-pan", s, m)
 	}
-	lane := ui.Box(c.Key(key)).Height(px(t, 86)).Shrink(0).Radius(px(t, radiusControl)).Background(k.Subtle).Border(1, k.Line).Focusable().Bind(&s.focus).
-		Label(i18n.T("Timeline"))
+	lane := ui.Box(c.Key(key)).Height(px(t, tlLaneH)).Shrink(0).Radius(px(t, radiusControl)).Background(k.Subtle).Border(1, k.Line).Focusable().Bind(&s.focus).
+		Label(i18n.T("Timeline")).Cursor(s.cursor(m))
 	lane.Draw(func(p *ui.Painter, r ui.Rect) { timelinePaint(p, r, k, s, m) })
 	lane.HandleInput(func(e ui.InputEvent) bool {
 		return timelineInput(s, m, ev, e)
 	})
+}
+
+// timelineZoomTools are the lane's zoom controls: zoom out, the zoom (its
+// tooltip says the range shown and the gestures; a double click fits),
+// zoom in, fit (with fit; else ⋯ has it) — the order of the Workflows
+// canvas.
+func timelineZoomTools(c *ui.Context, s *timelineState, m tlModel, fit bool) {
+	t := c.Theme()
+	k := tok(t)
+	d := m.Duration
+	if iconButton(c.Key("zoom-out"), icons.MagnifierZoomOut, i18n.T("Zoom out")).Disabled(s.zoom <= 1).Clicked() {
+		s.zoomKey(0.5, m)
+	}
+	level := ui.Box(c.Key("zoom-level")).Shrink(0).Padding(0, px(t, 2)).Label(i18n.T("Zoom")).
+		Tooltip(tlRange(s, d) + "\n" + i18n.T("⌘+scroll or pinch to zoom · ⇧+scroll or swipe sideways to pan · double-click to fit (⌘0)"))
+	level.Children(func() {
+		ui.Text(c, tlZoomLabel(s.zoom)).Font(monoFont).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine()
+	})
+	if level.DoubleClicked() {
+		s.fit()
+	}
+	if iconButton(c.Key("zoom-in"), icons.MagnifierZoomIn, i18n.T("Zoom in")).Disabled(s.zoom >= s.maxZoom(d)).Clicked() {
+		s.zoomKey(2, m)
+	}
+	if fit && iconButton(c.Key("zoom-fit"), icons.FullScreenSquare, i18n.T("Fit all")).Disabled(s.zoom <= 1).Clicked() {
+		s.fit()
+	}
+}
+
+// timelineZoomMenu is timelineZoomTools in a menu: zoom in and out with
+// zoom, and fit.
+func timelineZoomMenu(mn *ui.Menu, s *timelineState, m tlModel, zoom bool) {
+	if zoom && mn.Item(i18n.T("Zoom in")).Disabled(s.zoom >= s.maxZoom(m.Duration)).Chosen() {
+		s.zoomKey(2, m)
+	}
+	if zoom && mn.Item(i18n.T("Zoom out")).Disabled(s.zoom <= 1).Chosen() {
+		s.zoomKey(0.5, m)
+	}
+	if mn.Item(i18n.T("Fit all")).Disabled(s.zoom <= 1).Chosen() {
+		s.fit()
+	}
+}
+
+// tlRange is the time the lane shows: 0:12.0 – 0:24.6 / 1:02.3.
+func tlRange(s *timelineState, d float64) string {
+	return tlClock(s.offset) + " – " + tlClock(min(s.offset+s.span(d), d)) + " / " + tlClock(d)
+}
+
+// showTime scrolls a zoomed view so the time sec shows, a tenth in from
+// its edge (the transport's skips).
+func (s *timelineState) showTime(sec, d float64) {
+	span := s.span(d)
+	if sec < s.offset || sec > s.offset+span {
+		s.offset = sec - span*0.1
+		s.clampOffset(d)
+	}
 }
 
 // timelineOverview is the strip that shows the view over the whole source

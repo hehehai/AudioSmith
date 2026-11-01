@@ -132,3 +132,5 @@ calendar-minimalistic   # a date
 user-rounded            # a voice's gender and age
 tag                     # a kind, a use case
 repeat                  # how often a voice was used
+# Dub editor transport (thread #134).
+skip-previous           # back to the start

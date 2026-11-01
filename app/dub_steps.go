@@ -48,7 +48,7 @@ func (a *app) dubStepState(step int) (done, running, failed bool) {
 		}
 	}
 	if step == dubStepSource && a.dubProbing() {
-		running = true // reading the link's details, as the footer says
+		running = true // reading the link's details, as the header's status says
 	}
 	for k, st := range p.Stages {
 		if st.Status != dub.StatusFailed {
@@ -90,6 +90,9 @@ func (a *app) dubStepTip(step int, name string) string {
 	switch {
 	case running:
 		parts = append(parts, i18n.T("Running"))
+		if st := a.dubStatus(); st != "" {
+			parts = append(parts, st)
+		}
 	case failed:
 		parts = append(parts, i18n.T("Failed"))
 	case done:
@@ -132,7 +135,12 @@ func (a *app) dubSteps(c *ui.Context) {
 					col = k.Text
 				}
 				if running {
-					ui.Spinner(c).Size(px(t, 14), px(t, 14))
+					// Narrow, the header has no status: the ring is here.
+					if f := determinate(a.dubRunning()); narrow && f > 0 {
+						progressRing(c.Key("ring"), f, px(t, 16))
+					} else {
+						ui.Spinner(c).Size(px(t, 14), px(t, 14))
+					}
 					return
 				}
 				ic := dubStepIcons[i].Linear

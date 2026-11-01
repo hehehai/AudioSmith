@@ -3,9 +3,11 @@ package main
 // The Dub page (/dub): the steps in its header (dub_steps.go: Source → Transcribe → Translate → Cast
 // → Generate → Export) whose step shows its panel on the left, and the
 // workspace on the right: banners (an interrupted run, errors with their
-// fix, review checkpoints, stage warnings), the A/B player and video
-// preview, the timeline lane, and the transcript editor. The footer says
-// what runs and offers the step's next action.
+// fix, review checkpoints, stage warnings), the video preview, the
+// transport row (dub_transport.go: the player, the timeline's tools and
+// the step's action), the timeline lane, and the transcript editor. The
+// header's status says what runs (dub_status.go); there is no footer
+// (thread #134).
 
 import (
 	"slices"
@@ -35,12 +37,10 @@ var dubDialects = map[string][]string{
 	"fr": {"fr-FR", "fr-CA", "fr-BE"}, "de": {"de-DE", "de-AT", "de-CH"}, "ar": {"ar-EG", "ar-SA", "ar-MA"}, "nl": {"nl-NL", "nl-BE"},
 }
 
-// dubPage is /dub: the steps in the header, the workspace, and the step's panel on
-// the right (a drawer when the window is narrow); the footer says what
-// runs and holds the step's one primary action.
+// dubPage is /dub: the steps and status in the header, the workspace, and
+// the step's panel on the right (a drawer when the window is narrow).
 func (a *app) dubPage(c *ui.Context) {
 	t := c.Theme()
-	k := tok(t)
 	a.dubShortcuts(c)
 	if a.dubPlaying() {
 		c.After(100 * time.Millisecond) // the playhead moves
@@ -61,14 +61,16 @@ func (a *app) dubPage(c *ui.Context) {
 		shown = false
 	}
 	// The header names the dub under its list (视频配音 / title; ‹ and the
-	// list's name lead back to it) and holds the editor's actions.
+	// list's name lead back to it), its steps, its status and actions; and
+	// the step's action until the editor's transport row has it.
 	pageHeaderBar(c, pageHead{title: a.dubTitleOf(a.dub.ID), parent: pageTitle("/dub"), up: "/dub",
-		inline: func() { a.dubSteps(c) }, tools: func(bool) { a.dubHeaderActions(c, shown, embed) }})
+		inline: func() { a.dubSteps(c) }, tools: func(narrow bool) { a.dubHeaderActions(c, shown, embed, narrow) },
+		primary: a.dubHeadPrimary(c)})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		// The workspace fills the page; when the window is too short for
 		// its notices, player, timeline and some lines, it scrolls.
 		_, winH := c.Size()
-		avail := winH - pageTop - px(t, 52) - 4
+		avail := winH - pageTop - 4
 		// With lines, exactly the scroll's height once it was laid out, so
 		// the list of lines (which scrolls itself, dub_editor.go) reaches
 		// its foot; one more frame after the window's height changes.
@@ -102,8 +104,6 @@ func (a *app) dubPage(c *ui.Context) {
 			ui.Column(c).Padding(px(t, panelPad)).Gap(px(t, sp3)).Bind(&a.dubSideFocus).Children(func() { a.dubStepPanel(c) })
 		})
 	})
-	ui.Box(c).Height(1).Background(k.Line).Shrink(0)
-	a.dubFooter(c)
 	if a.dubGloss.open {
 		ui.Modal(c.Key("dub-gloss-modal"), &a.dubGloss.open, func() { a.dubGlossaryPanel(c) })
 	}
@@ -131,13 +131,20 @@ func (a *app) dubStepPanel(c *ui.Context) {
 	}
 }
 
-// dubHeaderActions: the step panel's toggle, and ⋯ (Create Story,
-// Delete, Batch).
-func (a *app) dubHeaderActions(c *ui.Context, shown, embed bool) {
+// dubHeaderActions: the status (dub_status.go), the step panel's toggle,
+// and ⋯ (Create Story, Delete, Batch).
+func (a *app) dubHeaderActions(c *ui.Context, shown, embed, narrow bool) {
+	a.dubHeadStatus(c, narrow)
 	if a.dub != nil && !embed {
 		a.dubSide.toggle(c.Key("dub-panel"), icons.PanelRight, shown, i18n.T("Show the step settings"), i18n.T("Hide the step settings"))
 	}
 	moreMenu(c.Key("dub-more-actions"), "", func(m *ui.Menu) {
+		if narrow && a.dub != nil && a.dubStatusNow().cancel {
+			if m.Item(i18n.T("Stop the run")).Chosen() {
+				a.dubCancel()
+			}
+			m.Separator()
+		}
 		if a.dub != nil {
 			if m.Item(i18n.T("Create Story")).Disabled(len(a.dub.Segments) == 0).Chosen() {
 				a.dubAskStory()
@@ -234,7 +241,8 @@ func (a *app) dubWorkspace(c *ui.Context) {
 	t := c.Theme()
 	p := a.dub
 	if len(p.Segments) == 0 {
-		// What the source is, then its video (#106); the footer says what runs.
+		// What the source is, then its video (#106); the header says what
+		// runs and has the step's action.
 		ui.Column(c.Key("dub-wait")).Grow(1).AlignItems(ui.Center).Justify(ui.Center).Gap(px(t, sp3)).Padding(px(t, sp2), 0).Children(func() {
 			a.dubSourceCentre(c, false)
 		})
@@ -251,11 +259,12 @@ func (a *app) dubWorkspace(c *ui.Context) {
 		ed.AutoFocus()
 	}
 	ed.HandleInput(func(ev ui.InputEvent) bool {
-		return ev.Kind == ui.InputCommand && a.dubCommand(ev.Text)
+		return ev.Kind == ui.InputCommand && a.dubCommand(ev.Text) || a.dubTransportKeys(ev)
 	}).Children(func() {
-		a.dubPlayerBar(c)
+		m := a.dubTLModel()
+		a.dubPlayerBar(c, &m)
 		if p.Source.Duration > 0 {
-			a.dubTimeline(c)
+			a.dubTimeline(c, m)
 		}
 		a.dubToolbar(c)
 		a.dubLines(c)

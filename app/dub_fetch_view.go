@@ -1,7 +1,7 @@
 package main
 
 // How far a URL download is, in words, for the Dub page (its centre and
-// footer), the activity card and the Tasks page: "Downloading the
+// the header status's tooltip), the activity card and the Tasks page: "Downloading the
 // video… 37% · 48 / 130 MB · 1 min left".
 
 import (
