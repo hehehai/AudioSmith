@@ -307,7 +307,12 @@ type tray struct {
 	item   id
 	button id
 	owner  int
+	dot    id // a MyGoTrayDot over the button's image, or 0
 }
+
+// The tray dot (Tray.SetDot): 5 points across, its centre 3.5 points in
+// from the image's top and right edges.
+const trayDotSize, trayDotInset = 5.0, 3.5
 
 func registerTrayTarget() {
 	classDef("MyGoTrayTarget", "NSObject", nil, []objc.MethodDef{
@@ -323,6 +328,10 @@ func registerTrayTarget() {
 				t.h.Clicked()
 			}
 		}),
+	})
+	// The dot lets clicks through to the status item's button.
+	classDef("MyGoTrayDot", "NSBox", nil, []objc.MethodDef{
+		method("hitTest:", func(self id, _ objc.SEL, p NSPoint) id { return 0 }),
 	})
 }
 
@@ -360,8 +369,60 @@ func (t *tray) SetImage(png []byte, template bool) error {
 		}
 		send(img, "setTemplate:", boolArg(template))
 		send(t.button, "setImage:", uintptr(img))
+		t.placeDot()
 	})
 	return err
+}
+
+// SetDot shows a dot of its own color over the image, which a template
+// image cannot have: a round NSBox above the button's image.
+func (t *tray) SetDot(c platform.Color, on bool) {
+	if t.item == 0 {
+		return
+	}
+	withPool(func() {
+		if !on {
+			if t.dot != 0 {
+				send(t.dot, "removeFromSuperview")
+				release(t.dot)
+				t.dot = 0
+			}
+			return
+		}
+		if t.dot == 0 {
+			t.dot = alloc("MyGoTrayDot")
+			send(t.dot, "setBoxType:", 4)       // NSBoxCustom
+			send(t.dot, "setTitlePosition:", 0) // NSNoTitle
+			msgSetFloat(t.dot, sel("setBorderWidth:"), 0)
+			msgSetFloat(t.dot, sel("setCornerRadius:"), trayDotSize/2)
+			// Flexible margins: it stays near its place if the button
+			// changes size before the next SetImage or SetDot.
+			send(t.dot, "setAutoresizingMask:", 1|4|8|32)
+			send(t.button, "addSubview:", uintptr(t.dot))
+		}
+		send(t.dot, "setFillColor:", uintptr(nsColor(c)))
+		t.placeDot()
+	})
+}
+
+// placeDot puts the dot at the image's top right; the button centres its
+// image.
+func (t *tray) placeDot() {
+	if t.dot == 0 {
+		return
+	}
+	b := msgRect(t.button, sel("bounds"))
+	size := NSSize{18, 18}
+	if img := send(t.button, "image"); img != 0 {
+		size = msgSize(img, sel("size"))
+	}
+	x := b.Origin.X + (b.Size.Width+size.Width)/2 - trayDotInset
+	y := b.Origin.Y + (b.Size.Height+size.Height)/2 - trayDotInset
+	if sendBool(t.button, "isFlipped") {
+		y = b.Origin.Y + (b.Size.Height-size.Height)/2 + trayDotInset
+	}
+	r := trayDotSize / 2
+	msgSetRect(t.dot, sel("setFrame:"), NSRect{Origin: NSPoint{x - r, y - r}, Size: NSSize{trayDotSize, trayDotSize}})
 }
 
 func (t *tray) SetTitle(title string) {
@@ -419,6 +480,7 @@ func (t *tray) Destroy() {
 	}
 	delete(t.b.trays, t.button)
 	dropOwner(t.owner)
+	t.SetDot(platform.Color{}, false)
 	send(send(class("NSStatusBar"), "systemStatusBar"), "removeStatusItem:", uintptr(t.item))
 	release(t.item)
 	t.item = 0

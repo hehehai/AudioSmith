@@ -967,6 +967,12 @@ type Tray interface {
 	Destroy()
 }
 
+// TrayDot is a Tray that can show a colored dot over its icon (macOS).
+type TrayDot interface {
+	// SetDot shows the dot in c, or removes it when on is false.
+	SetDot(c Color, on bool)
+}
+
 // Notification is a desktop notification.
 type Notification struct {
 	ID       string

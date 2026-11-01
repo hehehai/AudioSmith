@@ -1,0 +1,238 @@
+diff --git a/docs/menus.md b/docs/menus.md
+index 1e61b4c..96c2eba 100644
+--- a/docs/menus.md
++++ b/docs/menus.md
+@@ -207,6 +207,13 @@ menu, clicks reach `OnClick`, and `OnRightClick` gets right-clicks. Change
+ the tray with `SetIcon`, `SetMenu`, `SetToolTip` and, on macOS,
+ `SetTitle`, the text next to the icon; `Destroy` removes it.
+ 
++On macOS, `SetDot(color)` shows a dot of a CSS color over the icon's top
++right corner (5 points across, its centre 3.5 points in from the top and
++right edges) and `SetDot("")` removes it. The dot keeps its color over a
++template icon, which macOS tints but cannot color, so a template icon can
++show a red "busy" dot: leave a gap in the icon where it goes. Other
++platforms ignore it.
++
+ `Tray.PopUpMenu` opens the menu set with `SetMenu` programmatically. On
+ macOS, AppKit places it below the status item and highlights its button
+ while the menu is open. To show a menu only on right-click while keeping
+diff --git a/internal/darwin/menu.go b/internal/darwin/menu.go
+index f48a158..f1878d9 100644
+--- a/internal/darwin/menu.go
++++ b/internal/darwin/menu.go
+@@ -307,8 +307,13 @@ type tray struct {
+ 	item   id
+ 	button id
+ 	owner  int
++	dot    id // a MyGoTrayDot over the button's image, or 0
+ }
+ 
++// The tray dot (Tray.SetDot): 5 points across, its centre 3.5 points in
++// from the image's top and right edges.
++const trayDotSize, trayDotInset = 5.0, 3.5
++
+ func registerTrayTarget() {
+ 	classDef("MyGoTrayTarget", "NSObject", nil, []objc.MethodDef{
+ 		method("mygoTrayClicked:", func(self id, _ objc.SEL, sender id) {
+@@ -324,6 +329,10 @@ func registerTrayTarget() {
+ 			}
+ 		}),
+ 	})
++	// The dot lets clicks through to the status item's button.
++	classDef("MyGoTrayDot", "NSBox", nil, []objc.MethodDef{
++		method("hitTest:", func(self id, _ objc.SEL, p NSPoint) id { return 0 }),
++	})
+ }
+ 
+ var trayTarget id
+@@ -360,10 +369,62 @@ func (t *tray) SetImage(png []byte, template bool) error {
+ 		}
+ 		send(img, "setTemplate:", boolArg(template))
+ 		send(t.button, "setImage:", uintptr(img))
++		t.placeDot()
+ 	})
+ 	return err
+ }
+ 
++// SetDot shows a dot of its own color over the image, which a template
++// image cannot have: a round NSBox above the button's image.
++func (t *tray) SetDot(c platform.Color, on bool) {
++	if t.item == 0 {
++		return
++	}
++	withPool(func() {
++		if !on {
++			if t.dot != 0 {
++				send(t.dot, "removeFromSuperview")
++				release(t.dot)
++				t.dot = 0
++			}
++			return
++		}
++		if t.dot == 0 {
++			t.dot = alloc("MyGoTrayDot")
++			send(t.dot, "setBoxType:", 4)       // NSBoxCustom
++			send(t.dot, "setTitlePosition:", 0) // NSNoTitle
++			msgSetFloat(t.dot, sel("setBorderWidth:"), 0)
++			msgSetFloat(t.dot, sel("setCornerRadius:"), trayDotSize/2)
++			// Flexible margins: it stays near its place if the button
++			// changes size before the next SetImage or SetDot.
++			send(t.dot, "setAutoresizingMask:", 1|4|8|32)
++			send(t.button, "addSubview:", uintptr(t.dot))
++		}
++		send(t.dot, "setFillColor:", uintptr(nsColor(c)))
++		t.placeDot()
++	})
++}
++
++// placeDot puts the dot at the image's top right; the button centres its
++// image.
++func (t *tray) placeDot() {
++	if t.dot == 0 {
++		return
++	}
++	b := msgRect(t.button, sel("bounds"))
++	size := NSSize{18, 18}
++	if img := send(t.button, "image"); img != 0 {
++		size = msgSize(img, sel("size"))
++	}
++	x := b.Origin.X + (b.Size.Width+size.Width)/2 - trayDotInset
++	y := b.Origin.Y + (b.Size.Height+size.Height)/2 - trayDotInset
++	if sendBool(t.button, "isFlipped") {
++		y = b.Origin.Y + (b.Size.Height-size.Height)/2 + trayDotInset
++	}
++	r := trayDotSize / 2
++	msgSetRect(t.dot, sel("setFrame:"), NSRect{Origin: NSPoint{x - r, y - r}, Size: NSSize{trayDotSize, trayDotSize}})
++}
++
+ func (t *tray) SetTitle(title string) {
+ 	withPool(func() { send(t.button, "setTitle:", uintptr(nsString(title))) })
+ }
+@@ -419,6 +480,7 @@ func (t *tray) Destroy() {
+ 	}
+ 	delete(t.b.trays, t.button)
+ 	dropOwner(t.owner)
++	t.SetDot(platform.Color{}, false)
+ 	send(send(class("NSStatusBar"), "systemStatusBar"), "removeStatusItem:", uintptr(t.item))
+ 	release(t.item)
+ 	t.item = 0
+diff --git a/internal/fake/fake.go b/internal/fake/fake.go
+index d2385df..8f9fe58 100644
+--- a/internal/fake/fake.go
++++ b/internal/fake/fake.go
+@@ -1093,7 +1093,15 @@ func (b *Backend) PreferenceReads() int {
+ 	return b.prefsReads
+ }
+ 
+-type tray struct{}
++type tray struct {
++	dot   platform.Color
++	dotOn bool
++}
++
++func (t *tray) SetDot(c platform.Color, on bool) { t.dot, t.dotOn = c, on }
++
++// Dot is the dot SetDot shows, ok false when none.
++func (t *tray) Dot() (c platform.Color, ok bool) { return t.dot, t.dotOn }
+ 
+ func (*tray) SetImage([]byte, bool) error { return nil }
+ func (*tray) SetTitle(string)             {}
+diff --git a/internal/platform/platform.go b/internal/platform/platform.go
+index ab9f488..a1c7489 100644
+--- a/internal/platform/platform.go
++++ b/internal/platform/platform.go
+@@ -967,6 +967,12 @@ type Tray interface {
+ 	Destroy()
+ }
+ 
++// TrayDot is a Tray that can show a colored dot over its icon (macOS).
++type TrayDot interface {
++	// SetDot shows the dot in c, or removes it when on is false.
++	SetDot(c Color, on bool)
++}
++
+ // Notification is a desktop notification.
+ type Notification struct {
+ 	ID       string
+diff --git a/modules.go b/modules.go
+index df10b60..f85cffe 100644
+--- a/modules.go
++++ b/modules.go
+@@ -714,6 +714,29 @@ func (t *Tray) SetIcon(png []byte, template bool) error {
+ 	return err
+ }
+ 
++// SetDot shows a dot of a CSS color (see WindowOptions.BackgroundColor's
++// forms) over the icon's top right corner, 5 points across, its centre 3.5
++// points in from the icon's top and right edges; "" removes it. The dot
++// keeps its color over a template icon, which macOS tints to the menu bar,
++// so a template can say "busy" in red: leave a gap in the icon where the
++// dot goes. It places the dot for an icon without a title, and does
++// nothing on other platforms.
++func (t *Tray) SetDot(color string) error {
++	var c platform.Color
++	if color != "" {
++		var err error
++		if c, err = parseColor(color); err != nil {
++			return err
++		}
++	}
++	t.do(func(n platform.Tray) {
++		if d, ok := n.(platform.TrayDot); ok {
++			d.SetDot(c, color != "")
++		}
++	})
++	return nil
++}
++
+ // SetTitle sets the text next to the icon (macOS).
+ func (t *Tray) SetTitle(title string) { t.do(func(n platform.Tray) { n.SetTitle(title) }) }
+ 
+diff --git a/tray_dot_test.go b/tray_dot_test.go
+new file mode 100644
+index 0000000..dcfb5e7
+--- /dev/null
++++ b/tray_dot_test.go
+@@ -0,0 +1,42 @@
++//go:build !js
++
++package mygo
++
++import (
++	"testing"
++
++	"github.com/egoist/mygo/internal/platform"
++)
++
++func TestTrayDot(t *testing.T) {
++	tr, err := NewTray(TrayOptions{Icon: []byte("png"), IconIsTemplate: true})
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer tr.Destroy()
++	dot := func() (c platform.Color, ok bool) {
++		onMain(func() { c, ok = tr.native.(interface{ Dot() (platform.Color, bool) }).Dot() })
++		return c, ok
++	}
++	if _, ok := dot(); ok {
++		t.Error("a new tray shows a dot")
++	}
++	if err := tr.SetDot("#ff3b30"); err != nil {
++		t.Fatal(err)
++	}
++	if c, ok := dot(); !ok || c != (platform.Color{R: 0xff, G: 0x3b, B: 0x30, A: 0xff}) {
++		t.Errorf("dot = %v %v, want #ff3b30", c, ok)
++	}
++	if err := tr.SetDot("not a color"); err == nil {
++		t.Error("SetDot took a bad color")
++	}
++	if c, ok := dot(); !ok || c.R != 0xff {
++		t.Errorf("a bad color changed the dot: %v %v", c, ok)
++	}
++	if err := tr.SetDot(""); err != nil {
++		t.Fatal(err)
++	}
++	if _, ok := dot(); ok {
++		t.Error(`SetDot("") left the dot`)
++	}
++}

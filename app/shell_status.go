@@ -48,6 +48,7 @@ func (a *app) downloads() []*modelState {
 // jobsChanged keeps the snapshot of unfinished jobs (every owner) the
 // status bar lists; it runs on the main thread.
 func (a *app) jobsChanged(j jobs.Job) {
+	defer a.updateTray() // the dot: red while a job generates
 	if j.State.Terminal() || j.State == jobs.StateInterrupted {
 		if _, ok := a.jobList[j.ID]; ok {
 			a.jobEnded(j) // shell_activity.go: "done/total", the finished card

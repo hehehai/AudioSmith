@@ -91,6 +91,7 @@ func (a *app) startAPI(dataDir string) {
 	srv := api.New(api.Options{Backend: b, Sched: a.lib.sched, Bus: a.lib.bus, Version: a.version,
 		Seen: func(time.Time) { a.post(func() {}) }}) // Developers shows it (apiLastRequest)
 	m := mcpsrv.New(mcpsrv.Options{API: srv, Backend: b, Version: a.version})
+	m.OnAgentConnected(func(bool) { a.post(a.updateTray) }) // the menu bar icon's violet dot
 	srv.MountMCP(m.Handler())
 	a.apiSrv, a.apiMCP, a.apiBackend = srv, m, b
 	a.syncAPIForm()
