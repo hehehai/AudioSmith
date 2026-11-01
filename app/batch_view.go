@@ -77,6 +77,49 @@ func (a *app) batchSetup(c *ui.Context) {
 	b := &a.batch
 	s := &b.settings
 	sectionHeading(c, i18n.T("Videos"))
+	a.batchFilesZone(c)
+	a.batchLangs(c, s)
+	a.batchVoiceFields(c, s)
+	keep := s.KeepBackground
+	if dubSwitch(c, "batch-bg", i18n.T("Keep background (music and effects)"), "", &keep, false) {
+		a.batchSetSettings(func(s *services.BatchSettings) { s.KeepBackground = keep })
+	}
+	if es := dubDialogueEntries(); len(es) > 0 { // thread #89: on unless turned off, as a new dub
+		on := s.Dialogue != dub.DialogueOff
+		info := i18n.T("Conversations in Chinese and English tracks are recorded together by %s, each line hearing the one before it (slower); other lines line by line.", modelRef(es[0]))
+		if dubSwitch(c, "batch-dialogue", i18n.T("Multi-speaker dialogue"), info, &on, false) {
+			v := dub.DialogueOff
+			if on {
+				v = ""
+			}
+			a.batchSetSettings(func(s *services.BatchSettings) { s.Dialogue = v })
+		}
+	}
+	if ok, name := a.dubTranslatorReady(dub.Settings{Translator: s.Translator}); ok {
+		caption(c, i18n.T("Translator: %s", name)).TextColor(k.Text3)
+	} else {
+		a.translatorNeededCard(c, "batch-needs", "batch-llm")
+	}
+	n, m := len(b.files), len(s.Targets)
+	ui.Column(c).Gap(px(t, sp2)).Margin(px(t, sp1), 0, 0, 0).Children(func() {
+		caption(c, i18n.N(n, "%d video", "%d videos", n)+" × "+i18n.N(m, "%d language", "%d languages", m)+" = "+i18n.N(n*m, "%d dub", "%d dubs", n*m))
+		if primaryButton(c.Key("batch-queue"), i18n.T("Add to queue")).Disabled(n == 0 || m == 0).Clicked() {
+			a.batchEnqueue()
+		}
+	})
+	for _, e := range b.errs {
+		ui.Row(c).Gap(px(t, 6)).Children(func() {
+			iconMark(c, icons.DangerCircle, t.Danger, "")
+			caption(c, e).TextColor(t.Danger).Grow(1).MinWidth(0)
+		})
+	}
+}
+
+// batchFilesZone is the drop zone with the videos to add.
+func (a *app) batchFilesZone(c *ui.Context) {
+	t := c.Theme()
+	k := tok(t)
+	b := &a.batch
 	zone := ui.Column(c.Key("batch-drop")).Padding(px(t, sp2)).Gap(px(t, 2)).Radius(px(t, radiusCard)).Border(1, k.G[5]).BorderStyle(ui.BorderDashed)
 	if files := zone.DroppedFiles(); len(files) > 0 {
 		a.batchDropped(files)
@@ -104,18 +147,19 @@ func (a *app) batchSetup(c *ui.Context) {
 			}
 		})
 	})
-	// Target languages.
+}
+
+// batchLangs are the target languages, with Add.
+func (a *app) batchLangs(c *ui.Context, s *services.BatchSettings) {
+	t := c.Theme()
 	ui.Text(c, i18n.T("Dub into"))
 	ui.Row(c.Key("batch-langs")).Gap(px(t, 4)).Wrap().AlignItems(ui.Center).Children(func() {
 		for _, l := range s.Targets {
 			ll := l
-			ui.Row(c.Key("lang-"+l)).Gap(px(t, 2)).AlignItems(ui.Center).Padding(px(t, 2), px(t, 2), px(t, 2), px(t, sp2)).Radius(px(t, radiusControl)).Background(k.Hover).Children(func() {
-				ui.Text(c, dubLangName(ll)).FontSize(px(t, fsCaption)).SingleLine()
-				if iconButton(c.Key("x"), icons.Close, i18n.T("Remove %s", dubLangName(ll))).Size(px(t, 22), px(t, 22)).Clicked() {
-					a.batchSetSettings(func(s *services.BatchSettings) {
-						s.Targets, s.TargetsAuto = slices.DeleteFunc(s.Targets, func(x string) bool { return x == ll }), false
-					})
-				}
+			langChip(c, "lang-"+l, l, false, func() {
+				a.batchSetSettings(func(s *services.BatchSettings) {
+					s.Targets, s.TargetsAuto = slices.DeleteFunc(s.Targets, func(x string) bool { return x == ll }), false
+				})
 			})
 		}
 		dropButton(c.Key("batch-lang-add"), icons.AddCircle, i18n.T("Add")).Shrink(0).Menu(func(m *ui.Menu) {
@@ -128,8 +172,12 @@ func (a *app) batchSetup(c *ui.Context) {
 		})
 	})
 	if s.TargetsAuto {
-		caption(c, dubAutoTargetHint()).TextColor(k.Text3)
+		caption(c, dubAutoTargetHint()).TextColor(tok(t).Text3)
 	}
+}
+
+// batchVoiceFields are the voice and the voice model.
+func (a *app) batchVoiceFields(c *ui.Context, s *services.BatchSettings) {
 	// Voice.
 	choices := []dubVoiceChoice{{"", i18n.T("Auto · each speaker's own voice"), ""}, {dub.VoiceDefault, i18n.T("Default voice"), ""}}
 	model := firstOf(s.Model, a.dubDefaultModel())
@@ -178,47 +226,6 @@ func (a *app) batchSetup(c *ui.Context) {
 			a.batchSetSettings(func(s *services.BatchSettings) { s.Model = repo })
 		}
 	})
-	keep := s.KeepBackground
-	if dubSwitch(c, "batch-bg", i18n.T("Keep background (music and effects)"), "", &keep, false) {
-		a.batchSetSettings(func(s *services.BatchSettings) { s.KeepBackground = keep })
-	}
-	if es := dubDialogueEntries(); len(es) > 0 { // thread #89: on unless turned off, as a new dub
-		on := s.Dialogue != dub.DialogueOff
-		info := i18n.T("Conversations in Chinese and English tracks are recorded together by %s, each line hearing the one before it (slower); other lines line by line.", modelRef(es[0]))
-		if dubSwitch(c, "batch-dialogue", i18n.T("Multi-speaker dialogue"), info, &on, false) {
-			v := dub.DialogueOff
-			if on {
-				v = ""
-			}
-			a.batchSetSettings(func(s *services.BatchSettings) { s.Dialogue = v })
-		}
-	}
-	if ok, name := a.dubTranslatorReady(dub.Settings{Translator: s.Translator}); ok {
-		caption(c, i18n.T("Translator: %s", name)).TextColor(k.Text3)
-	} else {
-		fillCard(c.Key("batch-needs")).Gap(px(t, sp2)).Padding(px(t, sp3)).Children(func() {
-			ui.Row(c).Gap(px(t, 6)).Children(func() {
-				iconMark(c, icons.DangerTriangle, t.Warning, "")
-				caption(c, i18n.T("Translating needs a translation engine: a local model (Ollama, LM Studio) or a provider in Settings → Writing help.")).TextColor(k.Text).Grow(1).MinWidth(0)
-			})
-			if ui.Button(c.Key("batch-llm"), i18n.T("Set up writing help")).Clicked() {
-				a.navigate("/settings/writing")
-			}
-		})
-	}
-	n, m := len(b.files), len(s.Targets)
-	ui.Column(c).Gap(px(t, sp2)).Margin(px(t, sp1), 0, 0, 0).Children(func() {
-		caption(c, i18n.N(n, "%d video", "%d videos", n)+" × "+i18n.N(m, "%d language", "%d languages", m)+" = "+i18n.N(n*m, "%d dub", "%d dubs", n*m))
-		if primaryButton(c.Key("batch-queue"), i18n.T("Add to queue")).Disabled(n == 0 || m == 0).Clicked() {
-			a.batchEnqueue()
-		}
-	})
-	for _, e := range b.errs {
-		ui.Row(c).Gap(px(t, 6)).Children(func() {
-			iconMark(c, icons.DangerCircle, t.Danger, "")
-			caption(c, e).TextColor(t.Danger).Grow(1).MinWidth(0)
-		})
-	}
 }
 
 // batchWatchPanel is the watch folder.

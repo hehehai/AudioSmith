@@ -18,153 +18,187 @@ import (
 // dubTranslatePanel: target languages, the translator and its options,
 // the glossary and pasting.
 func (a *app) dubTranslatePanel(c *ui.Context) {
-	t := c.Theme()
 	p := a.dub
 	locked := a.dubBusy()
 	dubPanelTitle(c, i18n.T("Translate"))
-	// The primary target.
-	pick := func(key, label, cur string, set func(string)) {
-		names := make([]string, 0, len(dubTargetLangs)+1)
-		ids := slices.Clone(dubTargetLangs)
-		if cur != "" && !slices.Contains(ids, cur) {
-			ids = append(ids, cur)
-		}
-		for _, l := range ids {
-			names = append(names, dubLangName(l))
-		}
-		v := names[max(slices.Index(ids, cur), 0)]
-		ui.Field(c, label, func() {
-			if ui.Select(c.Key(key), &v, names).Label(label).Disabled(locked).Changed() {
-				set(ids[slices.Index(names, v)])
-			}
-		})
-	}
-	pick("tl-primary", i18n.T("Dub into"), p.Primary(), func(l string) {
-		a.dubSet(func(p *dub.Project) {
-			if len(p.Targets) == 0 {
-				p.Targets = []string{l}
-			} else {
-				p.Targets[0] = l
-				p.Targets = slices.Compact(p.Targets)
-			}
-			p.ChooseTargets(p.Targets)
-		})
-		a.dubLang = l
-	})
+	a.dubPrimaryPick(c, p, locked)
 	if note := dubRetargetNote(p); note != "" {
 		caption(c, note)
 	}
-	// Dialects.
-	base, _, _ := strings.Cut(p.Primary(), "-")
-	if ds, ok := dubDialects[base]; ok {
-		opts := append([]string{base}, ds...)
-		labels := make([]string, len(opts))
-		for i, d := range opts {
-			labels[i] = i18n.T("Default")
-			if d != base {
-				labels[i] = d
-			}
-		}
-		cur := labels[max(slices.Index(opts, p.Primary()), 0)]
-		ui.Field(c, i18n.T("Dialect"), func() {
-			if ui.Select(c.Key("tl-dialect"), &cur, labels).Label(i18n.T("Dialect")).Disabled(locked).Changed() {
-				dd := opts[slices.Index(labels, cur)]
-				a.dubSet(func(p *dub.Project) { p.Targets[0] = dd; p.ChooseTargets(p.Targets) })
-				a.dubLang = dd
-			}
-		})
-	}
+	a.dubDialectPick(c, p, locked)
 	ok, name := a.dubTranslatorReady(p.Settings)
 	if !ok {
-		fillCard(c.Key("tl-needs")).Gap(px(t, sp2)).Padding(px(t, sp3)).Children(func() {
-			ui.Row(c).Gap(px(t, 6)).Children(func() {
-				iconMark(c, icons.DangerTriangle, t.Warning, "")
-				caption(c, i18n.T("Translating needs a translation engine: a local model (Ollama, LM Studio) or a provider in Settings → Writing help.")).TextColor(tok(t).Text).Grow(1).MinWidth(0)
-			})
-			if ui.Button(c.Key("tl-setup"), i18n.T("Set up writing help")).Clicked() {
-				a.navigate("/settings/writing")
-			}
-		})
+		a.translatorNeededCard(c, "tl-needs", "tl-setup")
 	}
 	a.dubAdvanced(c, dubStepTranslate, locked, func() {
-		// More languages.
-		ui.Text(c, i18n.T("More languages"))
-		ui.Row(c.Key("tl-more")).Gap(px(t, 4)).Wrap().AlignItems(ui.Center).Children(func() {
-			for _, l := range p.Targets[min(1, len(p.Targets)):] {
-				ll := l
-				ui.Row(c.Key("chip-"+l)).Gap(px(t, 2)).AlignItems(ui.Center).Padding(px(t, 2), px(t, 2), px(t, 2), px(t, sp2)).Radius(px(t, radiusControl)).Background(tok(t).Hover).Children(func() {
-					ui.Text(c, dubLangName(ll)).FontSize(px(t, fsCaption)).SingleLine()
-					if iconButton(c.Key("x"), icons.Close, i18n.T("Remove %s", dubLangName(ll))).Size(px(t, 22), px(t, 22)).Disabled(locked).Clicked() {
-						a.dubSet(func(p *dub.Project) {
-							p.ChooseTargets(slices.DeleteFunc(p.Targets, func(x string) bool { return x == ll }))
-						})
-					}
+		a.dubMoreLanguages(c, p, locked)
+		a.dubTranslatorFields(c, p, ok, name, locked)
+	})
+}
+
+// dubPrimaryPick is the primary target's select.
+func (a *app) dubPrimaryPick(c *ui.Context, p *dub.Project, locked bool) {
+	names := make([]string, 0, len(dubTargetLangs)+1)
+	ids := slices.Clone(dubTargetLangs)
+	cur := p.Primary()
+	if cur != "" && !slices.Contains(ids, cur) {
+		ids = append(ids, cur)
+	}
+	for _, l := range ids {
+		names = append(names, dubLangName(l))
+	}
+	v := names[max(slices.Index(ids, cur), 0)]
+	label := i18n.T("Dub into")
+	ui.Field(c, label, func() {
+		if ui.Select(c.Key("tl-primary"), &v, names).Label(label).Disabled(locked).Changed() {
+			l := ids[slices.Index(names, v)]
+			a.dubSet(func(p *dub.Project) {
+				if len(p.Targets) == 0 {
+					p.Targets = []string{l}
+				} else {
+					p.Targets[0] = l
+					p.Targets = slices.Compact(p.Targets)
+				}
+				p.ChooseTargets(p.Targets)
+			})
+			a.dubLang = l
+		}
+	})
+}
+
+// dubDialectPick is the primary target's dialect, for languages with
+// dialects.
+func (a *app) dubDialectPick(c *ui.Context, p *dub.Project, locked bool) {
+	base, _, _ := strings.Cut(p.Primary(), "-")
+	ds, ok := dubDialects[base]
+	if !ok {
+		return
+	}
+	opts := append([]string{base}, ds...)
+	labels := make([]string, len(opts))
+	for i, d := range opts {
+		labels[i] = i18n.T("Default")
+		if d != base {
+			labels[i] = d
+		}
+	}
+	cur := labels[max(slices.Index(opts, p.Primary()), 0)]
+	ui.Field(c, i18n.T("Dialect"), func() {
+		if ui.Select(c.Key("tl-dialect"), &cur, labels).Label(i18n.T("Dialect")).Disabled(locked).Changed() {
+			dd := opts[slices.Index(labels, cur)]
+			a.dubSet(func(p *dub.Project) { p.Targets[0] = dd; p.ChooseTargets(p.Targets) })
+			a.dubLang = dd
+		}
+	})
+}
+
+// translatorNeededCard says translating needs a translation engine, with
+// the way to Settings → Writing help (keys: the card's, the button's).
+func (a *app) translatorNeededCard(c *ui.Context, key, setupKey string) {
+	t := c.Theme()
+	fillCard(c.Key(key)).Gap(px(t, sp2)).Padding(px(t, sp3)).Children(func() {
+		ui.Row(c).Gap(px(t, 6)).Children(func() {
+			iconMark(c, icons.DangerTriangle, t.Warning, "")
+			caption(c, i18n.T("Translating needs a translation engine: a local model (Ollama, LM Studio) or a provider in Settings → Writing help.")).TextColor(tok(t).Text).Grow(1).MinWidth(0)
+		})
+		if ui.Button(c.Key(setupKey), i18n.T("Set up writing help")).Clicked() {
+			a.navigate("/settings/writing")
+		}
+	})
+}
+
+// langChip is a target language with its remove button.
+func langChip(c *ui.Context, key, l string, locked bool, remove func()) {
+	t := c.Theme()
+	ui.Row(c.Key(key)).Gap(px(t, 2)).AlignItems(ui.Center).Padding(px(t, 2), px(t, 2), px(t, 2), px(t, sp2)).Radius(px(t, radiusControl)).Background(tok(t).Hover).Children(func() {
+		ui.Text(c, dubLangName(l)).FontSize(px(t, fsCaption)).SingleLine()
+		if iconButton(c.Key("x"), icons.Close, i18n.T("Remove %s", dubLangName(l))).Size(px(t, 22), px(t, 22)).Disabled(locked).Clicked() {
+			remove()
+		}
+	})
+}
+
+// dubMoreLanguages are the targets after the primary, with Add.
+func (a *app) dubMoreLanguages(c *ui.Context, p *dub.Project, locked bool) {
+	t := c.Theme()
+	ui.Text(c, i18n.T("More languages"))
+	ui.Row(c.Key("tl-more")).Gap(px(t, 4)).Wrap().AlignItems(ui.Center).Children(func() {
+		for _, l := range p.Targets[min(1, len(p.Targets)):] {
+			ll := l
+			langChip(c, "chip-"+l, l, locked, func() {
+				a.dubSet(func(p *dub.Project) {
+					p.ChooseTargets(slices.DeleteFunc(p.Targets, func(x string) bool { return x == ll }))
 				})
-			}
-			dropButton(c.Key("tl-add"), icons.AddCircle, i18n.T("Add")).Shrink(0).Menu(func(m *ui.Menu) {
-				for _, l := range dubTargetLangs {
-					if slices.Contains(p.Targets, l) {
-						continue
-					}
-					if m.Item(dubLangName(l)).Disabled(locked).Chosen() {
-						ll := l
-						a.dubSet(func(p *dub.Project) { p.ChooseTargets(append(p.Targets, ll)) })
-					}
-				}
 			})
-		})
-		// The translator.
-		engines := []string{"llm", "deepl", "google", "microsoft"}
-		names := []string{i18n.T("Language model"), "DeepL", "Google Cloud Translation", "Microsoft Translator"}
-		cur := names[max(slices.Index(engines, p.Settings.Translator), 0)]
-		ui.Field(c, i18n.T("Translator"), func() {
-			if ui.Select(c.Key("tl-engine"), &cur, names).Label(i18n.T("Translator")).Disabled(locked).Changed() {
-				e := engines[slices.Index(names, cur)]
-				a.dubSettings(func(s *dub.Settings) { s.Translator = e })
-			}
-		})
-		if ok && name != "" {
-			caption(c, i18n.T("Uses %s", name))
 		}
-		if p.Settings.Translator != "llm" && p.Settings.Translator != "" {
-			a.mtKeyRow(c, p.Settings.Translator) // family_keys_view.go
-			caption(c, i18n.T("The service's API key is kept in the Keychain as “mt.%s”.", p.Settings.Translator)).TextColor(tok(t).Text3)
-		}
-		if p.Settings.Translator == "llm" || p.Settings.Translator == "" {
-			quals := []translate.Quality{translate.Fast, translate.Autofit, translate.Cinematic}
-			qi := max(slices.Index(quals, p.Settings.Quality), 0)
-			fieldInfo(c, i18n.T("Quality"), i18n.T("Fast is one literal pass; Autofit rewrites lines that would not fit their time; Cinematic drafts, critiques and adapts for natural phrasing."), func() {
-				if segmentedFit(c.Key("tl-quality"), &qi, i18n.T("Fast"), i18n.T("Autofit"), i18n.T("Cinematic")).Label(i18n.T("Quality")).Disabled(locked).Changed() {
-					q := quals[qi]
-					a.dubSettings(func(s *dub.Settings) { s.Quality = q })
+		dropButton(c.Key("tl-add"), icons.AddCircle, i18n.T("Add")).Shrink(0).Menu(func(m *ui.Menu) {
+			for _, l := range dubTargetLangs {
+				if slices.Contains(p.Targets, l) {
+					continue
 				}
-			})
-			auto := p.Settings.AutoGlossary
-			if dubSwitch(c, "tl-autogloss", i18n.T("Auto glossary"), "", &auto, locked) {
-				a.dubSettings(func(s *dub.Settings) { s.AutoGlossary = auto })
-			}
-		}
-		shorter := p.Settings.SuggestShorter
-		if dubSwitch(c, "tl-shorter", i18n.T("Suggest shorter lines"), "", &shorter, locked) {
-			a.dubSettings(func(s *dub.Settings) { s.SuggestShorter = shorter })
-		}
-		forms := []translate.Formality{translate.FormalityAuto, translate.FormalityFormal, translate.FormalityInformal}
-		fnames := []string{i18n.T("Automatic"), i18n.T("Formal"), i18n.T("Informal")}
-		fcur := fnames[max(slices.Index(forms, p.Settings.Formality), 0)]
-		ui.Field(c, i18n.T("Register"), func() {
-			if ui.Select(c.Key("tl-formality"), &fcur, fnames).Label(i18n.T("Register")).Disabled(locked).Changed() {
-				f := forms[slices.Index(fnames, fcur)]
-				a.dubSettings(func(s *dub.Settings) { s.Formality = f })
+				if m.Item(dubLangName(l)).Disabled(locked).Chosen() {
+					ll := l
+					a.dubSet(func(p *dub.Project) { p.ChooseTargets(append(p.Targets, ll)) })
+				}
 			}
 		})
-		style := p.Settings.Style
-		ui.Field(c, i18n.T("Style notes"), func() {
-			if ui.TextArea(c.Key("tl-style"), &style).Lines(2, 6).Placeholder(i18n.T("Tone, audience, how freely to adapt…")).Label(i18n.T("Style notes")).Disabled(locked).Changed() {
-				v := []rune(style)
-				v = v[:min(len(v), translate.MaxStyle)]
-				a.dubSettings(func(s *dub.Settings) { s.Style = string(v) })
+	})
+}
+
+// dubTranslatorFields are the translator and its options (ok, name: the
+// translator is ready, by name).
+func (a *app) dubTranslatorFields(c *ui.Context, p *dub.Project, ok bool, name string, locked bool) {
+	t := c.Theme()
+	engines := []string{"llm", "deepl", "google", "microsoft"}
+	names := []string{i18n.T("Language model"), "DeepL", "Google Cloud Translation", "Microsoft Translator"}
+	cur := names[max(slices.Index(engines, p.Settings.Translator), 0)]
+	ui.Field(c, i18n.T("Translator"), func() {
+		if ui.Select(c.Key("tl-engine"), &cur, names).Label(i18n.T("Translator")).Disabled(locked).Changed() {
+			e := engines[slices.Index(names, cur)]
+			a.dubSettings(func(s *dub.Settings) { s.Translator = e })
+		}
+	})
+	if ok && name != "" {
+		caption(c, i18n.T("Uses %s", name))
+	}
+	if p.Settings.Translator != "llm" && p.Settings.Translator != "" {
+		a.mtKeyRow(c, p.Settings.Translator) // family_keys_view.go
+		caption(c, i18n.T("The service's API key is kept in the Keychain as “mt.%s”.", p.Settings.Translator)).TextColor(tok(t).Text3)
+	}
+	if p.Settings.Translator == "llm" || p.Settings.Translator == "" {
+		quals := []translate.Quality{translate.Fast, translate.Autofit, translate.Cinematic}
+		qi := max(slices.Index(quals, p.Settings.Quality), 0)
+		fieldInfo(c, i18n.T("Quality"), i18n.T("Fast is one literal pass; Autofit rewrites lines that would not fit their time; Cinematic drafts, critiques and adapts for natural phrasing."), func() {
+			if segmentedFit(c.Key("tl-quality"), &qi, i18n.T("Fast"), i18n.T("Autofit"), i18n.T("Cinematic")).Label(i18n.T("Quality")).Disabled(locked).Changed() {
+				q := quals[qi]
+				a.dubSettings(func(s *dub.Settings) { s.Quality = q })
 			}
 		})
+		auto := p.Settings.AutoGlossary
+		if dubSwitch(c, "tl-autogloss", i18n.T("Auto glossary"), "", &auto, locked) {
+			a.dubSettings(func(s *dub.Settings) { s.AutoGlossary = auto })
+		}
+	}
+	shorter := p.Settings.SuggestShorter
+	if dubSwitch(c, "tl-shorter", i18n.T("Suggest shorter lines"), "", &shorter, locked) {
+		a.dubSettings(func(s *dub.Settings) { s.SuggestShorter = shorter })
+	}
+	forms := []translate.Formality{translate.FormalityAuto, translate.FormalityFormal, translate.FormalityInformal}
+	fnames := []string{i18n.T("Automatic"), i18n.T("Formal"), i18n.T("Informal")}
+	fcur := fnames[max(slices.Index(forms, p.Settings.Formality), 0)]
+	ui.Field(c, i18n.T("Register"), func() {
+		if ui.Select(c.Key("tl-formality"), &fcur, fnames).Label(i18n.T("Register")).Disabled(locked).Changed() {
+			f := forms[slices.Index(fnames, fcur)]
+			a.dubSettings(func(s *dub.Settings) { s.Formality = f })
+		}
+	})
+	style := p.Settings.Style
+	ui.Field(c, i18n.T("Style notes"), func() {
+		if ui.TextArea(c.Key("tl-style"), &style).Lines(2, 6).Placeholder(i18n.T("Tone, audience, how freely to adapt…")).Label(i18n.T("Style notes")).Disabled(locked).Changed() {
+			v := []rune(style)
+			v = v[:min(len(v), translate.MaxStyle)]
+			a.dubSettings(func(s *dub.Settings) { s.Style = string(v) })
+		}
 	})
 }
 
