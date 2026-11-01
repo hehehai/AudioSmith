@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.5.0-beta.1)
+## 0.5.0-beta.1 — 2026-11-01
 
 0.5 changes how you work in AudioSmith, not how it looks: colours, type and buttons are the same. You start from one box on Home; every tool starts its work at the top of its own page and lists what it made below; results hand off to the next tool; everything you make is in Assets and every long piece of work in Projects.
 
@@ -33,7 +33,7 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 - **Dub**: drop a video or a recording, or paste a link, pick the language and press 「配音」. It starts at once and shows on top of the list below with its progress; a click opens the dub's editor.
 - **Speech to text**: drop, upload, link or record, choose the language, speakers and Fast or Accurate, and send. A transcript opens on its own page and hands off to 「配音」 and 「在文字转语音里朗读」.
 - New: **Voice isolator**. Drop a song, a video or a noisy recording and get the voices alone, the music and effects, and the voices denoised, on this Mac (HTDemucs, DeepFilterNet); each track plays, saves and goes on to Speech to text or Dub.
-- **Stories** and **Audiobook** open on a composer over your stories or books: describe a story or paste a script, or paste or import a manuscript and pick the narrator, then 「新建」. The project opens in the editor you know; ‹ saves it and goes back to the list. Save and Save a copy moved into the editor's ⋯.
+- **Stories** and **Audiobook** open on a composer over your stories or books: describe a story or paste a script, or paste or import a manuscript and pick the narrator, then 「新建」. The project opens in the editor you know; the list's name in the header (or ⌘[) saves it and goes back to the list. Save and Save a copy moved into the editor's ⋯.
 - New: **「帮我写」** on Stories. With the writing help's model on this Mac, turn it on and describe a story in a sentence: the writing help drafts a short scene for two or three voices in your description's language — written, without filler words — then the story is made, cast and opened. A progress line shows while it writes, with Cancel.
 
 ### Voices
@@ -58,9 +58,24 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 - Header filters, buttons and switches are as tall as the search field; Developers' and Text to speech's tabs are switches like Voices'.
 - Play and pause are new icons (Hugeicons) everywhere audio plays; a preview shows pause, not stop, while it plays.
 - Buttons and menu items no longer end in 「…」: Export, Import, Delete, Set voice, Settings and the others are just their names. Text that is still loading or waiting keeps its 「…」.
+- Badges in a row — language, gender and age, use, a voice's kind, a project's type, an asset's source — are filters: a click shows only those, a second click clears it. ▶, 「Use」 and ⋯ in a row light up under the pointer, and every voice in Discover and Mine has a preview.
+- Pages use a little more of the window: 16 points at each side instead of 24, the same for the header and the page. Home stays a centred column.
+- 「··· More」 in the sidebar folds open in place (Workflows, Batch dubbing, Calls) and reads 「Less」; it opens by itself when one of those pages is opened from elsewhere.
+- The menu bar icon shows a red dot while AudioSmith is generating (speech, dubs, renders, transcripts, dictation, the writing help) and a violet one while an agent is connected over MCP; downloads and waiting work don't count.
+
+### Dub editor
+- The steps — transcribe, translate, voices, generate, export — are icons in the page's header: done ones are tinted, the current one stands out, running ones spin, failed ones are red; the tooltip names the step and its state.
+- No footer: the step's main action sits in the transport row (or the header before there is a transcript), the state and progress ring in the header beside the panel button.
+- The timeline: click the ruler to seek, drag the playhead, click a block to select its line (double-click plays from it); dragging empty space no longer scrubs. The lane is lower, and zoom, replay and ±5 s share the transport row. Space plays and pauses, Home goes to the start, J and L step back and forward.
 
 ### Developers
 - **Developers** opens on 「接入你的 Agent」: choose 编程代理, MCP or cURL and copy the snippet — a prompt for your coding agent, the MCP server's configuration, or a first request — then see 「等待第一次请求…」 turn into the time of the last request. Under it, links to the API reference, the skill and the Local API's settings, and every app and agent with its setup. The Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark) are its other tabs.
+- **Agents can do everything the app does** (except dictation, phone calls, the microphone, accepting licences and changing settings): the MCP server has 57 tools — new ones isolate voices, list assets and samples and open a sample, rename, duplicate, export and import voices, preview any voice, check a recording before cloning, give three design candidates, draft a story with the writing help, say a recording again in another voice, download a model, detect the watermark, probe files, suggest a delivery, check whether a line fits, and read the defaults. Dubs start from a link, transcripts take Fast or Accurate. The skill describes every tool with short recipes. Tested with ChatGPT (Codex) and WorkBuddy.
+- **Agents ask before they delete or download.** A request that names the action is not taken as a yes: the agent says what goes or how big the download is and waits; clients that support it show AudioSmith's own confirmation. Tools say which ones only read, which delete and which go online. Agents are told to use the tools, not AudioSmith's window.
+
+### Fixes
+- Stories: in a script without blank lines, a narration line after 「Name: …」 is narration again, not that character's line.
+- A voice copy is named in the app's language.
 
 ## 0.4.0-beta.8 — 2026-10-26
 
