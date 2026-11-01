@@ -19,7 +19,6 @@ import (
 // column, the book's settings in the inspector (beside it, or a drawer
 // when the window is narrow).
 func (a *app) audiobookPage(c *ui.Context) {
-	t := c.Theme()
 	p := a.lfBook
 	a.syncManuscript(p)
 	a.lfToasts(c)
@@ -34,23 +33,20 @@ func (a *app) audiobookPage(c *ui.Context) {
 	pageHeaderBar(c, a.lfEditorHead(p, i18n.N(n, "%d chapter", "%d chapters", n), func(bool) {
 		a.bookHeader(c, p, locked, shown)
 	}))
-	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterRBeside(t, px(t, inspectorWidth), inline && shown), px(t, sp4), gutterL(t)).Gap(px(t, sp3)).Children(func() {
-			a.manuscriptToolbar(c, p, locked)
-			a.manuscriptView(c, p, locked)
-			a.manuscriptWarnings(c, p)
-			a.lfRenderPanel(c, p)
-		})
-		a.lfInspector(c, p, inline, shown, func() {
-			a.lfSection(c, p, "setup", i18n.T("Setup"), entryFor(p.doc.Model).DisplayName(), func() { a.lfSetup(c, p, locked) })
-			a.lfSection(c, p, "cast", i18n.T("Cast"), lfCount(len(bookCast(p))), func() { a.bookCastCard(c, p, locked) })
-			if len(p.blocks) > 0 { // audiobook_dialogue_view.go
-				a.lfSection(c, p, "dialogue", i18n.T("Dialogue passages"), lfCount(len(p.blocks)), func() { a.bookDialogueCard(c, p, locked) })
-			}
-			a.lfSection(c, p, "plan", i18n.T("Chapters"), lfCount(len(p.spec.Chapters)), func() { a.chapterPlan(c, p) })
-			a.lfSection(c, p, "book", i18n.T("Cover & details"), "", func() { a.lfBookCard(c, p, locked) })
-			a.lfAdvanced(c, p, locked) // longform_advanced.go: production, stems, pronunciations
-		})
+	a.lfEditorBody(c, p, inline, shown, func() {
+		a.manuscriptToolbar(c, p, locked)
+		a.manuscriptView(c, p, locked)
+		a.manuscriptWarnings(c, p)
+		a.lfRenderPanel(c, p)
+	}, func() {
+		a.lfSection(c, p, "setup", i18n.T("Setup"), entryFor(p.doc.Model).DisplayName(), func() { a.lfSetup(c, p, locked) })
+		a.lfSection(c, p, "cast", i18n.T("Cast"), lfCount(len(bookCast(p))), func() { a.bookCastCard(c, p, locked) })
+		if len(p.blocks) > 0 { // audiobook_dialogue_view.go
+			a.lfSection(c, p, "dialogue", i18n.T("Dialogue passages"), lfCount(len(p.blocks)), func() { a.bookDialogueCard(c, p, locked) })
+		}
+		a.lfSection(c, p, "plan", i18n.T("Chapters"), lfCount(len(p.spec.Chapters)), func() { a.chapterPlan(c, p) })
+		a.lfSection(c, p, "book", i18n.T("Cover & details"), "", func() { a.lfBookCard(c, p, locked) })
+		a.lfAdvanced(c, p, locked) // longform_advanced.go: production, stems, pronunciations
 	})
 	a.lfConfirm(c, p)
 	a.syncManuscript(p)
@@ -60,14 +56,7 @@ func (a *app) audiobookPage(c *ui.Context) {
 // bookHeader is an open book's header: Import, the inspector toggle,
 // and ⋯ (Save, the sample, Clear, Stories).
 func (a *app) bookHeader(c *ui.Context, p *lfPage, locked, shown bool) {
-	imp := i18n.T("Import")
-	var b ui.Element
-	if p.narrow {
-		b = iconButton(c.Key("ab-import"), icons.Import, imp)
-	} else {
-		b = ghostIconButton(c.Key("ab-import"), icons.Import, imp).Label(imp)
-	}
-	if b.Tooltip(i18n.T("TXT, Markdown, EPUB or DOCX, up to 64 MB, split into chapters")).Disabled(locked).Clicked() {
+	if lfImportButton(c, p, "ab-import", i18n.T("TXT, Markdown, EPUB or DOCX, up to 64 MB, split into chapters"), locked) {
 		a.importBook(p)
 	}
 	p.panel.toggle(c.Key("ab-panel"), icons.PanelRight, shown, i18n.T("Show the inspector"), i18n.T("Hide the inspector"))

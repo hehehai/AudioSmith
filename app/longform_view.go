@@ -44,6 +44,29 @@ func (a *app) lfInspector(c *ui.Context, p *lfPage, inline, shown bool, sections
 	})
 }
 
+// lfEditorBody is an open page's body: the main column, and the
+// inspector with its sections beside it or as a drawer.
+func (a *app) lfEditorBody(c *ui.Context, p *lfPage, inline, shown bool, main, sections func()) {
+	t := c.Theme()
+	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterRBeside(t, px(t, inspectorWidth), inline && shown), px(t, sp4), gutterL(t)).Gap(px(t, sp3)).Children(main)
+		a.lfInspector(c, p, inline, shown, sections)
+	})
+}
+
+// lfImportButton is an open page's Import button (an icon when the page
+// is narrow); it reports a click.
+func lfImportButton(c *ui.Context, p *lfPage, key, tip string, locked bool) bool {
+	imp := i18n.T("Import")
+	var b ui.Element
+	if p.narrow {
+		b = iconButton(c.Key(key), icons.Import, imp)
+	} else {
+		b = ghostIconButton(c.Key(key), icons.Import, imp).Label(imp)
+	}
+	return b.Tooltip(tip).Disabled(locked).Clicked()
+}
+
 // lfSection is a collapsible section of a page's inspector; summary
 // shows on its header (a model, a count).
 func (a *app) lfSection(c *ui.Context, p *lfPage, key, title, summary string, fn func()) {

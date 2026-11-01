@@ -18,7 +18,6 @@ import (
 // the main column; setup, cast and the rest in the inspector (beside it,
 // or a drawer when the window is narrow).
 func (a *app) storiesPage(c *ui.Context) {
-	t := c.Theme()
 	p := a.lfStories
 	a.lfToasts(c)
 	if !a.lfEditing(p) {
@@ -32,18 +31,15 @@ func (a *app) storiesPage(c *ui.Context) {
 	pageHeaderBar(c, a.lfEditorHead(p, i18n.N(n, "%d line", "%d lines", n), func(bool) {
 		a.storyHeader(c, p, locked, shown)
 	}))
-	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterRBeside(t, px(t, inspectorWidth), inline && shown), px(t, sp4), gutterL(t)).Gap(px(t, sp3)).Children(func() {
-			a.reviewBuffer(c, p, locked)
-			a.storyLines(c, p, locked)
-			a.lfRenderPanel(c, p)
-		})
-		a.lfInspector(c, p, inline, shown, func() {
-			a.lfSection(c, p, "setup", i18n.T("Setup"), a.storyModelSummary(p), func() { a.lfSetup(c, p, locked) })
-			a.lfSection(c, p, "cast", i18n.T("Cast"), lfCount(len(p.doc.Cast)), func() { a.storyCast(c, p, locked) })
-			a.lfSection(c, p, "scene", i18n.X("story", "Performance"), personaSummary(&p.doc), func() { a.storyPerformance(c, p, locked) }) // stories_perf_view.go
-			a.lfAdvanced(c, p, locked)                                                                                                      // longform_advanced.go
-		})
+	a.lfEditorBody(c, p, inline, shown, func() {
+		a.reviewBuffer(c, p, locked)
+		a.storyLines(c, p, locked)
+		a.lfRenderPanel(c, p)
+	}, func() {
+		a.lfSection(c, p, "setup", i18n.T("Setup"), a.storyModelSummary(p), func() { a.lfSetup(c, p, locked) })
+		a.lfSection(c, p, "cast", i18n.T("Cast"), lfCount(len(p.doc.Cast)), func() { a.storyCast(c, p, locked) })
+		a.lfSection(c, p, "scene", i18n.X("story", "Performance"), personaSummary(&p.doc), func() { a.storyPerformance(c, p, locked) }) // stories_perf_view.go
+		a.lfAdvanced(c, p, locked)                                                                                                      // longform_advanced.go
 	})
 	a.lfConfirm(c, p)
 	a.autosaveLf(p)
@@ -52,16 +48,10 @@ func (a *app) storiesPage(c *ui.Context) {
 // storyHeader is an open story's header: Import, Add ▾, the inspector
 // toggle, and ⋯ (Save, the review buffer, the sample, Clear, Audiobook).
 func (a *app) storyHeader(c *ui.Context, p *lfPage, locked, shown bool) {
-	imp := i18n.T("Import")
-	var b ui.Element
-	if p.narrow {
-		b = iconButton(c.Key("st-import"), icons.Import, imp)
-	} else {
-		b = ghostIconButton(c.Key("st-import"), icons.Import, imp).Label(imp)
-	}
-	if b.Tooltip(i18n.T("TXT, Markdown, SRT, VTT, EPUB or DOCX, into the review buffer")).Disabled(locked).Clicked() {
+	if lfImportButton(c, p, "st-import", i18n.T("TXT, Markdown, SRT, VTT, EPUB or DOCX, into the review buffer"), locked) {
 		a.importStory(p)
 	}
+	var b ui.Element
 	add := i18n.T("Add")
 	if p.narrow {
 		b = iconButton(c.Key("st-add"), icons.AddCircle, add)
