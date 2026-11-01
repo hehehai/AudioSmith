@@ -189,28 +189,7 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 			set(e)
 		}
 	}
-	others := o.Only
-	if others == nil {
-		others = catalog.Builtin().ForTask(catalog.TaskTTS)
-	}
-	others = slices.DeleteFunc(slices.Clone(others), func(e catalog.Entry) bool {
-		return slices.ContainsFunc(recs, func(x catalog.Entry) bool { return x.ID == e.ID })
-	})
-	if o.Only == nil && w == catalog.WorkflowDesign {
-		// Design lists only what designs.
-		others = slices.DeleteFunc(others, func(e catalog.Entry) bool { return whyNotFor(e, w) != "" })
-	}
-	// The ones that can do the job first.
-	slices.SortStableFunc(others, func(x, y catalog.Entry) int {
-		xn, yn := whyNotFor(x, w) != "", whyNotFor(y, w) != ""
-		switch {
-		case xn == yn:
-			return 0
-		case yn:
-			return -1
-		}
-		return 1
-	})
+	others := pickerOthers(w, recs, o)
 	_, h := c.Size()
 	find := a.pickerFind[key]
 	ui.Row(c.Key(key+"-find")).Width(px(t, 340)).Shrink(0).Padding(px(t, 6), px(t, 6), 0).Children(func() {
@@ -229,12 +208,7 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 						continue
 					}
 					n++
-					why := whyNotFor(e, w)
-					note := ""
-					if why == "" {
-						note = languageNote(e)
-					}
-					a.pickerRow(c, e, cur, e.Description(), firstOf(why, note), why == "", pick)
+					a.pickerEntryRow(c, e, cur, w, pick)
 				}
 				if o.Dialogue != nil {
 					n += a.pickerDialogueRows(c, key, o.Dialogue, find, func() { a.pickerOpen[key] = false })
@@ -264,34 +238,13 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 			all := a.pickerAll[key] || len(recs) == 0
 			if len(recs) > 0 {
 				ui.Divider(c)
-				label := i18n.T("Show all models (%d)", len(others))
-				tg := ui.ButtonBase(c.Key(key+"-all")).Padding(px(t, 6), px(t, sp2)).Radius(px(t, radiusControl)).Gap(px(t, 6)).AlignItems(ui.Center).Label(label)
-				if tg.Hovered() {
-					tg.Background(k.Hover)
-				}
-				if tg.Clicked() {
-					a.pickerAll[key] = !all
-					all = !all
-				}
-				tg.Children(func() {
-					ic := icons.AltArrowRight
-					if all {
-						ic = icons.AltArrowDown
-					}
-					ui.Icon(c, ic.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2)
-					ui.Text(c, label).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-				})
+				all = a.pickerAllToggle(c, key, len(others), all)
 			}
 			if !all {
 				return
 			}
 			for _, e := range others {
-				why := whyNotFor(e, w)
-				note := ""
-				if why == "" {
-					note = languageNote(e)
-				}
-				a.pickerRow(c, e, cur, e.Description(), firstOf(why, note), why == "", pick)
+				a.pickerEntryRow(c, e, cur, w, pick)
 			}
 			if o.Custom {
 				custom := catalog.Custom("")
@@ -299,6 +252,70 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 			}
 		})
 	})
+}
+
+// pickerOthers are the picker's models besides recs (o.Only, else every
+// TTS model; Design: only those that design), those that can do w first.
+func pickerOthers(w catalog.Workflow, recs []catalog.Entry, o pickerOpts) []catalog.Entry {
+	others := o.Only
+	if others == nil {
+		others = catalog.Builtin().ForTask(catalog.TaskTTS)
+	}
+	others = slices.DeleteFunc(slices.Clone(others), func(e catalog.Entry) bool {
+		return slices.ContainsFunc(recs, func(x catalog.Entry) bool { return x.ID == e.ID })
+	})
+	if o.Only == nil && w == catalog.WorkflowDesign {
+		// Design lists only what designs.
+		others = slices.DeleteFunc(others, func(e catalog.Entry) bool { return whyNotFor(e, w) != "" })
+	}
+	// The ones that can do the job first.
+	slices.SortStableFunc(others, func(x, y catalog.Entry) int {
+		xn, yn := whyNotFor(x, w) != "", whyNotFor(y, w) != ""
+		switch {
+		case xn == yn:
+			return 0
+		case yn:
+			return -1
+		}
+		return 1
+	})
+	return others
+}
+
+// pickerEntryRow is model e's row for workflow w: why it can't do w, or
+// a note on its languages.
+func (a *app) pickerEntryRow(c *ui.Context, e, cur catalog.Entry, w catalog.Workflow, pick func(catalog.Entry)) {
+	why := whyNotFor(e, w)
+	note := ""
+	if why == "" {
+		note = languageNote(e)
+	}
+	a.pickerRow(c, e, cur, e.Description(), firstOf(why, note), why == "", pick)
+}
+
+// pickerAllToggle is "Show all models (n)" under the recommended ones; it
+// returns whether all show now.
+func (a *app) pickerAllToggle(c *ui.Context, key string, n int, all bool) bool {
+	t := c.Theme()
+	k := tok(t)
+	label := i18n.T("Show all models (%d)", n)
+	tg := ui.ButtonBase(c.Key(key+"-all")).Padding(px(t, 6), px(t, sp2)).Radius(px(t, radiusControl)).Gap(px(t, 6)).AlignItems(ui.Center).Label(label)
+	if tg.Hovered() {
+		tg.Background(k.Hover)
+	}
+	if tg.Clicked() {
+		a.pickerAll[key] = !all
+		all = !all
+	}
+	tg.Children(func() {
+		ic := icons.AltArrowRight
+		if all {
+			ic = icons.AltArrowDown
+		}
+		ui.Icon(c, ic.Linear).Size(px(t, 14), px(t, 14)).TextColor(k.Text2)
+		ui.Text(c, label).FontSize(px(t, fsCaption)).TextColor(k.Text2)
+	})
+	return all
 }
 
 // pickerRow is one model of the list: its friendly name and up to three
