@@ -317,39 +317,7 @@ func (a *app) designSaveForm(c *ui.Context) {
 
 // designDoneView is 完成: the voice saved, and the hand-offs.
 func (a *app) designDoneView(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
-	v := a.findVoice(a.design.savedID)
-	if v == nil {
-		return
+	if v := a.findVoice(a.design.savedID); v != nil {
+		a.savedVoiceCard(c, "design-done", "design", v, nil)
 	}
-	id := v.ID
-	ui.Column(c.Key("design-done")).Gap(px(t, sp3)).Padding(px(t, sp5)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
-		ui.Row(c).Gap(px(t, sp3)).AlignItems(ui.Center).Children(func() {
-			ui.Avatar(c, v.Name, a.portrait(v)).Size(px(t, 48), px(t, 48)).Shrink(0)
-			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
-				statusMark(c, icons.CheckCircle, t.Success, i18n.T("Saved to My voices"))
-				ui.Text(c, v.Name).FontSize(px(t, fsTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
-			})
-		})
-		handoffRow(c, "design-handoffs", func() {
-			playing := a.savedPlaying(v)
-			label, ic := i18n.T("Listen"), icons.Play
-			if playing {
-				label, ic = i18n.T("Stop"), icons.Pause
-			}
-			if secondaryIconButton(c.Key("done-play"), ic, label).Label(label).Clicked() {
-				a.previewSaved(v)
-			}
-			if primaryButton(c.Key("done-tts"), i18n.T("Use in Text to speech")).Clicked() {
-				if v := a.findVoice(id); v != nil {
-					a.useVoiceInStudio(v)
-				}
-			}
-		}, func() {
-			if ghostButton(c.Key("done-detail"), i18n.T("Voice details")+" ›").Clicked() {
-				a.openVoiceEditor(id)
-			}
-		})
-	})
 }

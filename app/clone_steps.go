@@ -87,45 +87,16 @@ func (a *app) cloneCheckFoot(c *ui.Context) {
 // cloneDoneView is the last step: the voice saved, its reference's
 // grade, and the hand-offs.
 func (a *app) cloneDoneView(c *ui.Context) {
-	t := c.Theme()
-	k := tok(t)
 	s := &a.clone
 	v := a.findVoice(s.savedID)
 	if v == nil {
 		s.step = cloneAdd
 		return
 	}
-	id := v.ID
-	ui.Column(c.Key("clone-done")).Gap(px(t, sp3)).Padding(px(t, sp5)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
-		ui.Row(c).Gap(px(t, sp3)).AlignItems(ui.Center).Children(func() {
-			ui.Avatar(c, v.Name, a.portrait(v)).Size(px(t, 48), px(t, 48)).Shrink(0)
-			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 2)).Children(func() {
-				statusMark(c, icons.CheckCircle, t.Success, i18n.T("Saved to My voices"))
-				ui.Text(c, v.Name).FontSize(px(t, fsTitle)).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
-			})
-		})
+	a.savedVoiceCard(c, "clone-done", "clone", v, func() {
 		if v.RefCheck != nil {
 			refCheckView(c, "done-check", v.RefCheck, refcheck.UseClone)
 		}
-		handoffRow(c, "clone-handoffs", func() {
-			playing := a.savedPlaying(v)
-			label, ic := i18n.T("Listen"), icons.Play
-			if playing {
-				label, ic = i18n.T("Stop"), icons.Pause
-			}
-			if secondaryIconButton(c.Key("done-play"), ic, label).Label(label).Clicked() {
-				a.previewSaved(v)
-			}
-			if primaryButton(c.Key("done-tts"), i18n.T("Use in Text to speech")).Clicked() {
-				if v := a.findVoice(id); v != nil {
-					a.useVoiceInStudio(v)
-				}
-			}
-		}, func() {
-			if ghostButton(c.Key("done-detail"), i18n.T("Voice details")+" ›").Clicked() {
-				a.openVoiceEditor(id)
-			}
-		})
 	})
 	ui.Row(c).Children(func() {
 		if ghostIconButton(c.Key("done-again"), icons.AddCircle, i18n.T("Clone another voice")).Label(i18n.T("Clone another voice")).Clicked() {
