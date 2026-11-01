@@ -7,7 +7,7 @@
 ```
 github.com/hehehai/AudioSmith
 ├── app/                 package main: the UI (views + view state) and the wiring (mygo.json "main": "./app")
-├── assets/              package assets: the files the app embeds (tray icons, voice previews, curated and starter voices) and the app icon
+├── assets/              package assets: the files the app embeds (tray icons, voice previews, curated voices) and the app icon
 ├── internal/
 │   ├── core/            domain types, service interfaces, event bus, sentinel errors   (leaf)
 │   ├── services/        TakeService, VoiceService, ProjectService, DraftService
