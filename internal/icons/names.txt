@@ -55,7 +55,6 @@ alt-arrow-right
 alt-arrow-up
 check
 tuning-2                # voice controls
-tuning-square-2         # audio quality
 panel-right             # inspector toggle
 
 # Workflow step kinds and media.
@@ -91,7 +90,6 @@ full-screen-square      # fit the canvas
 end-call-rounded        # hang up
 square-arrow-right-up   # open externally
 upload-minimalistic     # drop or choose a file
-code                    # code snippets
 panel-left              # the workflow rail toggle
 arrow-right-up          # an outgoing call
 arrow-left-down         # an incoming call
