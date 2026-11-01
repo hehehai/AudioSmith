@@ -118,103 +118,20 @@ func (a *app) dubExportBlocked(f string) string {
 
 // dubExportPanel is the Export step.
 func (a *app) dubExportPanel(c *ui.Context) {
-	t := c.Theme()
 	p := a.dub
 	ex := &a.dubExport
 	if ex.format == "" {
-		ex.format = p.Settings.Export.Format
-		if ex.format == "" || !slices.Contains(a.dubExportFormats(), ex.format) {
-			ex.format = dub.ExportWAV
-			if p.Source.HasVideo {
-				ex.format = dub.ExportMP4
-			}
-		}
-		ex.lang = p.Primary()
-		ex.tracks = map[string]bool{dub.OrigTrack: true}
-		for _, l := range p.Targets {
-			ex.tracks[l] = true
-		}
-		ex.def, ex.bits, ex.subs = p.Primary(), 1, true
+		a.dubExportDefaults(p, ex)
 	}
 	dubPanelTitle(c, i18n.T("Export"))
-	formats := a.dubExportFormats()
-	labels := make([]string, len(formats))
-	for i, f := range formats {
-		labels[i] = dubExportFormatName(f)
-		if why := a.dubExportBlocked(f); why != "" {
-			labels[i] += " — " + why
-		}
-	}
-	cur := labels[max(slices.Index(formats, ex.format), 0)]
-	ui.Field(c, i18n.T("Format"), func() {
-		if ui.Select(c.Key("dx-format"), &cur, labels).Label(i18n.T("Format")).Changed() {
-			ex.format = formats[slices.Index(labels, cur)]
-			f := ex.format
-			a.dubSettings(func(s *dub.Settings) { s.Export.Format = f })
-		}
-	})
+	a.dubExportFormatField(c, ex)
 	subtitle := ex.format == dub.ExportSRT || ex.format == dub.ExportVTT || ex.format == dub.ExportASS
-	switch {
-	case ex.format == dub.ExportMP4:
-		sectionTitle(c, i18n.T("Tracks"))
-		ui.Column(c).Gap(px(t, 4)).Children(func() {
-			for _, l := range append([]string{dub.OrigTrack}, p.Targets...) {
-				on := ex.tracks[l]
-				name := i18n.T("Original")
-				if l != dub.OrigTrack {
-					name = dubLangName(l)
-					if p.Track(l).File == "" {
-						name += " · " + i18n.T("not generated")
-					}
-				}
-				if ui.Checkbox(c.Key("dx-track-"+l), &on, name).Changed() {
-					ex.tracks[l] = on
-				}
-			}
-		})
-		var defs, defIDs []string
-		for _, l := range append([]string{dub.OrigTrack}, p.Targets...) {
-			if ex.tracks[l] {
-				defIDs = append(defIDs, l)
-				if l == dub.OrigTrack {
-					defs = append(defs, i18n.T("Original"))
-				} else {
-					defs = append(defs, dubLangName(l))
-				}
-			}
-		}
-		if len(defs) > 0 {
-			i := max(slices.Index(defIDs, ex.def), 0)
-			d := defs[i]
-			ui.Field(c, i18n.T("Default audio track"), func() {
-				if ui.Select(c.Key("dx-default"), &d, defs).Label(i18n.T("Default audio track")).Changed() {
-					ex.def = defIDs[slices.Index(defs, d)]
-				}
-			})
-		}
-		ui.Checkbox(c.Key("dx-subs"), &ex.subs, i18n.T("Subtitle tracks (soft)"))
-	default:
-		langs := slices.Clone(p.Targets)
-		names := make([]string, 0, len(langs)+1)
-		for _, l := range langs {
-			names = append(names, dubLangName(l))
-		}
-		if subtitle || ex.format == dub.ExportBurn { // M7a: burn the original's subtitles too
-			langs = append(langs, dub.OrigTrack)
-			names = append(names, i18n.T("Original (%s)", dubLangName(p.SourceLanguage())))
-		}
-		if !slices.Contains(langs, ex.lang) && len(langs) > 0 {
-			ex.lang = langs[0]
-		}
-		if len(names) > 0 {
-			n := names[max(slices.Index(langs, ex.lang), 0)]
-			ui.Field(c, i18n.T("Language"), func() {
-				if ui.Select(c.Key("dx-lang"), &n, names).Label(i18n.T("Language")).Changed() {
-					ex.lang = langs[slices.Index(names, n)]
-				}
-			})
-		}
+	if ex.format == dub.ExportMP4 {
+		dubExportTracks(c, p, ex)
+	} else {
+		dubExportLang(c, p, ex, subtitle)
 	}
+	t := c.Theme()
 	if ex.format == dub.ExportSRT || ex.format == dub.ExportVTT {
 		ui.Checkbox(c.Key("dx-dual"), &ex.dual, i18n.T("Dual subtitles (translated + original)"))
 	}
@@ -232,6 +149,14 @@ func (a *app) dubExportPanel(c *ui.Context) {
 	if !p.Settings.KeepBackground && (ex.format == dub.ExportMP4 || ex.format == dub.ExportWAV || ex.format == dub.ExportM4A) {
 		caption(c, i18n.T("Keep background is off: the dubbed tracks are speech only.")).TextColor(k.Text3)
 	}
+	a.dubExportStatus(c, ex)
+}
+
+// dubExportStatus is the export's state: running, what blocks it or it
+// lacks, its error, the file it made.
+func (a *app) dubExportStatus(c *ui.Context, ex *dubExportState) {
+	t := c.Theme()
+	k := tok(t)
 	// Export… itself is the transport row's primary button.
 	blocked := a.dubExportBlocked(ex.format)
 	ready := a.dubExportReady()
@@ -262,6 +187,112 @@ func (a *app) dubExportPanel(c *ui.Context) {
 			truncText(c, i18n.T("Exported %s", filepath.Base(ex.last))).FontSize(px(t, fsCaption)).Grow(1)
 			if a.win != nil && iconButton(c.Key("dx-reveal"), icons.FolderOpen, i18n.T("Show in Finder")).Clicked() {
 				mygo.Shell.ShowItemInFolder(ex.last)
+			}
+		})
+	}
+}
+
+// dubExportDefaults sets the export's choices from the project's
+// settings (format) and targets.
+func (a *app) dubExportDefaults(p *dub.Project, ex *dubExportState) {
+	ex.format = p.Settings.Export.Format
+	if ex.format == "" || !slices.Contains(a.dubExportFormats(), ex.format) {
+		ex.format = dub.ExportWAV
+		if p.Source.HasVideo {
+			ex.format = dub.ExportMP4
+		}
+	}
+	ex.lang = p.Primary()
+	ex.tracks = map[string]bool{dub.OrigTrack: true}
+	for _, l := range p.Targets {
+		ex.tracks[l] = true
+	}
+	ex.def, ex.bits, ex.subs = p.Primary(), 1, true
+}
+
+// dubExportFormatField is the format select (blocked formats say why).
+func (a *app) dubExportFormatField(c *ui.Context, ex *dubExportState) {
+	formats := a.dubExportFormats()
+	labels := make([]string, len(formats))
+	for i, f := range formats {
+		labels[i] = dubExportFormatName(f)
+		if why := a.dubExportBlocked(f); why != "" {
+			labels[i] += " — " + why
+		}
+	}
+	cur := labels[max(slices.Index(formats, ex.format), 0)]
+	ui.Field(c, i18n.T("Format"), func() {
+		if ui.Select(c.Key("dx-format"), &cur, labels).Label(i18n.T("Format")).Changed() {
+			ex.format = formats[slices.Index(labels, cur)]
+			f := ex.format
+			a.dubSettings(func(s *dub.Settings) { s.Export.Format = f })
+		}
+	})
+}
+
+// dubExportTracks are an MP4's audio tracks, the default one and the
+// subtitle tracks.
+func dubExportTracks(c *ui.Context, p *dub.Project, ex *dubExportState) {
+	t := c.Theme()
+	sectionTitle(c, i18n.T("Tracks"))
+	ui.Column(c).Gap(px(t, 4)).Children(func() {
+		for _, l := range append([]string{dub.OrigTrack}, p.Targets...) {
+			on := ex.tracks[l]
+			name := i18n.T("Original")
+			if l != dub.OrigTrack {
+				name = dubLangName(l)
+				if p.Track(l).File == "" {
+					name += " · " + i18n.T("not generated")
+				}
+			}
+			if ui.Checkbox(c.Key("dx-track-"+l), &on, name).Changed() {
+				ex.tracks[l] = on
+			}
+		}
+	})
+	var defs, defIDs []string
+	for _, l := range append([]string{dub.OrigTrack}, p.Targets...) {
+		if ex.tracks[l] {
+			defIDs = append(defIDs, l)
+			if l == dub.OrigTrack {
+				defs = append(defs, i18n.T("Original"))
+			} else {
+				defs = append(defs, dubLangName(l))
+			}
+		}
+	}
+	if len(defs) > 0 {
+		i := max(slices.Index(defIDs, ex.def), 0)
+		d := defs[i]
+		ui.Field(c, i18n.T("Default audio track"), func() {
+			if ui.Select(c.Key("dx-default"), &d, defs).Label(i18n.T("Default audio track")).Changed() {
+				ex.def = defIDs[slices.Index(defs, d)]
+			}
+		})
+	}
+	ui.Checkbox(c.Key("dx-subs"), &ex.subs, i18n.T("Subtitle tracks (soft)"))
+}
+
+// dubExportLang is the language of a single-language export (subtitles
+// and burned-in exports may take the original's).
+func dubExportLang(c *ui.Context, p *dub.Project, ex *dubExportState, subtitle bool) {
+	langs := slices.Clone(p.Targets)
+	names := make([]string, 0, len(langs)+1)
+	for _, l := range langs {
+		names = append(names, dubLangName(l))
+	}
+	if subtitle || ex.format == dub.ExportBurn { // M7a: burn the original's subtitles too
+		langs = append(langs, dub.OrigTrack)
+		names = append(names, i18n.T("Original (%s)", dubLangName(p.SourceLanguage())))
+	}
+	if !slices.Contains(langs, ex.lang) && len(langs) > 0 {
+		ex.lang = langs[0]
+	}
+	if len(names) > 0 {
+		n := names[max(slices.Index(langs, ex.lang), 0)]
+		ui.Field(c, i18n.T("Language"), func() {
+			if ui.Select(c.Key("dx-lang"), &n, names).Label(i18n.T("Language")).Changed() {
+				ex.lang = langs[slices.Index(names, n)]
 			}
 		})
 	}
