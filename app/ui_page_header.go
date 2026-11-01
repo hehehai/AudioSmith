@@ -187,7 +187,14 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 	head.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, gutterR(t), 0, gutterL(t)).
 		Gap(px(t, sp2)).DragWindow().Role(ui.RoleGroup).Label(i18n.T("Page header")).Children(func() {
 		left := ui.Row(c.Key("head-left"))
-		left.Grow(1).Shrink(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+		if inline != nil {
+			// A page's own tabs after its title (Voices' 发现 | 我的) keep
+			// their room: the tools give way (the search narrows).
+			left.Shrink(0)
+		} else {
+			left.Grow(1).Shrink(1).MinWidth(0)
+		}
+		left.Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			if h.parent != "" && h.up == "" {
 				ui.Text(c.Key("head-parent"), h.parent+" /").FontSize(px(t, fsPageTitle)).TextColor(k.Text3).SingleLine().Shrink(0)
 			} else if h.parent != "" {
@@ -217,6 +224,7 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				} else {
 					tx.Shrink(0)
 				}
+				probeBox("head-t", tx)
 			}
 			if h.count != "" {
 				ui.Text(c.Key("head-count"), h.count).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Tooltip(h.count)
@@ -225,15 +233,18 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				ui.Text(c.Key("head-sub"), h.sub).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 			}
 			if inline != nil {
-				ui.Row(c.Key("head-inline")).Shrink(0).Margin(0, 0, 0, px(t, sp3)).AlignItems(ui.Center).Children(func() {
+				probeBox("head-in", ui.Row(c.Key("head-inline"))).Shrink(0).Margin(0, 0, 0, px(t, sp3)).AlignItems(ui.Center).Children(func() {
 					inHeader = true
 					defer func() { inHeader = false }()
 					inline()
 				})
 			}
 		})
+		if inline != nil {
+			ui.Box(c.Key("head-gap")).Grow(1).MinWidth(0)
+		}
 		tools := ui.Row(c.Key("head-tools"))
-		tools.Shrink(0).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
+		tools.Shrink(1).MinWidth(0).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 			inHeader = true
 			defer func() { inHeader = false }()
 			if h.search != nil {

@@ -28,12 +28,15 @@ type gutterCfg struct {
 	scale float64
 	dark  bool
 	rail  bool // the icon rail, beside the window controls
+	en    bool // in English
 }
 
 var (
-	gutterWide = gutterCfg{"1100-zh", 1100, 720, 1, false, false}
-	gutterMin  = gutterCfg{"min125-zh", 820, 520, 1.25, false, false}
-	gutterRail = gutterCfg{"rail-1100-zh", 1100, 720, 1, false, true}
+	gutterWide = gutterCfg{"1100-zh", 1100, 720, 1, false, false, false}
+	gutterMin  = gutterCfg{"min125-zh", 820, 520, 1.25, false, false, false}
+	gutterRail = gutterCfg{"rail-1100-zh", 1100, 720, 1, false, true, false}
+	gutterBig  = gutterCfg{"1440-zh", 1440, 900, 1, false, false, false} // no cap leaves a strip on the right
+	gutterEn   = gutterCfg{"1100-en", 1100, 720, 1, false, false, true}  // longer words in the headers
 )
 
 // gutterPage is a page to check: its name and what opens it.
@@ -99,7 +102,9 @@ func gutterSeed(t *testing.T, cfg gutterCfg) *dubTest {
 	d := newDubTest(t, 3)
 	a, eng, tt := d.a, d.eng, d.tt
 	a.updateSettings(func(s *settings.Settings) {
-		s.General.Language = "zh-Hans"
+		if !cfg.en {
+			s.General.Language = "zh-Hans"
+		}
 		s.Appearance.Scale = cfg.scale
 		if cfg.dark {
 			s.Appearance.Theme = "dark"
@@ -146,6 +151,8 @@ func gutterSeed(t *testing.T, cfg gutterCfg) *dubTest {
 	a.isoStart(src)
 	a.projects.dirty = true
 	tt.Frame()
+	tt.Advance(10 * time.Second) // the isolation's toast goes
+	tt.Frame()
 	return d
 }
 
@@ -161,7 +168,10 @@ type gutterGeom struct {
 	besideT                   float32 // the first content's top beside the panel
 	leftWho, rightWho, topWho string
 	unit                      float32
-	over                      bool // the panel floats over the page
+	over                      bool    // the panel floats over the page
+	toolsX                    float32 // the header's tools' left edge
+	aboveR                    float32 // the right edge of what is above a panel in its lane
+	titleR                    float32 // the right edge of the title and the tabs after it
 }
 
 // gutterPanels are the tool panels that keep a lane.
@@ -201,7 +211,11 @@ func measureGutter(tt *ui.Tester, a *app) gutterGeom {
 		case "head-l":
 			g.headL = r.X
 		case "head-r":
-			g.headR = r.X + r.W
+			g.headR, g.toolsX = r.X+r.W, r.X
+		case "head-t", "head-in":
+			if r.W > 0 {
+				g.titleR = max(g.titleR, r.X+r.W)
+			}
 		default:
 			boxes = append(boxes, struct {
 				kind string
@@ -247,7 +261,10 @@ func measureGutter(tt *ui.Tester, a *app) gutterGeom {
 		if r.X < g.bodyL {
 			g.bodyL, g.leftWho = r.X, who
 		}
-		if r.X+r.W > g.bodyR {
+		if g.panel.W > 0 && !g.over && r.Y+r.H <= g.panel.Y {
+			// Above the panel (Dub's steps): within the header's edge.
+			g.aboveR = max(g.aboveR, r.X+r.W)
+		} else if r.X+r.W > g.bodyR {
 			g.bodyR, g.rightWho = r.X+r.W, who
 		}
 		if r.Y < g.bodyT {
@@ -284,7 +301,7 @@ var gutterTrace func(who string, r ui.Rect)
 // GUTTER_TRACE=<page> logs the boxes weighed on that page.
 func TestPageGutter(t *testing.T) {
 	t.Cleanup(func() { i18n.SetLocale("en") })
-	for _, cfg := range []gutterCfg{gutterWide, gutterMin, gutterRail} {
+	for _, cfg := range []gutterCfg{gutterWide, gutterMin, gutterRail, gutterBig, gutterEn} {
 		d := gutterSeed(t, cfg)
 		for _, p := range gutterPages {
 			_, free := gutterFree[p.name]
@@ -297,6 +314,12 @@ func TestPageGutter(t *testing.T) {
 			if g.head.W == 0 {
 				t.Errorf("%s %s: no page header", cfg.name, p.name)
 				continue
+			}
+			if g.aboveR > g.headR+1 {
+				t.Errorf("%s %s: above the panel, the body ends at %.1f, past the header's %.1f", cfg.name, p.name, g.aboveR, g.headR)
+			}
+			if g.titleR > g.toolsX+0.5 {
+				t.Errorf("%s %s: the header's title side reaches %.1f into its tools", cfg.name, p.name, g.titleR-g.toolsX)
 			}
 			if d := g.bodyL - g.headL; d < -1 || d > 1 {
 				t.Errorf("%s %s: the body starts at %.1f (%s), the header's title at %.1f (%+.1f)", cfg.name, p.name, g.bodyL, g.leftWho, g.headL, d)
