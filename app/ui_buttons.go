@@ -155,11 +155,15 @@ func ghostBase(c *ui.Context) ui.Element {
 	// A clear hairline: ghost buttons stand as tall as ui.Button (which
 	// has a visible one) and line up beside it.
 	b := ui.ButtonBase(c).Radius(px(t, radiusControl)).TextColor(k.Text).Border(1, ui.Color{})
+	hover, pressed := k.Hover, k.Pressed
+	if inRowActs { // over a row's own tint: a face that shows on it
+		hover, pressed = k.ActHover, k.ActPressed
+	}
 	switch {
 	case b.Pressed():
-		b.Background(k.Pressed)
+		b.Background(pressed)
 	case b.Hovered():
-		b.Background(k.Hover)
+		b.Background(hover)
 	}
 	return b
 }
