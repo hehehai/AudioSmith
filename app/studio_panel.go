@@ -43,7 +43,7 @@ const (
 // scroll. drawer adds a close button (the panel over the script).
 func (a *app) studioPanel(c *ui.Context, drawer bool) {
 	t := c.Theme()
-	ui.Row(c).Padding(px(t, sp3), px(t, sp5), 0).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).Children(func() {
+	ui.Row(c).Padding(px(t, panelPad), px(t, panelPad), 0).Gap(px(t, sp2)).AlignItems(ui.Center).Shrink(0).Children(func() {
 		// A segmented control, not underlined tabs (user, 10-31).
 		ui.Segmented(c.Key("studio-tabs"), &a.ttsUI.tab, i18n.T("Settings"), i18n.T("History")).Label(i18n.T("Text to speech panel")).Shrink(0)
 		ui.Box(c).Grow(1)
@@ -54,7 +54,7 @@ func (a *app) studioPanel(c *ui.Context, drawer bool) {
 		}
 	})
 	ui.Scroll(c.Key("studio-panel-" + []string{"settings", "history"}[a.ttsUI.tab])).Grow(1).MinHeight(0).Children(func() {
-		ui.Column(c).Padding(px(t, sp4), px(t, sp5), px(t, sp5)).Gap(px(t, sp4)).Children(func() {
+		ui.Column(c).Padding(px(t, panelPad)).Gap(px(t, sp4)).Children(func() {
 			if a.ttsUI.tab == studioTabHistory {
 				a.studioHistory(c)
 				return

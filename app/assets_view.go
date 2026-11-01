@@ -5,6 +5,7 @@ package main
 // and Open folder), then the rows (assets.go), and a take's details pane.
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -186,7 +187,15 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 			}
 			listTitleMarks(c, as.title, as.sub, false, nil)
 			if !narrow {
-				metaCell(c, assetIcon(as.kind), i18n.T("Source"), pageTitle(as.tool), 120)
+				badgeCell(c, "source", 120, func() { // a badge: a click filters by the source (thread #129)
+					src := slices.Index(assetSources, as.tool)
+					on := src > 0 && h.source == src
+					if src <= 0 {
+						metaCell(c, assetIcon(as.kind), i18n.T("Source"), pageTitle(as.tool), 120)
+					} else if metaBadge(c, badgeSpec{key: "b-source", ic: assetIcon(as.kind), value: pageTitle(as.tool), on: on}) {
+						h.source = ifInt(on, 0, src)
+					}
+				})
 				metaCell(c, icons.ClockCircle, i18n.T("Length"), durText(as.dur), 72)
 				metaCell(c, icons.CalendarMinimalistic, i18n.T("Date"), ago(as.at), 120)
 			}

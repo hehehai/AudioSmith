@@ -3,8 +3,9 @@ package main
 // 音色 · 我的 (/voices/mine, 0.5 F4; after ElevenLabs' My Voices): the
 // saved voices as a table — name, kind, language, created, how often
 // used, ▶, 「使用」, ⋯ (rename, duplicate, export .asvoice, delete with
-// Undo) — filtered by type (全部/克隆/设计/收藏: saved from Discover) and
-// the header's search. A click on a row opens its detail
+// Undo) — filtered by type (全部/克隆/设计/收藏: saved from Discover),
+// language and the header's search; the kind and the language are
+// badges that set those filters (voices_badges.go). A click on a row opens its detail
 // (voice_editor.go) beside the table, or over it when narrow. Ghost rows
 // and 「新建音色」 when there is none.
 
@@ -58,6 +59,9 @@ func (a *app) shownVoices() []core.Voice {
 				continue
 			}
 		}
+		if a.voiceLang != "" && v.Language != a.voiceLang {
+			continue
+		}
 		if q != "" && !voiceMatches(&v, q) {
 			continue
 		}
@@ -97,6 +101,9 @@ func (a *app) voicesPage(c *ui.Context) {
 					}
 				}
 			})
+			if a.mineLangShown() {
+				m.Submenu(i18n.T("Language"), a.mineLangMenu)
+			}
 		},
 		primary: a.newVoiceButton(c),
 	})
@@ -109,6 +116,7 @@ func (a *app) voicesPage(c *ui.Context) {
 		narrow := a.pageWidth(c) < px(t, 720)
 		ui.Scroll(c.Key("voices-scroll")).Grow(1).MinWidth(0).Children(func() {
 			ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp2)).Children(func() {
+				a.mineLangFilter(c)
 				a.voicesTable(c, narrow)
 			})
 		})
@@ -171,13 +179,10 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 	id := v.ID
 	if voiceRowDel(c, "voice-"+v.ID, v.Name, st, func() { a.askDeleteVoice(id) }, func() {
 		voiceNameCell(c, v.Name, voiceLine(v), a.portrait(v), playing, func() { voiceMarks(c, v) })
-		metaCell(c, icons.Tag, i18n.T("Kind"), mineKind(v), 92)
+		// Badges: a click filters the table by the value (thread #129).
+		badgeCell(c, "kind", 92, func() { a.mineKindBadge(c, v) })
 		if !narrow {
-			lang := ""
-			if v.Language != "" {
-				lang = langName(v.Language) // with its flag, as Discover's
-			}
-			metaCell(c, noIcon, i18n.T("Language"), lang, 100)
+			badgeCell(c, "lang", 100, func() { a.mineLangBadge(c, v) })
 			metaCell(c, icons.CalendarMinimalistic, i18n.T("Created"), i18n.Date(v.CreatedAt), voiceDateW)
 			uses := ""
 			if n := a.mine.uses[v.ID]; n > 0 {

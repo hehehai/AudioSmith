@@ -97,7 +97,7 @@ func (a *app) workflowsPage(c *ui.Context) {
 			})
 			ui.Box(c).Height(1).Background(k.Line)
 			ui.Scroll(c.Key("wf-panel-scroll")).Grow(1).MinHeight(0).Children(func() {
-				ui.Column(c).Padding(px(t, sp3), px(t, sp4), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
+				ui.Column(c).Padding(px(t, panelPad)).Gap(px(t, sp3)).Children(func() {
 					if a.wfPanel == wfPanelRun {
 						a.wfRunPanel(c)
 					} else {

@@ -54,6 +54,9 @@ const (
 	pageTop        = titleBarHeight
 	sidebarWidth   = 200
 	inspectorWidth = 300
+	// lfInspectorWidth is a story's or a book's inspector (user, 11-01:
+	// a little wider than the others).
+	lfInspectorWidth = 340
 )
 
 // baseFontSize is the platform's text size at 100 %: px scales sizes
