@@ -307,7 +307,7 @@ func stripBrackets(s string) string {
 
 // blockLine reads src[a:b], a line (or the part of one) inside a block.
 func blockLine(src string, a, b int) (DialogueLine, bool) {
-	sp := trimSpan(src, text.Span{Start: a, End: b})
+	sp := text.Span{Start: a, End: b}.TrimSpace(src)
 	if sp.Len() == 0 {
 		return DialogueLine{}, false
 	}
@@ -330,7 +330,7 @@ func blockLine(src string, a, b int) (DialogueLine, bool) {
 			if i := strings.IndexByte(inner, ':'); i >= 0 {
 				name = strings.TrimSpace(inner[i+1:])
 			}
-			body := trimSpan(src, at(tags[0].End, len(s)))
+			body := at(tags[0].End, len(s)).TrimSpace(src)
 			l.Text = body
 			if name != "" && !strings.EqualFold(name, "default") {
 				l.Kind, l.Name = DialogueTurn, name
@@ -345,7 +345,7 @@ func blockLine(src string, a, b int) (DialogueLine, bool) {
 		if strings.HasPrefix(s, q) {
 			l.Kind, l.Unknown = DialogueTurn, true
 			l.NameSpan = at(0, len(q)-len(strings.TrimLeft(q, "?？")))
-			l.Text = unquote(src, trimSpan(src, at(len(q), len(s))))
+			l.Text = unquote(src, at(len(q), len(s)).TrimSpace(src))
 			return l, true
 		}
 	}
@@ -360,7 +360,7 @@ func blockLine(src string, a, b int) (DialogueLine, bool) {
 	if !ok {
 		return l, true
 	}
-	words := trimSpan(src, at(body, len(s)))
+	words := at(body, len(s)).TrimSpace(src)
 	if empty {
 		words = at(len(s), len(s))
 	}
@@ -467,27 +467,8 @@ func unquote(src string, sp text.Span) text.Span {
 	for o, c := range quotePairs {
 		if len(s) > len(o)+len(c) && strings.HasPrefix(s, o) && strings.HasSuffix(s, c) &&
 			!strings.Contains(s[len(o):len(s)-len(c)], c) {
-			return trimSpan(src, text.Span{Start: sp.Start + len(o), End: sp.End - len(c)})
+			return text.Span{Start: sp.Start + len(o), End: sp.End - len(c)}.TrimSpace(src)
 		}
-	}
-	return sp
-}
-
-// trimSpan trims white space off both ends of sp.
-func trimSpan(src string, sp text.Span) text.Span {
-	for sp.Start < sp.End {
-		r, n := utf8.DecodeRuneInString(src[sp.Start:sp.End])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		sp.Start += n
-	}
-	for sp.End > sp.Start {
-		r, n := utf8.DecodeLastRuneInString(src[sp.Start:sp.End])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		sp.End -= n
 	}
 	return sp
 }

@@ -16,6 +16,7 @@ package text
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -29,6 +30,26 @@ func (s Span) Len() int { return s.End - s.Start }
 
 // Of returns the part of src the span covers.
 func (s Span) Of(src string) string { return src[s.Start:s.End] }
+
+// TrimSpace shrinks the span to exclude src's white space (including
+// U+3000) at both ends.
+func (s Span) TrimSpace(src string) Span {
+	for s.Start < s.End {
+		r, n := utf8.DecodeRuneInString(src[s.Start:s.End])
+		if !unicode.IsSpace(r) {
+			break
+		}
+		s.Start += n
+	}
+	for s.End > s.Start {
+		r, n := utf8.DecodeLastRuneInString(src[s.Start:s.End])
+		if !unicode.IsSpace(r) {
+			break
+		}
+		s.End -= n
+	}
+	return s
+}
 
 // Contains reports whether byte offset i lies inside the span.
 func (s Span) Contains(i int) bool { return i >= s.Start && i < s.End }

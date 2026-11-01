@@ -146,7 +146,7 @@ func prose(src string, p text.Span, keepQuotes bool) []Line {
 	}
 	var out []Line
 	narr := func(a, b int) {
-		sp := trim(src, text.Span{Start: a, End: b})
+		sp := text.Span{Start: a, End: b}.TrimSpace(src)
 		if sp.Len() > 0 {
 			out = append(out, Line{Text: sp.Of(src), Span: sp, Kind: Narration})
 		}
@@ -158,7 +158,7 @@ func prose(src string, p text.Span, keepQuotes bool) []Line {
 		if keepQuotes {
 			sp = q.outer
 		}
-		sp = trim(src, sp)
+		sp = sp.TrimSpace(src)
 		speaker := q.speaker
 		if !q.named {
 			speaker = only
