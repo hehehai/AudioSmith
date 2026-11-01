@@ -36,6 +36,9 @@ type VoiceJSON struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+// VoiceOf is a voice as the API answers it.
+func VoiceOf(v core.Voice) VoiceJSON { return voiceJSON(v) }
+
 func voiceJSON(v core.Voice) VoiceJSON {
 	return VoiceJSON{ID: v.ID, Object: "voice", Name: v.Name, Kind: string(v.Kind), Model: v.Model, Speaker: v.Speaker,
 		Language: v.Language, Style: v.Style, Design: v.Design, Seed: v.Seed, RefText: v.RefText, RefSeconds: v.RefSeconds,

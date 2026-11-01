@@ -170,8 +170,18 @@ func (s *Server) CreateDub(ctx context.Context, req DubCreate) (DubJSON, error) 
 	if err != nil {
 		return DubJSON{}, err
 	}
-	if req.Path, err = InputFile("path", req.Path); err != nil {
-		return DubJSON{}, err
+	switch u := strings.TrimSpace(req.URL); {
+	case u != "" && strings.TrimSpace(req.Path) != "":
+		return DubJSON{}, errInvalid("url", "Give path or url, not both.")
+	case u != "":
+		if !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
+			return DubJSON{}, errInvalid("url", "url is an http or https link.")
+		}
+		req.URL = u
+	default:
+		if req.Path, err = InputFile("path", req.Path); err != nil {
+			return DubJSON{}, err
+		}
 	}
 	if err := checkFormat("through", req.Through, "transcript", "translation", "dub", "none"); err != nil {
 		return DubJSON{}, err

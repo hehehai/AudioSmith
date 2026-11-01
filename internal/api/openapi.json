@@ -47,6 +47,14 @@
       "name": "Discover voices"
     },
     {
+      "name": "Voice isolator",
+      "description": "Separate the voices of a file from its music and effects (the Voice isolator page)."
+    },
+    {
+      "name": "Assets",
+      "description": "Every file AudioSmith made or took in (the Assets page) and the sample projects."
+    },
+    {
       "name": "Workflows"
     },
     {
@@ -817,6 +825,59 @@
                 }
               }
             }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Edit a voice",
+        "operationId": "updateVoice",
+        "description": "Renames it or changes its style, language, tags or reference text; what is left out stays.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The voice's id or name."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Voice"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
           },
           "404": {
             "$ref": "#/components/responses/Error"
@@ -3208,6 +3269,771 @@
             "$ref": "#/components/responses/Error"
           },
           "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/isolations": {
+      "get": {
+        "tags": [
+          "Voice isolator"
+        ],
+        "summary": "List isolations",
+        "operationId": "listIsolations",
+        "description": "Every isolation, newest first, with its stems' paths.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Isolation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Voice isolator"
+        ],
+        "summary": "Isolate voices",
+        "operationId": "startIsolation",
+        "description": "Separates the voices of an audio or video file from its music and effects (HTDemucs) and denoises them (DeepFilterNet). 202 with the isolation and its job_id; follow GET /api/jobs/{job_id}?wait=30, then GET /api/isolations/{id}.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path of the file."
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Isolation"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/isolations/{id}": {
+      "get": {
+        "tags": [
+          "Voice isolator"
+        ],
+        "summary": "Read an isolation",
+        "operationId": "getIsolation",
+        "description": "Its state and stems (vocals, background, clean).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Isolation"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Voice isolator"
+        ],
+        "summary": "Delete an isolation",
+        "operationId": "deleteIsolation",
+        "description": "Deletes it and its stems; needs ?confirm=true (else 400 confirm_required).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Id."
+          },
+          {
+            "name": "confirm",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/assets": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "List assets",
+        "operationId": "listAssets",
+        "description": "Every output and imported file, newest first: speech takes, story and audiobook renders, exports, dubs, isolated stems, imported recordings.",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "speech",
+                "story",
+                "audiobook",
+                "dub",
+                "stems",
+                "import"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Asset"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/samples": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "List sample projects",
+        "operationId": "listSamples",
+        "description": "Home's sample projects and whether this build bundles them.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Sample"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/samples/{id}/open": {
+      "post": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Open a sample project",
+        "operationId": "openSample",
+        "description": "Copies the sample into the library (a new, editable copy) and says where.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "story, chapter, narration, dub or meeting."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleOpened"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/voices/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Duplicate a voice",
+        "operationId": "duplicateVoice",
+        "description": "Saves a copy (reference, sample, portrait; not its lock or consent).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The voice's id or name."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The copy's name; empty: '<name> (copy)'."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Voice"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/voices/{id}/export": {
+      "post": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Export a voice file",
+        "operationId": "exportVoice",
+        "description": "Writes an .asvoice file to directory (default: the agents' folder).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The voice's id or name."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceExport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exported"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/voices/import": {
+      "post": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Import a voice file",
+        "operationId": "importVoice",
+        "description": "Adds an .asvoice (or VoiceStudio .ovsvoice) file to My voices; its reference is checked and cleaned afterwards.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path of the file."
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceImported"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/gallery/{id}/preview": {
+      "get": {
+        "tags": [
+          "Discover voices"
+        ],
+        "summary": "Hear a Discover voice",
+        "operationId": "galleryPreview",
+        "description": "Its bundled preview clip (Ogg Vorbis), or its built-in speaker's.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The clip",
+            "content": {
+              "audio/ogg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/models/{id}/voices/{speaker}/preview": {
+      "get": {
+        "tags": [
+          "Models"
+        ],
+        "summary": "Hear a built-in speaker",
+        "operationId": "speakerPreview",
+        "description": "The speaker's bundled preview clip (Ogg Vorbis), even before the model is downloaded.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The model's id."
+          },
+          {
+            "name": "speaker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The clip",
+            "content": {
+              "audio/ogg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/tools/reference-check": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Check a clone reference",
+        "operationId": "referenceCheck",
+        "description": "Grades a recording as a voice-clone reference (Quick clone's checker): good, fine or needs_work, with hints. Nothing is saved.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path."
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "What it says, if known."
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/stories/draft": {
+      "post": {
+        "tags": [
+          "Audiobook & Stories"
+        ],
+        "summary": "Write a story draft",
+        "operationId": "writeStory",
+        "description": "Stories' Help me write: the writing help's language model drafts a script for two or three voices; create: true also makes the project (201). 400 llm_unavailable without a language model.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "What the story is about."
+                  },
+                  "create": {
+                    "type": "boolean"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "With create: the speech model."
+                  }
+                },
+                "required": [
+                  "description"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryDraft"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryDraft"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "502": {
             "$ref": "#/components/responses/Error"
           }
         }
@@ -6067,6 +6893,10 @@
             "type": "string",
             "description": "Absolute path of the video or audio to dub (mp4, mov, mkv, mp3, wav, m4a…)."
           },
+          "url": {
+            "type": "string",
+            "description": "Or a video link (http/https) downloaded with yt-dlp, when Settings → Dubbing allows links (else 409 url.no_ytdlp)."
+          },
           "title": {
             "type": "string",
             "description": "The project's title; empty: the file's name."
@@ -6102,10 +6932,7 @@
             "type": "string",
             "description": "How far to run now: transcript, translation, dub (default: the whole dub) or none."
           }
-        },
-        "required": [
-          "path"
-        ]
+        }
       },
       "DubRun": {
         "type": "object",
@@ -6401,6 +7228,300 @@
           "job_id",
           "state"
         ]
+      },
+      "Isolation": {
+        "type": "object",
+        "properties": {
+          "isolation_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string",
+            "description": "The file isolated."
+          },
+          "video": {
+            "type": "boolean"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string",
+            "description": "queued, running, done or failed.",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ]
+          },
+          "job_id": {
+            "type": "string",
+            "description": "The queue job (GET /api/jobs/{id})."
+          },
+          "error": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "stems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "enum": [
+                    "vocals",
+                    "background",
+                    "clean"
+                  ]
+                },
+                "file": {
+                  "type": "string",
+                  "description": "Absolute path of the WAV."
+                },
+                "about": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Asset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "take:…, render:…, export:…, stem:…, in:…"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "speech",
+              "story",
+              "audiobook",
+              "dub",
+              "stems",
+              "import"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "description": "Absolute path."
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "page": {
+            "type": "string",
+            "description": "The page it came from (/studio, /stories…)."
+          },
+          "tool": {
+            "type": "string",
+            "description": "The MCP tool that opens its source."
+          },
+          "source_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Sample": {
+        "type": "object",
+        "properties": {
+          "sample_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "story",
+              "audiobook",
+              "narration",
+              "dub",
+              "transcript"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Bundled in this build."
+          },
+          "copy": {
+            "type": "string",
+            "description": "The copy opened before (<kind>:<id>)."
+          }
+        }
+      },
+      "SampleOpened": {
+        "type": "object",
+        "properties": {
+          "sample_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string",
+            "description": "The copy: <kind>:<id>."
+          },
+          "tool": {
+            "type": "string",
+            "description": "What reads it."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "VoiceUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "style": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "ref_text": {
+            "type": "string",
+            "description": "Cloned voices only."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Replaces the tags; [] clears them."
+          }
+        }
+      },
+      "VoiceExport": {
+        "type": "object",
+        "properties": {
+          "include_reference": {
+            "type": "boolean"
+          },
+          "licence": {
+            "type": "string",
+            "description": "SPDX id; empty: personal use."
+          },
+          "directory": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          }
+        }
+      },
+      "VoiceImported": {
+        "type": "object",
+        "properties": {
+          "voice": {
+            "$ref": "#/components/schemas/Voice"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RefCheck": {
+        "type": "object",
+        "properties": {
+          "grade": {
+            "type": "string",
+            "enum": [
+              "good",
+              "fine",
+              "needs_work"
+            ]
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "speech_seconds": {
+            "type": "number"
+          },
+          "noisy": {
+            "type": "boolean"
+          },
+          "hints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "StoryDraft": {
+        "type": "object",
+        "properties": {
+          "script": {
+            "type": "string",
+            "description": "[voice:Name] lines; narration untagged."
+          },
+          "title": {
+            "type": "string"
+          },
+          "project": {
+            "$ref": "#/components/schemas/Longform"
+          }
+        }
       }
     },
     "responses": {

@@ -273,7 +273,7 @@ func TestTools(t *testing.T) {
 		names = append(names, tl.Name)
 	}
 	slices.Sort(names)
-	want := append([]string{"check_health", "clone_voice", "describe_voice", "design_voice", "generate_speech", "list_languages", "list_models", "list_voices", "transcribe"}, StudioTools...)
+	want := append([]string{"check_health", "clone_voice", "describe_voice", "design_voice", "generate_speech", "list_languages", "list_models", "list_voices", "transcribe"}, append(StudioTools, KitTools...)...)
 	slices.Sort(want)
 	if !slices.Equal(names, want) {
 		t.Fatalf("tools %v", names)
@@ -511,7 +511,7 @@ func TestStdioShim(t *testing.T) {
 	}
 	cs := shimSession(t, ProxyOptions{PortFile: pf, Client: "codex"})
 	tools, err := cs.ListTools(context.Background(), nil)
-	if err != nil || len(tools.Tools) != 9+len(StudioTools) {
+	if err != nil || len(tools.Tools) != 9+len(StudioTools)+len(KitTools) {
 		t.Fatalf("tools %v %v", err, tools)
 	}
 	res := call(t, cs, "generate_speech", map[string]any{"text": "Through the shim.", "output": "inline"})

@@ -51,6 +51,7 @@ type apiBackend struct {
 	// import's (#83: voice_editor_ref.go); nil in tests.
 	cleanRef    func(core.Voice)
 	studioParts // thread #35: api_studio*.go
+	kitParts    // thread #135: api_kit*.go
 }
 
 var _ api.Backend = (*apiBackend)(nil)
@@ -65,6 +66,7 @@ func (a *app) newAPIBackend(dataDir string) *apiBackend {
 		b.sup = a.eng.sup
 	}
 	b.useStudio(a.dubSvc, a.wfSvc) // thread #35
+	a.useKit(b)                    // thread #135
 	return b
 }
 

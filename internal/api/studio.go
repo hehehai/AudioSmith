@@ -388,10 +388,11 @@ const (
 	DeleteTranscript = "transcript"
 	DeleteProject    = "project" // a Stories or Audiobook project
 	DeleteDub        = "dub"
+	DeleteIsolation  = "isolation" // a Voice isolator's stems (kit.go)
 )
 
 // DeleteKinds lists them.
-var DeleteKinds = []string{DeleteTake, DeleteVoice, DeleteTranscript, DeleteProject, DeleteDub}
+var DeleteKinds = []string{DeleteTake, DeleteVoice, DeleteTranscript, DeleteProject, DeleteDub, DeleteIsolation}
 
 // Delete deletes an item the app's pages can delete, if confirm.
 func (s *Server) Delete(ctx context.Context, kind, id string, confirm bool) error {
@@ -410,6 +411,8 @@ func (s *Server) Delete(ctx context.Context, kind, id string, confirm bool) erro
 		what = "a project"
 	case DeleteDub:
 		what = "a dub"
+	case DeleteIsolation:
+		what = "an isolation and its stems"
 	default:
 		return errInvalid("kind", "kind is one of %s.", strings.Join(DeleteKinds, ", "))
 	}
@@ -423,6 +426,12 @@ func (s *Server) Delete(ctx context.Context, kind, id string, confirm bool) erro
 		return s.b.DeleteVoice(ctx, id)
 	case DeleteTranscript:
 		return s.b.DeleteTranscript(ctx, id)
+	case DeleteIsolation:
+		k, err := s.Toolkit()
+		if err != nil {
+			return err
+		}
+		return k.DeleteIsolation(ctx, id)
 	}
 	st, err := s.Studio()
 	if err != nil {

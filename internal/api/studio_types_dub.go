@@ -9,7 +9,8 @@ import "time"
 
 // DubCreate makes a dub of a file and, unless Through is "none", starts it.
 type DubCreate struct {
-	Path           string   `json:"path" jsonschema:"Absolute path of the video or audio to dub (mp4, mov, mkv, mp3, wav, m4a…)."`
+	Path           string   `json:"path,omitempty" jsonschema:"Absolute path of the video or audio to dub (mp4, mov, mkv, mp3, wav, m4a…)."`
+	URL            string   `json:"url,omitempty" jsonschema:"Or a video link (YouTube, Bilibili…; http or https) that AudioSmith downloads with yt-dlp: only when the user turned on Settings → Dubbing → Import from a link."`
 	Title          string   `json:"title,omitempty" jsonschema:"The project's title; empty: the file's name."`
 	SourceLanguage string   `json:"source_language,omitempty" jsonschema:"BCP-47 code spoken in the file; empty: detected."`
 	Targets        []string `json:"target_languages,omitempty" jsonschema:"BCP-47 codes to dub into, the main one first; empty: AudioSmith's Dubbing settings (by default Chinese, or English for a video in Chinese)."`

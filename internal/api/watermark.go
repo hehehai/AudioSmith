@@ -40,10 +40,10 @@ func (s *Server) watermarkDetect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer os.Remove(path)
-	res, err := s.b.DetectWatermark(r.Context(), path)
+	rep, err := s.DetectWatermark(r.Context(), path)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, Report(res))
+	writeJSON(w, http.StatusOK, rep)
 }

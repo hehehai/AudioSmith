@@ -223,6 +223,7 @@ type transcribeIn struct {
 	Prompt      string `json:"prompt,omitempty" jsonschema:"Names and terms to expect."`
 	Timestamps  bool   `json:"timestamps,omitempty" jsonschema:"Return sentences with their times (and words)."`
 	Speakers    bool   `json:"speakers,omitempty" jsonschema:"Tell who says what (a slower model): segments get speaker labels S1, S2…"`
+	Mode        string `json:"mode,omitempty" jsonschema:"accurate (default) or fast: Transcribe's two modes (Settings → Transcribe names their models); ignored when model is given."`
 }
 
 func (s *Server) transcribe(ctx context.Context, req *sdk.CallToolRequest, in transcribeIn) (*sdk.CallToolResult, any, error) {
@@ -233,7 +234,17 @@ func (s *Server) transcribe(ctx context.Context, req *sdk.CallToolRequest, in tr
 	}
 	defer done()
 	title := filepath.Base(firstNonEmpty(in.Filename, in.Path, "audio")) + " (MCP)"
-	tr, err := s.o.API.Transcribe(ctx, api.TranscribeParams{File: path, Title: title, Model: in.Model, Language: in.Language,
+	model := in.Model
+	switch strings.ToLower(strings.TrimSpace(in.Mode)) {
+	case "", "accurate":
+	case "fast":
+		if model == "" {
+			model = "gpt-4o-mini-transcribe" // the API's alias of Transcribe's Fast mode
+		}
+	default:
+		return nil, nil, errors.New("invalid_request: mode is accurate or fast")
+	}
+	tr, err := s.o.API.Transcribe(ctx, api.TranscribeParams{File: path, Title: title, Model: model, Language: in.Language,
 		Prompt: in.Prompt, Words: in.Timestamps, Speakers: in.Speakers})
 	if err != nil {
 		return nil, nil, toolError(err)
@@ -408,4 +419,5 @@ func (s *Server) addTools() {
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "check_health", Title: "Check health",
 		Description: "Whether AudioSmith's engine is ready, starting or down, and its device."}, s.checkHealth)
 	s.addStudioTools() // thread #35: studio.go
+	s.addKitTools()    // thread #135: kit.go, kit_more.go
 }

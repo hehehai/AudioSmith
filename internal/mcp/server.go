@@ -82,31 +82,27 @@ type Client struct {
 // the Integrations page makes (integrations_skill.go), so that an agent
 // without the skill knows the basics; TestInstructions keeps the tools
 // and arguments they name real.
-const Instructions = "AudioSmith is a speech app on this Mac, all local (MLX models; nothing leaves the Mac): text to speech, " +
-	"voices, transcription, audiobooks and stories, video dubbing, exports and workflows. Use it for speech, narration, " +
-	"a voice-over, an audiobook, a dub, a new voice, or a transcript or subtitles.\n" +
-	"- generate_speech: text (≤ 100,000 chars) to a WAV. voice = a saved voice (list_voices), a built-in speaker " +
-	"(list_models → voices) or empty for your own. output \"file\" writes it to the agents' folder and returns its path " +
-	"(name it with filename); \"inline\" puts base64 in your context. instructions sets the delivery.\n" +
-	"- transcribe: path = absolute path of audio or video; timestamps: true returns segments (for SRT or VTT); speakers: true labels who says what " +
-	"(meetings, interviews; slower); export_transcript saves txt/srt/vtt.\n" +
-	"- Voices: design_voice (a description), describe_voice, clone_voice (name + path; consent: true only after the user " +
-	"confirms the speaker agreed), search_voices and use_gallery_voice (Discover voices).\n" +
-	"- Books and stories: create_audiobook (path of an EPUB, TXT, MD or DOCX), create_story (text of 'Name: line' lines), " +
-	"get_longform, update_longform (voice, cast, format m4b; stories: scene, directions, direct: AI director; audiobooks: script, " +
-	"where [dialogue] … [/dialogue] holds 'Name: line' lines the dialogue model speaks together), render_longform (dialogue_block previews one), export_longform.\n" +
-	"- Dubbing: create_dub (path, target_languages; default Chinese, English for a Chinese video), get_dub, edit_dub, run_dub, export_dub (mp4, wav, srt…); batch_dub, list_batch.\n" +
-	"- Library: list_projects, list_takes, export_audio (format, loudness…), list_workflows, run_workflow.\n" +
-	"- Long work returns a job_id at once: call get_job with wait_seconds (≤ 60) until done, then report its files; " +
-	"cancel_job stops it.\n" +
-	"- delete_item needs confirm: true, only after the user said yes.\n" +
-	"- list_models (ui_name: the name the user sees, say it but pass the id; downloaded, licence_to_accept, needs_reference: cloned voices only), list_languages, check_health. " +
-	"Resources: voice://{id}, history://recent.\n" +
-	"Errors start with a code: licence_required or model_not_downloaded → ask the user to fix it in AudioSmith → Models; " +
-	"engine_unavailable, queue_timeout or busy → wait and retry; needs_reference → a cloned voice or another model; " +
-	"confirm_required → ask the user. Never change AudioSmith's settings, download models or accept licences yourself. " +
-	"If AudioSmith cannot be reached, ask the user to open it with its Local API on. Use only 127.0.0.1; files go to the " +
-	"agents' folder unless you give an absolute directory; report the paths of the files you make."
+const Instructions = "AudioSmith is a local speech app on this Mac (MLX; nothing leaves the Mac): text to speech, voices, " +
+	"transcription, audiobooks, stories, dubbing, voice isolation, exports, workflows.\n" +
+	"- generate_speech: text to a WAV; voice = a saved voice (list_voices), a built-in speaker (list_models) or empty; " +
+	"output \"file\" (+ filename) writes to the agents' folder, \"inline\" returns base64; instructions = delivery.\n" +
+	"- transcribe: path (absolute), timestamps: true for segments, speakers: true for who says what; export_transcript.\n" +
+	"- Voices: design_voice_candidates then design_voice (description), describe_voice, check_reference then clone_voice " +
+	"(name, path; consent: true only after the user confirms the speaker agreed), search_voices, preview_voice, use_gallery_voice, " +
+	"update_voice, duplicate_voice, export_voice, import_voice, convert_voice.\n" +
+	"- Stories/books: write_story, create_story (text), create_audiobook (path), get_longform, update_longform (voice, cast, format, " +
+	"scene, directions, direct), render_longform, export_longform.\n" +
+	"- Dubbing: create_dub (path or url, target_languages), get_dub, edit_dub, run_dub, export_dub, batch_dub, list_batch.\n" +
+	"- isolate_voice then get_isolation (stems vocals, background, clean).\n" +
+	"- Library: list_projects, list_assets, list_takes, export_audio (format, loudness), list_samples, open_sample, " +
+	"list_workflows, run_workflow.\n" +
+	"- Tools: probe_media, detect_watermark, direct_performance, check_line_fit, get_settings, list_models, list_languages, check_health.\n" +
+	"- Long work returns job_id: get_job with wait_seconds (≤ 60) until done, then report its files; cancel_job stops it.\n" +
+	"- delete_item and download_model need confirm: true, only after the user said yes.\n" +
+	"Error codes: licence_required or model_not_downloaded → the user fixes it in AudioSmith → Models (or download_model " +
+	"with their OK); engine_unavailable, queue_timeout, busy → wait, retry; needs_reference → a cloned voice or another model; " +
+	"confirm_required → ask the user. Never change settings or accept licences. Use only 127.0.0.1; report the paths of files you make. " +
+	"Resources: voice://{id}, history://recent."
 
 // New makes the MCP server.
 func New(o Options) *Server {

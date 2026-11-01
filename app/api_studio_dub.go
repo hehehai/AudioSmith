@@ -107,12 +107,9 @@ func (b *apiBackend) CreateDub(ctx context.Context, req api.DubCreate) (out api.
 	if b.dubs == nil {
 		return api.DubJSON{}, errNoModule("Dubbing")
 	}
-	if !dub.IsMedia(req.Path, dub.MediaExts) {
-		return api.DubJSON{}, apiErr(http.StatusBadRequest, api.CodeUnsupportedFormat, "path", "%s is not a video or audio file AudioSmith dubs (%s).", filepath.Base(req.Path), strings.Join(dub.MediaExts, ", "))
-	}
-	src := dub.Source{Kind: dub.SourceFile, Path: req.Path, Name: filepath.Base(req.Path)}
-	if fi, err := os.Stat(req.Path); err == nil {
-		src.Size = fi.Size()
+	src, err := b.dubSource(ctx, req)
+	if err != nil {
+		return api.DubJSON{}, err
 	}
 	p := newDubProject(src, b.lib.settings.Get().Dubbing, dubDefaultModelBy(b.onDisk))
 	if t := strings.TrimSpace(req.Title); t != "" {
@@ -172,12 +169,43 @@ func (b *apiBackend) CreateDub(ctx context.Context, req api.DubCreate) (out api.
 	if err != nil {
 		return api.DubJSON{}, err
 	}
+	if src.Kind == dub.SourceURL {
+		go b.dubs.Probe(context.WithoutCancel(ctx), created.ID) // the link's details, as the page does
+	}
 	if through != "none" {
 		if _, err := b.dubs.Run(ctx, created.ID, services.RunRequest{Through: dubStage(through), Priority: jobs.PriorityNormal}); err != nil {
 			return api.DubJSON{}, err
 		}
 	}
 	return b.Dub(ctx, api.DubQuery{ID: created.ID})
+}
+
+// dubSource is a new dub's source: a media file, or a link (yt-dlp, when
+// Settings → Dubbing allows links), as the Dub page's composer takes them.
+func (b *apiBackend) dubSource(ctx context.Context, req api.DubCreate) (dub.Source, error) {
+	if req.URL != "" {
+		if _, err := dub.CheckURL(ctx, req.URL, nil); err != nil {
+			code := api.CodeInvalid
+			var ue *dub.URLError
+			if errors.As(err, &ue) {
+				code = ue.Code
+			}
+			return dub.Source{}, apiErr(http.StatusBadRequest, code, "url", "%s", dubURLErrorText(err))
+		}
+		if d := b.lib.settings.Get().Dubbing; !d.URLImport || d.YtDlp == "" {
+			return dub.Source{}, apiErr(http.StatusConflict, dub.CodeNoYtDlp, "url",
+				"Importing from a link is off: ask the user to turn it on in AudioSmith → Settings → Dubbing (it downloads yt-dlp), or download the video and give its path.")
+		}
+		return dub.Source{Kind: dub.SourceURL, URL: req.URL, Name: req.URL}, nil
+	}
+	if !dub.IsMedia(req.Path, dub.MediaExts) {
+		return dub.Source{}, apiErr(http.StatusBadRequest, api.CodeUnsupportedFormat, "path", "%s is not a video or audio file AudioSmith dubs (%s).", filepath.Base(req.Path), strings.Join(dub.MediaExts, ", "))
+	}
+	src := dub.Source{Kind: dub.SourceFile, Path: req.Path, Name: filepath.Base(req.Path)}
+	if fi, err := os.Stat(req.Path); err == nil {
+		src.Size = fi.Size()
+	}
+	return src, nil
 }
 
 // Dub reads a dub: its stages, speakers, tracks and lines in a language.

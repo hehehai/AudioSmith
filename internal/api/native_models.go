@@ -17,7 +17,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/jobs"
 	"github.com/hehehai/AudioSmith/internal/lang"
-	"github.com/hehehai/AudioSmith/internal/translate"
 )
 
 func (s *Server) listJobs(w http.ResponseWriter, r *http.Request) {
@@ -146,17 +145,7 @@ func (s *Server) getModel(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) downloadModel(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if rm, ok := catalog.Builtin().RemovedModel(id); ok {
-		writeError(w, &Error{Status: http.StatusGone, Code: CodeModelRemoved, Param: "id",
-			Message: rm.Label + " was removed from AudioSmith: download " + rm.ReplacedBy + " instead.",
-			Data:    map[string]any{"model": rm.ID, "replaced_by": rm.ReplacedBy}})
-		return
-	}
-	if _, ok := catalog.Builtin().ByID(id); !ok {
-		writeError(w, errNotFound(CodeModelNotFound, "There is no model %q.", id))
-		return
-	}
-	jobID, err := s.b.DownloadModel(r.Context(), id)
+	jobID, err := s.DownloadModel(r.Context(), id)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -248,18 +237,12 @@ func (s *Server) languages(w http.ResponseWriter, r *http.Request) {
 // --- tools -------------------------------------------------------------------
 
 func (s *Server) toolProbe(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		Path string `json:"path"`
-	}
+	var b ProbeRequest
 	if err := readJSON(w, r, 64<<10, &b); err != nil {
 		writeError(w, err)
 		return
 	}
-	if !strings.HasPrefix(b.Path, "/") {
-		writeError(w, errInvalid("path", "path must be absolute."))
-		return
-	}
-	info, err := s.b.Probe(r.Context(), b.Path)
+	info, err := s.Probe(r.Context(), b)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -268,53 +251,29 @@ func (s *Server) toolProbe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) toolDirection(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		Note string `json:"note"`
-	}
+	var b DirectRequest
 	if err := readJSON(w, r, 64<<10, &b); err != nil {
 		writeError(w, err)
 		return
 	}
-	if strings.TrimSpace(b.Note) == "" {
-		writeError(w, errInvalid("note", "note is empty."))
+	d, err := s.Direct(r.Context(), b)
+	if err != nil {
+		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, s.b.Direct(r.Context(), b.Note))
+	writeJSON(w, http.StatusOK, d)
 }
 
 func (s *Server) toolRateFit(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		Text       string  `json:"text"`
-		Language   string  `json:"language"`
-		Slot       float64 `json:"slot"`
-		Speed      float64 `json:"speed"`
-		Source     string  `json:"source"`
-		SourceLang string  `json:"source_language"`
-		Rewrite    bool    `json:"rewrite"`
-	}
+	var b FitRequest
 	if err := readJSON(w, r, 256<<10, &b); err != nil {
 		writeError(w, err)
 		return
 	}
-	if strings.TrimSpace(b.Text) == "" || b.Slot <= 0 {
-		writeError(w, errInvalid("slot", "text and a slot in seconds (> 0) are needed."))
-		return
-	}
-	res, err := s.b.Fit(r.Context(), translate.FitRequest{Text: b.Text, Lang: b.Language, Slot: b.Slot, Speed: b.Speed,
-		Source: b.Source, SourceLang: b.SourceLang, Rewrite: b.Rewrite})
+	res, err := s.Fit(r.Context(), b)
 	if err != nil {
-		var te *translate.Error
-		if errors.As(err, &te) {
-			writeError(w, errInvalid("", "%v", err))
-			return
-		}
 		writeError(w, err)
 		return
 	}
-	out := map[string]any{"fit": res.Fit}
-	if res.Rewrite != "" {
-		out["rewrite"] = res.Rewrite
-		out["rewrite_fit"] = res.RewriteFit
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeJSON(w, http.StatusOK, res)
 }
