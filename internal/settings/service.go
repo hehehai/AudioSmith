@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -15,9 +13,8 @@ import (
 // Key is the document the settings are stored under (store.Documents).
 const Key = "settings:app"
 
-// Documents is where a Store keeps its document. store.Documents satisfies
-// it (thread A, SQLite); until that lands DirDocuments keeps it in a JSON
-// file.
+// Documents is where a Store keeps its document; store.Documents
+// (SQLite) satisfies it.
 type Documents interface {
 	Get(ctx context.Context, key string) ([]byte, bool, error)
 	Put(ctx context.Context, key string, doc []byte) error
@@ -198,52 +195,4 @@ func (d *memDocs) Put(_ context.Context, key string, doc []byte) error {
 	}
 	d.m[key] = slices.Clone(doc)
 	return nil
-}
-
-// DirDocuments keeps documents as JSON files in a directory, one per key
-// ("settings:app" → settings-app.json), each written atomically. It stands
-// in for store.Documents until the SQLite store lands; its files are then
-// imported once.
-type DirDocuments struct{ Dir string }
-
-func (d DirDocuments) path(key string) string {
-	name := strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_', r == '.':
-			return r
-		}
-		return '-'
-	}, key)
-	return filepath.Join(d.Dir, name+".json")
-}
-
-func (d DirDocuments) Get(_ context.Context, key string) ([]byte, bool, error) {
-	data, err := os.ReadFile(d.path(key))
-	if os.IsNotExist(err) {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return data, true, nil
-}
-
-func (d DirDocuments) Put(_ context.Context, key string, doc []byte) error {
-	if err := os.MkdirAll(d.Dir, 0o755); err != nil {
-		return err
-	}
-	f, err := os.CreateTemp(d.Dir, ".tmp-*")
-	if err != nil {
-		return err
-	}
-	if _, err := f.Write(doc); err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return err
-	}
-	if err := f.Close(); err != nil {
-		os.Remove(f.Name())
-		return err
-	}
-	return os.Rename(f.Name(), d.path(key))
 }

@@ -3,8 +3,6 @@ package settings
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -31,7 +29,7 @@ func TestMigrate(t *testing.T) {
 
 func TestStore(t *testing.T) {
 	ctx := context.Background()
-	docs := DirDocuments{Dir: t.TempDir()}
+	docs := &memDocs{}
 	var events []Changed
 	s, err := Open(ctx, docs, func(c Changed) { events = append(events, c) })
 	if err != nil || !reflect.DeepEqual(s.Get(), Defaults()) {
@@ -68,11 +66,11 @@ func TestStore(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(again.Get(), s.Get()) {
 		t.Fatalf("reopened %+v %v", again.Get(), err)
 	}
-	if _, err := os.Stat(filepath.Join(docs.Dir, "settings-app.json")); err != nil {
-		t.Error(err)
+	if _, ok := docs.m[Key]; !ok {
+		t.Error("not saved")
 	}
 	// A broken document: defaults, and an error to log.
-	os.WriteFile(filepath.Join(docs.Dir, "settings-app.json"), []byte("{"), 0o644)
+	docs.m[Key] = []byte("{")
 	broken, err := Open(ctx, docs, nil)
 	if err == nil || !reflect.DeepEqual(broken.Get(), Defaults()) {
 		t.Errorf("broken: %+v %v", broken.Get(), err)

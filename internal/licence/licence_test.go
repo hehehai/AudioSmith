@@ -3,11 +3,13 @@ package licence
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
+	"sync"
 	"testing"
 
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
-	"github.com/hehehai/AudioSmith/internal/settings"
 )
 
 // testCatalog has one free and two non-commercial models.
@@ -28,8 +30,8 @@ func TestGate(t *testing.T) {
 	bus := core.NewBus()
 	var changes []core.LicenceChanged
 	core.On(bus, func(e core.LicenceChanged) { changes = append(changes, e) })
-	docs := settings.DirDocuments{Dir: t.TempDir()}
-	g := New(&DocRepo{Docs: docs}, testCatalog(t), bus)
+	repo := &memRepo{}
+	g := New(repo, testCatalog(t), bus)
 
 	for _, m := range []string{"o/free", "free", "someone/custom"} {
 		if err := g.Check(ctx, m); err != nil {
@@ -61,8 +63,8 @@ func TestGate(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Persisted: a new gate over the same documents agrees.
-	g2 := New(&DocRepo{Docs: docs}, testCatalog(t), nil)
+	// Persisted: a new gate over the same repo agrees.
+	g2 := New(repo, testCatalog(t), nil)
 	list, err := g2.List(ctx)
 	if err != nil || len(list) != 2 || list[0].AcceptedAt.IsZero() {
 		t.Fatalf("list %+v %v", list, err)
@@ -84,20 +86,42 @@ func TestGate(t *testing.T) {
 	}
 }
 
-func TestMemoryRepo(t *testing.T) {
-	ctx := context.Background()
-	g := New(&DocRepo{}, testCatalog(t), nil)
-	g.Accept(ctx, core.LicenceAcceptance{Licence: "cc-by-nc-4.0", Model: "o/nc"})
-	if err := g.Check(ctx, "o/nc"); err != nil {
-		t.Error(err)
-	}
-}
-
 func TestBuiltinNeedsNoAcceptance(t *testing.T) {
-	g := New(&DocRepo{}, nil, nil)
+	g := New(&memRepo{}, nil, nil)
 	for _, e := range catalog.Builtin().Entries {
 		if err := g.Check(context.Background(), e.Repo); err != nil && !e.Licence.RequiresAcceptance {
 			t.Errorf("%s: %v", e.ID, err)
 		}
 	}
+}
+
+// memRepo is a Repo in memory.
+type memRepo struct {
+	mu   sync.Mutex
+	list []core.LicenceAcceptance
+}
+
+func (r *memRepo) Put(_ context.Context, a core.LicenceAcceptance) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.list = slices.DeleteFunc(r.list, func(x core.LicenceAcceptance) bool { return x.Licence == a.Licence && x.Model == a.Model })
+	r.list = append(r.list, a)
+	return nil
+}
+
+func (r *memRepo) Delete(_ context.Context, licence, model string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := len(r.list)
+	r.list = slices.DeleteFunc(r.list, func(x core.LicenceAcceptance) bool { return x.Licence == licence && x.Model == model })
+	if len(r.list) == n {
+		return fmt.Errorf("acceptance of %s for %q: %w", licence, model, core.ErrNotFound)
+	}
+	return nil
+}
+
+func (r *memRepo) List(context.Context) ([]core.LicenceAcceptance, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return slices.Clone(r.list), nil
 }

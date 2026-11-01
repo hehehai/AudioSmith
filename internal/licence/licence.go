@@ -6,18 +6,15 @@
 // every model under it. Repos outside the catalogue pass: the user brought
 // them and their terms.
 //
-// The repository is store.Licences once the SQLite store lands (thread A);
-// until then DocRepo keeps the acceptances in a JSON document.
+// The repository is store.Licences.
 //
 // Thread C owns this package. Imports: core, catalog.
 package licence
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/catalog"
@@ -123,82 +120,4 @@ func (g *Gate) Revoke(ctx context.Context, licence, model string) error {
 // List returns the acceptances on record.
 func (g *Gate) List(ctx context.Context) ([]core.LicenceAcceptance, error) {
 	return g.repo.List(ctx)
-}
-
-// Documents is a key → JSON store; store.Documents and
-// settings.DirDocuments satisfy it.
-type Documents interface {
-	Get(ctx context.Context, key string) ([]byte, bool, error)
-	Put(ctx context.Context, key string, doc []byte) error
-}
-
-// DocKey is the document DocRepo keeps the acceptances in.
-const DocKey = "licences:accepted"
-
-// DocRepo is a Repo in one JSON document (an array of acceptances). Docs
-// nil keeps them in memory.
-type DocRepo struct {
-	Docs Documents
-
-	mu  sync.Mutex
-	mem []core.LicenceAcceptance
-}
-
-func (r *DocRepo) load(ctx context.Context) ([]core.LicenceAcceptance, error) {
-	if r.Docs == nil {
-		return slices.Clone(r.mem), nil
-	}
-	data, ok, err := r.Docs.Get(ctx, DocKey)
-	if err != nil || !ok {
-		return nil, err
-	}
-	var list []core.LicenceAcceptance
-	if err := json.Unmarshal(data, &list); err != nil {
-		return nil, err
-	}
-	return list, nil
-}
-
-func (r *DocRepo) save(ctx context.Context, list []core.LicenceAcceptance) error {
-	if r.Docs == nil {
-		r.mem = list
-		return nil
-	}
-	data, err := json.MarshalIndent(list, "", "  ")
-	if err != nil {
-		return err
-	}
-	return r.Docs.Put(ctx, DocKey, data)
-}
-
-func (r *DocRepo) Put(ctx context.Context, a core.LicenceAcceptance) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	list, err := r.load(ctx)
-	if err != nil {
-		return err
-	}
-	list = slices.DeleteFunc(list, func(x core.LicenceAcceptance) bool { return x.Licence == a.Licence && x.Model == a.Model })
-	return r.save(ctx, append(list, a))
-}
-
-func (r *DocRepo) Delete(ctx context.Context, licence, model string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	list, err := r.load(ctx)
-	if err != nil {
-		return err
-	}
-	n := len(list)
-	list = slices.DeleteFunc(list, func(x core.LicenceAcceptance) bool { return x.Licence == licence && x.Model == model })
-	if len(list) == n {
-		return fmt.Errorf("acceptance of %s for %q: %w", licence, model, core.ErrNotFound)
-	}
-	return r.save(ctx, list)
-}
-
-func (r *DocRepo) List(ctx context.Context) ([]core.LicenceAcceptance, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.load(ctx)
 }
