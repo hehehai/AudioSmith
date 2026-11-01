@@ -51,6 +51,12 @@ var gutterFree = map[string]string{
 	"batch": "nothing queued: the queue is a centred empty state",
 }
 
+// gutterCentred are pages whose body is a centred column of their own
+// width, not gutter to gutter: their left and right edges are not checked.
+var gutterCentred = map[string]string{
+	"home": "a centred 720-DIP column (user, 11-01: not full width)",
+}
+
 // gutterPages are the pages with a header, each with something in it.
 var gutterPages = []gutterPage{
 	{"home", func(d *dubTest) { d.a.navigate("/home") }},
@@ -321,10 +327,11 @@ func TestPageGutter(t *testing.T) {
 			if g.titleR > g.toolsX+0.5 {
 				t.Errorf("%s %s: the header's title side reaches %.1f into its tools", cfg.name, p.name, g.titleR-g.toolsX)
 			}
-			if d := g.bodyL - g.headL; d < -1 || d > 1 {
+			_, centred := gutterCentred[p.name]
+			if d := g.bodyL - g.headL; (d < -1 || d > 1) && !centred {
 				t.Errorf("%s %s: the body starts at %.1f (%s), the header's title at %.1f (%+.1f)", cfg.name, p.name, g.bodyL, g.leftWho, g.headL, d)
 			}
-			if d := g.bodyR - g.wantR(); (d < -1 && !free && !g.over) || d > 1 {
+			if d := g.bodyR - g.wantR(); ((d < -1 && !free && !g.over) || d > 1) && !centred {
 				t.Errorf("%s %s: the body ends at %.1f (%s), want %.1f (%+.1f; panel %v)", cfg.name, p.name, g.bodyR, g.rightWho, g.wantR(), d, g.panel)
 			}
 			if d := g.bodyT - g.wantT(); (d < -1 || d > 1) && !free && p.name != "home" {
@@ -334,5 +341,21 @@ func TestPageGutter(t *testing.T) {
 				t.Errorf("%s %s: the panel's top at %.1f, the content's beside it at %.1f (%+.1f)", cfg.name, p.name, g.panel.Y, g.besideT, d)
 			}
 		}
+	}
+}
+
+// Home's column stays 720 DIPs wide and centred in a wide window.
+func TestHomeCentredColumn(t *testing.T) {
+	a, _, _ := newTestApp(t)
+	tt := ui.NewTester(a.view, 1600, 900)
+	a.navigate("/home")
+	tt.Frame()
+	tt.Frame()
+	r, ok := tt.Find("What would you like to create?")
+	if !ok {
+		t.Fatalf("home: %q", tt.Texts())
+	}
+	if r.W > 721 {
+		t.Errorf("Home's column is %.0f wide, want 720 at most", r.W)
 	}
 }
