@@ -73,11 +73,7 @@ func ownerOf(repo string) string {
 // v1Models is GET /v1/models.
 func (s *Server) v1Models(w http.ResponseWriter, r *http.Request) {
 	list, err := s.openAIModels(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": list})
+	writeList(w, list, err)
 }
 
 // v1Model is GET /v1/models/{id}.

@@ -222,3 +222,17 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	enc.SetEscapeHTML(false)
 	enc.Encode(v)
 }
+
+// writeResult answers err when there is one, else v.
+func writeResult(w http.ResponseWriter, status int, v any, err error) {
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, status, v)
+}
+
+// writeList answers err when there is one, else data as a list object.
+func writeList(w http.ResponseWriter, data any, err error) {
+	writeResult(w, http.StatusOK, map[string]any{"object": "list", "data": data}, err)
+}
