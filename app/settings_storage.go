@@ -327,21 +327,36 @@ func (a *app) eraseAll() {
 
 // storageSettings is Settings → Storage.
 func (a *app) storageSettings(c *ui.Context) {
-	t := c.Theme()
 	if a.stReport == nil && !a.stLoading {
 		a.loadStorage()
 	}
-	r := a.stReport
-	muted := func(s string) { ui.Text(c, s).FontSize(px(t, 12)).TextColor(t.TextMuted) }
-	open := func(key, dir string) {
-		if dir != "" && a.win != nil && ui.Button(c.Key(key), i18n.T("Open")).Clicked() {
-			mygo.Shell.OpenPath(dir)
-		}
-	}
+	a.stDataGroup(c)
+	a.stRoomGroup(c, a.stReport)
+	a.stModelsGroup(c, a.stReport)
+	a.stResetGroup(c)
+}
 
+// stMuted is a muted line of Storage.
+func stMuted(c *ui.Context, s string) {
+	t := c.Theme()
+	ui.Text(c, s).FontSize(px(t, 12)).TextColor(t.TextMuted)
+}
+
+// stOpen is an Open button that shows dir in the Finder (none without a
+// folder or a window).
+func (a *app) stOpen(c *ui.Context, key, dir string) {
+	if dir != "" && a.win != nil && ui.Button(c.Key(key), i18n.T("Open")).Clicked() {
+		mygo.Shell.OpenPath(dir)
+	}
+}
+
+// stDataGroup is Storage's data folder: where it is, Move, and what a
+// move left behind.
+func (a *app) stDataGroup(c *ui.Context) {
+	t := c.Theme()
 	settingGroup(c, i18n.T("Data folder"), func() {
 		settingRow(c, "st-data", shortPath(a.dataDir()), i18n.T("Your library: takes, voices, projects, dubs, transcripts and the database."), func() {
-			open("st-open-data", a.dataDir())
+			a.stOpen(c, "st-open-data", a.dataDir())
 			if ui.Button(c.Key("st-move"), i18n.T("Move")).Disabled(a.moving).Clicked() {
 				chooseMoveDir(a, a.startMove)
 			}
@@ -363,16 +378,20 @@ func (a *app) storageSettings(c *ui.Context) {
 		if a.moveErr != "" {
 			settingNote(c, "st-move-err", a.moveErr).TextColor(t.Danger)
 		}
-
 	})
+}
+
+// stRoomGroup is what takes room in the data folder (r nil: measuring).
+func (a *app) stRoomGroup(c *ui.Context, r *storageReport) {
+	t := c.Theme()
 	settingGroupBlock(c, i18n.T("What takes room"), "st-room", func() {
 		if r == nil {
 			ui.Row(c).Gap(px(t, 8)).Children(func() {
 				ui.Spinner(c)
-				muted(i18n.T("Measuring…"))
+				stMuted(c, i18n.T("Measuring…"))
 			})
 		} else {
-			muted(i18n.T("Data folder: %s · free on its disk: %s", humanBytes(r.data), humanBytes(r.free)))
+			stMuted(c, i18n.T("Data folder: %s · free on its disk: %s", humanBytes(r.data), humanBytes(r.free)))
 			ui.Grid(c.Key("st-cats")).ColumnTracks(ui.Fr(1), ui.Fixed(px(t, 90)), ui.Fixed(px(t, 80))).GapX(px(t, 12)).GapY(px(t, 6)).Children(func() {
 				for _, cat := range r.cats {
 					ui.Text(c, cat.title)
@@ -389,21 +408,26 @@ func (a *app) storageSettings(c *ui.Context) {
 							}
 							return
 						}
-						open("open", cat.dir)
+						a.stOpen(c, "open", cat.dir)
 					})
 				}
 			})
-			muted(i18n.T("Caches are rebuilt when needed: waveforms, rendered chunks, voice previews."))
+			stMuted(c, i18n.T("Caches are rebuilt when needed: waveforms, rendered chunks, voice previews."))
 		}
-
 	})
+}
+
+// stModelsGroup is the model folder, its Time Machine switch and
+// AudioSmith's models in it.
+func (a *app) stModelsGroup(c *ui.Context, r *storageReport) {
+	t := c.Theme()
 	settingGroup(c, i18n.T("Models"), func() {
 		shared := i18n.T("Change it in Settings → Models & network.")
 		if len(a.famOthers) > 0 {
 			shared = i18n.T("Shared by all ActNow apps. Change it in Settings → Models & network.") // spec §7.10.2
 		}
 		settingRow(c, "st-models", shortPath(modelCache(a.prefs)), shared, func() {
-			open("st-open-models", modelCache(a.prefs))
+			a.stOpen(c, "st-open-models", modelCache(a.prefs))
 		})
 		if fam := a.lib.fam; fam != nil {
 			// Time Machine (family spec §7.12): the family's models.backup,
@@ -425,7 +449,7 @@ func (a *app) storageSettings(c *ui.Context) {
 		}
 		if r != nil {
 			settingBlock(c, "st-models-use", func() {
-				muted(i18n.T("AudioSmith's models: %s of %s in the folder · free on its disk: %s", humanBytes(r.ours), humanBytes(r.modelsAll), humanBytes(r.freeModel)))
+				stMuted(c, i18n.T("AudioSmith's models: %s of %s in the folder · free on its disk: %s", humanBytes(r.ours), humanBytes(r.modelsAll), humanBytes(r.freeModel)))
 				ui.Grid(c.Key("st-models-list")).ColumnTracks(ui.Fr(1), ui.Fixed(px(t, 90))).GapX(px(t, 12)).GapY(px(t, 4)).Children(func() {
 					for i, m := range r.models {
 						if i >= 8 {
@@ -438,8 +462,11 @@ func (a *app) storageSettings(c *ui.Context) {
 			})
 			a.familyStorage(c, r) // storage_family.go
 		}
-
 	})
+}
+
+// stResetGroup is Reset: the look, the settings, everything.
+func (a *app) stResetGroup(c *ui.Context) {
 	settingGroup(c, i18n.T("Reset"), func() {
 		settingRow(c, "st-reset-look", i18n.T("Reset the look"), i18n.T("Theme, colours, size, sidebar and language."), func() {
 			if ui.Button(c.Key("st-reset-look"), i18n.T("Reset")).Clicked() {
