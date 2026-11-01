@@ -115,179 +115,29 @@ func (s *Dubs) Export(ctx context.Context, req ExportRequest, progress func(floa
 	if err := os.MkdirAll(filepath.Dir(req.Output), 0o755); err != nil {
 		return ExportResult{}, err
 	}
-	lang := req.Lang
-	if lang == dub.OrigTrack {
-		lang = ""
-	}
-	track := func(l string) (dub.Track, error) {
-		t := p.Track(l)
-		if t.File == "" || !fileExists(s.Path(p.ID, t.File)) {
-			data, _ := json.Marshal(map[string]string{"lang": l})
-			return t, &jobs.Error{Code: DubCodeNotMixed, Message: fmt.Sprintf("There is no %s track yet: generate it first.", l), Data: data}
-		}
-		return t, nil
+	x := &dubExport{s: s, ctx: ctx, p: p, req: req, lang: req.Lang,
+		progress: func(pg jobs.Progress) { progress(max(pg.Fraction, 0)) }}
+	if x.lang == dub.OrigTrack {
+		x.lang = ""
 	}
 	switch req.Format {
 	case dub.ExportSRT, dub.ExportVTT, dub.ExportASS:
-		data, err := p.Subtitles(dub.SubtitleOptions{Format: req.Format, Lang: lang, Dual: req.Dual, Split: !req.Dual && req.Format != dub.ExportASS})
-		if err != nil {
-			return ExportResult{}, err
-		}
-		if err := writeAtomic(req.Output, data); err != nil {
-			return ExportResult{}, err
-		}
-	case dub.ExportWAV:
-		t, err := track(lang)
-		if err != nil {
-			return ExportResult{}, err
-		}
-		bits := req.Bits
-		if bits == 0 {
-			bits = 24
-		}
-		if err := convertWAV(ctx, s.Path(p.ID, t.File), req.Output, bits); err != nil {
-			return ExportResult{}, err
-		}
-	case dub.ExportM4A:
-		t, err := track(lang)
-		if err != nil {
-			return ExportResult{}, err
-		}
-		ep := dub.EncodeParams{Input: s.Path(p.ID, t.File), Output: proto.Output{Path: req.Output, Format: "m4a"}, Codec: "aac", Bitrate: 192000}
-		var er dub.EncodeResult
-		sc := s.exportCtx(p, "encode")
-		if err := sc.call(ctx, dub.MethodEncode, "", ep, nil, &er, nil); err != nil {
-			return ExportResult{}, needsEngine(err, dub.MethodEncode)
-		}
-	case dub.ExportMP3: // M7a: ffmpeg behind media.encode
-		t, err := track(lang)
-		if err != nil {
-			return ExportResult{}, err
-		}
-		ep := dub.EncodeParams{Input: s.Path(p.ID, t.File), Output: proto.Output{Path: req.Output, Format: "mp3"}, Bitrate: 192000,
-			Metadata: proto.EncodeMetadata{Title: p.Title}}
-		var er dub.EncodeResult
-		sc := s.exportCtx(p, "encode")
-		if err := sc.call(ctx, dub.MethodEncode, "", ep, nil, &er, func(pg jobs.Progress) { progress(max(pg.Fraction, 0)) }); err != nil {
-			return ExportResult{}, needsFFmpeg(err)
-		}
+		err = x.subtitles()
+	case dub.ExportWAV, dub.ExportM4A, dub.ExportMP3:
+		err = x.audio()
 	case dub.ExportBurn: // M7a: ffmpeg draws the subtitles of lang into the video, with lang's track
-		if !p.Source.HasVideo {
-			return ExportResult{}, &jobs.Error{Code: "dub.no_video", Message: "The source has no video: export subtitles instead."}
-		}
-		audio := ""
-		if lang != "" {
-			t, err := track(lang)
-			if err != nil {
-				return ExportResult{}, err
-			}
-			audio = s.Path(p.ID, t.File)
-		}
-		data, err := p.Subtitles(dub.SubtitleOptions{Format: dub.SubSRT, Lang: lang, Split: true})
-		if err != nil {
-			return ExportResult{}, err
-		}
-		tmp := filepath.Join(s.Dir(p.ID), "exports")
-		os.MkdirAll(tmp, 0o755)
-		subs := filepath.Join(tmp, "burn-"+dubFirst(dub.SafeName(lang), "orig")+".srt")
-		if err := writeAtomic(subs, data); err != nil {
-			return ExportResult{}, err
-		}
-		params := map[string]any{"video": p.Source.Path, "audio": audio, "subtitles": subs, "output": proto.Output{Path: req.Output, Format: "mp4"}}
-		sc := s.exportCtx(p, "burn")
-		err = sc.call(ctx, MethodBurn, "", params, nil, nil, func(pg jobs.Progress) { progress(max(pg.Fraction, 0)) })
-		os.RemoveAll(tmp)
-		if err != nil {
-			return ExportResult{}, needsFFmpeg(err)
-		}
+		err = x.burn()
 	case dub.ExportStems:
-		t, err := track(lang)
-		if err != nil {
-			return ExportResult{}, err
-		}
-		entries := []dub.ZipEntry{{Name: dub.SafeName(lang) + "_speech.wav", Path: s.Path(p.ID, t.Speech)}}
-		if p.Media.Background != "" {
-			entries = append(entries, dub.ZipEntry{Name: "background.wav", Path: s.Path(p.ID, p.Media.Background)})
-		}
-		if p.Media.Vocals != "" {
-			entries = append(entries, dub.ZipEntry{Name: "original_voices.wav", Path: s.Path(p.ID, p.Media.Vocals)})
-		}
-		entries = append(entries, dub.ZipEntry{Name: dub.SafeName(lang) + "_mix.wav", Path: s.Path(p.ID, t.File)})
-		if err := writeZip(req.Output, entries); err != nil {
-			return ExportResult{}, err
-		}
+		err = x.stems()
 	case dub.ExportSegments:
-		entries := p.SegmentEntries(lang, s.Dir(p.ID))
-		if len(entries) == 0 {
-			return ExportResult{}, &jobs.Error{Code: DubCodeNotMixed, Message: "No line is rendered in this language yet."}
-		}
-		if data, err := p.Subtitles(dub.SubtitleOptions{Format: dub.SubSRT, Lang: lang}); err == nil {
-			entries = append(entries, dub.ZipEntry{Name: "lines.srt", Data: data})
-		}
-		if err := writeZip(req.Output, entries); err != nil {
-			return ExportResult{}, err
-		}
+		err = x.segments()
 	case dub.ExportMP4:
-		if !p.Source.HasVideo {
-			return ExportResult{}, &jobs.Error{Code: "dub.no_video", Message: "The source has no video: export WAV or M4A."}
-		}
-		mp := dub.MuxParams{Video: p.Source.Path, Output: proto.Output{Path: req.Output, Format: "mp4"}}
-		tracks := req.Tracks
-		if len(tracks) == 0 {
-			tracks = append([]string{dub.OrigTrack}, p.Targets...)
-		}
-		def := req.Default
-		if def == "" {
-			for _, l := range tracks {
-				if l != dub.OrigTrack {
-					def = l
-					break
-				}
-			}
-		}
-		for _, l := range tracks {
-			if l == dub.OrigTrack {
-				mp.KeepAudio = true
-				continue
-			}
-			t, err := track(l)
-			if err != nil {
-				return ExportResult{}, err
-			}
-			mp.Audio = append(mp.Audio, dub.MuxTrack{Path: s.Path(p.ID, t.File), Language: l, Title: languageTitle(l), Default: l == def})
-		}
-		tmp := filepath.Join(s.Dir(p.ID), "exports")
-		if req.Subtitles {
-			os.MkdirAll(tmp, 0o755)
-			subs := slices.DeleteFunc(slices.Clone(tracks), func(l string) bool { return l == dub.OrigTrack })
-			subs = append(subs, "")
-			for _, l := range subs {
-				data, err := p.Subtitles(dub.SubtitleOptions{Format: dub.SubSRT, Lang: l, Split: true})
-				if err != nil || len(data) == 0 {
-					continue
-				}
-				name := filepath.Join(tmp, "subs-"+dubFirst(dub.SafeName(l), "orig")+".srt")
-				if err := writeAtomic(name, data); err != nil {
-					return ExportResult{}, err
-				}
-				sl := l
-				if sl == "" {
-					sl = p.SourceLanguage()
-				}
-				mp.Subtitles = append(mp.Subtitles, dub.MuxSubtitle{Path: name, Language: sl, Title: languageTitle(sl), Default: l == def})
-			}
-		}
-		var mr dub.MuxResult
-		sc := s.exportCtx(p, "mux")
-		err := sc.call(ctx, dub.MethodMux, "", mp, nil, &mr, func(pg jobs.Progress) { progress(max(pg.Fraction, 0)) })
-		if req.Subtitles {
-			os.RemoveAll(tmp)
-		}
-		if err != nil {
-			return ExportResult{}, needsEngine(err, dub.MethodMux)
-		}
+		err = x.mp4()
 	default:
-		return ExportResult{}, &jobs.Error{Code: proto.CodeBadRequest, Message: "unknown export format " + req.Format}
+		err = &jobs.Error{Code: proto.CodeBadRequest, Message: "unknown export format " + req.Format}
+	}
+	if err != nil {
+		return ExportResult{}, err
 	}
 	progress(1)
 	res := ExportResult{Output: req.Output, Format: req.Format}
@@ -295,6 +145,192 @@ func (s *Dubs) Export(ctx context.Context, req ExportRequest, progress func(floa
 		res.Bytes = fi.Size()
 	}
 	return res, nil
+}
+
+// dubExport is one export of a dub (Dubs.Export).
+type dubExport struct {
+	s        *Dubs
+	ctx      context.Context
+	p        *dub.Project
+	req      ExportRequest
+	lang     string // the language exported; "" the original
+	progress func(jobs.Progress)
+}
+
+// track is the mixed track of language l, or why there is none.
+func (x *dubExport) track(l string) (dub.Track, error) {
+	t := x.p.Track(l)
+	if t.File == "" || !fileExists(x.s.Path(x.p.ID, t.File)) {
+		data, _ := json.Marshal(map[string]string{"lang": l})
+		return t, &jobs.Error{Code: DubCodeNotMixed, Message: fmt.Sprintf("There is no %s track yet: generate it first.", l), Data: data}
+	}
+	return t, nil
+}
+
+func (x *dubExport) subtitles() error {
+	req := x.req
+	data, err := x.p.Subtitles(dub.SubtitleOptions{Format: req.Format, Lang: x.lang, Dual: req.Dual, Split: !req.Dual && req.Format != dub.ExportASS})
+	if err != nil {
+		return err
+	}
+	return writeAtomic(req.Output, data)
+}
+
+// audio writes the language's track as WAV, M4A (the engine) or MP3
+// (M7a: ffmpeg behind media.encode).
+func (x *dubExport) audio() error {
+	s, p, req := x.s, x.p, x.req
+	t, err := x.track(x.lang)
+	if err != nil {
+		return err
+	}
+	in := s.Path(p.ID, t.File)
+	var er dub.EncodeResult
+	switch req.Format {
+	case dub.ExportWAV:
+		bits := req.Bits
+		if bits == 0 {
+			bits = 24
+		}
+		return convertWAV(x.ctx, in, req.Output, bits)
+	case dub.ExportM4A:
+		ep := dub.EncodeParams{Input: in, Output: proto.Output{Path: req.Output, Format: "m4a"}, Codec: "aac", Bitrate: 192000}
+		if err := s.exportCtx(p, "encode").call(x.ctx, dub.MethodEncode, "", ep, nil, &er, nil); err != nil {
+			return needsEngine(err, dub.MethodEncode)
+		}
+	default: // MP3
+		ep := dub.EncodeParams{Input: in, Output: proto.Output{Path: req.Output, Format: "mp3"}, Bitrate: 192000,
+			Metadata: proto.EncodeMetadata{Title: p.Title}}
+		if err := s.exportCtx(p, "encode").call(x.ctx, dub.MethodEncode, "", ep, nil, &er, x.progress); err != nil {
+			return needsFFmpeg(err)
+		}
+	}
+	return nil
+}
+
+func (x *dubExport) burn() error {
+	s, p, lang := x.s, x.p, x.lang
+	if !p.Source.HasVideo {
+		return &jobs.Error{Code: "dub.no_video", Message: "The source has no video: export subtitles instead."}
+	}
+	audio := ""
+	if lang != "" {
+		t, err := x.track(lang)
+		if err != nil {
+			return err
+		}
+		audio = s.Path(p.ID, t.File)
+	}
+	data, err := p.Subtitles(dub.SubtitleOptions{Format: dub.SubSRT, Lang: lang, Split: true})
+	if err != nil {
+		return err
+	}
+	tmp := filepath.Join(s.Dir(p.ID), "exports")
+	os.MkdirAll(tmp, 0o755)
+	subs := filepath.Join(tmp, "burn-"+dubFirst(dub.SafeName(lang), "orig")+".srt")
+	if err := writeAtomic(subs, data); err != nil {
+		return err
+	}
+	params := map[string]any{"video": p.Source.Path, "audio": audio, "subtitles": subs, "output": proto.Output{Path: x.req.Output, Format: "mp4"}}
+	err = s.exportCtx(p, "burn").call(x.ctx, MethodBurn, "", params, nil, nil, x.progress)
+	os.RemoveAll(tmp)
+	if err != nil {
+		return needsFFmpeg(err)
+	}
+	return nil
+}
+
+func (x *dubExport) stems() error {
+	s, p, lang := x.s, x.p, x.lang
+	t, err := x.track(lang)
+	if err != nil {
+		return err
+	}
+	entries := []dub.ZipEntry{{Name: dub.SafeName(lang) + "_speech.wav", Path: s.Path(p.ID, t.Speech)}}
+	if p.Media.Background != "" {
+		entries = append(entries, dub.ZipEntry{Name: "background.wav", Path: s.Path(p.ID, p.Media.Background)})
+	}
+	if p.Media.Vocals != "" {
+		entries = append(entries, dub.ZipEntry{Name: "original_voices.wav", Path: s.Path(p.ID, p.Media.Vocals)})
+	}
+	entries = append(entries, dub.ZipEntry{Name: dub.SafeName(lang) + "_mix.wav", Path: s.Path(p.ID, t.File)})
+	return writeZip(x.req.Output, entries)
+}
+
+func (x *dubExport) segments() error {
+	p := x.p
+	entries := p.SegmentEntries(x.lang, x.s.Dir(p.ID))
+	if len(entries) == 0 {
+		return &jobs.Error{Code: DubCodeNotMixed, Message: "No line is rendered in this language yet."}
+	}
+	if data, err := p.Subtitles(dub.SubtitleOptions{Format: dub.SubSRT, Lang: x.lang}); err == nil {
+		entries = append(entries, dub.ZipEntry{Name: "lines.srt", Data: data})
+	}
+	return writeZip(x.req.Output, entries)
+}
+
+// mp4 muxes the video with the tracks asked (all by default) and, when
+// asked, their subtitles.
+func (x *dubExport) mp4() error {
+	s, p, req := x.s, x.p, x.req
+	if !p.Source.HasVideo {
+		return &jobs.Error{Code: "dub.no_video", Message: "The source has no video: export WAV or M4A."}
+	}
+	mp := dub.MuxParams{Video: p.Source.Path, Output: proto.Output{Path: req.Output, Format: "mp4"}}
+	tracks := req.Tracks
+	if len(tracks) == 0 {
+		tracks = append([]string{dub.OrigTrack}, p.Targets...)
+	}
+	def := req.Default
+	if def == "" {
+		for _, l := range tracks {
+			if l != dub.OrigTrack {
+				def = l
+				break
+			}
+		}
+	}
+	for _, l := range tracks {
+		if l == dub.OrigTrack {
+			mp.KeepAudio = true
+			continue
+		}
+		t, err := x.track(l)
+		if err != nil {
+			return err
+		}
+		mp.Audio = append(mp.Audio, dub.MuxTrack{Path: s.Path(p.ID, t.File), Language: l, Title: languageTitle(l), Default: l == def})
+	}
+	tmp := filepath.Join(s.Dir(p.ID), "exports")
+	if req.Subtitles {
+		os.MkdirAll(tmp, 0o755)
+		subs := slices.DeleteFunc(slices.Clone(tracks), func(l string) bool { return l == dub.OrigTrack })
+		subs = append(subs, "")
+		for _, l := range subs {
+			data, err := p.Subtitles(dub.SubtitleOptions{Format: dub.SubSRT, Lang: l, Split: true})
+			if err != nil || len(data) == 0 {
+				continue
+			}
+			name := filepath.Join(tmp, "subs-"+dubFirst(dub.SafeName(l), "orig")+".srt")
+			if err := writeAtomic(name, data); err != nil {
+				return err
+			}
+			sl := l
+			if sl == "" {
+				sl = p.SourceLanguage()
+			}
+			mp.Subtitles = append(mp.Subtitles, dub.MuxSubtitle{Path: name, Language: sl, Title: languageTitle(sl), Default: l == def})
+		}
+	}
+	var mr dub.MuxResult
+	err := s.exportCtx(p, "mux").call(x.ctx, dub.MethodMux, "", mp, nil, &mr, x.progress)
+	if req.Subtitles {
+		os.RemoveAll(tmp)
+	}
+	if err != nil {
+		return needsEngine(err, dub.MethodMux)
+	}
+	return nil
 }
 
 // exportCtx is a stage context for engine calls of an export.
