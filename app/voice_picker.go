@@ -70,8 +70,6 @@ func (a *app) voicePickerOpen(key string, open bool) {
 // value of the row picked this frame and true (an action's too: the
 // caller acts), or "" and false. key must be unique in its scope.
 func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o voicePickerOpts) (string, bool) {
-	t := c.Theme()
-	k := tok(t)
 	vp := &a.voicePickers
 	if vp.open == nil {
 		a.voicePickerOpen(key, false)
@@ -90,42 +88,7 @@ func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o 
 		label = i18n.T("None")
 	}
 	open := vp.open[key] && !o.locked
-	// The trigger looks as ui.Select's does, or as a selector row.
-	b := ui.ButtonBase(c.Key(key)).Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).Background(t.Surface).
-		TextColor(t.Text).Border(1, t.Border).AlignItems(ui.Center).MinWidth(t.Space(35)).Label(o.label).Tooltip(label).
-		Disabled(o.locked).Role(ui.RolePopUpButton).Expanded(open)
-	if o.row {
-		b.Padding(px(t, 7), px(t, 10)).Gap(px(t, sp2)).Radius(px(t, radiusControl))
-	}
-	switch {
-	case o.locked:
-	case b.Pressed():
-		b.Background(t.SurfacePressed)
-	case b.Hovered():
-		b.Background(t.SurfaceHover)
-	}
-	b.Children(func() {
-		if o.row {
-			var img *ui.Bitmap
-			if voice != nil {
-				img = a.portrait(voice)
-			}
-			selectorRowFace(c, label, o.sub, img, warn)
-			return
-		}
-		if voice != nil {
-			ui.Avatar(c, voice.Name, a.portrait(voice)).Size(px(t, 18), px(t, 18))
-		}
-		txt := ui.Text(c, label).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
-		if warn {
-			txt.TextColor(t.Warning)
-		}
-		ui.Box(c).Size(t.Space(2.5), t.Space(2.5)).Shrink(0).Draw(func(p *ui.Painter, r ui.Rect) {
-			var path ui.Path
-			path.MoveTo(r.X+r.W*0.1, r.Y+r.H*0.3).LineTo(r.X+r.W*0.5, r.Y+r.H*0.7).LineTo(r.X+r.W*0.9, r.Y+r.H*0.3)
-			p.StrokePath(&path, 1.5, t.TextMuted)
-		})
-	})
+	b := a.voicePickerTrigger(c, key, label, voice, warn, open, o)
 	picked, ok := "", false
 	pick := func(i int) {
 		open, picked, ok = false, opts[i].value, opts[i].action || opts[i].value != cur
@@ -165,8 +128,70 @@ func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o 
 		open = !open
 		hl = -1
 	}
-	var played *voicePreview // the row whose ▶ was pressed
-	ui.PopoverBase(c, b, &open, func(panel ui.Element) {
+	played := a.voicePickerList(c, key, b, &open, opts, chosen, hl, o, pick)
+	if played != nil {
+		a.toggleVoicePreview(key, *played)
+	}
+	if !open {
+		hl = -1
+		a.stopPickerPreview(key)
+	}
+	vp.open[key], vp.highlight[key] = open, hl
+	return picked, ok
+}
+
+// voicePickerTrigger is a picker's trigger, showing label (and voice's
+// portrait; warn in the warning colour): it looks as ui.Select's does, or
+// as a selector row (o.row).
+func (a *app) voicePickerTrigger(c *ui.Context, key, label string, voice *core.Voice, warn, open bool, o voicePickerOpts) ui.Element {
+	t := c.Theme()
+	b := ui.ButtonBase(c.Key(key)).Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).Background(t.Surface).
+		TextColor(t.Text).Border(1, t.Border).AlignItems(ui.Center).MinWidth(t.Space(35)).Label(o.label).Tooltip(label).
+		Disabled(o.locked).Role(ui.RolePopUpButton).Expanded(open)
+	if o.row {
+		b.Padding(px(t, 7), px(t, 10)).Gap(px(t, sp2)).Radius(px(t, radiusControl))
+	}
+	switch {
+	case o.locked:
+	case b.Pressed():
+		b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		if o.row {
+			var img *ui.Bitmap
+			if voice != nil {
+				img = a.portrait(voice)
+			}
+			selectorRowFace(c, label, o.sub, img, warn)
+			return
+		}
+		if voice != nil {
+			ui.Avatar(c, voice.Name, a.portrait(voice)).Size(px(t, 18), px(t, 18))
+		}
+		txt := ui.Text(c, label).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
+		if warn {
+			txt.TextColor(t.Warning)
+		}
+		ui.Box(c).Size(t.Space(2.5), t.Space(2.5)).Shrink(0).Draw(func(p *ui.Painter, r ui.Rect) {
+			var path ui.Path
+			path.MoveTo(r.X+r.W*0.1, r.Y+r.H*0.3).LineTo(r.X+r.W*0.5, r.Y+r.H*0.7).LineTo(r.X+r.W*0.9, r.Y+r.H*0.3)
+			p.StrokePath(&path, 1.5, t.TextMuted)
+		})
+	})
+	return b
+}
+
+// voicePickerList is a picker's open list under its trigger b: the rows
+// in their groups, the actions after a divider; chosen is checked, hl
+// highlighted, and a click calls pick. It returns the row whose ▶ was
+// pressed (nil none).
+func (a *app) voicePickerList(c *ui.Context, key string, b ui.Element, open *bool, opts []voiceOption, chosen, hl int, o voicePickerOpts, pick func(int)) *voicePreview {
+	t := c.Theme()
+	k := tok(t)
+	var played *voicePreview
+	ui.PopoverBase(c, b, open, func(panel ui.Element) {
 		_, h := c.Size()
 		r := b.Bounds()
 		// At most the room below the trigger, or above it when that is
@@ -213,15 +238,7 @@ func (a *app) voicePicker(c *ui.Context, key, cur string, opts []voiceOption, o 
 			})
 		})
 	})
-	if played != nil {
-		a.toggleVoicePreview(key, *played)
-	}
-	if !open {
-		hl = -1
-		a.stopPickerPreview(key)
-	}
-	vp.open[key], vp.highlight[key] = open, hl
-	return picked, ok
+	return played
 }
 
 // voiceRow is a picker's row: the voice (a button that picks it), its ▶
