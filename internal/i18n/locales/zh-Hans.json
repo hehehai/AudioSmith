@@ -3914,5 +3914,6 @@
   "%s: %s": "%s：%s",
   "Times used": "使用次数",
   "Use cases": "用途",
-  "All statuses": "全部状态"
+  "All statuses": "全部状态",
+  "Fewer tools": "收起更多工具"
 }

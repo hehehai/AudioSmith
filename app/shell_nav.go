@@ -30,9 +30,13 @@ type navState struct {
 	sideW      float32          // the sidebar's width, DIPs at the theme's scale
 	sideWScale float32          // the px factor sideW was computed at
 	sideWAt    time.Time        // when the user last resized it (saved after a pause)
-	moreOpen   bool             // the "··· More" menu shows
-	railMore   bool             // … from the icon rail
-	voicesTab  string           // the Voices tab shown last: "discover", "mine" (voices_pages.go)
+	// moreExpanded unfolds More's tools in the sidebar under 「··· 更多」,
+	// which then reads 「收起」 (user, 11-01: a fold, not a menu);
+	// moreAutoFor is the More page it unfolded for by itself.
+	moreExpanded bool
+	moreAutoFor  string
+	railMore     bool   // … from the icon rail
+	voicesTab    string // the Voices tab shown last: "discover", "mine" (voices_pages.go)
 	sideSearchState
 }
 
@@ -153,7 +157,7 @@ func (a *app) navRail(c *ui.Context) {
 				}
 			}
 			more := ui.Box(c.Key("rail-more-box")).Children(func() {
-				a.railButton(c, "rail/more", icons.MenuDots, i18n.T("More"), i18n.T("More tools"), a.nav == "/more" || a.railMore, a.moreBadge(), func() { a.railMore = !a.railMore })
+				a.railButton(c, "rail/more", icons.MenuDots, i18n.T("More"), i18n.T("More tools"), isMorePage(a.nav) || a.railMore, a.moreBadge(), func() { a.railMore = !a.railMore })
 			})
 			sidePopover(c, more, &a.railMore, func() { a.moreMenu(c, &a.railMore) })
 		})
@@ -269,9 +273,9 @@ func (a *app) sidebar(c *ui.Context) {
 					for _, p := range g.pages {
 						item(p, a.navBadge(p.path))
 					}
-					// "··· More": a menu of the other tools.
-					more := item(navPage{"/more", "More", icons.MenuDots}, a.moreBadge()).Tooltip(i18n.T("More tools"))
-					sidePopover(c, more, &a.moreOpen, func() { a.moreMenu(c, &a.moreOpen) })
+					// "··· More" unfolds the other tools under it and
+					// becomes 「收起」, which folds them again.
+					a.moreFold(c, &side, item)
 				}).Margin(px(t, 14), 0, 0, 0)
 			}
 		}).Grow(1).MinHeight(0).Background(ui.Transparent).Padding(0, px(t, 10), px(t, sp4)).Label(i18n.T("Sections")).OnChange(func() {
@@ -305,8 +309,8 @@ func (a *app) sidebar(c *ui.Context) {
 func (a *app) navClicked() {
 	switch a.nav {
 	case "/more":
-		a.moreOpen = true
-		a.nav = a.navShown // the page shown stays chosen until a tool is
+		a.moreExpanded = !a.moreExpanded
+		a.nav = a.navShown // the page shown stays chosen
 	default:
 		a.openPage(a.nav)
 	}

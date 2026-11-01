@@ -75,8 +75,8 @@ func snapshotsF1(t *testing.T, out string) {
 		shoot("03-home-recent", func() { a.navigate("/home"); a.homeReadRecent() })
 		shoot("04-home-typed", func() { a.homeUI.text = "给新款耳机写一段 30 秒的产品旁白，语气轻松。" })
 		a.homeUI.text = ""
-		shoot("05-more-menu", func() { a.moreOpen = true })
-		a.moreOpen = false
+		shoot("05-more-fold", func() { a.moreExpanded = true })
+		a.moreExpanded = false
 
 		// The bell, with work going on.
 		other, _ := eng.host.sched.Submit(context.Background(), jobs.Spec{Kind: "x.batch", Lane: jobs.LaneCPU, Title: i18n.T("Export %s", "夜航渡轮.m4b"), Owner: "project:p1"})

@@ -42,7 +42,7 @@ func routeAlias(path string) (string, bool) {
 }
 
 // navKey is the sidebar item that stands for path: its section, the New
-// voice tool for the flows under it, More for More's pages.
+// voice tool for the flows under it, Calls for its Twilio setup.
 func navKey(path string) string {
 	switch {
 	case path == "/voices/new" || strings.HasPrefix(path, "/voices/new/"):
@@ -50,15 +50,9 @@ func navKey(path string) string {
 	case path == "/api-reference":
 		return "/developers"
 	case path == "/integrations/twilio":
-		return "/more"
+		return "/calls"
 	}
-	sec := section(path)
-	for _, p := range morePages {
-		if p.path == sec {
-			return "/more"
-		}
-	}
-	return sec
+	return section(path) // More's pages light their own items (shell_more.go)
 }
 
 // knownPath reports whether path (after routeAlias) is a page of the

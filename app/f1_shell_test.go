@@ -224,17 +224,22 @@ func TestShortcutOrder(t *testing.T) {
 	}
 }
 
-// "··· More" is a menu of Workflows, Batch and Calls; the item stays lit
-// on their pages.
-func TestMoreMenu(t *testing.T) {
+// "··· More" folds Workflows, Batch and Calls in the sidebar (user,
+// 11-01): a click unfolds them and the item reads Collapse; Collapse
+// folds them; a More page opened from elsewhere unfolds it and lights its
+// own item. The rail keeps its menu.
+func TestMoreFold(t *testing.T) {
 	a, _, tt := newTestApp(t)
 	tt.Frame()
+	if tt.HasText("Workflows") || tt.HasText("Collapse") {
+		t.Fatalf("folded at first: %q", tt.Texts())
+	}
 	if err := tt.Click("More"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.moreOpen || !tt.HasText("Workflows") || !tt.HasText("Batch") || !tt.HasText("Calls") || !tt.HasText("Dub many videos in one go") {
-		t.Fatalf("menu: %q", tt.Texts())
+	if !a.moreExpanded || !tt.HasText("Workflows") || !tt.HasText("Batch") || !tt.HasText("Calls") || !tt.HasText("Collapse") || tt.HasText("Dub many videos in one go") {
+		t.Fatalf("unfolded: %q", tt.Texts())
 	}
 	if a.router.Path() != "/studio" || a.nav != "/studio" {
 		t.Errorf("More navigated: %s %s", a.router.Path(), a.nav)
@@ -243,20 +248,33 @@ func TestMoreMenu(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.router.Path() != "/batch" || a.moreOpen || a.nav != "/more" {
-		t.Errorf("batch: %s %v %s", a.router.Path(), a.moreOpen, a.nav)
+	if a.router.Path() != "/batch" || a.nav != "/batch" || !a.moreExpanded {
+		t.Errorf("batch: %s %s %v", a.router.Path(), a.nav, a.moreExpanded)
 	}
-	if !tt.HasText("Batch") {
-		t.Errorf("breadcrumb: %q", tt.Texts())
+	if err := tt.Click("Collapse"); err != nil {
+		t.Fatal(err)
 	}
-	// The rail has it too.
+	tt.Frame()
+	if a.moreExpanded || tt.HasText("Collapse") || a.router.Path() != "/batch" {
+		t.Errorf("collapsed: %v %s %q", a.moreExpanded, a.router.Path(), tt.Texts())
+	}
+	// Opened from elsewhere: it unfolds by itself, once.
+	a.navigate("/home")
+	tt.Frame()
+	a.navigate("/calls")
+	tt.Frame()
+	tt.Frame()
+	if !a.moreExpanded || a.nav != "/calls" {
+		t.Errorf("calls: %v %s", a.moreExpanded, a.nav)
+	}
+	// The rail has a menu.
 	a.setRail(true)
 	tt.Frame()
 	if err := tt.Click("More"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.railMore || !tt.HasText("Workflows") {
+	if !a.railMore || !tt.HasText("Dub many videos in one go") {
 		t.Errorf("rail menu: %q", tt.Texts())
 	}
 }
