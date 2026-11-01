@@ -108,7 +108,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 			return
 		}
 	}
-	gap := px(t, sp3)
+	gap := px(t, sp4) // above the window's bottom (user, 11-01: a little more)
 	w := max(min(p.w, a.pageWidth(c)-px(t, 48)-gap), px(t, 200))
 	var lane ui.Element
 	if p.lane && !p.left {
@@ -121,7 +121,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	r := px(t, radiusCard)
 	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(px(t, sp2)).Bottom(gap).Width(w).
 		Background(k.Bg).BorderColor(k.Line).Clip().
-		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.08)).Label(p.label)
+		Shadow(0, 1, 6, 0, ui.RGBA(0, 0, 0, 0.06)).Label(p.label)
 	if p.left {
 		card.Left(0).Radius(0, r, r, 0).BorderWidth(1, 1, 1, 0)
 	} else {
@@ -181,6 +181,10 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 		ui.Scroll(c.Key(p.key)).Grow(1).MinHeight(0).Children(build)
 	})
 }
+
+// panelPad is a panel's content padding on every side, DIPs at 100 %
+// (user, 11-01: the sides as the top and bottom, and less than before).
+const panelPad = sp4
 
 // laneWidth is what a tool panel w wide takes from the page in its lane.
 func laneWidth(t *ui.Theme, w float32) float32 { return w + px(t, sp3) }
