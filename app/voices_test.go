@@ -75,7 +75,7 @@ func TestVoicesLibrary(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.edit == nil || !tt.HasText("Voice details") || !tt.HasText("Replace reference…") {
+	if a.edit == nil || !tt.HasText("Voice details") || !tt.HasText("Replace reference") {
 		t.Fatalf("editor: %q", tt.Texts())
 	}
 	a.edit.name = "Old Narrator"
@@ -420,7 +420,7 @@ func TestStudioSeam(t *testing.T) {
 	}
 	a.voicePickerOpen(studioVoiceKey, true)
 	tt.Frame()
-	tt.Click("Manage voices…")
+	tt.Click("Manage voices")
 	if a.router.Path() != "/voices/mine" {
 		t.Errorf("manage: %s", a.router.Path())
 	}

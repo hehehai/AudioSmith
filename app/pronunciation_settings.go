@@ -345,15 +345,15 @@ func (a *app) pronunciationSettings(c *ui.Context) {
 				p.types = nil
 				changed = true
 			}
-			ui.MenuButton(c.Key("pron-import"), i18n.T("Import…"), func(m *ui.Menu) {
-				if m.Item(i18n.T("Add to the dictionary…")).Chosen() {
+			ui.MenuButton(c.Key("pron-import"), i18n.T("Import"), func(m *ui.Menu) {
+				if m.Item(i18n.T("Add to the dictionary")).Chosen() {
 					a.importPronunciation(lexicon.Merge)
 				}
-				if m.Item(i18n.T("Replace the dictionary…")).Chosen() {
+				if m.Item(i18n.T("Replace the dictionary")).Chosen() {
 					a.importPronunciation(lexicon.Replace)
 				}
 			})
-			if ui.Button(c.Key("pron-export"), i18n.T("Export…")).Disabled(len(p.entries) == 0).Clicked() {
+			if ui.Button(c.Key("pron-export"), i18n.T("Export")).Disabled(len(p.entries) == 0).Clicked() {
 				a.exportPronunciation()
 			}
 		})

@@ -131,7 +131,7 @@ func (a *app) bookUncast(c *ui.Context, p *lfPage, locked bool) {
 			if ui.Button(c.Key("ab-uncast-auto"), i18n.T("Assign voices")).Disabled(locked).Clicked() {
 				a.autoCastBook(p)
 			}
-			if ghostButton(c.Key("ab-uncast-pick"), i18n.T("Choose…")).Disabled(locked).Clicked() {
+			if ghostButton(c.Key("ab-uncast-pick"), i18n.T("Choose")).Disabled(locked).Clicked() {
 				p.open["cast"] = true
 			}
 		})

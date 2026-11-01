@@ -29,7 +29,7 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 - **⌘K searches everything.** Empty, it offers quick actions and your latest work; typing groups pages, actions, voices (Enter uses one in Text to speech), projects, samples and takes by their script, and always offers to read what you typed in Text to speech.
 
 ### Every tool starts on its page
-- **Text to speech**: the script fills the left; chips under an empty script (Tell a story, Product narration, Podcast intro…) fill it with an example in the voice's language. Generate (⌘↩) is at its foot with the latest take. On the right, **Settings** (voice and model pickers, 「✦ Recommend」, speed, language, Advanced) and **History** (this page's takes, with Export…, Reuse settings, Regenerate with another voice, Save as project, Delete).
+- **Text to speech**: the script fills the left; chips under an empty script (Tell a story, Product narration, Podcast intro…) fill it with an example in the voice's language. Generate (⌘↩) is at its foot with the latest take. On the right, **Settings** (voice and model pickers, 「✦ Recommend」, speed, language, Advanced) and **History** (this page's takes, with Export, Reuse settings, Regenerate with another voice, Save as project, Delete).
 - **Dub**: drop a video or a recording, or paste a link, pick the language and press 「配音」. It starts at once and shows on top of the list below with its progress; a click opens the dub's editor.
 - **Speech to text**: drop, upload, link or record, choose the language, speakers and Fast or Accurate, and send. A transcript opens on its own page and hands off to 「配音」 and 「在文字转语音里朗读」.
 - New: **Voice isolator**. Drop a song, a video or a noisy recording and get the voices alone, the music and effects, and the voices denoised, on this Mac (HTDemucs, DeepFilterNet); each track plays, saves and goes on to Speech to text or Dub.
@@ -57,6 +57,7 @@ Old links (audiosmith://gallery, /history, /tools, /integrations…) open the ne
 - Details and tool panels float at the right of the page, under its header, sliding in and out: a voice's or a take's details no longer narrow the list; Text to speech's, a dub step's and a story's or book's panel keep their room beside the page while it is wide enough and float over it in a narrow window. ✕ or Escape closes them; a click on another row shows that one.
 - Header filters, buttons and switches are as tall as the search field; Developers' and Text to speech's tabs are switches like Voices'.
 - Play and pause are new icons (Hugeicons) everywhere audio plays; a preview shows pause, not stop, while it plays.
+- Buttons and menu items no longer end in 「…」: Export, Import, Delete, Set voice, Settings and the others are just their names. Text that is still loading or waiting keeps its 「…」.
 
 ### Developers
 - **Developers** opens on 「接入你的 Agent」: choose 编程代理, MCP or cURL and copy the snippet — a prompt for your coding agent, the MCP server's configuration, or a first request — then see 「等待第一次请求…」 turn into the time of the last request. Under it, links to the API reference, the skill and the Local API's settings, and every app and agent with its setup. The Local API and the tools (A/B voices, Convert, Rate fit, Direction, File probe, Watermark) are its other tabs.

@@ -52,7 +52,7 @@ func (a *app) storiesPage(c *ui.Context) {
 // storyHeader is an open story's header: Import, Add ▾, the inspector
 // toggle, and ⋯ (Save, the review buffer, the sample, Clear, Audiobook).
 func (a *app) storyHeader(c *ui.Context, p *lfPage, locked, shown bool) {
-	imp := i18n.T("Import…")
+	imp := i18n.T("Import")
 	var b ui.Element
 	if p.narrow {
 		b = iconButton(c.Key("st-import"), icons.Import, imp)
@@ -85,7 +85,7 @@ func (a *app) storyHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 		if m.Item(i18n.T("Load sample")).Disabled(locked).Chosen() {
 			a.loadSampleStory(p)
 		}
-		if m.Item(i18n.T("Clear…")).Disabled(locked || p.empty()).Chosen() {
+		if m.Item(i18n.T("Clear")).Disabled(locked || p.empty()).Chosen() {
 			p.confirm, p.confirmOpen = "clear", true
 		}
 		m.Separator()
@@ -405,7 +405,7 @@ func (a *app) storyCast(c *ui.Context, p *lfPage, locked bool) {
 		if ghostIconButton(c.Key("cast-add"), icons.AddCircle, i18n.T("Add character")).Label(i18n.T("Add character")).Disabled(locked).Clicked() {
 			p.doc.Cast = append(p.doc.Cast, services.CastMember{ID: core.NewID(time.Now()), Name: i18n.T("Character")})
 		}
-		if ghostButton(c.Key("cast-voices"), i18n.T("Voices…")).Tooltip(i18n.T("Clone, design or pick voices")).Clicked() {
+		if ghostButton(c.Key("cast-voices"), i18n.T("Voices")).Tooltip(i18n.T("Clone, design or pick voices")).Clicked() {
 			a.navigate("/voices")
 		}
 	})

@@ -30,7 +30,7 @@ func TestModelPicker(t *testing.T) {
 	tt.Click("Show all models (4)")
 	tt.Frame()
 	texts = strings.Join(tt.Texts(), "|")
-	for _, l := range []string{"Standard voices", "Multilingual all-rounder", "Non-commercial", "Custom Hugging Face repo…"} {
+	for _, l := range []string{"Standard voices", "Multilingual all-rounder", "Non-commercial", "Custom Hugging Face repo"} {
 		if !strings.Contains(texts, l) {
 			t.Errorf("all models lack %q", l)
 		}

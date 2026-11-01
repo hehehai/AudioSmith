@@ -36,7 +36,7 @@ type modelsState struct {
 	deleting  catalog.Entry
 	// deleteShared are the other ActNow apps (named, spec §7.10) that
 	// use the model being deleted: the dialog offers "Remove from
-	// AudioSmith" (their files stay) or "Delete for all apps…" (spec
+	// AudioSmith" (their files stay) or "Delete for all apps" (spec
 	// §7.10.3), whose confirmation deleteAllAsk is; deleteFree is what
 	// deleting it would free.
 	deleteShared []string

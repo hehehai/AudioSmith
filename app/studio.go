@@ -167,6 +167,9 @@ func (s *studioState) toDraft() studioDraft {
 // applyDraft restores a draft, ignoring a model the catalogue no longer
 // has (restoreStudioDraft first moves a removed one to its replacement).
 func (s *studioState) applyDraft(d studioDraft) {
+	if d.ModelLabel == "Custom Hugging Face repo…" { // drafts saved before 0.5 dropped the label's "…"
+		d.ModelLabel = catalog.CustomLabel
+	}
 	if e, ok := catalog.Builtin().ByLabel(d.ModelLabel); d.ModelLabel != catalog.CustomLabel && (!ok || e.Hidden || !slices.Contains(e.Tasks, catalog.TaskTTS)) {
 		return
 	}

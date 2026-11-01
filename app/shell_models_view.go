@@ -226,7 +226,7 @@ func (a *app) modelInfo(c *ui.Context, e catalog.Entry, m *modelState, loaded bo
 		if lic.RequiresAcceptance {
 			if licence.Covers(a.accepted, e) {
 				ui.Text(c, "· "+i18n.T("accepted")).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-			} else if ghostButton(c.Key("licence"), i18n.T("Review licence…")).FontSize(px(t, fsCaption)).Clicked() {
+			} else if ghostButton(c.Key("licence"), i18n.T("Review licence")).FontSize(px(t, fsCaption)).Clicked() {
 				a.askLicence(e, nil)
 			}
 		}

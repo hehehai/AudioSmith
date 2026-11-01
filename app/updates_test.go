@@ -205,7 +205,7 @@ func TestUpdateFailed(t *testing.T) {
 	e.feed.installErr = errors.New("mygo: signature does not match")
 	e.a.navigate("/settings/about")
 	e.tt.Frame()
-	e.click(t, "Check for Updates…")
+	e.click(t, "Check for Updates")
 	e.click(t, "Download and Install")
 	e.has(t, "The update did not install: signature does not match. AudioSmith is unchanged.", "Try again", "Close")
 	if e.tt.HasText("Restart to update") {
@@ -299,7 +299,7 @@ func TestSoftwareUpdateSettings(t *testing.T) {
 	if e.a.prefs.Updates.AutoCheck != nil {
 		t.Error("a disabled switch turned automatic checks off")
 	}
-	e.click(t, "Check for Updates…")
+	e.click(t, "Check for Updates")
 	e.has(t, "Download the latest version from actnow.dev")
 	e.click(t, "OK")
 
@@ -309,8 +309,8 @@ func TestSoftwareUpdateSettings(t *testing.T) {
 	e.a.navigate("/settings/about")
 	e.tt.Frame()
 	e.tt.Frame()
-	e.has(t, "Last checked Oct 16 09:30.", "Changelog", "Show Changelog…")
-	e.click(t, "Check for Updates…")
+	e.has(t, "Last checked Oct 16 09:30.", "Changelog", "Show Changelog")
+	e.click(t, "Check for Updates")
 	e.has(t, "AudioSmith is up to date (0.4.0)")
 	if e.feed.checks != 1 {
 		t.Errorf("checks %d", e.feed.checks)
@@ -368,7 +368,7 @@ func TestChangelogHistory(t *testing.T) {
 	e.tt.SetSize(1100, 1600)
 	e.a.navigate("/settings/about")
 	e.tt.Frame()
-	e.click(t, "Show Changelog…")
+	e.click(t, "Show Changelog")
 	e.has(t, "Changelog", "AudioSmith · English", "0.4.0", "0.4.0-beta.6", "0.4.0-beta.5", "This version", "Exports keep the chosen sample rate", "On actnow.dev")
 	e.click(t, "Close")
 	e.a.updateSettings(func(s *settings.Settings) { s.General.Language = "zh-Hans" })

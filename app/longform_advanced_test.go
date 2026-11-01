@@ -86,7 +86,7 @@ func TestLongformProjectMenu(t *testing.T) {
 		t.Fatalf("saved %q %+v", p.project, p.projects)
 	}
 	tt.Click("More actions")
-	if err := tt.ChooseMenuItem("All projects…"); err != nil {
+	if err := tt.ChooseMenuItem("All projects"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

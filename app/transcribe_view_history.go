@@ -230,7 +230,7 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 			if m.Item(i18n.T("Open")).Chosen() {
 				a.selectTranscript(id)
 			}
-			if m.Item(i18n.T("Export…")).Chosen() {
+			if m.Item(i18n.T("Export")).Chosen() {
 				a.selectTranscript(id)
 				a.trExport = true
 			}
@@ -242,7 +242,7 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 				a.trToStudio(id)
 			}
 			m.Separator()
-			if m.Item(i18n.T("Delete…")).Chosen() {
+			if m.Item(i18n.T("Delete")).Chosen() {
 				del()
 			}
 		})

@@ -50,13 +50,13 @@ func (a *app) apiReferencePage(c *ui.Context) {
 		if iconButton(c.Key("ref-browser"), icons.SquareArrowRightUp, i18n.T("Open in the browser")).Disabled(a.apiPort == 0).Clicked() {
 			go mygo.Shell.OpenExternal(a.apiBaseURL() + "/docs")
 		}
-		if iconButton(c.Key("ref-settings"), icons.Settings, i18n.T("Settings…")).Clicked() {
+		if iconButton(c.Key("ref-settings"), icons.Settings, i18n.T("Local API settings")).Clicked() {
 			a.navigate("/developers/api")
 		}
 	}})
 	if a.apiPort == 0 {
 		emptyState(c, icons.Programming, i18n.T("The Local API is not running."), "", func() {
-			if ui.Button(c.Key("ref-settings-empty"), i18n.T("Settings…")).Clicked() {
+			if ui.Button(c.Key("ref-settings-empty"), i18n.T("Settings")).Clicked() {
 				a.navigate("/developers/api")
 			}
 		})

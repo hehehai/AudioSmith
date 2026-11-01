@@ -3,7 +3,7 @@ package main
 // The shared settings in the app (family_shared.go): another app's
 // language, proxy and download source reach AudioSmith's appliers; the
 // scope lines and the "uses a different" line show only with another
-// release app; the family's model folder is offered by "Move models…",
+// release app; the family's model folder is offered by "Move models",
 // which moves AudioSmith's models and then follows it; the environment
 // still wins where the spec says so.
 
@@ -193,7 +193,7 @@ func TestSharedNoFamilyWording(t *testing.T) {
 	}
 	openModels(a)
 	tt.Frame()
-	if tt.HasText("Move models…") {
+	if tt.HasText("Move models") {
 		t.Error("Move models banner without a release app")
 	}
 }
@@ -285,7 +285,7 @@ func TestMoveModelsToFamilyFolder(t *testing.T) {
 		t.Errorf("manifest %+v %v", m.Models, err)
 	}
 	tt.Frame()
-	if tt.HasText("Move models…") {
+	if tt.HasText("Move models") {
 		t.Error("the banner stayed")
 	}
 }

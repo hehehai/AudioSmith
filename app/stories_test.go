@@ -73,7 +73,7 @@ func TestStoriesAutoCastRenderAndOutputs(t *testing.T) {
 	if err := tt.Click("Save"); err != nil {
 		t.Fatal(err)
 	}
-	if m := strings.Join(tt.Menu(), "|"); !strings.Contains(m, "Whole book") || !strings.Contains(m, "Chapter times (.txt)…") {
+	if m := strings.Join(tt.Menu(), "|"); !strings.Contains(m, "Whole book") || !strings.Contains(m, "Chapter times (.txt)") {
 		t.Errorf("the Save menu: %q", m)
 	}
 	tt.CloseMenu()

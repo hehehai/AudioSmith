@@ -64,7 +64,7 @@ func TestReuseCard(t *testing.T) {
 	a.obStep = 1
 	tt.Frame()
 	tt.Frame()
-	for _, s := range []string{"3 models are already on this Mac", "no download needed", "Use them", "Choose models…", " still to download"} {
+	for _, s := range []string{"3 models are already on this Mac", "no download needed", "Use them", "Choose models", " still to download"} {
 		if !slices.ContainsFunc(tt.Texts(), func(x string) bool { return strings.Contains(x, s) }) {
 			t.Errorf("the card lacks %q: %q", s, tt.Texts())
 		}
@@ -132,7 +132,7 @@ func TestReuseCardUnnamed(t *testing.T) {
 	}
 }
 
-// "Choose models…": nothing is claimed; the setup ends on the Models
+// "Choose models": nothing is claimed; the setup ends on the Models
 // page (no welcome line, which would leave it for the Studio), where Dicta's models say "Installed · from Dicta" with [Use];
 // [Use] claims one, which is then "Shared with Dicta".
 func TestReuseChooseModels(t *testing.T) {
@@ -148,7 +148,7 @@ func TestReuseChooseModels(t *testing.T) {
 	a.openOnboarding()
 	a.obStep = 1
 	tt.Frame()
-	if err := tt.Click("Choose models…"); err != nil {
+	if err := tt.Click("Choose models"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

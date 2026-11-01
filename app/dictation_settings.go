@@ -426,7 +426,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 				}
 			}
 			if !ok {
-				if ui.Button(c.Key("dict-writing"), i18n.T("Writing help…")).Clicked() {
+				if ui.Button(c.Key("dict-writing"), i18n.T("Writing help")).Clicked() {
 					a.navigate("/settings/writing")
 				}
 			}

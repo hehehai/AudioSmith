@@ -224,7 +224,7 @@ func (a *app) assetMenu(m *ui.Menu, as asset) {
 		h.details[as.key] = !h.details[as.key]
 	}
 	m.Separator()
-	if m.Item(i18n.T("Export…")).Disabled(as.path == "").Chosen() {
+	if m.Item(i18n.T("Export")).Disabled(as.path == "").Chosen() {
 		a.saveAssetCopy(as)
 	}
 	if m.Item(i18n.T("Show in Finder")).Disabled(as.path == "").Chosen() {
@@ -251,7 +251,7 @@ func (a *app) assetMenu(m *ui.Menu, as asset) {
 		if as.delRecord {
 			label = i18n.T("Remove from Assets (the file stays)")
 		}
-		if m.Item(label + "…").Chosen() { // asks first, as Delete on the row does
+		if m.Item(label).Chosen() { // asks first, as Delete on the row does
 			a.history.ask, a.history.askOpen = as, true
 		}
 	}

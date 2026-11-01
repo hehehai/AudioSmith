@@ -33,7 +33,7 @@ func (a *app) dubSourcePanel(c *ui.Context) {
 		}
 		zone.Children(func() {
 			caption(c, i18n.T("Drop a video or audio file here")).TextAlign(ui.Center)
-			if ui.Button(c.Key("src-choose"), i18n.T("Choose file…")).Clicked() {
+			if ui.Button(c.Key("src-choose"), i18n.T("Choose file")).Clicked() {
 				a.chooseDubSource()
 			}
 		})
@@ -127,7 +127,7 @@ func (a *app) dubSourcePanel(c *ui.Context) {
 		if dubSwitch(c, "src-review", i18n.T("Review after each step"), i18n.T("Stops after the transcript and after the translation, so they can be checked first."), &review, false) {
 			a.dubSettings(func(s *dub.Settings) { s.Review = review })
 		}
-		if ghostIconButton(c.Key("src-import"), icons.Import, i18n.T("Import subtitles (SRT/VTT)…")).Label(i18n.T("Import subtitles (SRT/VTT)…")).Disabled(locked || p.Source.Path == "" && p.Source.URL == "").
+		if ghostIconButton(c.Key("src-import"), icons.Import, i18n.T("Import subtitles (SRT/VTT)")).Label(i18n.T("Import subtitles (SRT/VTT)")).Disabled(locked || p.Source.Path == "" && p.Source.URL == "").
 			Tooltip(i18n.T("Use a subtitle file as the transcript instead of recognising speech")).Clicked() {
 			a.dubImportSubtitles()
 		}

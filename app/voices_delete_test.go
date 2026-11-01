@@ -81,7 +81,7 @@ func TestVoiceCardMenuDelete(t *testing.T) {
 	}
 	tt.Move(r.X+r.W/2, r.Y+r.H/2) // hover the card: its ⋯ shows
 	tt.Frame()
-	chooseAway(t, tt, "More actions", "Delete…")
+	chooseAway(t, tt, "More actions", "Delete")
 	if !a.deleteOpen || !tt.HasText("Delete “c1”?") {
 		t.Fatalf("no confirmation: open=%v %q", a.deleteOpen, tt.Texts())
 	}

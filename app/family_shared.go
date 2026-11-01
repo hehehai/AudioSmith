@@ -11,7 +11,7 @@ package main
 //
 // The model folder: when the family's differs from the folder holding
 // AudioSmith's models, AudioSmith stays there and the Models page offers
-// "Move models…" (a cancellable job, family.MoveModels), after which it
+// "Move models" (a cancellable job, family.MoveModels), after which it
 // follows the family's folder. The views are family_shared_view.go.
 
 import (

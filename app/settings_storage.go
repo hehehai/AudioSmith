@@ -348,7 +348,7 @@ func (a *app) storageSettings(c *ui.Context) {
 	settingGroup(c, i18n.T("Data folder"), func() {
 		settingRow(c, "st-data", shortPath(a.dataDir()), i18n.T("Your library: takes, voices, projects, dubs, transcripts and the database."), func() {
 			open("st-open-data", a.dataDir())
-			if ui.Button(c.Key("st-move"), i18n.T("Move…")).Disabled(a.moving).Clicked() {
+			if ui.Button(c.Key("st-move"), i18n.T("Move")).Disabled(a.moving).Clicked() {
 				chooseMoveDir(a, a.startMove)
 			}
 		})
@@ -453,12 +453,12 @@ func (a *app) storageSettings(c *ui.Context) {
 			}
 		})
 		settingRow(c, "st-reset-settings", i18n.T("Reset all settings"), i18n.T("Every setting goes back to its default. Your library, models and saved keys stay."), func() {
-			if ui.Button(c.Key("st-reset-settings"), i18n.T("Reset…")).Clicked() {
+			if ui.Button(c.Key("st-reset-settings"), i18n.T("Reset")).Clicked() {
 				a.resetAsk = "settings"
 			}
 		})
 		settingRow(c, "st-erase", i18n.T("Erase everything"), i18n.T("Deletes your library (takes, voices, projects, dubs, transcripts), settings, caches and logs, then restarts AudioSmith as new."), func() {
-			if ui.Button(c.Key("st-erase"), i18n.T("Erase…")).Clicked() {
+			if ui.Button(c.Key("st-erase"), i18n.T("Erase")).Clicked() {
 				a.resetAsk, a.resetText = "everything", ""
 				a.eraseKeeps()
 			}

@@ -70,9 +70,7 @@ func TestStoragePage(t *testing.T) {
 	}
 	a.navigate("/settings/storage")
 	tt.Frame()
-	if err := tt.Click("Reset…"); err != nil {
-		t.Fatal(err)
-	}
+	a.resetAsk = "settings" // its Reset button (the look's row has one too)
 	tt.Frame()
 	if err := tt.Click("Reset the settings"); err != nil {
 		t.Fatal(err)
@@ -106,7 +104,7 @@ func TestMoveDataFolder(t *testing.T) {
 	t.Cleanup(func() { chooseMoveDir = savedChoose })
 	a.navigate("/settings/storage")
 	tt.Frame()
-	if err := tt.Click("Move…"); err != nil {
+	if err := tt.Click("Move"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -200,7 +198,7 @@ func TestEraseEverything(t *testing.T) {
 	addTake(t, a, core.Take{ID: core.NewID(time.Now()), Text: "bye", Model: kokoro, Voice: "af_heart", SampleRate: 24000}, 1)
 	a.navigate("/settings/storage")
 	tt.Frame()
-	if err := tt.Click("Erase…"); err != nil {
+	if err := tt.Click("Erase"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -289,7 +287,7 @@ func TestAboutPage(t *testing.T) {
 	t.Cleanup(func() { bundleDir = "" })
 	a.logDir = t.TempDir()
 	os.WriteFile(filepath.Join(a.logDir, "audiosmith.log"), []byte("a log line"), 0o644)
-	if err := tt.Click("Save…"); err != nil {
+	if err := tt.Click("Save"); err != nil {
 		t.Fatal(err)
 	}
 	ents, _ := os.ReadDir(bundleDir)

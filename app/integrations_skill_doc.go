@@ -365,8 +365,8 @@ func promptSkillStep(b *strings.Builder, slug string, p promptEnv) {
 	w("```sh\n" + skillScript(slug, p) + "```")
 	w("   " + i18n.T("Check that its output shows %s, then tell me that the skill is installed and that it works in new chats.", "`name: "+skillName+"`"))
 	if ag.Client == "" {
-		w("   " + i18n.T("If it prints that AudioSmith did not serve the skill, ask me to save it with AudioSmith → %s → Save skill… and to tell you where the ZIP is.", page))
+		w("   " + i18n.T("If it prints that AudioSmith did not serve the skill, ask me to save it with AudioSmith → %s → Save skill and to tell you where the ZIP is.", page))
 	} else {
-		w("   " + i18n.T("If it prints that AudioSmith did not serve the skill, ask me to install it with AudioSmith → %s → Install skill…, then check the folder.", page))
+		w("   " + i18n.T("If it prints that AudioSmith did not serve the skill, ask me to install it with AudioSmith → %s → Install skill, then check the folder.", page))
 	}
 }

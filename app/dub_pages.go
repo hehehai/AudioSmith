@@ -71,7 +71,7 @@ func (a *app) dubRoute(c *ui.Context, r *ui.Route) bool {
 func (a *app) dubCommands(nav string, add func(id, group, title, en, keys string, enabled bool, run func())) {
 	// The "Go to" entries come from the shell's page list (M7a).
 	dubbing := i18n.T("Dubbing")
-	add("dub-new", dubbing, i18n.T("Dub a video or audio file…"), "Dub a video or audio file…", "", true, func() {
+	add("dub-new", dubbing, i18n.T("Dub a video or audio file"), "Dub a video or audio file", "", true, func() {
 		a.navigate("/dub")
 		a.chooseDubSource()
 	})

@@ -33,7 +33,7 @@ func (a *app) callsPage(c *ui.Context) {
 				a.callHistOn = !a.callHistOn
 			}
 		}
-		if labelOrIcon(c.Key("calls-inbound"), icons.PhoneCallingRounded, i18n.T("Incoming calls…"), pw < px(t, 640)).Clicked() {
+		if labelOrIcon(c.Key("calls-inbound"), icons.PhoneCallingRounded, i18n.T("Incoming calls"), pw < px(t, 640)).Clicked() {
 			a.openInbound()
 		}
 		if iconButton(c.Key("calls-setup"), icons.Settings, i18n.T("Set up Twilio")).Clicked() {

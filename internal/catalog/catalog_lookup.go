@@ -72,7 +72,7 @@ func (c *Catalog) Labels(task Task) []string {
 }
 
 // CustomLabel is the picker option for a repo that is not in the catalogue.
-const CustomLabel = "Custom Hugging Face repo…"
+const CustomLabel = "Custom Hugging Face repo"
 
 // Custom describes an unknown TTS repo: every control is offered, since
 // we cannot tell which ones the model reads. Its licence is unknown, so it

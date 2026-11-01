@@ -99,7 +99,7 @@ func (a *app) keepsText(ls []hub.Leftover) string {
 
 // removeSharedDialog asks how to delete e, which other ActNow apps use
 // (spec §7.10.3): "Remove from AudioSmith" (the default: their files
-// stay), "Delete for all apps…" (confirmed again: they would download it
+// stay), "Delete for all apps" (confirmed again: they would download it
 // again), or Cancel.
 func (a *app) removeSharedDialog(c *ui.Context, e catalog.Entry) {
 	t := c.Theme()
@@ -126,7 +126,7 @@ func (a *app) removeSharedDialog(c *ui.Context, e catalog.Entry) {
 				if ui.Button(c.Key("delete-cancel"), i18n.T("Cancel")).Clicked() {
 					open = false
 				}
-				if ui.Button(c.Key("delete-all"), i18n.T("Delete for all apps…")).Clicked() {
+				if ui.Button(c.Key("delete-all"), i18n.T("Delete for all apps")).Clicked() {
 					a.deleteAllAsk = true
 				}
 				if primaryButton(c.Key("delete-remove"), i18n.T("Remove from AudioSmith")).AutoFocus().Clicked() {

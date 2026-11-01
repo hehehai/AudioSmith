@@ -243,7 +243,7 @@ func (a *app) finishOnboarding() {
 		}
 	}
 	if choose {
-		a.navigate("/models") // "Choose models…": the installed ones say who installed them
+		a.navigate("/models") // "Choose models": the installed ones say who installed them
 		return
 	}
 	a.navigate("/studio")

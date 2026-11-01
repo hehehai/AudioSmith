@@ -85,7 +85,7 @@ func (a *app) voicesPage(c *ui.Context) {
 			if !hn {
 				headerFit(c, ui.Segmented(c.Key("voices-kind"), &a.voiceKind, voiceKinds()...)).Label(i18n.T("Kind")).Shrink(0)
 			}
-			if iconButton(c.Key("voices-import"), icons.Import, i18n.T("Import…")).Tooltip(i18n.T("Import a .asvoice or .ovsvoice file")).Clicked() {
+			if iconButton(c.Key("voices-import"), icons.Import, i18n.T("Import")).Tooltip(i18n.T("Import a .asvoice or .ovsvoice file")).Clicked() {
 				a.chooseVoiceFile()
 			}
 		},
@@ -218,7 +218,7 @@ func (a *app) voiceRowMenu(c *ui.Context, v *core.Voice, tip string) {
 		if m.Item(i18n.T("Duplicate")).Chosen() {
 			a.duplicateVoice(id)
 		}
-		if m.Item(i18n.T("Export voice file…")).Chosen() {
+		if m.Item(i18n.T("Export voice file")).Chosen() {
 			a.exportVoice(id, v.Kind == core.VoiceCloned, "")
 		}
 		m.Separator()
@@ -238,7 +238,7 @@ func (a *app) voiceRowMenu(c *ui.Context, v *core.Voice, tip string) {
 			}
 		}
 		m.Separator()
-		if m.Item(i18n.T("Delete…")).Chosen() {
+		if m.Item(i18n.T("Delete")).Chosen() {
 			a.askDeleteVoice(id)
 		}
 	})

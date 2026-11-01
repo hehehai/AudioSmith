@@ -94,8 +94,8 @@ func (a *app) updateTrayMenu() {
 		start,
 		mygo.Separator(),
 		{Label: i18n.T("Open AudioSmith"), Click: act(a.showMainWindow)},
-		{Label: i18n.T("Transcribe…"), Click: act(func() { a.showMainWindow(); a.navigate("/transcripts") })},
-		{Label: i18n.T("Settings…"), Click: act(func() { a.showMainWindow(); a.navigate("/settings/dictation") })},
+		{Label: i18n.T("Transcribe"), Click: act(func() { a.showMainWindow(); a.navigate("/transcripts") })},
+		{Label: i18n.T("Settings"), Click: act(func() { a.showMainWindow(); a.navigate("/settings/dictation") })},
 		mygo.Separator(),
 		{Label: i18n.T("Quit AudioSmith"), Click: act(func() { a.dictTray.quitting = true; mygo.App.Quit() })},
 	}))

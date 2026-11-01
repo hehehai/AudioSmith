@@ -114,7 +114,7 @@ func (a *app) lfBookCard(c *ui.Context, p *lfPage, locked bool) {
 			name = filepath.Base(b.Cover)
 		}
 		truncText(c, name).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).Grow(1)
-		if ghostButton(c.Key("cover-add"), i18n.T("Choose cover…")).Tooltip(i18n.T("PNG or JPEG, at most 8 MB; embedded in M4B books")).Disabled(locked).Clicked() {
+		if ghostButton(c.Key("cover-add"), i18n.T("Choose cover")).Tooltip(i18n.T("PNG or JPEG, at most 8 MB; embedded in M4B books")).Disabled(locked).Clicked() {
 			a.chooseCover(p)
 		}
 		if b.Cover != "" && iconButton(c.Key("cover-remove"), icons.TrashBinMinimalistic, i18n.T("Remove")).Disabled(locked).Clicked() {
@@ -162,7 +162,7 @@ func (a *app) coverBitmap(path string) *ui.Bitmap {
 // chooseCover asks for a cover image and copies it into the library.
 func (a *app) chooseCover(p *lfPage) {
 	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose cover…"),
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose cover"),
 			Filters: []mygo.FileFilter{{Name: i18n.T("Images"), Extensions: []string{"png", "jpg", "jpeg"}}}})
 		if err != nil || len(paths) == 0 {
 			return

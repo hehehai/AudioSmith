@@ -86,7 +86,7 @@ func TestLicenceGate(t *testing.T) {
 	omni := entry(t, "omnivoice-bf16")
 	openModels(a)
 	tt.Frame()
-	if !tt.HasText("non-commercial use only") || !tt.HasText("Review licence…") {
+	if !tt.HasText("non-commercial use only") || !tt.HasText("Review licence") {
 		t.Fatalf("licence line: %q", tt.Texts())
 	}
 	a.download(omni)

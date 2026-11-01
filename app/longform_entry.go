@@ -183,7 +183,7 @@ func (a *app) lfComposer(c *ui.Context, p *lfPage) {
 			return
 		}
 		narrow := a.toolNarrow(c)
-		if labelOrIcon(c.Key("lf-entry-import"), icons.Import, i18n.T("Import…"), narrow).Clicked() {
+		if labelOrIcon(c.Key("lf-entry-import"), icons.Import, i18n.T("Import"), narrow).Clicked() {
 			a.lfEntryImport(p)
 		}
 		if book {
@@ -309,7 +309,7 @@ func (a *app) lfSaveItems(m *ui.Menu, p *lfPage) {
 	if p.project != "" && m.Item(i18n.T("Save a copy")).Chosen() {
 		a.saveLf(p, true)
 	}
-	if m.Item(i18n.T("All projects…")).Chosen() {
+	if m.Item(i18n.T("All projects")).Chosen() {
 		a.navigate("/projects")
 	}
 	m.Separator()

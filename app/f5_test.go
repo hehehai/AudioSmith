@@ -159,7 +159,7 @@ func TestProjectsListFlow(t *testing.T) {
 	// Delete the transcript, asked first.
 	a.projects.filter = slices.Index(projFilters, projTranscript)
 	tt.Frame()
-	chooseAway(t, tt, "Project actions", "Delete…")
+	chooseAway(t, tt, "Project actions", "Delete")
 	if !a.projects.confirmOpen || !tt.HasText("Delete “Team meeting.m4a”?") {
 		t.Fatalf("no confirmation: %q", tt.Texts())
 	}

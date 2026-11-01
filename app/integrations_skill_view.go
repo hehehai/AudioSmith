@@ -47,12 +47,12 @@ func (a *app) agentSkillCard(c *ui.Context, in integration) {
 		})
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
 			if canInstall {
-				l := i18n.T("Install skill…")
+				l := i18n.T("Install skill")
 				if secondaryIconButton(c.Key("integ-skill-install"), icons.DownloadMinimalistic, l).Label(l).Clicked() {
 					a.skillAsk = true
 				}
 			}
-			save := i18n.T("Save skill…")
+			save := i18n.T("Save skill")
 			if secondaryIconButton(c.Key("integ-skill-save"), icons.Export, save).Label(save).Clicked() {
 				// A ZIP of the skill's folder: what claude.ai and Claude
 				// Desktop upload, and what any agent's skills folder unzips.

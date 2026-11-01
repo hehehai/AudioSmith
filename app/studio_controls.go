@@ -134,7 +134,7 @@ func (a *app) insertMenu(c *ui.Context) {
 			for _, it := range deliveryItems() {
 				item(it, (it.key == "slow" || it.key == "fast") && !tr.Speed)
 			}
-			item(insertItem{key: "say", label: i18n.T("Pronounce as…"), open: "[[", close: "|]]", hint: "[[word|say]]"}, false)
+			item(insertItem{key: "say", label: i18n.T("Pronounce as"), open: "[[", close: "|]]", hint: "[[word|say]]"}, false)
 			section(i18n.T("Expressions"))
 			if !tr.NonVerbal {
 				ui.Text(c, i18n.T("%s cannot voice expressions; they are left out.", a.preset().Label)).

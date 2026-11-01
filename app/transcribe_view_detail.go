@@ -88,7 +88,7 @@ func (a *app) transcriptDetail(c *ui.Context) {
 			a.reuseTranscript()
 		}
 		moreMenu(c.Key("tr-more"), i18n.T("Transcript actions"), func(m *ui.Menu) {
-			if m.Item(i18n.T("Delete…")).Chosen() {
+			if m.Item(i18n.T("Delete")).Chosen() {
 				a.trConfirm = tr.ID
 			}
 		})

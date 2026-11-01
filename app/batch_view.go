@@ -94,7 +94,7 @@ func (a *app) batchSetup(c *ui.Context) {
 			})
 		}
 		ui.Row(c).Justify(ui.Center).Children(func() {
-			if ghostIconButton(c.Key("batch-add"), icons.AddCircle, i18n.T("Add videos…")).Label(i18n.T("Add videos…")).Clicked() {
+			if ghostIconButton(c.Key("batch-add"), icons.AddCircle, i18n.T("Add videos")).Label(i18n.T("Add videos")).Clicked() {
 				a.batchAddFiles()
 			}
 		})
@@ -227,7 +227,7 @@ func (a *app) batchWatchPanel(c *ui.Context) {
 	})
 	if !w.Active {
 		ui.Row(c).Children(func() {
-			if ghostIconButton(c.Key("watch-start"), icons.FolderOpen, i18n.T("Watch a folder…")).Label(i18n.T("Watch a folder…")).Disabled(len(a.batch.settings.Targets) == 0).Clicked() {
+			if ghostIconButton(c.Key("watch-start"), icons.FolderOpen, i18n.T("Watch a folder")).Label(i18n.T("Watch a folder")).Disabled(len(a.batch.settings.Targets) == 0).Clicked() {
 				a.batchWatchChoose()
 			}
 		})
@@ -323,7 +323,7 @@ func (a *app) batchCard(c *ui.Context, r store.DubRecord) {
 					a.openDubAny(id)
 				}
 				m.Separator()
-				if m.Item(i18n.T("Delete…")).Chosen() {
+				if m.Item(i18n.T("Delete")).Chosen() {
 					b.confirm = id
 				}
 			})
