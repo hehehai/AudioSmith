@@ -33,7 +33,7 @@ func (a *app) storiesPage(c *ui.Context) {
 		a.storyHeader(c, p, locked, shown)
 	}))
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterRBeside(t, px(t, inspectorWidth), inline && shown), px(t, sp4), gutterL(t)).Gap(px(t, sp3)).Children(func() {
 			a.reviewBuffer(c, p, locked)
 			a.storyLines(c, p, locked)
 			a.lfRenderPanel(c, p)
@@ -198,7 +198,7 @@ func (a *app) storyLine(c *ui.Context, p *lfPage, i int, l *services.StoryLine, 
 	t := c.Theme()
 	k := tok(t)
 	sel := p.sel == i && !l.Chapter
-	row := ui.Column(c.Key("line-"+l.ID)).Gap(px(t, 6)).Padding(px(t, 6), px(t, sp2)).Radius(px(t, radiusCard))
+	row := probeBox("row", ui.Column(c.Key("line-"+l.ID))).Gap(px(t, 6)).Padding(px(t, 6), px(t, sp2)).Radius(px(t, radiusCard))
 	if sel {
 		row.Background(k.Subtle)
 	}

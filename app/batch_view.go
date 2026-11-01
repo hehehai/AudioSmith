@@ -39,8 +39,13 @@ func (a *app) batchPage(c *ui.Context) {
 			a.navigate("/dub")
 		}
 	})
+	right := px(t, sp5) // before the line beside the queue
+	if stacked {
+		right = gutterR(t)
+	}
 	setup := func() {
-		ui.Column(c).Padding(px(t, sp2), px(t, sp5), px(t, sp5)).Gap(px(t, sp3)).Children(func() {
+		// On the page's left gutter, in the column or stacked.
+		ui.Column(c).Padding(bodyTop(t), right, px(t, sp5), gutterL(t)).Gap(px(t, sp3)).Children(func() {
 			a.batchSetup(c)
 			ui.Box(c).Height(1).Background(k.Line)
 			a.batchWatchPanel(c)
@@ -49,7 +54,7 @@ func (a *app) batchPage(c *ui.Context) {
 	if stacked {
 		ui.Scroll(c.Key("batch-stack")).Grow(1).MinHeight(0).Children(func() {
 			setup()
-			ui.Column(c).Padding(px(t, sp2), px(t, sp5), px(t, sp5)).Gap(px(t, sp2)).MinHeight(px(t, 240)).Children(func() {
+			ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp5), gutterL(t)).Gap(px(t, sp2)).MinHeight(px(t, 240)).Children(func() {
 				a.batchQueue(c, true)
 			})
 		}).ClipX()
@@ -57,7 +62,7 @@ func (a *app) batchPage(c *ui.Context) {
 		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 			ui.Scroll(c.Key("batch-side")).Width(side).Shrink(0).Children(setup)
 			ui.Box(c).Width(1).Background(k.Line)
-			ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp2), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterR(t), px(t, sp4), px(t, sp6)).Gap(px(t, sp3)).Children(func() {
 				a.batchQueue(c, false)
 			})
 		})

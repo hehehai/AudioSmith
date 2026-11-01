@@ -52,7 +52,7 @@ func (a *app) twilioPage(c *ui.Context) {
 	}
 	ui.Scroll(c.Key("tw-scroll")).Bind(&a.twPageH).Grow(1).Children(func() {
 		body := func() {
-			ui.Column(c.Key("tw-steps")).Gap(px(t, sp3)).Grow(1).MinWidth(0).MaxWidth(px(t, 700)).Children(func() {
+			ui.Column(c.Key("tw-steps")).Gap(px(t, sp3)).Grow(1).MinWidth(0).Children(func() {
 				caption(c, i18n.T("Let an AI agent place and answer phone calls with your Twilio number. Twilio reaches AudioSmith through a tunnel you run; calls are off until you turn them on.")).Wrap()
 				a.twStepAccount(c)
 				a.twStepTunnel(c)
@@ -69,11 +69,11 @@ func (a *app) twilioPage(c *ui.Context) {
 			})
 		}
 		if wide {
-			ui.Row(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp5)).AlignItems(ui.Start).Children(func() { body(); rail() })
+			ui.Row(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp5)).AlignItems(ui.Start).Children(func() { body(); rail() })
 		} else {
-			ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp5)).Children(func() {
+			ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp5)).Children(func() {
 				body()
-				ui.Column(c).Gap(px(t, sp3)).MaxWidth(px(t, 700)).Children(func() {
+				ui.Column(c).Gap(px(t, sp3)).Children(func() {
 					a.twChecklist(c, checks)
 					a.twTest(c)
 					a.twLog(c)

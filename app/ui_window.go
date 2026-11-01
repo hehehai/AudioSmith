@@ -128,7 +128,7 @@ func settingGroup(c *ui.Context, title string, fn func()) {
 	}
 	ui.Column(c).Gap(px(t, groupTitleGap)).Shrink(0).Children(func() {
 		if title != "" {
-			sectionTitleText(c, title).Margin(0, 0, 0, px(t, sp1))
+			sectionTitleText(c, title) // on the box's edge, as a page's section labels (#130)
 		}
 		ui.Column(c).Padding(px(t, groupPadY), px(t, groupPadX)).Radius(px(t, radiusCard)).Background(k.Sidebar).Children(func() {
 			outer := settingCount

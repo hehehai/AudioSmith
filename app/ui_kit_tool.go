@@ -16,17 +16,12 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-// toolColumnW is the widest a tool page's column grows, DIPs at 100 %.
-const toolColumnW = 960
-
-// toolPage is a tool page's scrolling column: centred, at most
-// toolColumnW wide, body in it.
+// toolPage is a tool page's scrolling column, between the page gutters
+// (ui_page_header.go), body in it.
 func (a *app) toolPage(c *ui.Context, key string, body func()) {
 	t := c.Theme()
 	ui.Scroll(c.Key(key)).Grow(1).MinHeight(0).Children(func() {
-		ui.Column(c).Padding(px(t, sp5), px(t, sp6), px(t, sp8)).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(px(t, toolColumnW)).Gap(px(t, sp4)).Children(body)
-		})
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp8), gutterL(t)).Gap(px(t, sp4)).Children(body)
 	}).ClipX()
 }
 
@@ -44,6 +39,7 @@ func toolComposer(c *ui.Context, key string, drop func([]string), zone, foot fun
 	k := tok(t)
 	box := ui.Column(c.Key(key)).Gap(px(t, sp2)).Padding(px(t, sp2), px(t, sp2), px(t, sp2)).Radius(px(t, radiusCard)).Border(1, k.Line).Background(k.Bg).
 		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.05)).Shrink(0)
+	probeBox("card", box)
 	if files := box.DroppedFiles(); len(files) > 0 && drop != nil {
 		drop(files)
 	}

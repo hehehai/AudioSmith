@@ -99,6 +99,43 @@ func iconSide(t *ui.Theme) float32 {
 	return px(t, 28)
 }
 
+// The page gutter (#130): a page's header and its body keep the same
+// room on each side, so the title's left edge and the header's last
+// control's right edge are the lines the body's content lines up on: a
+// section label, a card, a row's band (its content inset in it), a
+// field. sp6 each side; on the left also headerInset (the window controls
+// beside the icon rail). Bodies pad by gutterL and gutterR, and bodyTop
+// above; a column
+// docked at the page's left (Calls' recent calls, Workflows' rail, Batch's
+// form) puts its content on the left line.
+
+// bodyTop is the room between a page's header and its body's first
+// content (a section label, a card, a row, a composer, a toolbar), the
+// same on every page, and above a floating panel (ui_panels.go), so a
+// panel's top is level with the content's.
+func bodyTop(t *ui.Theme) float32 { return px(t, sp2) }
+
+// laneGap is the room between a page's content and a tool panel in its
+// lane (Studio, Stories and Audiobook, Dub, Workflows): less than the
+// gutter, as the panel's edge already sets it apart.
+func laneGap(t *ui.Theme) float32 { return px(t, sp4) }
+
+// gutterRBeside is the right padding of a page's content column beside a
+// tool panel w wide: with the panel in its lane (inLane), what with the
+// lane's own gap (laneWidth) makes laneGap; else the gutter.
+func gutterRBeside(t *ui.Theme, w float32, inLane bool) float32 {
+	if !inLane {
+		return gutterR(t)
+	}
+	return max(0, laneGap(t)-(laneWidth(t, w)-w))
+}
+
+// gutterL is the page gutter on the left.
+func gutterL(t *ui.Theme) float32 { return px(t, sp6) + headerInset }
+
+// gutterR is the page gutter on the right.
+func gutterR(t *ui.Theme) float32 { return px(t, sp6) }
+
 // headerInset is the room the headers leave on their left for the window
 // controls: set each frame by sidebarFrame, non-zero beside the icon rail.
 var headerInset float32
@@ -146,9 +183,11 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 		}
 	}()
 	narrow := pageNarrow(c)
-	ui.Row(c.Key("page-header")).Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, px(t, sp4), 0, px(t, sp6)+headerInset).
+	head := ui.Row(c.Key("page-header"))
+	head.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, gutterR(t), 0, gutterL(t)).
 		Gap(px(t, sp2)).DragWindow().Role(ui.RoleGroup).Label(i18n.T("Page header")).Children(func() {
-		ui.Row(c.Key("head-left")).Grow(1).Shrink(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+		left := ui.Row(c.Key("head-left"))
+		left.Grow(1).Shrink(1).MinWidth(0).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 			if h.parent != "" && h.up == "" {
 				ui.Text(c.Key("head-parent"), h.parent+" /").FontSize(px(t, fsPageTitle)).TextColor(k.Text3).SingleLine().Shrink(0)
 			} else if h.parent != "" {
@@ -193,7 +232,8 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				})
 			}
 		})
-		ui.Row(c.Key("head-tools")).Shrink(0).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
+		tools := ui.Row(c.Key("head-tools"))
+		tools.Shrink(0).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 			inHeader = true
 			defer func() { inHeader = false }()
 			if h.search != nil {
@@ -209,7 +249,25 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 				h.primary(narrow)
 			}
 		})
+		if gutterProbe != nil {
+			gutterProbe("head", head.Bounds())
+			gutterProbe("head-l", left.Bounds())
+			gutterProbe("head-r", tools.Bounds())
+		}
 	})
+}
+
+// gutterProbe, set by tests, sees the boxes the page gutter lines up
+// (page_gutter_test.go): the header ("head"), its title side ("head-l")
+// and its tools ("head-r"), each list row ("row") and card ("card").
+var gutterProbe func(kind string, r ui.Rect)
+
+// probeBox shows e's box (the last frame's) to gutterProbe; it returns e.
+func probeBox(kind string, e ui.Element) ui.Element {
+	if gutterProbe != nil {
+		gutterProbe(kind, e.Bounds())
+	}
+	return e
 }
 
 // headerSearch is the header's search field; narrow and empty, a

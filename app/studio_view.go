@@ -54,8 +54,10 @@ func (a *app) studioPage(c *ui.Context) {
 // latest take, what keeps Generate back or the job's progress, and the bar.
 func (a *app) scriptColumn(c *ui.Context, panelShown bool) {
 	t := c.Theme()
+	inline, _ := a.studioInspectorShown(c)
+	right := gutterRBeside(t, px(t, studioPanelWidth), inline && panelShown)
 	ui.Column(c.Key("script-column")).Grow(1).MinWidth(0).Children(func() {
-		ui.Column(c).Padding(px(t, sp2), px(t, sp6), 0).Shrink(0).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), right, 0, gutterL(t)).Shrink(0).Children(func() {
 			a.composerToolbar(c)
 		})
 		sc := ui.Scroll(c.Key("composer-scroll")).Grow(1).MinHeight(0)
@@ -69,7 +71,7 @@ func (a *app) scriptColumn(c *ui.Context, panelShown bool) {
 			c.AnimationFrame()
 		}
 		sc.Children(func() {
-			ui.Column(c).MinHeight(fill).Padding(0, px(t, sp6), px(t, sp3)).Gap(px(t, sp4)).Children(func() {
+			ui.Column(c).MinHeight(fill).Padding(0, right, px(t, sp3), gutterL(t)).Gap(px(t, sp4)).Children(func() {
 				a.scriptView(c)
 				if strings.TrimSpace(a.text) == "" {
 					a.exampleChips(c)
@@ -77,7 +79,7 @@ func (a *app) scriptColumn(c *ui.Context, panelShown bool) {
 			})
 		}).ClipX()
 		st := a.scriptStats()
-		ui.Column(c.Key("script-foot")).Padding(0, px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Shrink(0).Children(func() {
+		ui.Column(c.Key("script-foot")).Padding(0, right, px(t, sp4), gutterL(t)).Gap(px(t, sp3)).Shrink(0).Children(func() {
 			if cl := a.lastClip(); cl != nil {
 				a.takePanel(c, cl, true, true)
 			}

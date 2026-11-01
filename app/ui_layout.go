@@ -37,13 +37,13 @@ func hostedHeader(title string) (string, func(), func()) {
 // radius 12. Give it children.
 func card(c *ui.Context) ui.Element {
 	t := c.Theme()
-	return ui.Column(c).Padding(px(t, sp4)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Border(1, tok(t).Line)
+	return probeBox("card", ui.Column(c).Padding(px(t, sp4)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Border(1, tok(t).Line))
 }
 
 // fillCard is a flat card on the subtle grey fill, without a border.
 func fillCard(c *ui.Context) ui.Element {
 	t := c.Theme()
-	return ui.Column(c).Padding(px(t, sp4)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(tok(t).Subtle)
+	return probeBox("card", ui.Column(c).Padding(px(t, sp4)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(tok(t).Subtle))
 }
 
 // collapsible is a section that folds: a header row (chevron, title, and

@@ -188,7 +188,7 @@ func (a *app) dubStartLabel() string {
 func (a *app) dubFooter(c *ui.Context) {
 	t := c.Theme()
 	p := a.dub
-	ui.Row(c.Key("dub-footer")).Height(px(t, 52)).Shrink(0).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(0, px(t, sp6)).Children(func() {
+	ui.Row(c.Key("dub-footer")).Height(px(t, 52)).Shrink(0).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(0, gutterR(t), 0, gutterL(t)).Children(func() {
 		if a.dubProbing() && !a.dubBusy() {
 			// Reading the link's details (#106): a few seconds; Cancel stops it.
 			ui.Spinner(c)

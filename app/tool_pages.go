@@ -80,7 +80,7 @@ func (a *app) dictationPage(c *ui.Context) {
 		}
 	})
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 760)).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp4)).Children(func() {
 			caption(c, i18n.T("Dictate into any app: press the shortcut, speak, and the text is typed where your cursor is. Speech stays on this Mac.")).Wrap()
 			card(c.Key("dict-shortcut")).Children(func() {
 				ui.Row(c).Gap(px(t, sp3)).AlignItems(ui.Center).Children(func() {

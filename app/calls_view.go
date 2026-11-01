@@ -40,22 +40,28 @@ func (a *app) callsPage(c *ui.Context) {
 			a.navigate("/calls/setup")
 		}
 	})
+	// Beside the docked recent calls the call's column starts after a
+	// line, not on the page's edge.
+	lead := gutterL(t)
+	if histInline {
+		lead = px(t, sp6)
+	}
 	main := func() {
 		if wide {
 			ui.Scroll(c.Key("calls-call")).Grow(1).MinWidth(0).Children(func() {
-				ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).Children(func() {
+				ui.Column(c).Padding(bodyTop(t), px(t, sp6), px(t, sp6), lead).Gap(px(t, sp3)).Children(func() {
 					a.callsBanner(c)
 					a.callView(c)
 				})
 			})
 			ui.Box(c).Width(1).Background(k.Line)
 			ui.Scroll(c.Key("calls-new")).Width(px(t, 380)).Shrink(0).Children(func() {
-				ui.Column(c).Padding(px(t, sp1), px(t, sp5), px(t, sp6)).Gap(px(t, sp3)).Children(func() { a.newCallForm(c) })
+				ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), px(t, sp5)).Gap(px(t, sp3)).Children(func() { a.newCallForm(c) })
 			})
 			return
 		}
 		ui.Scroll(c.Key("calls-main")).Grow(1).MinWidth(0).Children(func() {
-			ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).MaxWidth(px(t, 760)).Children(func() {
+			ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), lead).Gap(px(t, sp3)).Children(func() {
 				a.callsBanner(c)
 				ui.Row(c).Children(func() {
 					ui.Segmented(c.Key("calls-tab"), &a.callTab, i18n.T("New call"), i18n.T("Call")).Label(i18n.T("Show"))
@@ -71,14 +77,14 @@ func (a *app) callsPage(c *ui.Context) {
 	ui.Row(c.Key("calls-body")).Bind(&a.callPageH).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		if histInline {
 			ui.Column(c.Key("calls-history")).Width(px(t, callsHistoryWidth)).Shrink(0).Background(k.Subtle).Children(func() {
-				a.callHistory(c)
+				a.callHistory(c, true)
 			})
 			ui.Box(c).Width(1).Background(k.Line)
 		}
 		main()
 		// Too narrow for the column: a floating list from the left.
 		a.floating(c, floatPanel{key: "calls-history-drawer", label: i18n.T("Recent calls"), w: px(t, callsHistoryWidth), left: true, fill: true, x: true,
-			close: func() { a.callHistOn = false }}, !histInline && a.callHistOn, func() { a.callHistory(c) })
+			close: func() { a.callHistOn = false }}, !histInline && a.callHistOn, func() { a.callHistory(c, false) })
 	})
 	a.callDialogs(c)
 }
@@ -119,11 +125,17 @@ func (a *app) callsBanner(c *ui.Context) {
 	})
 }
 
-// callHistory is the recent calls.
-func (a *app) callHistory(c *ui.Context) {
+// callHistory is the recent calls; docked, in the column at the page's
+// left, whose title, note and rows' bands start on the page gutter
+// (ui_page_header.go), else in the floating list.
+func (a *app) callHistory(c *ui.Context, docked bool) {
 	t := c.Theme()
 	k := tok(t)
-	ui.Row(c).Height(px(t, 40)).Padding(0, px(t, sp2), 0, px(t, sp4)).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+	lead, rows := px(t, sp4), px(t, sp2)
+	if docked {
+		lead, rows = gutterL(t), gutterL(t)
+	}
+	ui.Row(c).Padding(bodyTop(t), px(t, sp2), px(t, sp1), lead).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 		live, max := 0, 1
 		if a.callSvc != nil {
 			live, max = a.callSvc.Running()
@@ -135,13 +147,13 @@ func (a *app) callHistory(c *ui.Context) {
 		}
 	})
 	if len(a.callList) == 0 {
-		ui.Column(c).Padding(px(t, sp4)).Children(func() {
+		ui.Column(c).Padding(px(t, sp4), px(t, sp4), px(t, sp4), lead).Children(func() {
 			caption(c, i18n.T("No calls yet. Your calls will show up here.")).Wrap()
 		})
 		return
 	}
 	ui.Scroll(c.Key("calls-list")).Grow(1).MinHeight(0).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp2)).Gap(px(t, 2)).Children(func() {
+		ui.Column(c).Padding(px(t, sp1), px(t, sp2), px(t, sp1), rows).Gap(px(t, 2)).Children(func() {
 			for _, r := range a.callList {
 				a.callRow(c, r)
 			}

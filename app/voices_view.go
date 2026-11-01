@@ -108,7 +108,7 @@ func (a *app) voicesPage(c *ui.Context) {
 	body.Children(func() {
 		narrow := a.pageWidth(c) < px(t, 720)
 		ui.Scroll(c.Key("voices-scroll")).Grow(1).MinWidth(0).Children(func() {
-			ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp2)).Children(func() {
+			ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp2)).Children(func() {
 				a.voicesTable(c, narrow)
 			})
 		})

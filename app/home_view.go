@@ -76,8 +76,8 @@ func (a *app) homePage(c *ui.Context) {
 		top = px(t, sp2)
 	}
 	ui.Scroll(c.Key("home")).Grow(1).Children(func() {
-		ui.Column(c).Padding(top, px(t, sp6), px(t, sp8)).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).Width(px(t, 720)).MaxWidth(a.pageWidth(c) - px(t, 2*sp6)).Gap(px(t, sp5)).Children(func() {
+		ui.Column(c).Padding(top, gutterR(t), px(t, sp8), gutterL(t)).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).FillWidth().Gap(px(t, sp5)).Children(func() {
 				ui.Text(c, i18n.T("What would you like to create?")).FontSize(px(t, 24)).FontWeight(600).TextAlign(ui.Center).TextColor(k.Text)
 				a.homeComposer(c)
 				a.homeTiles(c)

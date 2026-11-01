@@ -71,7 +71,7 @@ func (a *app) dubPage(c *ui.Context) {
 		// The workspace fills the page; when the window is too short for
 		// its notices, player, timeline and some lines, it scrolls.
 		_, winH := c.Size()
-		avail := winH - pageTop - px(t, 40) - px(t, 52) - 4
+		avail := winH - pageTop - px(t, 46) - px(t, 52) - 4
 		// With lines, exactly the scroll's height once it was laid out, so
 		// the list of lines (which scrolls itself, dub_editor.go) reaches
 		// its foot; one more frame after the window's height changes.
@@ -83,10 +83,10 @@ func (a *app) dubPage(c *ui.Context) {
 			c.After(10 * time.Millisecond)
 		}
 		ui.Scroll(c.Key("dub-work")).Bind(&a.dubWork).Grow(1).MinWidth(0).Children(func() {
-			ui.Column(c).MinHeight(avail).Padding(px(t, sp3), px(t, sp6), px(t, sp2)).Gap(px(t, sp2)).Children(func() {
+			ui.Column(c).MinHeight(avail).Padding(bodyTop(t), gutterRBeside(t, width, inline && shown), px(t, sp2), gutterL(t)).Gap(px(t, sp2)).Children(func() {
 				a.dubBanners(c)
 				if embed {
-					ui.Column(c.Key("dub-embed")).Gap(px(t, sp3)).MaxWidth(px(t, 520)).Children(func() {
+					ui.Column(c.Key("dub-embed")).Gap(px(t, sp3)).Children(func() {
 						// What the source is (#106), above the step's panel, which
 						// then leaves out its own card of it.
 						a.dubCardAbove = a.dubStep <= dubStepTranscribe && (a.dub.Source.Path != "" || a.dub.Source.URL != "")
@@ -213,7 +213,7 @@ func (a *app) dubStepper(c *ui.Context) {
 	k := tok(t)
 	names := []string{i18n.T("Source"), i18n.T("Transcribe"), i18n.T("Translate"), i18n.T("Cast"), i18n.T("Generate"), i18n.T("Export")}
 	compact := a.dubNarrow || a.pageWidth(c) < px(t, 760)
-	ui.Row(c.Key("dub-steps")).Gap(px(t, 2)).Padding(px(t, 2), px(t, sp5), px(t, sp2)).AlignItems(ui.Center).FocusGroup(ui.Horizontal).Shrink(0).ClipX().Children(func() {
+	ui.Row(c.Key("dub-steps")).Gap(px(t, 2)).Padding(bodyTop(t), gutterR(t), px(t, sp2), gutterL(t)).AlignItems(ui.Center).FocusGroup(ui.Horizontal).Shrink(0).ClipX().Children(func() {
 		for i, name := range names {
 			done, running, failed := a.dubStepState(i)
 			cur := a.dubStep == i

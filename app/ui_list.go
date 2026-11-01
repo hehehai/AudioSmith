@@ -95,6 +95,7 @@ func listRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
 	case row.Hovered():
 		row.Background(k.Hover)
 	}
+	probeBox("row", row)
 	return clicked
 }
 

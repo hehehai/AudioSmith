@@ -84,8 +84,8 @@ func (a *app) transcriptPage(c *ui.Context, id string) {
 	}
 	pageHeaderBar(c, pageHead{title: a.transcriptTitleOf(id), parent: pageTitle("/transcripts"), up: "/transcripts"})
 	ui.Scroll(c.Key("tr-main")).Grow(1).MinWidth(0).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(px(t, 920)).Gap(px(t, sp3)).Children(func() { a.transcriptDetail(c) })
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Children(func() {
+			ui.Column(c).Gap(px(t, sp3)).Children(func() { a.transcriptDetail(c) })
 		})
 	}).ClipX()
 }

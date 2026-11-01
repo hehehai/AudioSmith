@@ -155,6 +155,7 @@ func ghostBase(c *ui.Context) ui.Element {
 	// A clear hairline: ghost buttons stand as tall as ui.Button (which
 	// has a visible one) and line up beside it.
 	b := ui.ButtonBase(c).Radius(px(t, radiusControl)).TextColor(k.Text).Border(1, ui.Color{})
+	probeBox("button", b)
 	switch {
 	case b.Pressed():
 		b.Background(k.Pressed)

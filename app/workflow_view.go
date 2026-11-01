@@ -85,7 +85,12 @@ func (a *app) workflowsPage(c *ui.Context) {
 	}
 	pageHeaderBar(c, head)
 	rail := func() {
-		ui.Column(c).Padding(px(t, sp2), px(t, sp3), px(t, sp4)).Gap(px(t, sp2)).Children(func() { a.wfRail(c) })
+		// Docked at the page's left, its titles start on the page gutter.
+		lead := px(t, sp3)
+		if railInline {
+			lead = gutterL(t)
+		}
+		ui.Column(c).Padding(bodyTop(t), px(t, sp3), px(t, sp4), lead).Gap(px(t, sp2)).Children(func() { a.wfRail(c) })
 	}
 	panel := func() {
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
@@ -117,17 +122,22 @@ func (a *app) workflowsPage(c *ui.Context) {
 				a.wfEmpty(c)
 				return
 			}
-			// While the step/run drawer is open, the toolbar's controls
-			// move left of it, so zoom and fit stay in reach.
-			right := float32(0)
+			// The toolbar ends laneGap before the step/run panel: in its
+			// lane, or, while the panel floats over the canvas, its
+			// controls move left of it so zoom and fit stay in reach.
+			right := gutterRBeside(t, px(t, wfPanelWidth), panelShown && panelInline)
 			if panelShown && !panelInline {
 				mid := a.pageWidth(c)
 				if railShown && railInline {
 					mid -= px(t, wfRailWidth) + 1
 				}
-				right = max(0, min(laneWidth(t, px(t, wfPanelWidth)), mid-px(t, 260)))
+				right = max(gutterR(t), min(px(t, wfPanelWidth)+laneGap(t), mid-px(t, 260)))
 			}
-			a.wfToolbar(c, right)
+			left := gutterL(t) // on the page's edge, its tools start on the gutter
+			if railShown && railInline {
+				left = px(t, sp3)
+			}
+			a.wfToolbar(c, left, right)
 			ui.Box(c).Height(1).Background(k.Line)
 			a.wfCanvasView(c)
 		})
@@ -353,12 +363,13 @@ func wfRecordState(r store.WorkflowRecord) string {
 	return ""
 }
 
-// wfToolbar is above the canvas: zoom, fit, remove; right is room kept
-// free at its right end (for the drawer over it).
-func (a *app) wfToolbar(c *ui.Context, right float32) {
+// wfToolbar is above the canvas: zoom, fit, remove; left and right are
+// its room at its ends (the page's gutters, the panel's lane and the
+// drawer over it).
+func (a *app) wfToolbar(c *ui.Context, left, right float32) {
 	t := c.Theme()
 	rep := a.wfReport()
-	ui.Row(c.Key("wf-toolbar")).Padding(px(t, sp1), px(t, sp3)+right, px(t, sp1), px(t, sp3)).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
+	ui.Row(c.Key("wf-toolbar")).Padding(bodyTop(t), right, px(t, sp2), left).Gap(px(t, sp1)).AlignItems(ui.Center).Children(func() {
 		if n := rep.Errors(); n > 0 {
 			label := i18n.N(n, "%d problem", "%d problems", n)
 			b := ghostBase(c.Key("wf-errors")).Padding(px(t, 4), px(t, 8)).Gap(px(t, sp1)).AlignItems(ui.Center).Label(label).Shrink(1).MinWidth(0)
@@ -370,7 +381,7 @@ func (a *app) wfToolbar(c *ui.Context, right float32) {
 				a.wfPanel = wfPanelRun
 			}
 		} else if a.wf != nil && len(a.wf.Nodes) > 0 {
-			caption(c, i18n.N(rep.Items, "Ready · %d item", "Ready · %d items", rep.Items)).SingleLine().Ellipsis("…").MinWidth(0).Margin(0, 0, 0, px(t, sp1))
+			caption(c, i18n.N(rep.Items, "Ready · %d item", "Ready · %d items", rep.Items)).SingleLine().Ellipsis("…").MinWidth(0)
 		}
 		if a.wfLocked() && a.wfBusy() {
 			iconMark(c, icons.LockKeyhole, tok(t).Text2, i18n.T("Locked while it runs"))

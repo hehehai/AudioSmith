@@ -73,7 +73,7 @@ func (a *app) projectsPage(c *ui.Context) {
 		s.cards = 1
 	}
 	a.toolPage(c, "pj-page", func() {
-		sectionTitle(c, i18n.T("Samples"))
+		sectionTitleText(c, i18n.T("Samples")) // first: no room above it but the page's (bodyTop)
 		a.templateCards(c) // projects_templates.go
 		ui.Box(c).Height(px(t, sp2))
 		switch {

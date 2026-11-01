@@ -93,7 +93,7 @@ func (a *app) galleryPage(c *ui.Context) {
 		avail := a.pageWidth(c)
 		narrow := avail < px(t, 700)
 		ui.Scroll(c.Key("gallery-scroll")).Grow(1).MinWidth(0).Children(func() {
-			ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp3)).Children(func() {
+			ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp3)).Children(func() {
 				a.galleryFilters(c, page)
 				if len(page.Items) == 0 {
 					ghostRows(c, 3, icons.Widget, i18n.T("No voices match these filters."), "")

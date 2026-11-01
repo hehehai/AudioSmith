@@ -101,7 +101,7 @@ func submitButton(c *ui.Context, tip string, ready bool) ui.Element {
 func entryCard(c *ui.Context, key string, ic icons.Icon, title, body string, action func()) ui.Element {
 	t := c.Theme()
 	k := tok(t)
-	return ui.Column(c.Key(key)).Padding(px(t, sp5)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
+	return probeBox("card", ui.Column(c.Key(key))).Padding(px(t, sp5)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
 		ui.Box(c).Size(px(t, 40), px(t, 40)).Radius(px(t, radiusControl)).Background(k.Bg).Border(1, k.Line).Center().Children(func() {
 			ui.Icon(c, ic.Linear).Size(px(t, 20), px(t, 20)).TextColor(k.Text)
 		})

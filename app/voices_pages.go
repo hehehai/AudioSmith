@@ -120,7 +120,7 @@ func (a *app) newVoicePage(c *ui.Context) {
 		}
 	})
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp3), px(t, sp6), px(t, sp6)).Gap(px(t, sp5)).MaxWidth(px(t, 900)).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp5)).Children(func() {
 			ui.Row(c.Key("nv-cards")).Gap(px(t, sp4)).Wrap().AlignItems(ui.Stretch).Children(func() {
 				flowCard(c, "nv-clone", cloneIcon, i18n.T("Quick clone"),
 					i18n.T("Clone a voice from a recording of someone speaking: a file, or record it here. Use it only with their consent."),
@@ -149,7 +149,7 @@ func (a *app) newVoicePage(c *ui.Context) {
 func flowCard(c *ui.Context, key string, ic icons.Icon, title, body, needs string, action func()) {
 	t := c.Theme()
 	k := tok(t)
-	ui.Column(c.Key(key)).Padding(px(t, sp5)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
+	probeBox("card", ui.Column(c.Key(key))).Padding(px(t, sp5)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
 		Grow(1).Basis(px(t, 280)).MinWidth(px(t, 220)).Children(func() {
 		ui.Box(c).Size(px(t, 40), px(t, 40)).Radius(px(t, radiusControl)).Background(k.Bg).Border(1, k.Line).Center().Children(func() {
 			ui.Icon(c, ic.Linear).Size(px(t, 20), px(t, 20)).TextColor(k.Text)

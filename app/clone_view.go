@@ -37,7 +37,7 @@ func (a *app) clonePage(c *ui.Context) {
 		a.cloneDropped(files)
 	}
 	page.Children(func() {
-		ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 780)).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp4)).Children(func() {
 			a.cloneStepper(c)
 			switch s.step {
 			case cloneAdd:

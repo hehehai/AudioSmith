@@ -119,7 +119,7 @@ func (a *app) floating(c *ui.Context, p floatPanel, open bool, build func()) {
 	// rounded on the page's side, a gap above the window's bottom, with a
 	// small soft shadow.
 	r := px(t, radiusCard)
-	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(px(t, sp2)).Bottom(gap).Width(w).
+	card := ui.Column(c.Key(p.key+"-float")).Absolute().Top(bodyTop(t)).Bottom(gap).Width(w).
 		Background(k.Bg).BorderColor(k.Line).Clip().
 		Shadow(0, 2, 10, 0, ui.RGBA(0, 0, 0, 0.08)).Label(p.label)
 	if p.left {

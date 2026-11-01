@@ -35,7 +35,7 @@ func (a *app) audiobookPage(c *ui.Context) {
 		a.bookHeader(c, p, locked, shown)
 	}))
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp1), px(t, sp6), px(t, sp4)).Gap(px(t, sp3)).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterRBeside(t, px(t, inspectorWidth), inline && shown), px(t, sp4), gutterL(t)).Gap(px(t, sp3)).Children(func() {
 			a.manuscriptToolbar(c, p, locked)
 			a.manuscriptView(c, p, locked)
 			a.manuscriptWarnings(c, p)

@@ -239,8 +239,8 @@ func (a *app) isolationPage(c *ui.Context, id string) {
 		return
 	}
 	ui.Scroll(c.Key("iso-detail")).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp1), px(t, sp6), px(t, sp6)).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(px(t, 760)).Gap(px(t, sp3)).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Children(func() {
+			ui.Column(c).Gap(px(t, sp3)).Children(func() {
 				ui.Column(c).Gap(px(t, 2)).Children(func() {
 					meta := []string{filepath.Base(x.Input)}
 					if x.Duration > 0 {

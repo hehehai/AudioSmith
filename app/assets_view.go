@@ -77,7 +77,7 @@ func (a *app) historyPage(c *ui.Context) {
 		},
 	})
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Padding(px(t, sp2), px(t, sp6), 0).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Padding(bodyTop(t), gutterR(t), 0, gutterL(t)).Children(func() {
 			if len(all) == 0 {
 				ghostRows(c.Key("assets-ghost"), 5, assetsIcon, i18n.T("Nothing here yet"),
 					i18n.T("What you generate, render, export or isolate shows here, with the files you brought in."))

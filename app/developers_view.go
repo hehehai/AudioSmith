@@ -43,7 +43,7 @@ func (a *app) developersPage(c *ui.Context, slug string) {
 		}
 	})
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(px(t, sp4), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 760)).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp4)).Children(func() {
 			if slug != "" {
 				a.integrationDetail(c, slug, "/developers")
 				return

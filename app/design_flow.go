@@ -176,7 +176,7 @@ func (a *app) designPage(c *ui.Context) {
 	}})
 	step := a.designStep()
 	ui.Scroll(c.Key("design-main")).Grow(1).MinHeight(0).Children(func() {
-		ui.Column(c).Padding(px(t, sp2), px(t, sp6), px(t, sp6)).Gap(px(t, sp4)).MaxWidth(px(t, 780)).Children(func() {
+		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp4)).Children(func() {
 			stepper(c, "design-steps", []string{i18n.T("Describe"), i18n.T("Pick"), i18n.T("Save"), i18n.T("Done")}, step, nil)
 			if !a.designModelDefault() {
 				a.designTarget(c) // says no model can design, with Models
