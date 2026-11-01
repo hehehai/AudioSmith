@@ -6,7 +6,6 @@ package translate
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -101,13 +100,6 @@ func (d deepl) call(ctx context.Context, m *mtTranslator, htmls []string, src, t
 // NewGoogle returns the Google Cloud Translation v2 (basic) adapter, key "mt.google" (an API key).
 func NewGoogle(cfg MTConfig) Translator { return &mtTranslator{cfg: cfg, svc: googleV2{}} }
 
-// NewGoogleV3 returns the v3 adapter for project (location global); the
-// secret "mt.google-v3" is an OAuth access token (from the user's
-// service account / gcloud), sent as a Bearer token.
-func NewGoogleV3(cfg MTConfig, project string) Translator {
-	return &mtTranslator{cfg: cfg, svc: googleV3{project: project}}
-}
-
 func googleCode(l Lang) string {
 	switch l.Code {
 	case "zh":
@@ -164,47 +156,6 @@ func (g googleV2) call(ctx context.Context, m *mtTranslator, htmls []string, src
 	}
 	res := make([]string, len(out.Data.Translations))
 	for i, t := range out.Data.Translations {
-		res[i] = t.TranslatedText
-	}
-	return res, nil
-}
-
-type googleV3 struct{ project string }
-
-func (googleV3) id() string                   { return "google-v3" }
-func (googleV3) maxBatch() (texts, chars int) { return 100, 25_000 }
-func (googleV3) code(l Lang, _ bool) (string, bool) {
-	c := googleCode(l)
-	if c == "iw" {
-		c = "he"
-	}
-	return c, l.Code != ""
-}
-
-func (g googleV3) call(ctx context.Context, m *mtTranslator, htmls []string, src, tgt string, _ Request) ([]string, error) {
-	if g.project == "" {
-		return nil, newErr(CodeConfig, "service", g.id(), "field", "project")
-	}
-	token, err := m.key(ctx)
-	if err != nil {
-		return nil, err
-	}
-	body := map[string]any{"contents": htmls, "targetLanguageCode": tgt, "mimeType": "text/html"}
-	if src != "" {
-		body["sourceLanguageCode"] = src
-	}
-	var out struct {
-		Translations []struct {
-			TranslatedText string `json:"translatedText"`
-		} `json:"translations"`
-	}
-	u := fmt.Sprintf("%s/v3/projects/%s/locations/global:translateText", m.base("https://translation.googleapis.com"), url.PathEscape(g.project))
-	h := http.Header{"Authorization": {"Bearer " + token}, "X-Goog-User-Project": {g.project}}
-	if err := m.do(ctx, http.MethodPost, u, h, body, &out); err != nil {
-		return nil, err
-	}
-	res := make([]string, len(out.Translations))
-	for i, t := range out.Translations {
 		res[i] = t.TranslatedText
 	}
 	return res, nil

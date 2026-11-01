@@ -120,7 +120,7 @@ type Result struct {
 
 // Info describes a translator.
 type Info struct {
-	ID         string    // "llm", "deepl", "google", "google-v3", "microsoft"
+	ID         string    // "llm", "deepl", "google", "microsoft"
 	Kind       string    // "llm" | "mt"
 	Network    bool      // sends text over the network (an LLM route may be local)
 	ThirdParty bool      // a third-party service
