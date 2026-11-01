@@ -365,11 +365,7 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 		}
 		listTitle(c, title, sub)
 		if !narrow {
-			var langs []string
-			for _, l := range r.Languages {
-				langs = append(langs, dubLangName(l))
-			}
-			metaCell(c, noIcon, i18n.T("Languages"), strings.Join(langs, i18n.T(", ")), 136)
+			a.dubLangBadges(c, r.Languages)
 			d := ""
 			if r.Duration > 0 {
 				d = clock(r.Duration)
@@ -405,6 +401,26 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 	if open {
 		a.openDub(id)
 	}
+}
+
+// dubLangBadges are a row's target languages: the first a badge that
+// sets the language filter to it (thread #129; again: clears it), "+n"
+// naming the rest.
+func (a *app) dubLangBadges(c *ui.Context, codes []string) {
+	badgeCell(c, "langs", 136, func() {
+		if len(codes) == 0 {
+			return
+		}
+		on := a.dubLangF == codes[0]
+		if metaBadge(c, badgeSpec{key: "b-lang", ic: noIcon, value: dubLangName(codes[0]), on: on}) {
+			a.dubLangF = ifStr(on, "", codes[0])
+		}
+		var names []string
+		for _, l := range codes {
+			names = append(names, dubLangName(l))
+		}
+		badgeMore(c, len(codes)-1, i18n.T("%s: %s", i18n.T("Languages"), strings.Join(names, i18n.T(", "))))
+	})
 }
 
 // dubSourceLabel is a source for a row: a link's host, a file's name.

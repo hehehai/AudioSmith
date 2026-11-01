@@ -6,7 +6,8 @@ package main
 // as chips — and the voices: 「推荐」, a three-column grid of the
 // strongest voices for the interface's language (while nothing filters),
 // and 「全部」, a table (name and description, language, gender and age,
-// use, ▶, 「使用」, ⋯). A click on a row opens the voice's detail beside
+// use, ▶, 「使用」, ⋯; the language, gender and age, and use are badges
+// that filter, gallery_badges.go). A click on a row opens the voice's detail beside
 // the table, or over it when the window is narrow (voice_detail.go).
 
 import (
@@ -205,8 +206,8 @@ func (a *app) facetMenu(c *ui.Context, f gallery.Facet, values []gallery.FacetCo
 
 // galleryRecommended is 「推荐」: compact rows in three columns (two, then
 // one, as the page narrows: then only three): avatar, name, a line of
-// description, the language and the first use. A click opens the
-// detail; ▶ previews.
+// description, the language and the first use (badges that filter). A
+// click opens the detail; ▶ previews.
 func (a *app) galleryRecommended(c *ui.Context, narrow bool, avail float32) {
 	t := c.Theme()
 	sectionRow(c, "rec-title", i18n.T("Recommended"), "")
@@ -271,15 +272,20 @@ func (a *app) recCard(c *ui.Context, arch gallery.Archetype) {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 1)).Children(func() {
 				ui.Text(c, name).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
 				ui.Text(c, arch.Description.In(loc)).FontSize(px(t, fsCaption)).TextColor(k.Text2).SingleLine().Ellipsis("…").MinWidth(0)
-				ui.Text(c, archLanguage(arch)+" · "+archUse(arch, loc)).FontSize(px(t, fsMicro)).TextColor(k.Text3).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Row(c).Gap(px(t, 4)).AlignItems(ui.Center).MinWidth(0).Padding(px(t, 2), 0, 0).Children(func() {
+					a.archLangBadge(c, arch, true)
+					a.archUseBadge(c, arch, true, false)
+				})
 			})
 		})
 		if b.Clicked() {
 			a.openArchetype(arch.ID)
 		}
-		if p.ok() && previewToggle(c, "play", playing).Clicked() {
-			a.previewArchetype(arch)
-		}
+		rowActs(func() {
+			if previewToggleIf(c, "play", playing, p.ok()).Clicked() {
+				a.previewArchetype(arch)
+			}
+		})
 	})
 }
 
@@ -300,14 +306,14 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 						iconMark(c, icons.Star, tok(c.Theme()).Text3, i18n.T("Favorite"))
 					}
 				})
-				metaCell(c, noIcon, i18n.T("Language"), archLanguage(arch), 100) // its flag leads
+				// Badges: a click filters the table by the value (thread #129).
+				badgeCell(c, "lang", 100, func() { a.archLangBadge(c, arch, false) })
 				if !narrow {
-					metaCell(c, icons.UserRounded, i18n.T("Gender and age"), archGenderAge(arch, loc), 120)
-					more := len(archUseNames(arch, loc)) - 1
-					metaCellExtra(c, icons.Tag, "", archUse(arch, loc), 136, func() { countPill(c, more) }).Tooltip(i18n.T("%s: %s", i18n.T("Use cases"), archUses(arch, loc)))
+					badgeCell(c, "gender", 120, func() { a.archGenderBadge(c, arch) })
+					badgeCell(c, "use", 136, func() { a.archUseBadge(c, arch, false, true) })
 				}
 			}, func() {
-				if p.ok() && previewToggle(c, "play", playing).Clicked() {
+				if previewToggleIf(c, "play", playing, p.ok()).Clicked() {
 					a.previewArchetype(arch)
 				}
 				if useButton(c, "use", i18n.T("Use it in Text to speech")).Disabled(g.using).Clicked() {

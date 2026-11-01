@@ -7,7 +7,10 @@ package main
 // open one (Selected) or while it plays (AccentSoft). Its body is a button
 // that opens the item — the leading picture, the title (semibold) over a
 // grey line, then grey meta values, each after a small icon — and its end
-// holds the actions (▶, the primary action, ⋯). Delete or Backspace on a
+// holds the actions (▶, the primary action, ⋯), whose buttons wear a
+// face under the pointer that shows on the row's own tint (inRowActs).
+// Meta values a filter of the list knows are badges (ui_badge.go): a
+// click on one filters the list by it. Delete or Backspace on a
 // focused row asks to delete it where the list deletes. The meta values
 // hide when the list is narrow; the actions stay. In the current tokens.
 
@@ -62,7 +65,7 @@ func listRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
 	var body ui.Element
 	row.Children(func() {
 		if s.lead != nil {
-			s.lead()
+			rowActs(s.lead)
 		}
 		body = ui.ButtonBase(c.Key("open")).Grow(1).MinWidth(0).Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, 6), px(t, sp2)).
 			Radius(px(t, radiusControl)).Label(s.label)
@@ -81,7 +84,7 @@ func listRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
 		if s.trail > 0 {
 			acts.Width(px(t, s.trail))
 		}
-		acts.Children(actions)
+		acts.Children(func() { rowActs(actions) })
 	})
 	switch {
 	case s.state.selected && row.Hovered():
@@ -97,6 +100,19 @@ func listRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
 	}
 	probeBox("row", row)
 	return clicked
+}
+
+// inRowActs is true while a row's (or a card's) actions build: the
+// kit's ghost and icon buttons then take the faces that show on a row's
+// tint (ActHover, ActPressed; thread #129). Only rowActs sets it.
+var inRowActs bool
+
+// rowActs builds fn's buttons with the faces of a row's actions.
+func rowActs(fn func()) {
+	old := inRowActs
+	inRowActs = true
+	defer func() { inRowActs = old }()
+	fn()
 }
 
 // listThumb is a row's leading square: bmp when there is one, else ic.

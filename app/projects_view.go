@@ -7,6 +7,7 @@ package main
 // opens its tool; its ⋯ opens, renames, duplicates or deletes it.
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -74,7 +75,7 @@ func (a *app) projectsPage(c *ui.Context) {
 	}
 	a.toolPage(c, "pj-page", func() {
 		sectionTitleText(c, i18n.T("Samples")) // first: no room above it but the page's (bodyTop)
-		a.templateCards(c) // projects_templates.go
+		a.templateCards(c)                     // projects_templates.go
 		ui.Box(c).Height(px(t, sp2))
 		switch {
 		case total == 0 && !s.loaded:
@@ -147,8 +148,14 @@ func (a *app) projRow(c *ui.Context, it projItem, withType, narrow bool) {
 		listThumb(c, projKindIcon(it.kind), bmp)
 		listTitle(c, it.title, it.sub)
 		if !narrow {
-			if withType {
-				metaCell(c, icons.Tag, i18n.T("Type"), projKindLabel(it.kind), 88)
+			if withType { // a badge: a click filters by the type (thread #129)
+				badgeCell(c, "type", 88, func() {
+					f := slices.Index(projFilters, it.kind)
+					on := f > 0 && s.filter == f
+					if metaBadge(c, badgeSpec{key: "b-type", ic: icons.Tag, value: projKindLabel(it.kind), on: on}) && f > 0 {
+						s.filter = ifInt(on, 0, f)
+					}
+				})
 			}
 			metaCell(c, icons.CalendarMinimalistic, i18n.T("Updated"), ago(it.updated), 112)
 			metaCell(c, icons.ClockCircle, i18n.T("Length"), it.length, 104)

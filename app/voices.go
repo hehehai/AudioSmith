@@ -39,7 +39,8 @@ type voicesState struct {
 
 	// The library page.
 	voiceQuery  string
-	voiceKind   int // kindAll, kindCloned, kindDesigned, kindSaved (voices_view.go)
+	voiceKind   int    // kindAll, kindCloned, kindDesigned, kindSaved (voices_view.go)
+	voiceLang   string // the language filter ("" all; voices_badges.go)
 	mine        mineState
 	deleteVoice string // id the delete confirmation asks about
 	deleteOpen  bool

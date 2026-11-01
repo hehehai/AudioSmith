@@ -74,6 +74,12 @@ type tokens struct {
 	Hover   ui.Color // ghost buttons and rows under the pointer
 	Pressed ui.Color // … pressed; the chosen row
 	Line    ui.Color // hairlines: dividers, card borders
+	// The faces of what sits in a row or a card that has its own tint
+	// (thread #129): a button's under the pointer (ActHover) and pressed
+	// (ActPressed), a badge's at rest (BadgeFill). Translucent ink, so
+	// that they show darker (lighter in the dark) than whatever tint is
+	// under them: a row's Hover, Selected or AccentSoft.
+	ActHover, ActPressed, BadgeFill ui.Color
 	// Selected: rows selected among many (the logs' lines), the accent's
 	// tint, stronger than Hover; SelectedHover one under the pointer.
 	Selected, SelectedHover ui.Color
@@ -109,6 +115,12 @@ func makeTokens(dark bool) *tokens {
 	}
 	k.Bg, k.Sidebar, k.Subtle = g[0], g[1], g[1]
 	k.Hover, k.Pressed, k.Line = g[2], g[3], g[3]
+	ink := ui.Hex("#000000")
+	k.ActHover, k.ActPressed, k.BadgeFill = ink.Alpha(0.075), ink.Alpha(0.13), ink.Alpha(0.045)
+	if dark {
+		ink = ui.Hex("#ffffff")
+		k.ActHover, k.ActPressed, k.BadgeFill = ink.Alpha(0.1), ink.Alpha(0.16), ink.Alpha(0.06)
+	}
 	k.Text, k.Text2, k.Text3 = g[9], g[7], g[6]
 	k.Ink, k.OnInk = g[9], g[0]
 	k.Accent = accent

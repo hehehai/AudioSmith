@@ -26,10 +26,10 @@ import (
 // narrow (rows fold their actions into ⋯, the header shows icons).
 func (a *app) lfLayout(c *ui.Context, p *lfPage) (inline, shown bool) {
 	t := c.Theme()
-	inline, shown = p.panel.layout(a, c, px(t, inspectorWidth), px(t, 480))
+	inline, shown = p.panel.layout(a, c, px(t, lfInspectorWidth), px(t, 480))
 	w := a.pageWidth(c)
 	if inline && shown {
-		w -= laneWidth(t, px(t, inspectorWidth))
+		w -= laneWidth(t, px(t, lfInspectorWidth))
 	}
 	p.narrow = w < px(t, 600)
 	return inline, shown
@@ -39,8 +39,8 @@ func (a *app) lfLayout(c *ui.Context, p *lfPage) (inline, shown bool) {
 // page or as a drawer.
 func (a *app) lfInspector(c *ui.Context, p *lfPage, inline, shown bool, sections func()) {
 	t := c.Theme()
-	p.panel.view(a, c, "lf-inspector", i18n.T("Inspector"), inline, shown, px(t, inspectorWidth), func() {
-		ui.Column(c).Padding(px(t, sp2), px(t, sp4), px(t, sp5)).Gap(px(t, sp1)).Children(sections)
+	p.panel.view(a, c, "lf-inspector", i18n.T("Inspector"), inline, shown, px(t, lfInspectorWidth), func() {
+		ui.Column(c).Padding(px(t, panelPad)).Gap(px(t, sp1)).Children(sections)
 	})
 }
 

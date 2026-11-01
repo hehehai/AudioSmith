@@ -2,7 +2,8 @@ package main
 
 // The voice tables of 0.5 F4 (Discover's 全部, Mine; after ElevenLabs'
 // voice library), on the row kit (ui_list.go): rows whose body opens the
-// voice's detail and whose end holds ▶, 「使用」 and ⋯. A row playing
+// voice's detail and whose end holds ▶, 「使用」 and ⋯ (each with a face
+// under the pointer, thread #129). A row playing
 // its preview is tinted and its ▶ is a pause; the row whose detail is
 // open is selected.
 
@@ -40,16 +41,30 @@ func voiceNameCell(c *ui.Context, name, sub string, bmp *ui.Bitmap, playing bool
 // previewToggle is a row's ▶ (the pause glyph, labelled Stop, while it
 // plays).
 func previewToggle(c *ui.Context, key string, playing bool) ui.Element {
-	if playing {
+	return previewToggleIf(c, key, playing, true)
+}
+
+// previewToggleIf is previewToggle, disabled and saying so when the
+// voice has nothing to play (ok false): every voice row has its ▶.
+func previewToggleIf(c *ui.Context, key string, playing, ok bool) ui.Element {
+	switch {
+	case !ok:
+		return iconButton(c.Key(key), icons.Play, i18n.T("No preview for this voice")).Disabled(true)
+	case playing:
 		return iconButton(c.Key(key), icons.Pause, i18n.T("Stop"))
 	}
 	return iconButton(c.Key(key), icons.Play, i18n.T("Preview"))
 }
 
-// useButton is a row's 「使用」: a small outlined button.
+// useButton is a row's 「使用」: a small text button on a hairline, as
+// tall as the row's icon buttons, with their face under the pointer.
 func useButton(c *ui.Context, key, tip string) ui.Element {
 	t := c.Theme()
-	return ghostButton(c.Key(key), i18n.X("voice row", "Use")).FontSize(px(t, fsCaption)).Tooltip(tip).Shrink(0)
+	label := i18n.X("voice row", "Use")
+	b := ghostBase(c.Key(key)).Height(iconSide(t)).Padding(0, px(t, 10)).Border(1, tok(t).Line).Center().
+		Label(label).Tooltip(tip).Shrink(0)
+	b.Children(func() { ui.Text(c, label).FontSize(px(t, fsCaption)).SingleLine() })
+	return b
 }
 
 // sectionRow is a section's title in a voice page (「推荐」, 「全部」),
