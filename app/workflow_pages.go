@@ -62,21 +62,6 @@ func (a *app) wfCommands(nav string, add func(id, group, title, en, keys string,
 	add("wf-cancel", group, i18n.T("Cancel the workflow's run"), "Cancel the workflow's run", "", a.wfBusy(), a.wfCancel)
 }
 
-// wfItemState is a workflow's last run on the Projects page (the item's detail).
-func wfItemState(detail string) string {
-	switch workflow.RunState(detail) {
-	case workflow.RunRunning:
-		return i18n.T("Running")
-	case workflow.RunDone:
-		return i18n.T("Done")
-	case workflow.RunFailed:
-		return i18n.T("Stopped")
-	case workflow.RunCancelled:
-		return i18n.T("Cancelled")
-	}
-	return i18n.T("Not run yet")
-}
-
 // wfOpenPage opens a workflow on its page (the Projects page, deep links).
 func (a *app) wfOpenPage(id string) {
 	a.navigate("/workflows")

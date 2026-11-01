@@ -7,7 +7,6 @@ package main
 import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/services"
 )
@@ -120,6 +119,3 @@ func (a *app) dubSettingsRoute(c *ui.Context, r *ui.Route) bool {
 func (a *app) registerDubMedia() {
 	mygo.Protocol.Handle(dubMediaScheme, dubMediaHandler(func() *services.Dubs { return a.dubSvc }))
 }
-
-// dubItemPhase is a dub's phase on the Projects page (the item's detail).
-func dubItemPhase(detail string) string { return dubPhaseText(dub.Phase(detail)) }

@@ -15,7 +15,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
-	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/store"
 )
 
@@ -124,45 +123,6 @@ func itemIcon(it store.LibraryItem) icons.Icon {
 		return audiobookIcon
 	}
 	return storiesIcon
-}
-
-// itemMeta is an item's second line.
-func (a *app) itemMeta(it store.LibraryItem) string {
-	parts := []string{itemKind(it)}
-	switch it.Source {
-	case "project":
-		s := services.SummaryOf(it.Detail)
-		if s.Chapters > 1 {
-			parts = append(parts, i18n.N(s.Chapters, "%d chapter", "%d chapters", s.Chapters))
-		}
-		if s.Lines > 0 {
-			parts = append(parts, i18n.N(s.Lines, "%d line", "%d lines", s.Lines))
-		}
-		if s.Words > 0 {
-			parts = append(parts, i18n.N(s.Words, "%d word", "%d words", s.Words))
-		}
-		if s.Chars > 0 {
-			parts = append(parts, i18n.N(s.Chars, "%d character", "%d characters", s.Chars))
-		}
-	case "render":
-		if r := a.lfRenders[it.ID]; r != nil {
-			parts = append(parts, a.renderRecipe(r))
-		}
-	case "voice":
-		parts = append(parts, voiceKindText(core.VoiceKind(it.Detail)))
-	case "take":
-		parts = append(parts, modelName(it.Detail))
-	case "export":
-		parts = append(parts, it.Detail)
-	case "dub": // M4: dub_pages.go (thread #19)
-		parts = append(parts, dubItemPhase(it.Detail))
-	case "workflow": // M6: workflow_pages.go (thread #21)
-		parts = append(parts, wfItemState(it.Detail))
-	case "call": // M6b: calls_pages.go (thread #23)
-		parts = append(parts, callItemDetail(it.Detail))
-	}
-	parts = append(parts, i18n.DateTime(it.Updated))
-	return strings.Join(parts, " · ")
 }
 
 // renderRecipe is a render's one-line recipe: voices · speed · engine · length.

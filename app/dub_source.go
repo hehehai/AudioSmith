@@ -67,22 +67,6 @@ func (a *app) dubSourceFile(path string) {
 	a.newDub(src)
 }
 
-// dubImportURL starts a dub of a URL (yt-dlp).
-func (a *app) dubImportURL() {
-	u := strings.TrimSpace(a.dubURL)
-	if _, err := dub.CheckURL(context.Background(), u, nil); err != nil {
-		a.dubErr = dubURLErrorText(err)
-		return
-	}
-	if !a.prefs.Dubbing.URLImport || a.prefs.Dubbing.YtDlp == "" {
-		a.dubErr, a.dubErrCode = i18n.T("Importing from a URL is off. Turn it on in Settings → Dubbing (it downloads yt-dlp, about 35 MB)."), dub.CodeNoYtDlp
-		return
-	}
-	a.dubErr = ""
-	a.newDub(dub.Source{Kind: dub.SourceURL, URL: u, Name: u, WantCaptions: a.dubCaptions})
-	a.dubURL = ""
-}
-
 // dubProbe reads what project id's source is (Dubs.Probe: a link's
 // details and cover, a file's length, picture and poster) in the
 // background; the page shows it as it is saved.

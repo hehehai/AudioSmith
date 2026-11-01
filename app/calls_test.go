@@ -192,9 +192,6 @@ func TestCallsPlaceFromForm(t *testing.T) {
 	if len(items) != 1 || items[0].Source != "call" {
 		t.Errorf("library %+v", items)
 	}
-	if got := a.itemMeta(items[0]); !strings.Contains(got, "Live") {
-		t.Errorf("item meta %q", got)
-	}
 }
 
 func TestCallsLiveView(t *testing.T) {

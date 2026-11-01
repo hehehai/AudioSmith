@@ -293,12 +293,12 @@ func TestDubErrorsAndURL(t *testing.T) {
 	a, tt := d.a, d.tt
 	// URL import is off until yt-dlp is installed.
 	a.dubURL = "https://www.youtube.com/watch?v=abc"
-	a.dubImportURL()
+	a.dubSubmit()
 	if a.dubErrCode != dub.CodeNoYtDlp {
 		t.Errorf("url without yt-dlp: %q", a.dubErr)
 	}
 	a.dubURL = "http://192.168.1.2/x.mp4"
-	a.dubImportURL()
+	a.dubSubmit()
 	if !strings.Contains(a.dubErr, "local network") {
 		t.Errorf("lan url: %q", a.dubErr)
 	}

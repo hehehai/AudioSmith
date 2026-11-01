@@ -4,8 +4,6 @@ package main
 // workflow_pages.go), and the Projects page's calls.
 
 import (
-	"strings"
-
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
@@ -75,20 +73,6 @@ func (a *app) callsCommands(nav string, add func(id, group, title, en, keys stri
 		}
 	}
 	add("calls-hangup", group, i18n.T("Hang up"), "Hang up the call", "", live != "", func() { a.hangupCall(live) })
-}
-
-// callItemDetail is a call's state on the Projects page (the item's
-// detail is "<outcome>|<phase>").
-func callItemDetail(detail string) string {
-	outcome, phase, _ := strings.Cut(detail, "|")
-	switch phase {
-	case services.CallDialing, services.CallRinging, services.CallLive:
-		return i18n.T("Live")
-	}
-	if outcome == "" {
-		return callPhaseText(phase)
-	}
-	return callOutcomeText(outcome)
 }
 
 // callOpenPage opens a call on the Calls page (Projects, deep links).
