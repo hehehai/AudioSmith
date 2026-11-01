@@ -21,7 +21,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/hub"
 	"github.com/hehehai/AudioSmith/internal/i18n"
-	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/services"
 )
 
@@ -217,33 +216,16 @@ func (a *app) storyDialogue(c *ui.Context, p *lfPage, locked bool) {
 	t := c.Theme()
 	k := tok(t)
 	d := &p.doc
-	e, choices, blocked := dialogueChoice(a.macMemoryGB(), d)
-	on := d.Production.Dialogue && blocked == ""
-	title := i18n.T("Whole dialogue")
-	formRow(c, "perf-dialogue-row", title, i18n.T("The characters' lines are spoken by %s a scene at a time, each line hearing the lines before it, so they answer each other; narration stays on the story's model. Each character is cloned from their voice's reference (a cloned voice's clip, a designed voice's reference, else a short sample in that voice). Lines it does not say clearly are made again, then on the story's model. Slower than real time.", modelRef(e)), func() {
-		if ui.Switch(c.Key("perf-dialogue"), &on).Label(title).Disabled(locked || blocked != "").Changed() {
-			d.Production.Dialogue = on
-			if on {
-				d.Production.DialogueModel = e.Repo
-			}
-		}
-	})
-	if on && len(choices) > 1 {
-		// By their friendly names, as the model picker (thread #84).
-		fieldInfo(c, i18n.T("Dialogue model"), i18n.T("%s is light (16 GB of memory) and quick; %s is larger (24 GB), up to five voices, and speaks each scene as one recording.", modelRef(choices[0]), modelRef(choices[1])), func() {
-			names := make([]string, len(choices))
-			for i, x := range choices {
-				names[i] = x.DisplayName()
-			}
-			cur := e.DisplayName()
-			if ui.Select(c.Key("perf-dialogue-model"), &cur, names).Label(i18n.T("Dialogue model")).Tooltip(modelTip(e)).Disabled(locked).Changed() {
-				if i := slices.Index(names, cur); i >= 0 {
-					e = choices[i]
-					d.Production.DialogueModel = e.Repo
-				}
-			}
-		})
-	}
+	e, on, blocked := a.dialogueModelCard(c, d, "perf", dialogueCardText{
+		title: i18n.T("Whole dialogue"),
+		about: func(e catalog.Entry) string {
+			return i18n.T("The characters' lines are spoken by %s a scene at a time, each line hearing the lines before it, so they answer each other; narration stays on the story's model. Each character is cloned from their voice's reference (a cloned voice's clip, a designed voice's reference, else a short sample in that voice). Lines it does not say clearly are made again, then on the story's model. Slower than real time.", modelRef(e))
+		},
+		pick: i18n.T("Dialogue model"),
+		pickAbout: func(x, y catalog.Entry) string {
+			return i18n.T("%s is light (16 GB of memory) and quick; %s is larger (24 GB), up to five voices, and speaks each scene as one recording.", modelRef(x), modelRef(y))
+		},
+	}, locked)
 	if on {
 		a.storyDialogueRefs(c, p, locked) // stories_dialogue_refs.go (#83)
 	}
@@ -251,14 +233,7 @@ func (a *app) storyDialogue(c *ui.Context, p *lfPage, locked bool) {
 	case blocked != "":
 		caption(c.Key("perf-dialogue-why"), blocked).TextColor(k.Text3)
 	case on && m.known && m.local.State != hub.Downloaded:
-		ui.Row(c.Key("perf-dialogue-need")).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
-			caption(c, i18n.T("%s is not downloaded (%s).", modelRef(e), catalog.HumanSize(e.Size))).TextColor(k.Text2).Shrink(1)
-			if m.downloading {
-				ui.Spinner(c)
-			} else if secondaryIconButton(c.Key("perf-dialogue-dl"), icons.DownloadMinimalistic, i18n.T("Download")).Label(i18n.T("Download")).Disabled(locked).Clicked() {
-				a.download(e)
-			}
-		})
+		a.dialogueDownloadRow(c, c.Key("perf-dialogue-need"), "perf", e, m.downloading, locked)
 	}
 }
 

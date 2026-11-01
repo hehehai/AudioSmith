@@ -8,7 +8,6 @@ package main
 // little memory): each line read in its own voice.
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -24,32 +23,16 @@ func (a *app) bookDialogueCard(c *ui.Context, p *lfPage, locked bool) {
 	t := c.Theme()
 	k := tok(t)
 	d := &p.doc
-	e, choices, blocked := dialogueChoice(a.macMemoryGB(), d)
-	on := d.Production.Dialogue && blocked == ""
-	title := i18n.T("Dialogue model")
-	formRow(c, "ab-dialogue-row", title, i18n.T("%s speaks each passage's lines together, each line hearing the lines before it, so they answer each other; the rest of the book stays on its model. Voices in a passage are cloned by the dialogue model and sound a little different from the same voice outside it. Slower than real time.", modelRef(e)), func() {
-		if ui.Switch(c.Key("ab-dialogue"), &on).Label(title).Disabled(locked || blocked != "").Changed() {
-			d.Production.Dialogue = on
-			if on {
-				d.Production.DialogueModel = e.Repo
-			}
-		}
-	})
-	if on && len(choices) > 1 {
-		fieldInfo(c, i18n.T("Which dialogue model"), i18n.T("%s is light (16 GB of memory) and quick; %s is larger (24 GB), up to five voices, and speaks each passage as one recording.", modelRef(choices[0]), modelRef(choices[1])), func() {
-			names := make([]string, len(choices))
-			for i, x := range choices {
-				names[i] = x.DisplayName()
-			}
-			cur := e.DisplayName()
-			if ui.Select(c.Key("ab-dialogue-model"), &cur, names).Label(i18n.T("Which dialogue model")).Tooltip(modelTip(e)).Disabled(locked).Changed() {
-				if i := slices.Index(names, cur); i >= 0 {
-					e = choices[i]
-					d.Production.DialogueModel = e.Repo
-				}
-			}
-		})
-	}
+	e, on, blocked := a.dialogueModelCard(c, d, "ab", dialogueCardText{
+		title: i18n.T("Dialogue model"),
+		about: func(e catalog.Entry) string {
+			return i18n.T("%s speaks each passage's lines together, each line hearing the lines before it, so they answer each other; the rest of the book stays on its model. Voices in a passage are cloned by the dialogue model and sound a little different from the same voice outside it. Slower than real time.", modelRef(e))
+		},
+		pick: i18n.T("Which dialogue model"),
+		pickAbout: func(x, y catalog.Entry) string {
+			return i18n.T("%s is light (16 GB of memory) and quick; %s is larger (24 GB), up to five voices, and speaks each passage as one recording.", modelRef(x), modelRef(y))
+		},
+	}, locked)
 	a.bookDialogueFallback(c, p, e, on, blocked, locked)
 	a.bookUncast(c, p, locked)
 	_, ready := a.bookDialogueModel(p)
@@ -100,14 +83,7 @@ func (a *app) bookDialogueFallback(c *ui.Context, p *lfPage, e catalog.Entry, on
 		caption(c.Key("ab-dialogue-why"), blocked+" "+lineByLine).TextColor(k.Text3)
 	case on && m.known && m.local.State != hub.Downloaded:
 		ui.Column(c.Key("ab-dialogue-need")).Gap(px(t, 4)).Children(func() {
-			ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
-				caption(c, i18n.T("%s is not downloaded (%s).", modelRef(e), catalog.HumanSize(e.Size))).TextColor(k.Text2).Shrink(1)
-				if m.downloading {
-					ui.Spinner(c)
-				} else if secondaryIconButton(c.Key("ab-dialogue-dl"), icons.DownloadMinimalistic, i18n.T("Download")).Label(i18n.T("Download")).Disabled(locked).Clicked() {
-					a.download(e)
-				}
-			})
+			a.dialogueDownloadRow(c, c, "ab", e, m.downloading, locked)
 			caption(c, i18n.T("You can generate without it: each line is read in its own voice.")).TextColor(k.Text3)
 		})
 	}
