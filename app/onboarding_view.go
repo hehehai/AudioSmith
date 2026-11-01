@@ -411,12 +411,3 @@ func (a *app) obDictation(c *ui.Context) {
 	}
 	caption(c, i18n.T("When you finish, the Studio says hello as soon as its voice is downloaded."))
 }
-
-// obPackNames lists a pack's models (tests, the palette).
-func obPackNames(id string) []string {
-	var out []string
-	for _, e := range packEntries(id) {
-		out = append(out, e.DisplayName())
-	}
-	return out
-}

@@ -116,14 +116,6 @@ func (a *app) galleryPage(c *ui.Context) {
 	})
 }
 
-// ifThen is v when ok, else w.
-func ifThen(ok bool, v, w float32) float32 {
-	if ok {
-		return v
-	}
-	return w
-}
-
 // galleryCounts are the voices of each use case (a voice may have
 // several).
 func galleryCounts(page gallery.Page) map[string]int {

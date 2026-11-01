@@ -33,7 +33,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/jobs"
-	"github.com/hehehai/AudioSmith/internal/llm"
 	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/store"
 	"github.com/hehehai/AudioSmith/internal/translate"
@@ -344,11 +343,6 @@ func (a *app) wfDelete(id string) {
 			a.post(func() { a.toastWarn(i18n.T("Could not delete the workflow: %v", err)) })
 		}
 	})
-}
-
-// wfLLMReady reports whether a language model can translate.
-func (a *app) wfLLMReady() bool {
-	return a.llmRouter != nil && a.llmRouter.Available(llm.SkillTranslate)
 }
 
 // workflowSTT are the speech-to-text models of Transcribe and Convert

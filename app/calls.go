@@ -98,7 +98,6 @@ type callForm struct {
 	disclosure    string
 	edited        bool // the disclosure was edited
 	minutes       string
-	numberFocus   bool
 }
 
 // callSecret is the token, cached.

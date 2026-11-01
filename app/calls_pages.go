@@ -11,7 +11,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/settings"
-	"github.com/hehehai/AudioSmith/internal/telephony"
 )
 
 var callsIcon = icons.PhoneCallingRounded
@@ -100,9 +99,6 @@ func (a *app) callOpenPage(id string) {
 
 // callMentionsRecording: whether a disclosure says the call is recorded.
 func callMentionsRecording(s string) bool { return services.MentionsRecording(s) }
-
-// callMasked shows a number masked.
-func callMasked(n string) string { return telephony.MaskNumber(n) }
 
 // twilioBlocks are the Twilio card's setup blocks (its page is the
 // guided setup; the blocks serve the integration list's checks).

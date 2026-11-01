@@ -47,10 +47,6 @@ const skillPath = "/api/agent-skill"
 // folder ("~/.claude/skills/audiosmith").
 func skillDir(slug string) string { return promptAgents[slug].Skills + "/" + skillName }
 
-// skillFile is the user-level path of an agent's SKILL.md
-// ("~/.claude/skills/audiosmith/SKILL.md").
-func skillFile(slug string) string { return skillDir(slug) + "/SKILL.md" }
-
 // Areas of the tools, in the skill's order.
 const (
 	areaSpeech   = "speech"

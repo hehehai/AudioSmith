@@ -69,7 +69,6 @@ type apiForm struct {
 	mcpDir    string
 	newClient string
 	newVoice  string
-	newLabel  string
 	ops       bool // the endpoint list is open
 	keyShown  bool
 	keyIncl   bool // integrations: put the key in snippets
@@ -267,13 +266,6 @@ func (a *app) stopSharing() {
 		return
 	}
 	a.async(srv.StopLAN)
-}
-
-// refreshAPIClients reads the agents the MCP server has seen.
-func (a *app) refreshAPIClients() {
-	if a.apiMCP != nil {
-		a.apiClients = a.apiMCP.Clients()
-	}
 }
 
 // syncAPIForm sets the form from the settings.

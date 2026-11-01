@@ -104,11 +104,10 @@ type lfPage struct {
 	// auto: the model and voice were picked for a new user (the
 	// presets); they follow the saved voices while the page is empty and
 	// the user has not chosen a model (autoLfModel).
-	auto      bool
-	reactions bool
-	ra        readAlong
-	panel     panelState // the inspector: beside the page, or a drawer
-	narrow    bool       // the main column is narrow: rows fold actions into ⋯
+	auto   bool
+	ra     readAlong
+	panel  panelState // the inspector: beside the page, or a drawer
+	narrow bool       // the main column is narrow: rows fold actions into ⋯
 
 	// The way in (longform_entry.go): opened shows the editor though the
 	// document is empty (a new project); listing shows the list though

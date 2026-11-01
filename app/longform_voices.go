@@ -13,7 +13,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
-	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/services"
 )
 
@@ -171,18 +170,6 @@ func (a *app) longformVoiceItems(m *ui.Menu, use func(then func(*core.Voice))) {
 	if m.Item(i18n.T("Narrate an audiobook")).Chosen() {
 		use(a.useVoiceInAudiobook)
 	}
-}
-
-// voiceLongformMenu is the voice editor's "More" menu with them.
-func (a *app) voiceLongformMenu(c *ui.Context, v *core.Voice) {
-	id := v.ID
-	iconButton(c.Key("editor-longform"), icons.MenuDots, i18n.T("More actions")).Menu(func(m *ui.Menu) {
-		a.longformVoiceItems(m, func(then func(*core.Voice)) {
-			if v := a.findVoice(id); v != nil {
-				then(v)
-			}
-		})
-	})
 }
 
 // lfWorkflow is a page's workflow in the presets.

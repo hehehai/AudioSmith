@@ -68,20 +68,19 @@ type dubState struct {
 	dubSaveQ  *saveQueue          // saves, in order (nil in tests: they run at once); quit.go
 	dubStale  *dub.Project        // a saved copy that arrived while saves were in flight
 
-	dubStep         int    // the step shown (dubSteps)
-	dubLang         string // the target language the editor shows
-	dubCur          string // the segment selected
-	dubSel          map[string]bool
-	dubEdit         string // the segment whose text is being edited ("" = none)
-	dubEditL        string // its language ("" = the source)
-	dubBuf          string // the text being edited
-	dubOpen         string // the segment whose options are open
-	dubList2        ui.ListState
-	dubEdFocus      ui.Handle // the editor's own focus: the Edit menu's undo and redo come to it
-	dubSideFocus    ui.Handle // the step's panel (the editor leaves its focus alone)
-	dubWork         ui.Handle // the workspace's scroll, whose height the workspace fills
-	dubWorkWin      float32   // the window's height when the workspace was laid out
-	dubOpenProjects bool      // the projects popover
+	dubStep      int    // the step shown (dubSteps)
+	dubLang      string // the target language the editor shows
+	dubCur       string // the segment selected
+	dubSel       map[string]bool
+	dubEdit      string // the segment whose text is being edited ("" = none)
+	dubEditL     string // its language ("" = the source)
+	dubBuf       string // the text being edited
+	dubOpen      string // the segment whose options are open
+	dubList2     ui.ListState
+	dubEdFocus   ui.Handle // the editor's own focus: the Edit menu's undo and redo come to it
+	dubSideFocus ui.Handle // the step's panel (the editor leaves its focus alone)
+	dubWork      ui.Handle // the workspace's scroll, whose height the workspace fills
+	dubWorkWin   float32   // the window's height when the workspace was laid out
 
 	dubURL         string
 	dubURLMore     bool

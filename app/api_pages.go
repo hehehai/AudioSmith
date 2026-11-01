@@ -12,10 +12,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-var (
-	toolsIcon = icons.RulerCrossPen
-)
-
 // m5PageTitle translates the M5 pages' titles.
 func m5PageTitle(path string) (string, bool) {
 	switch path {
