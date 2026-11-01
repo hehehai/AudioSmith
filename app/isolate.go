@@ -194,14 +194,8 @@ func (a *app) isoDropped(paths []string) {
 
 // isoChoose asks for an audio or video file for the composer.
 func (a *app) isoChoose() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose a video or audio file"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Video or audio"), Extensions: isolateExts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.isoPend = paths[0] })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Choose a video or audio file"),
+		Filters: fileTypes(i18n.T("Video or audio"), isolateExts...)}, func(p string) { a.isoPend = p })
 }
 
 // isoSubmit starts an isolation of the composer's file.
@@ -286,35 +280,7 @@ func isoStems(x services.Isolation) []isoStem {
 func (a *app) isoSaveStem(x services.Isolation, s isoStem) {
 	src := a.isoSvc.Path(x.ID, s.file)
 	name := services.SafeFileName(x.Title+" - "+s.name, "stem") + ".wav"
-	save := func(dst string) {
-		if filepath.Ext(dst) == "" {
-			dst += ".wav"
-		}
-		a.background(func() {
-			err := copyFile(src, dst)
-			a.post(func() {
-				if err != nil {
-					a.toastWarn(i18n.T("Export failed: %v", err))
-				} else {
-					a.toast(i18n.T("Saved %s", filepath.Base(dst)))
-				}
-			})
-		})
-	}
-	if a.win == nil {
-		if isoSaveDir != "" {
-			save(filepath.Join(isoSaveDir, name))
-		}
-		return
-	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save audio as"), DefaultPath: name,
-			Filters: []mygo.FileFilter{{Name: "WAV", Extensions: []string{"wav"}}}})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { save(dst) })
-	}()
+	a.exportCopy(src, name, fileTypes("WAV", "wav"))
 }
 
 // copyFile copies src to dst through a temporary file.

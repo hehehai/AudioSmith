@@ -144,13 +144,7 @@ func (a *app) removeFFmpeg() {
 
 // chooseFFmpeg asks for an ffmpeg executable.
 func (a *app) chooseFFmpeg() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose ffmpeg")})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.useFFmpeg(paths[0], settings.MediaCustom) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Choose ffmpeg")}, func(p string) { a.useFFmpeg(p, settings.MediaCustom) })
 }
 
 // ffOriginText says where the ffmpeg in use came from.

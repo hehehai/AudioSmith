@@ -51,7 +51,7 @@ func (a *app) exportTranscript(format string) {
 		a.toastWarn(i18n.T("Export failed: %v", err))
 		return
 	}
-	a.saveFile(i18n.T("Export the transcript"), transcriptFileName(*t, format), format, data)
+	a.saveTranscriptFile(i18n.T("Export the transcript"), transcriptFileName(*t, format), format, data)
 }
 
 // exportAllTranscripts saves every transcript as one text file.
@@ -65,41 +65,27 @@ func (a *app) exportAllTranscripts() {
 				return
 			}
 			data := services.ExportAll(l, i18n.DateTime)
-			a.saveFile(i18n.T("Export all transcripts"), "transcripts_"+time.Now().Format("2006-01-02")+".txt", "txt", data)
+			a.saveTranscriptFile(i18n.T("Export all transcripts"), "transcripts_"+time.Now().Format("2006-01-02")+".txt", "txt", data)
 		})
 	})
 }
 
-// saveFile asks where to save data, then writes it (a dialog blocks: on
-// a goroutine of its own). In tests (no window) it writes to
-// a.trExportDir.
-func (a *app) saveFile(title, name, ext string, data []byte) {
-	write := func(dst string) {
-		err := os.WriteFile(dst, data, 0o644)
-		a.post(func() {
-			if err != nil {
-				a.toastWarn(i18n.T("Export failed: %v", err))
-			} else {
-				a.toast(i18n.T("Exported %s", filepath.Base(dst)))
-			}
+// saveTranscriptFile asks where to save data, then writes it. In tests
+// (no window) it writes to trExportDir.
+func (a *app) saveTranscriptFile(title, name, ext string, data []byte) {
+	o := mygo.SaveDialogOptions{Title: title, DefaultPath: name, Filters: fileTypes(strings.ToUpper(ext), ext)}
+	a.saveFileOr(trExportDir, o, func(dst string) {
+		a.background(func() {
+			err := os.WriteFile(dst, data, 0o644)
+			a.post(func() {
+				if err != nil {
+					a.toastWarn(i18n.T("Export failed: %v", err))
+				} else {
+					a.toast(i18n.T("Exported %s", filepath.Base(dst)))
+				}
+			})
 		})
-	}
-	if a.win == nil {
-		if trExportDir != "" {
-			write(filepath.Join(trExportDir, name))
-		}
-		return
-	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
-			Parent: a.win, Title: title, DefaultPath: name,
-			Filters: []mygo.FileFilter{{Name: strings.ToUpper(ext), Extensions: []string{ext}}},
-		})
-		if err != nil || dst == "" {
-			return
-		}
-		write(dst)
-	}()
+	})
 }
 
 // trExportDir is where exports go in tests.

@@ -251,13 +251,7 @@ func (a *app) watermarkTool(c *ui.Context) {
 			}
 			ui.Text(c, name).Grow(1).SingleLine()
 			if ui.Button(c.Key("wm-choose"), i18n.T("Choose")).Disabled(w.busy).Clicked() {
-				go func() {
-					paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("An audio or video file")})
-					if err != nil || len(paths) == 0 {
-						return
-					}
-					a.post(func() { a.checkWatermark(paths[0]) })
-				}()
+				a.openFile(mygo.OpenDialogOptions{Title: i18n.T("An audio or video file")}, a.checkWatermark)
 			}
 		})
 	})

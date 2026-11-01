@@ -314,24 +314,11 @@ func (a *app) loadProxyInfo() {
 	})
 }
 
-// chooseCacheDir asks for the model folder; the dialog blocks, so it runs
-// on a goroutine of its own.
+// chooseCacheDir asks for the model folder.
 func (a *app) chooseCacheDir() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:            a.win,
-			Title:             i18n.T("Model folder"),
-			Directory:         true,
-			CreateDirectories: true,
-		})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() {
-			dir := paths[0]
-			a.updateSettings(func(s *settings.Settings) { s.Models.CacheDir = dir })
-		})
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Model folder"), Directory: true, CreateDirectories: true}, func(dir string) {
+		a.updateSettings(func(s *settings.Settings) { s.Models.CacheDir = dir })
+	})
 }
 
 // saveToken saves the HF token in the Keychain ("" removes it).

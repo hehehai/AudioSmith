@@ -129,17 +129,8 @@ func (a *app) workPath(prefix string) string {
 // chooseCloneFile asks for an audio or video file.
 func (a *app) chooseCloneFile() {
 	exts := []string{"wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "aif", "caf", "webm", "mp4", "mov", "m4v"}
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:  a.win,
-			Title:   i18n.T("Reference audio"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Audio or video"), Extensions: exts}},
-		})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.cloneLoad(paths[0], filepath.Base(paths[0]), false) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Reference audio"), Filters: fileTypes(i18n.T("Audio or video"), exts...)},
+		func(p string) { a.cloneLoad(p, filepath.Base(p), false) })
 }
 
 // cloneDropped takes files dropped on the reference flow: the first

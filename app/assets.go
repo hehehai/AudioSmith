@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/egoist/mygo"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
@@ -330,32 +329,7 @@ func (a *app) saveAssetCopy(as asset) {
 		a.openExport(as.take)
 		return
 	}
-	name := filepath.Base(as.path)
-	save := func(dst string) {
-		a.background(func() {
-			err := copyFile(as.path, dst)
-			a.post(func() {
-				if err != nil {
-					a.toastWarn(i18n.T("Export failed: %v", err))
-				} else {
-					a.toast(i18n.T("Saved %s", filepath.Base(dst)))
-				}
-			})
-		})
-	}
-	if a.win == nil {
-		if isoSaveDir != "" {
-			save(filepath.Join(isoSaveDir, name))
-		}
-		return
-	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save audio as"), DefaultPath: name})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { save(dst) })
-	}()
+	a.exportCopy(as.path, filepath.Base(as.path), nil)
 }
 
 // assetIcon is a kind's icon.

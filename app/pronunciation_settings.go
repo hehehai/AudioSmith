@@ -184,56 +184,46 @@ func (a *app) previewDone(jobID string, ok bool, why string) {
 // the dictionary with it.
 func (a *app) importPronunciation(mode lexicon.Mode) {
 	svc := a.lib.svc.Pronunciation
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:  a.win,
-			Title:   i18n.T("Import a pronunciation dictionary"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("JSON"), Extensions: []string{"json"}}},
-		})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		data, err := os.ReadFile(paths[0])
-		var rep lexicon.ImportReport
-		if err == nil {
-			rep, err = svc.Import(context.Background(), data, mode)
-		}
-		a.post(func() {
-			if err != nil {
-				a.toastWarn(i18n.T("Could not import: %v", err))
-				return
+	o := mygo.OpenDialogOptions{Title: i18n.T("Import a pronunciation dictionary"), Filters: fileTypes(i18n.T("JSON"), "json")}
+	a.openFile(o, func(path string) {
+		a.background(func() {
+			data, err := os.ReadFile(path)
+			var rep lexicon.ImportReport
+			if err == nil {
+				rep, err = svc.Import(context.Background(), data, mode)
 			}
-			a.toast(i18n.T("Imported: %d added, %d updated, %d skipped", rep.Added, rep.Updated, rep.Skipped))
-			a.loadPronunciation()
+			a.post(func() {
+				if err != nil {
+					a.toastWarn(i18n.T("Could not import: %v", err))
+					return
+				}
+				a.toast(i18n.T("Imported: %d added, %d updated, %d skipped", rep.Added, rep.Updated, rep.Skipped))
+				a.loadPronunciation()
+			})
 		})
-	}()
+	})
 }
 
 // exportPronunciation saves the dictionary as JSON.
 func (a *app) exportPronunciation() {
 	svc := a.lib.svc.Pronunciation
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
-			Parent:      a.win,
-			Title:       i18n.T("Export the pronunciation dictionary"),
-			DefaultPath: "pronunciation.json",
-			Filters:     []mygo.FileFilter{{Name: i18n.T("JSON"), Extensions: []string{"json"}}},
-		})
-		if err != nil || dst == "" {
-			return
-		}
-		data, err := svc.Export(context.Background())
-		if err == nil {
-			err = os.WriteFile(dst, data, 0o644)
-		}
-		a.post(func() {
-			if err != nil {
-				a.toastWarn(i18n.T("Export failed: %v", err))
-			} else {
-				a.toast(i18n.T("Exported %s", dst))
+	o := mygo.SaveDialogOptions{Title: i18n.T("Export the pronunciation dictionary"), DefaultPath: "pronunciation.json",
+		Filters: fileTypes(i18n.T("JSON"), "json")}
+	a.saveFile(o, func(dst string) {
+		a.background(func() {
+			data, err := svc.Export(context.Background())
+			if err == nil {
+				err = os.WriteFile(dst, data, 0o644)
 			}
+			a.post(func() {
+				if err != nil {
+					a.toastWarn(i18n.T("Export failed: %v", err))
+				} else {
+					a.toast(i18n.T("Exported %s", dst))
+				}
+			})
 		})
-	}()
+	})
 }
 
 func (a *app) pronunciationSettings(c *ui.Context) {

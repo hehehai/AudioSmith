@@ -456,22 +456,14 @@ func (a *app) newSeed() {
 }
 
 func (a *app) chooseRefAudio() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:  a.win,
-			Title:   i18n.T("Reference audio"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Audio"), Extensions: []string{"wav", "mp3", "m4a", "aac", "flac", "aiff", "caf"}}},
-		})
-		if err != nil || len(paths) == 0 {
-			return
+	o := mygo.OpenDialogOptions{Title: i18n.T("Reference audio"),
+		Filters: fileTypes(i18n.T("Audio"), "wav", "mp3", "m4a", "aac", "flac", "aiff", "caf")}
+	a.openFile(o, func(p string) {
+		a.refAudio, a.refText = p, ""
+		if strings.EqualFold(filepath.Ext(p), ".wav") {
+			a.transcribeRef(p)
 		}
-		a.post(func() {
-			a.refAudio, a.refText = paths[0], ""
-			if strings.EqualFold(filepath.Ext(paths[0]), ".wav") {
-				a.transcribeRef(paths[0])
-			}
-		})
-	}()
+	})
 }
 
 // snapped rounds a slider's value to a step, so labels and requests show

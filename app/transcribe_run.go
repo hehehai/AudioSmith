@@ -27,17 +27,8 @@ var transcribeExts = []string{"wav", "mp3", "m4a", "aac", "flac", "ogg", "opus",
 
 // chooseTranscribeFile asks for an audio or video file.
 func (a *app) chooseTranscribeFile() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:  a.win,
-			Title:   i18n.T("Transcribe a file"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Audio or video"), Extensions: transcribeExts}},
-		})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.transcribeFile(paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Transcribe a file"), Filters: fileTypes(i18n.T("Audio or video"), transcribeExts...)},
+		a.transcribeFile)
 }
 
 // transcribeFile transcribes a file in the page's mode and language.

@@ -83,17 +83,7 @@ func portraitErrorText(err error) string {
 
 // choosePortrait asks for an image and hands it to use.
 func (a *app) choosePortrait(use func(path string)) {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:  a.win,
-			Title:   i18n.T("Portrait"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Images"), Extensions: []string{"png", "jpg", "jpeg", "webp"}}},
-		})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { use(paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Portrait"), Filters: fileTypes(i18n.T("Images"), "png", "jpg", "jpeg", "webp")}, use)
 }
 
 // cloneProblem says why the clip can't be used yet ("" when it can).

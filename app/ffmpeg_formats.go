@@ -70,31 +70,10 @@ func (a *app) saveEncodedAs(name, format string, write func(dst string) error) {
 			dst += "." + ext
 		}
 		a.toast(i18n.T("Saving %s…", filepath.Base(dst)))
-		a.background(func() {
-			err := write(dst)
-			a.post(func() {
-				if err != nil {
-					a.toastWarn(i18n.T("Export failed: %v", err))
-				} else {
-					a.toast(i18n.T("Saved %s", filepath.Base(dst)))
-				}
-			})
-		})
+		a.writeInBackground(dst, write)
 	}
-	if a.win == nil {
-		if ffmpegSaveDir != "" {
-			run(filepath.Join(ffmpegSaveDir, name))
-		}
-		return
-	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save audio as"), DefaultPath: name,
-			Filters: []mygo.FileFilter{{Name: strings.ToUpper(ext), Extensions: []string{ext}}}})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { run(dst) })
-	}()
+	a.saveFileOr(ffmpegSaveDir, mygo.SaveDialogOptions{Title: i18n.T("Save audio as"), DefaultPath: name,
+		Filters: fileTypes(strings.ToUpper(ext), ext)}, run)
 }
 
 // ffmpegSaveDir is where tests save (no dialog).

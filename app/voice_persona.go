@@ -42,22 +42,12 @@ func (a *app) openVoiceFile(path string) {
 
 // chooseVoiceFile asks for voice files to import.
 func (a *app) chooseVoiceFile() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:   a.win,
-			Title:    i18n.T("Import voices"),
-			Multiple: true,
-			Filters:  []mygo.FileFilter{{Name: i18n.T("Voice files"), Extensions: []string{"asvoice", "ovsvoice"}}},
-		})
-		if err != nil {
-			return
+	o := mygo.OpenDialogOptions{Title: i18n.T("Import voices"), Multiple: true, Filters: fileTypes(i18n.T("Voice files"), "asvoice", "ovsvoice")}
+	a.openFiles(o, func(paths []string) {
+		for _, p := range paths {
+			a.importVoice(p)
 		}
-		a.post(func() {
-			for _, p := range paths {
-				a.importVoice(p)
-			}
-		})
-	}()
+	})
 }
 
 // importVoice imports a voice file in the background, then opens it in
@@ -142,34 +132,28 @@ func (a *app) exportVoice(id string, includeRef bool, licence string) {
 	}
 	name := exportVoiceName(v.Name)
 	svc, version := a.lib.svc.Voices, a.version
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
-			Parent:      a.win,
-			Title:       i18n.T("Export voice"),
-			DefaultPath: name,
-			Filters:     []mygo.FileFilter{{Name: i18n.T("Voice files"), Extensions: []string{"asvoice"}}},
-		})
-		if err != nil || dst == "" {
-			return
-		}
+	o := mygo.SaveDialogOptions{Title: i18n.T("Export voice"), DefaultPath: name, Filters: fileTypes(i18n.T("Voice files"), "asvoice")}
+	a.saveFile(o, func(dst string) {
 		if !strings.EqualFold(filepath.Ext(dst), persona.Ext) {
 			dst += persona.Ext
 		}
-		err = svc.Export(context.Background(), id, dst, core.VoiceExport{IncludeReference: includeRef, Licence: licence, AppVersion: version})
-		if err == nil {
-			a.recordVoiceExport(id, dst) // M3: the Projects page's Exports (projects.go, thread #18)
-		}
-		a.post(func() {
-			switch {
-			case errors.Is(err, services.ErrNoPreview):
-				a.toast(i18n.T("This voice has no audio to build a preview from: generate a take with it first."))
-			case err != nil:
-				a.toastWarn(i18n.T("Export failed: %v", err))
-			default:
-				a.toast(i18n.T("Exported %s", filepath.Base(dst)))
+		a.background(func() {
+			err := svc.Export(context.Background(), id, dst, core.VoiceExport{IncludeReference: includeRef, Licence: licence, AppVersion: version})
+			if err == nil {
+				a.recordVoiceExport(id, dst) // M3: the Projects page's Exports (projects.go, thread #18)
 			}
+			a.post(func() {
+				switch {
+				case errors.Is(err, services.ErrNoPreview):
+					a.toast(i18n.T("This voice has no audio to build a preview from: generate a take with it first."))
+				case err != nil:
+					a.toastWarn(i18n.T("Export failed: %v", err))
+				default:
+					a.toast(i18n.T("Exported %s", filepath.Base(dst)))
+				}
+			})
 		})
-	}()
+	})
 }
 
 // exportVoiceName is a file name for a voice.

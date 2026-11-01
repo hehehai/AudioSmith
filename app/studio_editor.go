@@ -248,22 +248,13 @@ func (a *app) wrapSelection(open, close string) {
 
 // importScript asks for a document and inserts its text at the caret.
 func (a *app) importScript() {
-	go func() {
-		var exts []string
-		for _, e := range doc.Extensions() {
-			exts = append(exts, strings.TrimPrefix(e, "."))
-		}
-		slices.Sort(exts)
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent:  a.win,
-			Title:   i18n.T("Import script"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Documents and subtitles"), Extensions: exts}},
-		})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.importScriptFrom(paths[0])
-	}()
+	var exts []string
+	for _, e := range doc.Extensions() {
+		exts = append(exts, strings.TrimPrefix(e, "."))
+	}
+	slices.Sort(exts)
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Import script"), Filters: fileTypes(i18n.T("Documents and subtitles"), exts...)},
+		a.importScriptFrom)
 }
 
 // importScriptFrom reads a document in the background and inserts its

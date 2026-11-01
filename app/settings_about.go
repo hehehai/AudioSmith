@@ -340,20 +340,8 @@ func (a *app) saveBundle() {
 			})
 		})
 	}
-	if a.win == nil {
-		if bundleDir != "" {
-			write(filepath.Join(bundleDir, name))
-		}
-		return
-	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save a diagnostic bundle"), DefaultPath: name,
-			Filters: []mygo.FileFilter{{Name: "ZIP", Extensions: []string{"zip"}}}})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { write(dst) })
-	}()
+	a.saveFileOr(bundleDir, mygo.SaveDialogOptions{Title: i18n.T("Save a diagnostic bundle"), DefaultPath: name,
+		Filters: fileTypes("ZIP", "zip")}, write)
 }
 
 // bugReportURL is a new GitHub issue with the diagnostics filled in.

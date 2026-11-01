@@ -212,14 +212,8 @@ func (a *app) homeFileChip(c *ui.Context) {
 // homeChooseFile asks for a file for the composer.
 func (a *app) homeChooseFile() {
 	exts := slices.Concat(homeVideoExts, homeAudioExts, homeBookExts)
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Add a file"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Video, audio, text or ebook"), Extensions: exts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.homeUI.file = paths[0] })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Add a file"), Filters: fileTypes(i18n.T("Video, audio, text or ebook"), exts...)},
+		func(p string) { a.homeUI.file = p })
 }
 
 // homeTile is a tile of the tool row.

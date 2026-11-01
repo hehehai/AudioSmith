@@ -80,14 +80,8 @@ type storageCat struct {
 var (
 	appRelaunch   = func() { mygo.App.Relaunch() }
 	chooseMoveDir = func(a *app, then func(string)) {
-		go func() {
-			dirs, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Move the data folder to…"),
-				Directory: true, CreateDirectories: true, ButtonLabel: i18n.T("Move here")})
-			if err != nil || len(dirs) == 0 {
-				return
-			}
-			a.post(func() { then(dirs[0]) })
-		}()
+		a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Move the data folder to…"),
+			Directory: true, CreateDirectories: true, ButtonLabel: i18n.T("Move here")}, then)
 	}
 )
 
