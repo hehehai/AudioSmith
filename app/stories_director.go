@@ -40,7 +40,7 @@ func storyScript(d *services.LongformDoc, voices []core.Voice) translate.StorySc
 		if l.Chapter || strings.TrimSpace(l.Text) == "" {
 			continue
 		}
-		s.Lines = append(s.Lines, translate.StoryScriptLine{Speaker: names[l.Character], Text: l.Text, Direction: l.Direction,
+		s.Lines = append(s.Lines, translate.StoryScriptLine{Speaker: names[l.Character], Text: l.Text,
 			Emotion: l.Emotion, Intensity: l.Intensity, Fixed: l.EmotionByUser && l.Emotion != ""})
 	}
 	return s
