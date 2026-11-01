@@ -107,7 +107,7 @@ func agentSkill(slug string, p promptEnv) string {
 	line("")
 	line("# AudioSmith")
 	line("")
-	line(i18n.T("AudioSmith is a voice studio on this Mac: it speaks text (TTS), makes audiobooks and multi-voice stories, dubs videos into other languages, finds, designs and clones voices, transcribes audio and video, exports audio and runs workflows. Everything runs locally with MLX models: nothing leaves this Mac and nothing is paid per call. Use it through the tools of the MCP server audiosmith (below); without them, through its Local API (the last section)."))
+	line(i18n.T("AudioSmith is a voice studio on this Mac: it speaks text (TTS), makes audiobooks and multi-voice stories, dubs videos into other languages, finds, designs, clones and shares voices, transcribes audio and video, separates voices from music, exports audio and runs workflows. Everything runs locally with MLX models: nothing leaves this Mac and nothing is paid per call. Use it through the tools of the MCP server audiosmith (below); without them, through its Local API (the last section)."))
 
 	head(i18n.T("Check first"))
 	item(i18n.T("AudioSmith must be open with its Local API on. %s (or %s) answers %s when it is ready; %s: wait a few seconds and check again; %s: its engine is down, ask the user to look at AudioSmith.",
@@ -188,7 +188,7 @@ func agentSkill(slug string, p promptEnv) string {
 	}
 
 	head(i18n.T("Long jobs"))
-	item(i18n.T("Renders, dubs, batch dubs, dub exports and workflow runs take minutes: their tools return a %s at once (a queue job, or %s, %s, %s). They also show in AudioSmith's job list.", q("job_id"), q("longform:…"), q("dub:…"), q("workflow:…")))
+	item(i18n.T("Renders, dubs, batch dubs, dub exports, isolations, model downloads and workflow runs take minutes: their tools return a %s at once (a queue job, or %s, %s, %s). They also show in AudioSmith's job list.", q("job_id"), q("longform:…"), q("dub:…"), q("workflow:…")))
 	item(i18n.T("Follow one with %s and %s: it answers when the job ends or the time is up, with state, stage, progress (0–1) and, at the end, %s (absolute paths) or an error code. Tell the user the job_id and the progress; don't call it in a tight loop.", q("get_job"), q("wait_seconds: 30"), q("files")))
 	item(i18n.T("%s stops a job when the user asks; what was made is kept, and running it again goes on from there.", q("cancel_job")))
 
@@ -223,6 +223,12 @@ func agentSkill(slug string, p promptEnv) string {
 	item("**" + i18n.T("Pick a voice from Discover voices and narrate.") + "** " + i18n.T("search_voices with the wish as filters (%s, %s, %s…); show the user two or three with their descriptions; use_gallery_voice with the chosen id; then generate_speech with its name as %s, on one of the models it lists, with %s.", q("category"), q("gender"), q("language"), q("voice"), q(`output: "file"`)))
 	item("**" + i18n.T("Export for podcast loudness.") + "** " + i18n.T("generate_speech (or list_takes for an older take), then export_audio with its %s, %s, %s (or m4a), %s and the user's folder as %s. Report the file and the loudness reached.", q("take_id"), q(`loudness: "podcast"`), q(`format: "mp3"`), q("trim: true"), q("directory")))
 	item("**" + i18n.T("Run a saved workflow.") + "** " + i18n.T("list_workflows; pick the one the user means and check its input (scripts or files). run_workflow with new %s or %s if the user gave some, follow its job, then report each item's files from the job's result.", q("scripts"), q("files")))
+	item("**" + i18n.T("Clone a voice from a recording and read a paragraph.") + "** " + i18n.T("check_reference with the recording's %s; if the grade is needs_work, tell the user what to fix. Ask whether the speaker agreed to being cloned; only then clone_voice with a %s, the %s and %s. Then generate_speech with the paragraph, the new voice's name as %s and %s; report the file.", q("path"), q("name"), q("path"), q("consent: true"), q("voice"), q(`output: "file"`)))
+	item("**" + i18n.T("Design a voice from candidates.") + "** " + i18n.T("design_voice_candidates with the description and %s; let the user listen and pick; then design_voice with the same description, a name and the chosen %s.", q(`output: "file"`), q("seed")))
+	item("**" + i18n.T("Dub a video link into Chinese.") + "** " + i18n.T("create_dub with the %s and %s; if it answers %s, ask the user to turn on link import in AudioSmith → Settings → Dubbing (or to download the video and give its path). Follow the job with get_job, check get_dub, then export_dub with %s and report the file.", q("url"), q(`target_languages: ["zh"]`), q("url.no_ytdlp"), q(`format: "mp4"`)))
+	item("**" + i18n.T("Isolate the vocals, then transcribe them.") + "** " + i18n.T("isolate_voice with the file's %s; get_job with its job_id until done; get_isolation with the isolation_id for the stems (%s: the voices denoised, else %s); transcribe that file with %s, then export_transcript as srt. Report the stems and the subtitles.", q("path"), q("clean"), q("vocals"), q("timestamps: true")))
+	item("**" + i18n.T("A two-voice story from an idea.") + "** " + i18n.T("write_story with the idea and %s (it needs the writing help's model; on %s write the %s lines yourself and use create_story). get_longform to check the cast, update_longform for other voices, render_longform, get_job until done, export_longform.", q("create: true"), q("llm_unavailable"), q("Name: line")))
+	item("**" + i18n.T("Find what was made.") + "** " + i18n.T("list_assets (kind and search filter it) lists every output with its path; open its source with the tool it names. list_samples and open_sample give a ready project to try a feature on."))
 	item("**" + i18n.T("Check a job and cancel it.") + "** " + i18n.T("get_job with the job_id and %s; report its stage and progress. If the user wants it stopped, cancel_job and confirm with get_job that it ended.", q("wait_seconds: 30")))
 
 	head(i18n.T("Manners"))
@@ -231,7 +237,7 @@ func agentSkill(slug string, p promptEnv) string {
 	item(i18n.T("Long jobs: tell the user the job_id, follow it with wait_seconds rather than polling fast, and report its progress and files."))
 	item(i18n.T("AudioSmith stays on this Mac: use only 127.0.0.1 and never expose its API (no 0.0.0.0, tunnels or port forwarding)."))
 	item(i18n.T("Keep the audio in the agents' folder unless the user names another place (then pass it as directory), and always report the paths of the files you made."))
-	item(i18n.T("Don't change AudioSmith's settings, accept licences or download models yourself: ask the user."))
+	item(i18n.T("Don't change AudioSmith's settings or accept licences yourself: ask the user. Download a model only after the user agreed (download_model with %s).", q("confirm: true")))
 	item(i18n.T("Phone calls and dictation are the user's: never try to use them."))
 	if p.NeedKey {
 		item(i18n.T("Never show the API key or write it into a file."))

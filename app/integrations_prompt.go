@@ -39,7 +39,7 @@ var promptAgents = map[string]promptAgent{
 // mcpToolNames are the MCP server's tools and resources (internal/mcp).
 var (
 	mcpToolNames = append([]string{"generate_speech", "clone_voice", "design_voice", "describe_voice", "transcribe", "list_voices", "list_models", "list_languages", "check_health"},
-		mcpsrv.StudioTools...) // thread #35
+		append(mcpsrv.StudioTools, mcpsrv.KitTools...)...) // threads #35, #135
 	mcpResourceNames = []string{"voice://{id}", "history://recent"}
 )
 

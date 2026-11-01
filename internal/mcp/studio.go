@@ -186,7 +186,7 @@ func (s *Server) listTakes(ctx context.Context, req *sdk.CallToolRequest, in lis
 }
 
 type deleteIn struct {
-	Kind    string `json:"kind" jsonschema:"take, voice, transcript, project (a story or audiobook) or dub."`
+	Kind    string `json:"kind" jsonschema:"take, voice, transcript, project (a story or audiobook), dub or isolation."`
 	ID      string `json:"id" jsonschema:"Its id."`
 	Confirm bool   `json:"confirm,omitempty" jsonschema:"true only after the user said yes to deleting it; without it nothing is deleted (confirm_required)."`
 }
@@ -425,7 +425,7 @@ func (s *Server) addStudioTools() {
 	sdk.AddTool(s.srv, add("list_projects", "List projects",
 		"AudioSmith's project library (the Projects page): stories, audiobooks, dubs, workflows, voices, transcripts, takes, exports."), s.listProjects)
 	sdk.AddTool(s.srv, add("list_takes", "List takes", "The History: takes (generated audio) with their text, voice and WAV path, newest first."), s.listTakes)
-	sdk.AddTool(s.srv, add("delete_item", "Delete", "Delete a take, voice, transcript, story or audiobook project, or dub. Needs confirm: true, only after the user agreed."), s.deleteItem)
+	sdk.AddTool(s.srv, add("delete_item", "Delete", "Delete a take, voice, transcript, story or audiobook project, dub, or isolation (its stems). Needs confirm: true, only after the user agreed."), s.deleteItem)
 	sdk.AddTool(s.srv, add("create_audiobook", "Create an audiobook",
 		"Import a book (EPUB, TXT, Markdown, DOCX) or a manuscript into an Audiobook project with chapters, a narrator and a cast. Render it with render_longform."), s.createAudiobook)
 	sdk.AddTool(s.srv, add("create_story", "Create a story",

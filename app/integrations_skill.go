@@ -59,10 +59,11 @@ const (
 	areaDub      = "dub"
 	areaLibrary  = "library"
 	areaWorkflow = "workflow"
+	areaTools    = "tools" // thread #135: the Voice isolator and the Developers page's tools
 	areaJobs     = "jobs"
 )
 
-var skillAreaOrder = []string{areaSpeech, areaText, areaLongform, areaDub, areaLibrary, areaWorkflow, areaJobs}
+var skillAreaOrder = []string{areaSpeech, areaText, areaLongform, areaDub, areaTools, areaLibrary, areaWorkflow, areaJobs}
 
 // skillAreas puts every tool in an area.
 var skillAreas = map[string]string{
@@ -75,6 +76,14 @@ var skillAreas = map[string]string{
 	"list_projects": areaLibrary, "list_takes": areaLibrary, "export_audio": areaLibrary, "delete_item": areaLibrary,
 	"list_workflows": areaWorkflow, "run_workflow": areaWorkflow,
 	"get_job": areaJobs, "cancel_job": areaJobs, "check_health": areaJobs,
+	// Thread #135: the toolkit.
+	"design_voice_candidates": areaSpeech, "check_reference": areaSpeech, "preview_voice": areaSpeech, "update_voice": areaSpeech,
+	"duplicate_voice": areaSpeech, "export_voice": areaSpeech, "import_voice": areaSpeech, "convert_voice": areaSpeech,
+	"write_story": areaLongform,
+	"list_assets": areaLibrary, "list_samples": areaLibrary, "open_sample": areaLibrary,
+	"isolate_voice": areaTools, "get_isolation": areaTools, "probe_media": areaTools, "detect_watermark": areaTools,
+	"direct_performance": areaTools, "check_line_fit": areaTools,
+	"download_model": areaJobs, "get_settings": areaJobs,
 }
 
 // areaTitle names an area.
@@ -92,8 +101,10 @@ func areaTitle(area string) string {
 		return i18n.T("Library, History and exports")
 	case areaWorkflow:
 		return i18n.T("Workflows")
+	case areaTools:
+		return i18n.T("Voice isolator and tools")
 	}
-	return i18n.T("Jobs and health")
+	return i18n.T("Jobs, models and settings")
 }
 
 // skillToolsByArea are the tools in the skill's order.
@@ -129,18 +140,21 @@ func skillModules() map[string]skillModule {
 	}
 	set := pageTitle("/settings")
 	l := []skillModule{
-		m("/home", i18n.T("the start page: what the user types, drops or links there opens in the right tool; the latest work."), i18n.T("Only in the app: agents call the tools directly.")),
+		m("/home", i18n.T("the start page: what the user types, drops or links there opens in the right tool; the latest work; sample projects to try."),
+			i18n.T("The routing only in the app: agents call the tools directly."), "list_samples", "open_sample"),
 		m("/voices", i18n.T("two tabs: Discover, about 35 curated voices ready to speak, to search and filter; Mine, the saved voices (designed, cloned and gallery voices)."),
-			i18n.T("Editing a voice (name, tags, locking its sample) only in the app."), "search_voices", "use_gallery_voice", "list_voices", "delete_item"),
+			i18n.T("Locking a voice's sample and its portrait only in the app."), "search_voices", "preview_voice", "use_gallery_voice", "list_voices",
+			"update_voice", "duplicate_voice", "export_voice", "import_voice", "delete_item"),
 		m("/projects", i18n.T("everything made: stories, audiobooks, dubs, workflows, voices, transcripts, takes, exports."), "",
 			"list_projects", "delete_item"),
-		m("/assets", i18n.T("every take generated, by anyone (you too), with its recipe."), "", "list_takes", "export_audio", "delete_item"),
+		m("/assets", i18n.T("every file made or taken in: takes, story and audiobook renders, exports, dubs, isolated stems, imported recordings."), "",
+			"list_assets", "list_takes", "export_audio", "delete_item"),
 		m("/studio", i18n.T("text to speech with any model and voice: script markup (pauses, tones), takes, preview."), "",
 			"generate_speech", "export_audio"),
 		m("/voices/new", i18n.T("a new voice: Quick clone, from a recording of someone (with their consent), or Design, from a description (gender, age, accent, style)."),
-			i18n.T("Recording from the microphone only in the app."), "clone_voice", "describe_voice", "design_voice"),
+			i18n.T("Recording from the microphone only in the app."), "check_reference", "clone_voice", "describe_voice", "design_voice_candidates", "design_voice"),
 		m("/stories", i18n.T("stories and dialogues with several voices: lines, characters (the cast), chapters, one render."), "",
-			"create_story", "get_longform", "update_longform", "render_longform", "export_longform"),
+			"write_story", "create_story", "get_longform", "update_longform", "render_longform", "export_longform"),
 		m("/audiobook", i18n.T("a whole book narrated chapter by chapter, with a narrator and character voices, as WAV or M4B with chapters and cover."), "",
 			"create_audiobook", "get_longform", "update_longform", "render_longform", "export_longform"),
 		m("/dub", i18n.T("dubs a video or audio into other languages in the speakers' own voices, with subtitles."),
@@ -148,7 +162,8 @@ func skillModules() map[string]skillModule {
 			"create_dub", "get_dub", "edit_dub", "run_dub", "export_dub"),
 		m("/transcripts", i18n.T("transcripts of recordings and videos, with times and speakers."),
 			i18n.T("Editing a transcript and its clean-up only in the app."), "transcribe", "export_transcript"),
-		m("/isolate", i18n.T("the voices of an audio or video file alone, its music and effects, and the voices denoised."), i18n.T("Only in the app.")),
+		m("/isolate", i18n.T("the voices of an audio or video file alone, its music and effects, and the voices denoised."), "",
+			"isolate_voice", "get_isolation", "delete_item"),
 		m("/dictation", i18n.T("speak into any app with a global hotkey."), i18n.T("Only in the app (%s → %s): not for agents.", set, i18n.T("Dictation"))),
 		m("/workflows", i18n.T("saved pipelines (scripts or recordings → speak, transcribe, translate, convert, normalize → export), run over many items."),
 			i18n.T("Building or changing a workflow only in the app."), "list_workflows", "run_workflow"),
@@ -157,7 +172,7 @@ func skillModules() map[string]skillModule {
 		m("/calls", i18n.T("AI phone calls through the user's Twilio number."),
 			i18n.T("Only in the app (sidebar → %s → %s): you never place calls.", groupTitle("More"), pageTitle("/calls"))),
 		m("/developers", i18n.T("setups for agents and SDKs (this skill comes from there), the Local API, and tools: A/B voices, Convert (a recording in another voice), Rate fit, Direction, File probe, Watermark check."),
-			i18n.T("In the app; probe, rate fit, direction and the watermark check also through the Local API (/api/tools/…, /api/watermark/detect).")),
+			i18n.T("A/B: call generate_speech twice with the same text."), "convert_voice", "check_line_fit", "direct_performance", "probe_media", "detect_watermark"),
 		m("/tasks", i18n.T("every job that runs or waits: renders, dubs, takes, exports, downloads."),
 			i18n.T("In the app: the bell at the top right opens it. Agents follow their own jobs with get_job.")),
 	}
@@ -166,10 +181,10 @@ func skillModules() map[string]skillModule {
 		out[x.Path] = x
 	}
 	out["dictation"] = out["/dictation"]
-	out["settings"] = skillModule{Name: set, What: i18n.T("everything the user chose: default models, translation, dubbing, privacy, the Local API."),
-		App: i18n.T("Only in the app (⌘,). Never change it yourself: tell the user what to change.")}
+	out["settings"] = skillModule{Name: set, What: i18n.T("everything the user chose: default models, translation, dubbing, privacy, the pronunciation dictionary, the Local API."),
+		Tools: []string{"get_settings"}, App: i18n.T("Changing it only in the app (⌘,): tell the user what to change. The pronunciation dictionary applies to every take by itself.")}
 	out["models"] = skillModule{Name: set + " → " + i18n.T("Models & network"), What: i18n.T("the speech models: downloads, licences, sizes."),
-		Tools: []string{"list_models", "list_languages"}, App: i18n.T("Downloading models and accepting licences only in the app: ask the user.")}
+		Tools: []string{"list_models", "list_languages", "download_model", "preview_voice"}, App: i18n.T("Accepting licences only in the app; download a model only after the user agreed.")}
 	out["engine"] = skillModule{Name: set + " → " + i18n.T("Engine"), What: i18n.T("the speech engine: its state, memory, restart."),
 		Tools: []string{"check_health"}, App: i18n.T("Restarting it only in the app.")}
 	out["logs"] = skillModule{Name: set + " → " + i18n.T("Logs"), What: i18n.T("the app's and the engine's logs."),
@@ -180,7 +195,7 @@ func skillModules() map[string]skillModule {
 // skillDescription is the frontmatter's description: what the skill is
 // for and when to use it, trigger words first (agents shorten long lists).
 func skillDescription() string {
-	return i18n.T("Text to speech, audiobooks, multi-voice stories, video dubbing, voices and transcription on this Mac with AudioSmith (local and private; MCP server audiosmith). Use it when the user wants speech or TTS (read text aloud, narration, a voice-over, a WAV), to turn a book or EPUB into an audiobook (M4B), a story with several voices, to dub a video into another language with subtitles, to find, design or clone a voice, to transcribe audio or video into text or subtitles (SRT, VTT), to export audio for a podcast, or to run AudioSmith's workflows.")
+	return i18n.T("Text to speech, audiobooks, multi-voice stories, video dubbing, voices, transcription and voice isolation on this Mac with AudioSmith (local and private; MCP server audiosmith). Use it when the user wants speech or TTS (read text aloud, narration, a voice-over, a WAV), to turn a book or EPUB into an audiobook (M4B), a story with several voices, to dub a video or a video link into another language with subtitles, to find, design, clone or share a voice, to transcribe audio or video into text or subtitles (SRT, VTT), to separate vocals from music, to export audio for a podcast, or to run AudioSmith's workflows.")
 }
 
 // yamlString is s as a YAML double-quoted scalar (a JSON string is one).

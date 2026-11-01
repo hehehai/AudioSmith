@@ -28,7 +28,7 @@ type skillTool struct {
 func skillTools() []skillTool {
 	arg := func(text string, names ...string) skillArg { return skillArg{Names: names, Text: text} }
 	must := func(text, name string) skillArg { return skillArg{Names: []string{name}, Text: text, Required: true} }
-	return []skillTool{
+	return append([]skillTool{
 		{Name: "generate_speech", Lead: i18n.T("text to speech, as a WAV."), Args: []skillArg{
 			must(i18n.T("What to say. Long text is fine (up to 100,000 characters): AudioSmith splits it into sentences and joins the take; for a whole book, one call per chapter or section keeps each call short. %s inserts a pause.", "`[pause 500ms]`"), "text"),
 			arg(i18n.T("A saved voice's name or id (list_voices), a built-in speaker of the model (list_models → voices) or an OpenAI name (alloy, nova…). Empty: your own voice, else the model's default."), "voice"),
@@ -52,6 +52,7 @@ func skillTools() []skillTool {
 			arg(i18n.T("true returns segments with start and end in seconds (and words): use them for subtitles."), "timestamps"),
 			arg(i18n.T("true tells who says what with %s (slower; download it first): each segment gets a speaker (S1, S2…, and speaker_name when the user named them) and text reads as one paragraph per turn (%s). For meetings, interviews, dialogue.",
 				skillModel(catalog.DefaultSpeakers), "`S1: …`"), "speakers"),
+			arg(i18n.T("accurate (default) or fast: Transcribe's two modes, whose models Settings → Transcribe names; ignored when model is given."), "mode"),
 		}, After: i18n.T("Returns text, language, duration and transcript_id. The transcript is also kept on AudioSmith's Transcribe page.")},
 		{Name: "clone_voice", Lead: i18n.T("a new saved voice from a recording."), Args: []skillArg{
 			must(i18n.T("The new voice's name: one line, up to 80 characters (AudioSmith cleans and cuts it)."), "name"),
@@ -146,7 +147,8 @@ func skillTools() []skillTool {
 			arg(i18n.T("An absolute folder (made if missing); empty: the agents' folder. The file's name; for chapters and stems the name of a folder made inside it."), "directory", "filename"),
 		}, After: i18n.T("Returns files: the paths written. It is listed in Projects → Exports.")},
 		{Name: "create_dub", Lead: i18n.T("dub a video or audio file into other languages: transcribe, translate, speak each line in its speaker's voice, mix."), Args: []skillArg{
-			must(i18n.T("Absolute path of the video or audio (mp4, mov, mkv, webm, mp3, wav, m4a…)."), "path"),
+			arg(i18n.T("Absolute path of the video or audio (mp4, mov, mkv, webm, mp3, wav, m4a…)."), "path"),
+			arg(i18n.T("Or a video link (YouTube, Bilibili…): AudioSmith downloads it with yt-dlp, only when the user turned on Settings → Dubbing → Import from a link (else the error url.no_ytdlp: ask the user, or download the video and give its path)."), "url"),
 			arg(i18n.T("BCP-47 codes to dub into, the main one first; empty: AudioSmith's Dubbing settings (by default Chinese, or English for a video in Chinese)."), "target_languages"),
 			arg(i18n.T("The language spoken; empty: detected."), "source_language"),
 			arg(i18n.T("How far to run now: transcript (stop to review the lines), translation, dub (default: everything) or none."), "through"),
@@ -205,8 +207,8 @@ func skillTools() []skillTool {
 			arg(i18n.T("Also save the text (.txt) or subtitles timed to the audio (.srt) beside it."), "script", "subtitles"),
 			arg(i18n.T("An absolute folder (made if missing); empty: the agents' folder. The file's name; empty: from the text."), "directory", "filename"),
 		}, After: i18n.T("Returns files, seconds, bytes and the loudness reached.")},
-		{Name: "delete_item", Lead: i18n.T("delete a take, voice, transcript, story or audiobook project, or dub."), Args: []skillArg{
-			must(i18n.T("take, voice, transcript, project (a story or audiobook) or dub."), "kind"),
+		{Name: "delete_item", Lead: i18n.T("delete a take, voice, transcript, story or audiobook project, dub, or isolation."), Args: []skillArg{
+			must(i18n.T("take, voice, transcript, project (a story or audiobook), dub or isolation."), "kind"),
 			must(i18n.T("Its id."), "id"),
 			arg(i18n.T("true only after the user said yes to deleting it; without it nothing is deleted (confirm_required)."), "confirm"),
 		}},
@@ -223,5 +225,5 @@ func skillTools() []skillTool {
 		{Name: "cancel_job", Lead: i18n.T("stop a job; what was made so far is kept, and a run goes on later from there."), Args: []skillArg{
 			must(i18n.T("The job_id."), "job_id"),
 		}},
-	}
+	}, kitSkillTools()...) // thread #135: integrations_skill_kit.go
 }
