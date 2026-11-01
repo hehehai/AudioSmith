@@ -219,7 +219,7 @@ func (a *app) notify(sev core.Severity, title, body, link string) {
 }
 
 // noticeCentreIn lists the notifications, newest first, under their
-// heading (Mark all read, Clear): the bell's popover (shell_topbar.go),
+// heading (Mark all read, Clear): the bell's popover (shell_bell.go),
 // at most maxH tall.
 func (a *app) noticeCentreIn(c *ui.Context, maxH float32) {
 	t := c.Theme()

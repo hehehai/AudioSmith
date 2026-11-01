@@ -95,24 +95,6 @@ func submitButton(c *ui.Context, tip string, ready bool) ui.Element {
 	return b
 }
 
-// entryCard is a way in to a tool or a flow (Quick clone, Design a
-// voice): a card on the subtle fill, ic in a square, title over body, then
-// action (its button) at its foot. Give it a width.
-func entryCard(c *ui.Context, key string, ic icons.Icon, title, body string, action func()) ui.Element {
-	t := c.Theme()
-	k := tok(t)
-	return probeBox("card", ui.Column(c.Key(key))).Padding(px(t, sp5)).Gap(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).Children(func() {
-		ui.Box(c).Size(px(t, 40), px(t, 40)).Radius(px(t, radiusControl)).Background(k.Bg).Border(1, k.Line).Center().Children(func() {
-			ui.Icon(c, ic.Linear).Size(px(t, 20), px(t, 20)).TextColor(k.Text)
-		})
-		ui.Column(c).Gap(px(t, 4)).Grow(1).Children(func() {
-			ui.Text(c, title).FontSize(px(t, fsSection)).FontWeight(600)
-			ui.Text(c, body).FontSize(px(t, fsCaption)).TextColor(k.Text2)
-		})
-		ui.Row(c).Children(action)
-	})
-}
-
 // ghostRows is the empty state of a list: rows of grey bars (an avatar,
 // a name, a column) shaped as the row kit's (ui_list.go: no lines between
 // them), each fainter than the one above, then ic, title and

@@ -136,30 +136,6 @@ func voiceHasReference(v *core.Voice) bool {
 	return false
 }
 
-// studioVoiceOptions are the picker's choices for model e: labels and the
-// voice id each stands for ("" = the model's own voices, "clip" = the
-// unsaved clip).
-func (a *app) studioVoiceOptions(e catalog.Entry) (labels, ids []string) {
-	labels, ids = []string{i18n.T("The model's own voices")}, []string{""}
-	if a.studioClip != nil {
-		labels, ids = append(labels, i18n.T("Unsaved clip: %s", a.studioClip.Name)), append(ids, "clip")
-	}
-	seen := map[string]int{}
-	for i := range a.voices {
-		v := &a.voices[i]
-		if ok, _ := voiceUsable(v, e); !ok && v.ID != a.studioVoice {
-			continue
-		}
-		label := v.Name
-		if n := seen[v.Name]; n > 0 {
-			label = v.Name + " (" + itoa(n+1) + ")"
-		}
-		seen[v.Name]++
-		labels, ids = append(labels, label), append(ids, v.ID)
-	}
-	return labels, ids
-}
-
 // studioUsesSavedVoice reports whether the Studio's voice comes from the
 // picker (a saved voice or an unsaved clip) for model e, so the Studio
 // can hide its own voice and reference controls.

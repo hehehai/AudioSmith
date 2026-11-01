@@ -95,16 +95,6 @@ func (a *app) model(e catalog.Entry) *modelState {
 	return m
 }
 
-func (a *app) downloadsRunning() int {
-	n := 0
-	for _, m := range a.models {
-		if m.downloading {
-			n++
-		}
-	}
-	return n
-}
-
 // refreshModels reads what of every entry is on disk, and what the
 // removed models left there (models_removed.go), in the background.
 func (a *app) refreshModels() {

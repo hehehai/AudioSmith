@@ -427,16 +427,6 @@ func voiceBadges(c *ui.Context, v *core.Voice) {
 	}
 }
 
-// voiceMeta is a voice's kind, language and date.
-func voiceMeta(v *core.Voice) string {
-	parts := []string{voiceKindLabel(v)}
-	if v.Language != "" {
-		parts = append(parts, languageName(v.Language))
-	}
-	parts = append(parts, i18n.Date(v.CreatedAt))
-	return strings.Join(parts, " · ")
-}
-
 // languageName names a BCP-47 code in the UI's language when the table
 // knows it.
 func languageName(code string) string {

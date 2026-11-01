@@ -16,14 +16,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 )
 
-// answer finishes the last engine job of kind with result.
-func answer(t *testing.T, eng *fakeEngine, kind string, result any) sentReq {
-	t.Helper()
-	r := eng.lastOf(t, kind)
-	eng.succeed(r.ID, result)
-	return r
-}
-
 // params decodes a request's params.
 func params[T any](t *testing.T, r sentReq) T {
 	t.Helper()

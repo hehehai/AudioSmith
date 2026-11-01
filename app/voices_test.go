@@ -401,16 +401,6 @@ func TestStudioSeam(t *testing.T) {
 		t.Errorf("voice prompt %q", got)
 	}
 
-	// The picker lists only the voices the model can use.
-	a.studioVoice = ""
-	labels, _ := a.studioVoiceOptions(kok)
-	if len(labels) != 1 {
-		t.Errorf("Kokoro options %v", labels)
-	}
-	labels, ids := a.studioVoiceOptions(om)
-	if len(labels) != 3 || ids[1] == "" {
-		t.Errorf("OmniVoice options %v", labels)
-	}
 	// It renders in a view, and Manage voices… opens the library.
 	a.studioVoice = c.ID
 	tt := ui.NewTester(func(ctx *ui.Context) {

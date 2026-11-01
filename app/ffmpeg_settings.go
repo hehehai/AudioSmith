@@ -313,6 +313,3 @@ func (a *app) ffmpegSettingsChanged(old, new settings.Settings) {
 		a.loadMediaTool()
 	}
 }
-
-// ffmpegHas reports whether the ffmpeg in use writes format.
-func (a *app) ffmpegHas(format string) bool { return a.mediaTool().CanEncode(format) }

@@ -66,7 +66,6 @@ type transcribeState struct {
 	trClean   *trCleaning
 	trExport  bool   // the export menu is open
 	trConfirm string // id the delete confirmation asks about
-	trDevice  string // the recorder's device label (bound to its Select)
 	trShown   int    // segments shown (long transcripts show more on demand)
 	trPend    string // the composer's file ("" none)
 	trNarrow  bool   // the page is narrow: actions show as icons

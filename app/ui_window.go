@@ -18,8 +18,6 @@ const (
 	// radiusDialog rounds what floats over the window: Settings, ⌘K, the
 	// dialogs.
 	radiusDialog = 18
-	// radiusNotice rounds the activity cards at the sidebar's foot.
-	radiusNotice = 14
 	// settingControlW is the width of Settings' selects, fields and
 	// sliders, so that their left edges line up row after row.
 	settingControlW = 220
@@ -192,12 +190,6 @@ func groupRow(c *ui.Context, key, title, note string, col ui.Color, selectable b
 // are built: their Bounds are the last frame's.
 var groupRowLaid func(key string, text, ctrl ui.Element, texts [2]ui.Element)
 
-// settingRowState is settingRowNote whose line is a state in its colour
-// (a permission missing, in Warning).
-func settingRowState(c *ui.Context, key, title, state string, col ui.Color, control func()) {
-	groupRow(c, key, title, state, col, true, control)
-}
-
 // settingBlock is a part of a group that is no row (a list, a note, a
 // table): fn under a hairline like a row, as far from it as a row's text.
 func settingBlock(c *ui.Context, key string, fn func()) {
@@ -234,29 +226,6 @@ func settingNote(c *ui.Context, key, text string) ui.Element {
 func settingFoot(c *ui.Context, key string, fn func()) {
 	t := c.Theme()
 	ui.Column(c.Key(key)).Gap(px(t, sp1)).Margin(-px(t, sp1), 0, 0, 0).Padding(0, 0, px(t, groupRowPadY), 0).Children(fn)
-}
-
-// settingMore is a fold for an explanation too long for a line ("About
-// …"), in a group's block.
-func settingMore(c *ui.Context, key, title string, open *bool, text string) {
-	t := c.Theme()
-	k := tok(t)
-	settingBlock(c, key, func() {
-		parts := ui.CollapsibleBase(c, open)
-		tr := parts.Trigger.AlignSelf(ui.Start).Gap(px(t, 2)).AlignItems(ui.Center).Padding(px(t, 2), px(t, 4), px(t, 2), 0).Radius(px(t, radiusControl)).Label(title)
-		col := k.Text3
-		if tr.Hovered() {
-			col = k.Text2
-		}
-		tr.Children(func() {
-			ui.Text(c, title).FontSize(px(t, fsCaption)).TextColor(col).SingleLine()
-			ui.Icon(c, icons.AltArrowRight.Linear).Size(px(t, 12), px(t, 12)).TextColor(col).Rotate(90 * parts.Progress())
-		})
-		tr.Changed()
-		if p := parts.Panel(func() { caption(c, text).Selectable() }); p.Valid() {
-			p.Padding(px(t, sp1), 0, 0)
-		}
-	})
 }
 
 // linkButton is a small action in the accent colour in a line under a

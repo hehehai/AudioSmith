@@ -35,9 +35,8 @@ type pronState struct {
 	previewJob    string
 	previewOutput string
 	// Saves run in the background in order: the newest wins.
-	gen     int
-	saver   *pronSaver
-	changed bool
+	gen   int
+	saver *pronSaver
 }
 
 // pronSaver saves the dictionary on a goroutine; a save older than one

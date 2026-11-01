@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
@@ -29,7 +28,6 @@ type projectsState struct {
 	loaded  bool
 	loading bool
 	dirty   bool // something changed: read again when shown
-	grid    ui.GridState
 	// The stories' and books' scripts, lower case, read in the background
 	// for the search (projTextHits): by id, with the time they were saved;
 	// textGen counts the reads. textHits are those with textQ (at hitsGen).
@@ -308,5 +306,4 @@ var (
 	audiobookIcon = icons.NotebookMinimalistic
 	projectsIcon  = icons.FolderWithFiles
 	exportIcon    = icons.Export
-	renderIcon    = icons.Play
 )

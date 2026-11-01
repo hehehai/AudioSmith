@@ -122,10 +122,6 @@ func TestStudioNeedsReferenceSavedVoice(t *testing.T) {
 			t.Errorf("Stories offer %+v on the clone-only model", v)
 		}
 	}
-	_, ids := a.studioVoiceOptions(moss)
-	if !strings.Contains(strings.Join(ids, ","), clone.ID) || strings.Contains(strings.Join(ids, ","), designed.ID) {
-		t.Errorf("picker ids %q", ids)
-	}
 
 	// The designed voice (no clip): still refused.
 	a.studioVoice = designed.ID

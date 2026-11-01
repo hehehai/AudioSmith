@@ -179,10 +179,6 @@ var (
 	assetsIcon     = icons.Archive
 	isolateIcon    = icons.MusicNotes
 	developersIcon = icons.CodeSquare
-	engineIcon     = icons.CpuBolt
-	modelsIcon     = icons.Box
-	logsIcon       = icons.ClipboardList
-	settingsIcon   = icons.Settings
 	bellIcon       = icons.Bell
 	searchIcon     = icons.Magnifer
 	tasksIcon      = icons.ChecklistMinimalistic

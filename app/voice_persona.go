@@ -24,7 +24,6 @@ type personaState struct {
 	reportOpen bool
 	reportName string
 	warnings   []string
-	verify     bool // the file carried a consent record: verify it here
 }
 
 func isVoiceFile(p string) bool {

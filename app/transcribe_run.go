@@ -9,7 +9,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -39,17 +38,6 @@ func (a *app) chooseTranscribeFile() {
 		}
 		a.post(func() { a.transcribeFile(paths[0]) })
 	}()
-}
-
-// transcribeDropped takes the first audio or video file dropped.
-func (a *app) transcribeDropped(paths []string) {
-	for _, p := range paths {
-		if slices.Contains(transcribeExts, strings.ToLower(strings.TrimPrefix(filepath.Ext(p), "."))) {
-			a.transcribeFile(p)
-			return
-		}
-	}
-	a.toast(i18n.T("Drop an audio or video file."))
 }
 
 // transcribeFile transcribes a file in the page's mode and language.

@@ -18,9 +18,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/services"
 )
 
-// encodedFormats are the formats Save as… adds with ffmpeg.
-var encodedFormats = []string{ffmpeg.MP3, ffmpeg.FLAC, ffmpeg.Opus}
-
 // formatLabel names a format in menus.
 func formatLabel(format string) string {
 	switch format {

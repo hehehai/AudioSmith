@@ -18,7 +18,8 @@ package main
 //	studio_controls.go the insert menu, language picker, Audio quality and Voice controls popovers
 //	studio_output.go   the latest take: details, Check audio, Save as…, drag out
 //	studio_preview.go  the streaming preview and the render's chunk progress
-//	studio_voice.go    the voice and cloning section (seam for the voice library)
+//	studio_voice_picker.go the voice list in the shared voice picker
+//	studio_presets.go  the catalogue's recommended settings per model
 //	studio_notices.go  translations of render and markup findings
 
 import (

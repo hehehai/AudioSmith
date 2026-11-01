@@ -304,10 +304,3 @@ func clipMeta(cl *core.Take) string {
 	parts = append(parts, i18n.DateTime(cl.CreatedAt))
 	return strings.Join(parts, " · ")
 }
-
-// clipCard shows a take with its output panel (Play, waveform, details,
-// Check audio, Save as…): the seam other pages use for a take they made
-// (the Design page's preview). latest titles it "Latest take".
-func (a *app) clipCard(c *ui.Context, cl *core.Take, latest bool) {
-	a.outputPanel(c, cl, latest)
-}
