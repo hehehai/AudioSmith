@@ -247,8 +247,7 @@ func (s *Server) previewVoice(ctx context.Context, req *sdk.CallToolRequest, in 
 	if err != nil {
 		return nil, nil, toolError(err)
 	}
-	ext := strings.TrimPrefix(filepath.Ext(p.Name), ".")
-	extra, file, note, err := s.audio(mode, p.Data, "", p.MIME, "preview-"+strings.TrimSuffix(p.Name, "."+ext)+"."+ext)
+	extra, file, note, err := s.audio(mode, p.Data, "", p.MIME, previewName(p.Name))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -306,4 +305,16 @@ func (s *Server) addKitTools() {
 	sdk.AddTool(s.srv, add("write_story", "Write a story draft",
 		"Stories' Help me write: the writing help's language model writes a short script for two or three voices from a one-line idea; with create: true the story is made and cast. Takes up to a minute."), s.writeStory)
 	s.addMoreTools() // kit_more.go
+}
+
+// previewName is a preview clip's file name: "preview-<name>.<ext>" with
+// inner extensions dropped (a Discover clip is "c-x.asvoice.ogg": Mac
+// test #136 got "preview-c-x.asvoice.ogg").
+func previewName(name string) string {
+	ext := filepath.Ext(name)
+	base := strings.TrimSuffix(name, ext)
+	for e := filepath.Ext(base); e != "" && len(e) <= 8 && !strings.Contains(e, " "); e = filepath.Ext(base) {
+		base = strings.TrimSuffix(base, e)
+	}
+	return "preview-" + base + ext
 }

@@ -465,3 +465,11 @@ func TestKitLAN(t *testing.T) {
 		t.Fatal("a LAN client opened a sample")
 	}
 }
+
+func TestPreviewName(t *testing.T) {
+	for in, want := range map[string]string{"c-x.asvoice.ogg": "preview-c-x.ogg", "af_heart.ogg": "preview-af_heart.ogg", "voice.wav": "preview-voice.wav"} {
+		if got := previewName(in); got != want {
+			t.Errorf("%s: %s, want %s", in, got, want)
+		}
+	}
+}
