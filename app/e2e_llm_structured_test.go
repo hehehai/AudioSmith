@@ -5,8 +5,8 @@ package main
 // engine, and records each llm.generate call and each feature's outcome:
 // subtitle translation (Fast into Chinese, Japanese and Spanish,
 // Cinematic with its review, Autofit with its rewrites), glossary
-// extraction, the direction coach, the story director and the emotion
-// director, dictation clean-up. It is the before/after check of changes
+// extraction, the direction coach, the emotion director, dictation
+// clean-up. It is the before/after check of changes
 // to constrained decoding (the engine's LLMGuided.swift): run it with each
 // engine and compare the summaries.
 //
@@ -15,7 +15,7 @@ package main
 // AUDIOSMITH_ENGINE picks the engine binary; AUDIOSMITH_LLMS_ENV passes
 // engine variables (comma-separated, e.g. AUDIOSMITH_LLM_PRIME=0);
 // AUDIOSMITH_LLMS_ONLY runs some groups (translate, glossary, direction,
-// story, emotion, cleanup). The model is catalog.DefaultLLM (or
+// emotion, cleanup). The model is catalog.DefaultLLM (or
 // AUDIOSMITH_LLM), already downloaded in the family's model library or
 // the Hugging Face cache: nothing is fetched. Output:
 // calls.jsonl (each call: group, finish, tokens, whether the reply holds a
@@ -436,7 +436,7 @@ func TestLLMStructured(t *testing.T) {
 		})
 	}
 
-	// The story director (v1) and the emotion director (v2).
+	// The emotion director (v2).
 	for _, st := range llmsStories {
 		script := translate.StoryScript{Title: st.name}
 		for _, n := range st.cast {
@@ -445,24 +445,6 @@ func TestLLMStructured(t *testing.T) {
 		for _, l := range st.lines {
 			script.Lines = append(script.Lines, translate.StoryScriptLine{Speaker: l[0], Text: l[1]})
 		}
-		run("story", st.name, func() (bool, string) {
-			d, err := (&translate.StoryDirector{Router: router}).Direct(ctx, script)
-			if err != nil {
-				return false, err.Error()
-			}
-			directed := 0
-			for _, l := range d.Lines {
-				if l.Direction != "" {
-					directed++
-				}
-			}
-			var sample []string
-			for _, l := range d.Lines[:min(3, len(d.Lines))] {
-				sample = append(sample, fmt.Sprintf("%d %q %d", l.N, l.Direction, l.Intensity))
-			}
-			return len(d.Lines) == len(script.Lines) && d.Scene != "",
-				fmt.Sprintf("%d/%d lines (%d directed), %d cast, scene %q; %s", len(d.Lines), len(script.Lines), directed, len(d.Cast), d.Scene, strings.Join(sample, "; "))
-		})
 		run("emotion", st.name, func() (bool, string) {
 			vocab := emotionVocab(st.zh)
 			em, err := (&translate.StoryDirector{Router: router}).DirectEmotions(ctx, script, vocab)

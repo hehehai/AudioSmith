@@ -2,9 +2,8 @@ package main
 
 // TestStoryEmotionExp renders stories in the variants of the emotion
 // experiment (plan/story-emotion-context-plan.md, thread #78) on the real
-// engine, for listening and measuring: v1 (pacing, merged turns and the
-// first AI director's scene, personas and directions), A (the emotion
-// director v2: short emotion instructions, line by line), AE (A with
+// engine, for listening and measuring: A (the emotion director v2: short
+// emotion instructions, line by line), AE (A with
 // emotion-paced gaps) and AEF (AE with character tracks: the defaults). It
 // writes, per story, the directors' answers (step "direct"), then per
 // model and variant (step "render") the chapter, its sidecar, each line's
@@ -16,7 +15,7 @@ package main
 //
 // A story file: {"name", "title", "cast": [{"name", "voice"}], "lines": [{"speaker", "text"}]}
 // (voice: a CustomVoice speaker). AUDIOSMITH_EMO_MODELS picks models
-// (cv06, vd17), AUDIOSMITH_EMO_VARIANTS variants (default v1,A,AE,AEF).
+// (cv06, vd17), AUDIOSMITH_EMO_VARIANTS variants (default A,AE,AEF).
 // Thread #80 adds the letters D (whole dialogue on the catalogue's
 // dialogue model), T (its emotion tags) and 0 (no director: the story as
 // written), e.g. AED, AEDT, 0D; thread #82 the letter M (whole dialogue on
@@ -198,8 +197,8 @@ func expDoc(s expStory) services.LongformDoc {
 	return doc
 }
 
-// expDirect runs both directors on the local language model and saves
-// their answers, timed.
+// expDirect runs the emotion director on the local language model and
+// saves its answer, timed.
 func expDirect(t *testing.T, ctx context.Context, a *app, h *engineHost, doc *services.LongformDoc, dir string) {
 	e, _ := catalog.Builtin().ByID(catalog.DefaultLLM)
 	snap, err := a.lib.modelSnapshot(ctx, e.Repo)
@@ -225,14 +224,6 @@ func expDirect(t *testing.T, ctx context.Context, a *app, h *engineHost, doc *se
 		t.Logf("%s (%.1f s):\n%s", name, took.Seconds(), b)
 	}
 	started := time.Now()
-	if os.Getenv("AUDIOSMITH_EMO_ONLY_V2") == "" {
-		v1, err := director.Direct(ctx, storyScript(doc, nil))
-		if err != nil {
-			t.Fatalf("director v1: %v", err)
-		}
-		save("director-v1.json", v1, time.Since(started))
-		started = time.Now()
-	}
 	v2, err := director.DirectEmotions(ctx, storyScript(doc, nil), emotionVocab(storyZh(doc)))
 	if err != nil {
 		t.Fatalf("director v2: %v", err)
@@ -240,8 +231,8 @@ func expDirect(t *testing.T, ctx context.Context, a *app, h *engineHost, doc *se
 	save("director-v2.json", v2, time.Since(started))
 }
 
-// expDirected is doc directed as variant v (v1, or the emotion
-// director's for the others), with its production.
+// expDirected is doc directed as variant v by the emotion director, with
+// its production.
 func expDirected(t *testing.T, doc services.LongformDoc, dir, v string) services.LongformDoc {
 	read := func(name string, into any) {
 		raw, err := os.ReadFile(filepath.Join(dir, name))
@@ -255,12 +246,6 @@ func expDirected(t *testing.T, doc services.LongformDoc, dir, v string) services
 	d := doc
 	d.Lines, d.Cast = slices.Clone(doc.Lines), slices.Clone(doc.Cast)
 	d.Production = services.DefaultStoryProduction()
-	if v == "v1" {
-		var dv translate.StoryDirection
-		read("director-v1.json", &dv)
-		applyDirection(&d, dv, false)
-		return d
-	}
 	flags, seed, _ := strings.Cut(v, "#")
 	if !strings.Contains(flags, "0") {
 		var em translate.StoryEmotions
@@ -321,7 +306,7 @@ func expRender(t *testing.T, ctx context.Context, a *app, h *engineHost, doc ser
 		default:
 			t.Fatalf("model %s", m)
 		}
-		for _, v := range envList("AUDIOSMITH_EMO_VARIANTS", "v1,A,AE,AEF") {
+		for _, v := range envList("AUDIOSMITH_EMO_VARIANTS", "A,AE,AEF") {
 			d := expDirected(t, doc, dir, v)
 			d.Model = repo
 			spec, probs := services.Compile(&d, resolve)

@@ -74,46 +74,6 @@ func voiceHint(ref string, voices []core.Voice, zh bool) string {
 	return ""
 }
 
-// applyDirection writes the director's proposal into d: everything, or
-// (fill) only the scene, personas and directions still empty. It returns
-// how many lines got a direction.
-func applyDirection(d *services.LongformDoc, dir translate.StoryDirection, fill bool) int {
-	if dir.Scene != "" && (!fill || strings.TrimSpace(d.Scene) == "") {
-		d.Scene = dir.Scene
-	}
-	for _, r := range dir.Cast {
-		for i := range d.Cast {
-			m := &d.Cast[i]
-			if strings.EqualFold(strings.TrimSpace(m.Name), strings.TrimSpace(r.Name)) && r.Persona != "" &&
-				(!fill || strings.TrimSpace(m.Persona) == "") {
-				m.Persona = r.Persona
-			}
-		}
-	}
-	// The script's line n is the n-th spoken line.
-	var spoken []int
-	for i, l := range d.Lines {
-		if !l.Chapter && strings.TrimSpace(l.Text) != "" {
-			spoken = append(spoken, i)
-		}
-	}
-	n := 0
-	for _, ld := range dir.Lines {
-		if ld.N < 1 || ld.N > len(spoken) {
-			continue
-		}
-		l := &d.Lines[spoken[ld.N-1]]
-		if fill && strings.TrimSpace(l.Direction) != "" {
-			continue
-		}
-		l.Direction, l.Intensity = ld.Direction, ld.Intensity
-		if ld.Direction != "" {
-			n++
-		}
-	}
-	return n
-}
-
 // storyZh says whether a story's lines are mostly Chinese (or
 // Japanese): the director then writes in Chinese.
 func storyZh(d *services.LongformDoc) bool {
