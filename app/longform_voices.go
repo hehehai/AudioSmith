@@ -182,15 +182,14 @@ func lfWorkflow(p *lfPage) catalog.Workflow {
 
 // autoLfModel picks a new user's model and voice for a page by the
 // presets: the model for the interface's language and whether they have
-// saved voices (Chinese audiobook: Qwen3-TTS 0.6B Base narrated by the
-// starter voice, or CustomVoice + Serena without one; English: Kokoro +
+// saved voices (Chinese audiobook: Qwen3-TTS 0.6B Base narrated by a
+// saved voice, or CustomVoice + Serena without one; English: Kokoro +
 // af_heart). It acts while the page is automatic and empty.
 func (a *app) autoLfModel(p *lfPage) {
 	if !p.auto || !p.empty() {
 		return
 	}
 	saved := a.savedVoices()
-	starter := a.starterVoice()
 	e, ok := catalog.Builtin().DefaultModel(lfWorkflow(p), i18n.Locale(), len(saved) > 0)
 	if !ok {
 		return
@@ -199,9 +198,6 @@ func (a *app) autoLfModel(p *lfPage) {
 	d.Model, d.Voice = e.Repo, ""
 	pr, _ := catalog.PresetFor(e.ID)
 	if pr.NeedsVoice != "" {
-		if starter != nil && p.kind == core.ProjectAudiobook {
-			saved = append([]*core.Voice{starter}, saved...)
-		}
 		for _, v := range saved {
 			if ok, _ := voiceUsable(v, e); ok {
 				d.Voice = v.ID

@@ -124,7 +124,6 @@ func (a *app) loadVoices() {
 			a.voices, a.voicesLoaded = vs, true
 			a.autoStudioModel() // a new user with saved voices
 			a.autoLfModels()
-			a.importStarterVoices()
 		})
 	})
 }

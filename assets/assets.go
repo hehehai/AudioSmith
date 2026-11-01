@@ -3,8 +3,7 @@
 // embedding package's directory and the app (package main) is in app/.
 // The scripts that make them write here: make-voice-previews.sh
 // (voice-previews), make-curated-voices.sh (gallery-voices); the tray
-// icons come from the ActNow brand kit, the starter voices are exported
-// from AudioSmith (starter-voices/README.md).
+// icons come from the ActNow brand kit.
 package assets
 
 import "embed"
@@ -30,12 +29,6 @@ var GalleryVoices embed.FS
 //
 //go:embed voice-previews
 var VoicePreviews embed.FS
-
-// StarterVoices are the designed voices imported into a new library
-// once, at starter-voices/*.asvoice.
-//
-//go:embed starter-voices
-var StarterVoices embed.FS
 
 // Samples are the sample projects (0.5 F6), at samples/<id>/sample.json
 // and the files it names (samples/README.md).
