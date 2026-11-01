@@ -169,6 +169,6 @@ func (p PitchContour) Stats() PitchStats {
 	}
 	st.StdST = math.Sqrt(vs / float64(len(hz)))
 	st.VariationHz = math.Sqrt(sumSq / float64(len(hz)))
-	st.RangeST = percentile(semis, 0.9) - percentile(semis, 0.1)
+	st.RangeST = Percentile(semis, 0.9) - Percentile(semis, 0.1)
 	return st
 }

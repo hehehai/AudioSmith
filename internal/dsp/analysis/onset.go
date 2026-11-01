@@ -99,7 +99,7 @@ func Onsets(b dsp.Buffer, o OnsetOptions) []Onset {
 		fl := Flux(b, o.Hop)
 		gate := gateMask(b, fl, o.GateDB)
 		v := fl.Values
-		scale := percentile(v, 0.95)
+		scale := Percentile(v, 0.95)
 		top := slices.Max(append([]float64{0}, v...))
 		if scale > 0 {
 			pre := max(int(math.Round(o.MinGap/fl.Hop)), 1)
@@ -183,7 +183,7 @@ func speechStart(b dsp.Buffer, t float64) float64 {
 	if hi-lo < 2*blk {
 		return t
 	}
-	db := frameDB(m.Samples[lo:hi], blk, blk)
+	db := FrameDB(m.Samples[lo:hi], blk, blk)
 	peak := slices.Max(db)
 	for i, v := range db {
 		if v >= peak-20 {

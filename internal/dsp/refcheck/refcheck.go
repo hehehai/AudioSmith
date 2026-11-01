@@ -189,31 +189,7 @@ const (
 
 // levels are the frames' RMS levels (dBFS, floor −120) of mono m.
 func levels(m dsp.Buffer) []float64 {
-	win, hop := max(dsp.FramesAt(frameWin, m.Rate), 1), max(dsp.FramesAt(frameHop, m.Rate), 1)
-	x := m.Samples
-	if len(x) < win {
-		win = len(x)
-	}
-	n := (len(x)-win)/hop + 1
-	pre := make([]float64, len(x)+1)
-	for i, v := range x {
-		pre[i+1] = pre[i] + float64(v)*float64(v)
-	}
-	out := make([]float64, n)
-	for i := range out {
-		e := (pre[i*hop+win] - pre[i*hop]) / float64(win)
-		out[i] = max(10*math.Log10(max(e, 1e-12)), -120)
-	}
-	return out
-}
-
-func percentile(v []float64, p float64) float64 {
-	if len(v) == 0 {
-		return math.NaN()
-	}
-	s := slices.Clone(v)
-	slices.Sort(s)
-	return s[int(math.Round(p*float64(len(s)-1)))]
+	return analysis.FrameDB(m.Samples, max(dsp.FramesAt(frameWin, m.Rate), 1), max(dsp.FramesAt(frameHop, m.Rate), 1))
 }
 
 // snr estimates the signal-to-noise ratio: the speech frames' level (90th
@@ -231,13 +207,13 @@ func snr(m dsp.Buffer, speech []dsp.Range) (snr, floor float64) {
 		}
 	}
 	if len(sp) == 0 {
-		return 0, percentile(db, 0.05)
+		return 0, analysis.Percentile(db, 0.05)
 	}
-	level := percentile(sp, 0.9)
+	level := analysis.Percentile(sp, 0.9)
 	if len(quiet) >= 20 {
-		floor = percentile(quiet, 0.1)
+		floor = analysis.Percentile(quiet, 0.1)
 	} else {
-		floor = percentile(db, 0.05)
+		floor = analysis.Percentile(db, 0.05)
 	}
 	floor = max(floor, level-maxSNR)
 	return level - floor, floor
@@ -265,8 +241,8 @@ func Speech(b dsp.Buffer) []dsp.Range {
 	}
 	db := levels(m)
 	// The loudest frames are speech even over loud noise.
-	top := percentile(db, 0.98)
-	thr := max(top-35, min(percentile(db, 0.05)+12, top-6), quietest)
+	top := analysis.Percentile(db, 0.98)
+	thr := max(top-35, min(analysis.Percentile(db, 0.05)+12, top-6), quietest)
 	on := make([]bool, len(db))
 	for i, v := range db {
 		on[i] = v > thr
