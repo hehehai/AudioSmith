@@ -31,10 +31,17 @@ func (a *app) micStart(m *micState, done func(path string)) {
 	if m.phase != "" {
 		return
 	}
-	out := a.workPath("rec")
-	m.phase, m.err, m.level, m.out, m.onStop = "starting", "", -120, out, done
+	m.onStop = done
+	a.micCapture(m, proto.CaptureParams{Device: m.device, Channels: m.channels,
+		Output: proto.Output{Path: a.workPath("rec"), Format: "wav"}, MaxSeconds: 600})
+}
+
+// micCapture starts the capture p into p.Output.Path for m: m shows it
+// starting, then recording with its input level (Clone, Transcribe).
+func (a *app) micCapture(m *micState, p proto.CaptureParams) {
+	out := p.Output.Path
+	m.phase, m.err, m.level, m.out = "starting", "", -120, out
 	os.MkdirAll(filepath.Dir(out), 0o755)
-	p := proto.CaptureParams{Device: m.device, Channels: m.channels, Output: proto.Output{Path: out, Format: "wav"}, MaxSeconds: 600}
 	a.startRecording(p, func(l proto.LevelParams) {
 		if m.out == out {
 			m.level = l.RMS

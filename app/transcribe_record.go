@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
-	"github.com/hehehai/AudioSmith/internal/engine"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/services"
@@ -77,27 +76,8 @@ func (a *app) trRecStart() {
 	}
 	a.loadDevices()
 	out := filepath.Join(a.lib.store.Transcripts().AudioDir(), "rec-"+core.NewID(time.Now())+".wav")
-	m.phase, m.err, m.level, m.out = "starting", "", -120, out
-	os.MkdirAll(filepath.Dir(out), 0o755)
-	p := proto.CaptureParams{Device: a.prefs.Transcribe.Device, Channels: 1, SampleRate: services.TranscriptRate,
-		Output: proto.Output{Path: out, Format: "wav", Bits: 16}, MaxSeconds: trRecMaxSeconds}
-	a.startRecording(p, func(l proto.LevelParams) {
-		if m.out == out {
-			m.level = l.RMS
-		}
-	}, func(rec *engine.Recording, err error) {
-		if m.out != out || m.phase != "starting" {
-			if rec != nil {
-				a.background(rec.Cancel)
-			}
-			return
-		}
-		if err != nil {
-			m.phase, m.err = "", engineErrorText(err)
-			return
-		}
-		m.rec, m.phase, m.started = rec, "recording", time.Now()
-	})
+	a.micCapture(m, proto.CaptureParams{Device: a.prefs.Transcribe.Device, Channels: 1, SampleRate: services.TranscriptRate,
+		Output: proto.Output{Path: out, Format: "wav", Bits: 16}, MaxSeconds: trRecMaxSeconds})
 }
 
 // trRecStop ends the recording and transcribes it.
