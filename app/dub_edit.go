@@ -315,42 +315,38 @@ func (a *app) dubApplyPaste() {
 
 // dubPasteFile loads a subtitle or text file into the paste panel.
 func (a *app) dubPasteFile() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Load a translation"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Subtitles or text"), Extensions: []string{"srt", "vtt", "txt"}}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		data, err := os.ReadFile(paths[0])
-		a.post(func() {
-			if err != nil {
-				a.dubPaste.err = err.Error()
-				return
-			}
-			a.dubPaste.text = decodeText(data)
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Load a translation"),
+		Filters: fileTypes(i18n.T("Subtitles or text"), "srt", "vtt", "txt")}, func(path string) {
+		a.async(func() {
+			data, err := os.ReadFile(path)
+			a.post(func() {
+				if err != nil {
+					a.dubPaste.err = err.Error()
+					return
+				}
+				a.dubPaste.text = decodeText(data)
+			})
 		})
-	}()
+	})
 }
 
 // --- importing subtitles as the transcript ---------------------------------------------
 
 // dubImportSubtitles replaces the transcript with a subtitle file.
 func (a *app) dubImportSubtitles() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Import subtitles"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Subtitles"), Extensions: []string{"srt", "vtt"}}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		data, err := os.ReadFile(paths[0])
-		a.post(func() {
-			if err != nil {
-				a.toastWarn(i18n.T("Could not read the file: %v", err))
-				return
-			}
-			a.dubImportSubtitleText(decodeText(data))
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Import subtitles"),
+		Filters: fileTypes(i18n.T("Subtitles"), "srt", "vtt")}, func(path string) {
+		a.async(func() {
+			data, err := os.ReadFile(path)
+			a.post(func() {
+				if err != nil {
+					a.toastWarn(i18n.T("Could not read the file: %v", err))
+					return
+				}
+				a.dubImportSubtitleText(decodeText(data))
+			})
 		})
-	}()
+	})
 }
 
 // dubImportSubtitleText replaces the transcript with subtitles.

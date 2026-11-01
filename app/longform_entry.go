@@ -275,13 +275,7 @@ func (a *app) lfEntryImport(p *lfPage) {
 	if a.win == nil {
 		return
 	}
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: title, Filters: []mygo.FileFilter{{Name: name, Extensions: exts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.lfCreateFrom(p, paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: title, Filters: fileTypes(name, exts...)}, func(path string) { a.lfCreateFrom(p, path) })
 }
 
 // lfEditorHead is an open story's or book's header: 「故事 /」 and its

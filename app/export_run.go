@@ -37,14 +37,8 @@ func (a *app) exportChoose(f *exportForm) {
 		}
 		return
 	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Export audio"), DefaultPath: name,
-			Filters: []mygo.FileFilter{{Name: strings.ToUpper(ext), Extensions: []string{ext}}}})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { a.exportTo(f, dst) })
-	}()
+	a.saveFile(mygo.SaveDialogOptions{Title: i18n.T("Export audio"), DefaultPath: name,
+		Filters: fileTypes(strings.ToUpper(ext), ext)}, func(dst string) { a.exportTo(f, dst) })
 }
 
 // exportTo exports the form's take to dst in the background, remembers

@@ -38,13 +38,7 @@ func (a *app) wfExportAll() {
 		run(wfExportDir)
 		return
 	}
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Export every result to a folder"), Directory: true})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		run(paths[0])
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Export every result to a folder"), Directory: true}, run)
 }
 
 // wfExportDir replaces the folder dialogs (tests).
@@ -60,14 +54,8 @@ var wfAudioExts = []string{"wav", "mp3", "m4a", "aac", "aiff", "aif", "flac", "o
 
 // wfImportScripts asks for documents and adds each as a script.
 func (a *app) wfImportScripts(node string) {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Import scripts"), Multiple: true,
-			Filters: []mygo.FileFilter{{Name: i18n.T("Documents"), Extensions: wfScriptExts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.wfScriptFiles(node, paths)
-	}()
+	a.openFiles(mygo.OpenDialogOptions{Title: i18n.T("Import scripts"), Multiple: true,
+		Filters: fileTypes(i18n.T("Documents"), wfScriptExts...)}, func(paths []string) { a.wfScriptFiles(node, paths) })
 }
 
 // wfScriptFiles reads documents into a Start step's scripts, one each
@@ -109,14 +97,8 @@ func (a *app) wfScriptFiles(node string, paths []string) {
 
 // wfAddClips asks for audio files.
 func (a *app) wfAddClips(node string) {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Add audio"), Multiple: true,
-			Filters: []mygo.FileFilter{{Name: i18n.T("Audio"), Extensions: wfAudioExts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.wfClipFiles(node, paths) })
-	}()
+	a.openFiles(mygo.OpenDialogOptions{Title: i18n.T("Add audio"), Multiple: true,
+		Filters: fileTypes(i18n.T("Audio"), wfAudioExts...)}, func(paths []string) { a.wfClipFiles(node, paths) })
 }
 
 // wfClipFiles adds audio files to a Source step (it stats them: small,
@@ -169,11 +151,5 @@ func (a *app) wfChooseFolder(node string) {
 		set(wfExportDir)
 		return
 	}
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose the export folder"), Directory: true})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { set(paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Choose the export folder"), Directory: true}, set)
 }

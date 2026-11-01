@@ -377,14 +377,8 @@ func (a *app) dubDoExport() {
 		return
 	}
 	ext := dub.ExportExt(ex.format)
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Export the dub"), DefaultPath: name,
-			Filters: []mygo.FileFilter{{Name: strings.ToUpper(ext), Extensions: []string{ext}}}})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { start(dst) })
-	}()
+	a.saveFile(mygo.SaveDialogOptions{Title: i18n.T("Export the dub"), DefaultPath: name,
+		Filters: fileTypes(strings.ToUpper(ext), ext)}, start)
 }
 
 // dubExportUpdated follows export jobs.

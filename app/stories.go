@@ -155,14 +155,8 @@ func castPicker(d *services.LongformDoc, voices []lfVoice) func() string {
 
 // importStory asks for a file and puts its text in the review buffer.
 func (a *app) importStory(p *lfPage) {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Import a story"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Stories"), Extensions: []string{"txt", "md", "srt", "vtt", "epub", "docx"}}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.importStoryFrom(p, paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Import a story"),
+		Filters: fileTypes(i18n.T("Stories"), "txt", "md", "srt", "vtt", "epub", "docx")}, func(path string) { a.importStoryFrom(p, path) })
 }
 
 // importStoryFrom reads a file in the background into the review buffer.

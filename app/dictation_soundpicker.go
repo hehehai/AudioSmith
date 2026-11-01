@@ -87,8 +87,7 @@ func soundPicker(c *ui.Context, sp soundPickerSpec) {
 		ui.Icon(c, icons.AltArrowDown.Linear).Size(px(t, 13), px(t, 13)).TextColor(mark)
 	})
 	ui.PopoverBase(c.Key("panel"), b, &st.open, func(panel ui.Element) {
-		panel.Width(px(t, soundPanelW)).Padding(px(t, 8)).Radius(px(t, radiusCard)).Background(k.Bg).Border(1, k.Line).
-			Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 0.18)).Label(i18n.T("Sounds")).Children(func() {
+		popoverShell(t, panel.Width(px(t, soundPanelW)).Padding(px(t, 8))).Label(i18n.T("Sounds")).Children(func() {
 			ui.Column(c).Gap(px(t, 6)).Children(func() { soundPanel(c, sp, st) })
 		})
 	})

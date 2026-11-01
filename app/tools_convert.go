@@ -46,14 +46,8 @@ func (a *app) runAB() {
 // --- convert -------------------------------------------------------------------
 
 func (a *app) chooseConvertFile() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("A recording to convert"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Audio or video"), Extensions: transcribeExts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.setConvertFile(paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("A recording to convert"),
+		Filters: fileTypes(i18n.T("Audio or video"), transcribeExts...)}, a.setConvertFile)
 }
 
 // setConvertFile takes a file and measures it.

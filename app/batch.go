@@ -182,14 +182,8 @@ func (a *app) batchStatus(id string) string {
 
 // batchAddFiles asks for videos.
 func (a *app) batchAddFiles() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Add videos"), Multiple: true,
-			Filters: []mygo.FileFilter{{Name: i18n.T("Video or audio"), Extensions: dub.MediaExts}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.batchDropped(paths) })
-	}()
+	a.openFiles(mygo.OpenDialogOptions{Title: i18n.T("Add videos"), Multiple: true,
+		Filters: fileTypes(i18n.T("Video or audio"), dub.MediaExts...)}, a.batchDropped)
 }
 
 // batchDropped adds dropped files to the list to queue.
@@ -296,24 +290,12 @@ func (a *app) batchExport(id, lang string) {
 		}
 		return
 	}
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Export the dub"), DefaultPath: name})
-		if err != nil || dst == "" {
-			return
-		}
-		a.post(func() { start(dst) })
-	}()
+	a.saveFile(mygo.SaveDialogOptions{Title: i18n.T("Export the dub"), DefaultPath: name}, start)
 }
 
 // batchWatchChoose picks a folder to watch.
 func (a *app) batchWatchChoose() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Watch a folder"), Directory: true})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.batchWatch(paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Watch a folder"), Directory: true}, a.batchWatch)
 }
 
 // batchWatch starts watching dir.

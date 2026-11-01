@@ -22,20 +22,14 @@ var dubExts = dub.MediaExts
 // chooseDubSource asks for a video or audio file: the composer holds it
 // (on the list), or it becomes the open dub's source (a dub without one).
 func (a *app) chooseDubSource() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose a video or audio file"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Video or audio"), Extensions: dubExts}}})
-		if err != nil || len(paths) == 0 {
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Choose a video or audio file"),
+		Filters: fileTypes(i18n.T("Video or audio"), dubExts...)}, func(path string) {
+		if a.router.Path() == "/dub" {
+			a.dubPend = path
 			return
 		}
-		a.post(func() {
-			if a.router.Path() == "/dub" {
-				a.dubPend = paths[0]
-				return
-			}
-			a.dubSourceFile(paths[0])
-		})
-	}()
+		a.dubSourceFile(path)
+	})
 }
 
 // dubDropped takes the first video or audio file dropped.
@@ -100,13 +94,8 @@ func (a *app) dubAfterSaves(id string, fn func(string)) {
 
 // dubChooseCookies picks a cookies.txt for the next URL import.
 func (a *app) dubChooseCookies() {
-	go func() {
-		paths, err := dialogOpen(a, i18n.T("Choose a cookies.txt export"), "txt")
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.dubCookies = paths[0] })
-	}()
+	title := i18n.T("Choose a cookies.txt export")
+	a.openFile(mygo.OpenDialogOptions{Title: title, Filters: fileTypes(title, "txt")}, func(path string) { a.dubCookies = path })
 }
 
 // dubRemoveSource clears the open project's source and everything made

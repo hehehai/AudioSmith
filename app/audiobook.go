@@ -111,14 +111,8 @@ func (a *app) insertVoice(p *lfPage) {
 
 // importBook asks for a book and replaces the manuscript with it.
 func (a *app) importBook(p *lfPage) {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Import a book"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Books"), Extensions: []string{"txt", "md", "markdown", "epub", "docx"}}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.importBookFrom(p, paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Import a book"),
+		Filters: fileTypes(i18n.T("Books"), "txt", "md", "markdown", "epub", "docx")}, func(path string) { a.importBookFrom(p, path) })
 }
 
 // importBookFrom reads a book in the background (chapterised) and makes

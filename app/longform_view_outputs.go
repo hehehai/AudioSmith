@@ -213,17 +213,13 @@ func (a *app) saveOutput(r *lfRender, kind, src, ext string, bits int) {
 		name += " " + strings.TrimSuffix(filepath.Base(src), filepath.Ext(src))
 	}
 	rec, lib := r.rec, a.lib.svc.Library
-	go func() {
-		dst, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save as"), DefaultPath: name + "." + ext,
-			Filters: []mygo.FileFilter{{Name: strings.ToUpper(ext), Extensions: []string{ext}}}})
-		if err != nil || dst == "" {
-			return
-		}
+	a.saveFile(mygo.SaveDialogOptions{Title: i18n.T("Save as"), DefaultPath: name + "." + ext,
+		Filters: fileTypes(strings.ToUpper(ext), ext)}, func(dst string) {
 		if filepath.Ext(dst) == "" {
 			dst += "." + ext
 		}
-		a.writeOutput(lib, rec, kind, src, dst, ext, bits)
-	}()
+		a.background(func() { a.writeOutput(lib, rec, kind, src, dst, ext, bits) })
+	})
 }
 
 // writeOutput copies (or converts) src to dst and records the export.
@@ -241,14 +237,10 @@ func (a *app) writeOutput(lib *services.Library, rec core.Render, kind, src, dst
 // saveChapters copies every chapter's WAV into a folder.
 func (a *app) saveChapters(r *lfRender) {
 	rec, chs, lib := r.rec, slices.Clone(r.body.Output.Chapters), a.lib.svc.Library
-	go func() {
-		dirs, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Save chapters"), Directory: true,
-			ButtonLabel: i18n.T("Save here")})
-		if err != nil || len(dirs) == 0 {
-			return
-		}
-		a.writeChapters(lib, rec, chs, dirs[0])
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Save chapters"), Directory: true,
+		ButtonLabel: i18n.T("Save here")}, func(dir string) {
+		a.background(func() { a.writeChapters(lib, rec, chs, dir) })
+	})
 }
 
 func (a *app) writeChapters(lib *services.Library, rec core.Render, chs []services.BookChapter, dir string) {

@@ -318,16 +318,9 @@ func splitLines(s string) []string {
 
 // chooseAPIDir picks the agents' folder.
 func (a *app) chooseAPIDir() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Folder for agents' audio"), Directory: true, CreateDirectories: true})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() {
-			dir := paths[0]
-			a.updateSettings(func(s *settings.Settings) { s.API.MCPDir = dir })
-		})
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Folder for agents' audio"), Directory: true, CreateDirectories: true}, func(dir string) {
+		a.updateSettings(func(s *settings.Settings) { s.API.MCPDir = dir })
+	})
 }
 
 // revealAPIDir shows the agents' folder (made if needed).

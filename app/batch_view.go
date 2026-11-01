@@ -120,14 +120,7 @@ func (a *app) batchFilesZone(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
 	b := &a.batch
-	zone := ui.Column(c.Key("batch-drop")).Padding(px(t, sp2)).Gap(px(t, 2)).Radius(px(t, radiusCard)).Border(1, k.G[5]).BorderStyle(ui.BorderDashed)
-	if files := zone.DroppedFiles(); len(files) > 0 {
-		a.batchDropped(files)
-	}
-	if zone.FileDragOver() {
-		zone.Border(2, k.Accent).Background(k.AccentSoft)
-	}
-	zone.Children(func() {
+	dropZone(t, ui.Column(c.Key("batch-drop")).Padding(px(t, sp2)).Gap(px(t, 2)).Radius(px(t, radiusCard)), a.batchDropped).Children(func() {
 		if len(b.files) == 0 {
 			caption(c, i18n.T("Drop videos here to dub them in a batch.")).TextAlign(ui.Center).Padding(px(t, sp2))
 		}

@@ -169,13 +169,7 @@ func (a *app) previewDirection() {
 // --- probe -------------------------------------------------------------------------
 
 func (a *app) chooseProbeFile() {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("A media file")})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.runProbe(paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("A media file")}, a.runProbe)
 }
 
 func (a *app) runProbe(path string) {

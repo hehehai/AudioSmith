@@ -173,20 +173,18 @@ func (a *app) saveBlock(blk integBlock) {
 		}
 		return
 	}
-	go func() {
-		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: a.win, Title: i18n.T("Save"), DefaultPath: blk.File})
-		if err != nil || path == "" {
-			return
-		}
-		err = saveSnippet(path, blk.Code)
-		a.post(func() {
-			if err != nil {
-				a.toastWarn(i18n.T("Could not save: %v", err))
-				return
-			}
-			a.toast(i18n.T("Saved"))
+	a.saveFile(mygo.SaveDialogOptions{Title: i18n.T("Save"), DefaultPath: blk.File}, func(path string) {
+		a.async(func() {
+			err := saveSnippet(path, blk.Code)
+			a.post(func() {
+				if err != nil {
+					a.toastWarn(i18n.T("Could not save: %v", err))
+					return
+				}
+				a.toast(i18n.T("Saved"))
+			})
 		})
-	}()
+	})
 }
 
 // integrationList lists the apps and agents; a click opens the setup of

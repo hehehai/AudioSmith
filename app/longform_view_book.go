@@ -161,14 +161,8 @@ func (a *app) coverBitmap(path string) *ui.Bitmap {
 
 // chooseCover asks for a cover image and copies it into the library.
 func (a *app) chooseCover(p *lfPage) {
-	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: i18n.T("Choose cover"),
-			Filters: []mygo.FileFilter{{Name: i18n.T("Images"), Extensions: []string{"png", "jpg", "jpeg"}}}})
-		if err != nil || len(paths) == 0 {
-			return
-		}
-		a.post(func() { a.setCover(p, paths[0]) })
-	}()
+	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Choose cover"),
+		Filters: fileTypes(i18n.T("Images"), "png", "jpg", "jpeg")}, func(path string) { a.setCover(p, path) })
 }
 
 // setCover copies an image into <data>/covers and makes it the cover.

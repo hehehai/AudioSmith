@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/doc/textenc"
 	"github.com/hehehai/AudioSmith/internal/dub"
@@ -210,10 +209,4 @@ func shortPath(p string) string {
 		}
 	}
 	return p
-}
-
-// dialogOpen asks for one file with ext (blocks: call on a goroutine).
-func dialogOpen(a *app, title string, exts ...string) ([]string, error) {
-	return mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.win, Title: title,
-		Filters: []mygo.FileFilter{{Name: title, Extensions: exts}}})
 }
