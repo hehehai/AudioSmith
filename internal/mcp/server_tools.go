@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -364,6 +365,9 @@ func (s *Server) listModels(ctx context.Context, req *sdk.CallToolRequest, in li
 		}
 		item := map[string]any{"id": e.ID, "label": e.Label, "display_name": e.Name, "ui_name": e.DisplayName(), "description": desc, "tags": tags,
 			"task": task, "capabilities": caps, "downloaded": m.Downloaded, "licence": e.Licence.Name, "commercial_use": e.Licence.Commercial}
+		if e.Size > 0 { // so an agent can tell the user what a download costs (#136)
+			item["size_gb"] = math.Round(float64(e.Size)/1e8) / 10
+		}
 		if m.LicenceNeeded {
 			item["licence_to_accept"] = true
 		}
@@ -466,7 +470,7 @@ func (s *Server) addTools() {
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "list_voices", Title: "List voices",
 		Description: "The saved voices, and OpenAI voice names that map to built-in speakers."}, s.listVoices)
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "list_models", Title: "List models",
-		Description: "Speech and speech-to-text models: their friendly names (display_name in English; ui_name as AudioSmith's UI shows it, which is what the user knows: say it, pass the id), a description and tags, what they can do, their built-in voices, whether they are downloaded, their licence, and whether they speak cloned voices only (needs_reference)."}, s.listModels)
+		Description: "Speech and speech-to-text models: their friendly names (display_name in English; ui_name as AudioSmith's UI shows it, which is what the user knows: say it, pass the id), a description and tags, what they can do, their built-in voices, whether they are downloaded and their download size (size_gb), their licence, and whether they speak cloned voices only (needs_reference)."}, s.listModels)
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "list_languages", Title: "List languages",
 		Description: "Languages a model speaks (or every speech model)."}, s.listLanguages)
 	sdk.AddTool(s.srv, &sdk.Tool{Name: "check_health", Title: "Check health",

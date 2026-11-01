@@ -396,6 +396,10 @@ func TestTools(t *testing.T) {
 	if !strings.Contains(textOf(res), `"Me"`) || !strings.Contains(textOf(res), "alloy") {
 		t.Fatalf("voices: %s", textOf(res))
 	}
+	res = call(t, cs, "list_models", map[string]any{"task": "tts"})
+	if !strings.Contains(textOf(res), `"size_gb"`) {
+		t.Fatalf("models without sizes: %.400s", textOf(res))
+	}
 	res = call(t, cs, "list_models", map[string]any{"task": "stt"})
 	if strings.Contains(textOf(res), "kokoro") || !strings.Contains(textOf(res), "whisper") || !strings.Contains(textOf(res), "qwen3-asr") || strings.Contains(textOf(res), "parakeet") {
 		t.Fatalf("models: %s", textOf(res))

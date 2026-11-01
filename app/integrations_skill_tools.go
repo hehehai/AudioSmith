@@ -75,7 +75,7 @@ func skillTools() []skillTool {
 		{Name: "list_voices", Lead: i18n.T("the saved voices (id, name, kind, language, style), your_voice and the OpenAI names."), Args: []skillArg{
 			arg(i18n.T("Filter by name, style, description or tags."), "search"),
 		}},
-		{Name: "list_models", Lead: i18n.T("the models: id, display_name and ui_name (the friendly name the user sees in AudioSmith: say it to the user, pass the id), description, tags, task, capabilities, built-in voices, downloaded, licence, licence_to_accept, needs_reference."), Args: []skillArg{
+		{Name: "list_models", Lead: i18n.T("the models: id, display_name and ui_name (the friendly name the user sees in AudioSmith: say it to the user, pass the id), description, tags, task, capabilities, built-in voices, downloaded, size_gb (the download), licence, licence_to_accept, needs_reference."), Args: []skillArg{
 			arg(i18n.T("tts or stt; empty: both."), "task"),
 		}},
 		{Name: "list_languages", Lead: i18n.T("the languages a model speaks."), Args: []skillArg{

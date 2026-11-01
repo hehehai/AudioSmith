@@ -3584,7 +3584,7 @@
   "the dialogue models speak Chinese and English": "对话模型只会中文和英文",
   "the ferryman said. [laughter] Sit anywhere you like.": "船夫说。[laughter] 随便坐吧。",
   "the languages a model speaks.": "某个模型能说的语言。",
-  "the models: id, display_name and ui_name (the friendly name the user sees in AudioSmith: say it to the user, pass the id), description, tags, task, capabilities, built-in voices, downloaded, licence, licence_to_accept, needs_reference.": "模型列表：id、display_name 和 ui_name（用户在 AudioSmith 里看到的易懂名称：对用户说它，调用时传 id）、description、tags、task、capabilities、内置音色、downloaded、licence、licence_to_accept、needs_reference。",
+  "the models: id, display_name and ui_name (the friendly name the user sees in AudioSmith: say it to the user, pass the id), description, tags, task, capabilities, built-in voices, downloaded, size_gb (the download), licence, licence_to_accept, needs_reference.": "模型列表：id、display_name 和 ui_name（用户在 AudioSmith 里看到的易懂名称：对用户说它，调用时传 id）、description、tags、task、capabilities、内置音色、downloaded、size_gb（下载大小）、licence、licence_to_accept、needs_reference。",
   "the saved voices (id, name, kind, language, style), your_voice and the OpenAI names.": "已保存的音色（id、name、kind、language、style）、your_voice 和 OpenAI 音色名。",
   "the saved workflows (WorkflowStudio): steps, inputs (scripts or files), export folders, last run. No arguments.": "已保存的工作流（WorkflowStudio）：步骤、输入（稿子或文件）、导出文件夹、上一次运行。无参数。",
   "the speech engine: its state, memory, restart.": "语音引擎：状态、内存、重启。",
