@@ -189,18 +189,6 @@ func zhNumber(toks []token, i int) (int, int) {
 	return total + cur, n
 }
 
-func isASCIIDigits(s string) bool {
-	if s == "" {
-		return false
-	}
-	for i := 0; i < len(s); i++ {
-		if s[i] < '0' || s[i] > '9' {
-			return false
-		}
-	}
-	return true
-}
-
 func leadingInt(s string) (int, string) {
 	j := 0
 	for j < len(s) && s[j] >= '0' && s[j] <= '9' {

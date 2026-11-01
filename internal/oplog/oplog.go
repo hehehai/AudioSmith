@@ -53,9 +53,6 @@ func Info(event string, kv ...any) { emit(core.SeverityInfo, event, kv) }
 // sees, a refusal.
 func Warn(event string, kv ...any) { emit(core.SeverityWarning, event, kv) }
 
-// Error logs an event that failed unexpectedly.
-func Error(event string, kv ...any) { emit(core.SeverityError, event, kv) }
-
 // Err logs event at Warn with "error"=err when err is not nil, at Info
 // otherwise: a step whose failure is otherwise swallowed.
 func Err(event string, err error, kv ...any) {

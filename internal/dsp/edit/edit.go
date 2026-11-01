@@ -157,11 +157,6 @@ func Concat(rate, channels int, segs [][]float32, joins []Join) (dsp.Buffer, []S
 	return out, spans, j.Close()
 }
 
-// Silence returns seconds of silence.
-func Silence(rate, channels int, seconds float64) dsp.Buffer {
-	return dsp.New(rate, channels, dsp.FramesAt(seconds, rate))
-}
-
 // Boundary is the kind of break between two pieces of a script.
 type Boundary int
 

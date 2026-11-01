@@ -64,9 +64,8 @@ type Speech struct {
 	// Replaced is set when the request named a removed model.
 	Replaced *Replacement
 
-	s       *Server
-	x       *watch
-	stopped bool
+	s *Server
+	x *watch
 }
 
 // SpeechResult is a finished take.

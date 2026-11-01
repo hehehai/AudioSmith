@@ -37,8 +37,6 @@ type wfStep struct {
 	in     workflow.Type // the type its input receives
 }
 
-func (st *wfStep) dir() string { return st.s.Dir(st.w.ID) }
-
 // out is a result file's name for an item, relative to the folder.
 func (st *wfStep) out(item, ext string) string { return "out/" + item + "/" + st.n.ID + "." + ext }
 

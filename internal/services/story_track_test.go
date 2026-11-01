@@ -48,10 +48,9 @@ func timedWords(start, pause float64, sentences ...string) []proto.Word {
 // fakeAnalysis is the engine's stt.align (the fake synth's timing) and
 // stt.transcribe (heard).
 type fakeAnalysis struct {
-	mu     sync.Mutex
-	calls  []string
-	heard  func(audio string) string
-	pauses float64
+	mu    sync.Mutex
+	calls []string
+	heard func(audio string) string
 }
 
 func (f *fakeAnalysis) executor(method string) jobs.Executor {

@@ -121,10 +121,6 @@ func (p *proxy) relay(ctx context.Context, msg, id json.RawMessage, method strin
 	}
 }
 
-type sessionGoneError struct{}
-
-func (sessionGoneError) Error() string { return "the MCP session ended (AudioSmith restarted)" }
-
 func (p *proxy) send(ctx context.Context, msg []byte, method string, retry bool) error {
 	base, err := p.base()
 	if err != nil {

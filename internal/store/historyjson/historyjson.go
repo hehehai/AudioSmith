@@ -71,9 +71,6 @@ func Read(dir string) ([]core.Take, error) {
 	return kept, nil
 }
 
-// Dir is the library's directory.
-func (l *Library) Dir() string { return l.dir }
-
 func (l *Library) AudioDir() string { return filepath.Join(l.dir, "clips") }
 
 func (l *Library) AudioPath(t core.Take) string { return filepath.Join(l.AudioDir(), t.File) }

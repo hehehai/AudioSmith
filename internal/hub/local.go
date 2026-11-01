@@ -15,11 +15,6 @@ import (
 	"github.com/hehehai/actnowkit/models"
 )
 
-// weightExts are the extensions of model weights: a snapshot without one
-// is not a usable model, whatever its ref says (a tool may have fetched
-// config.json alone).
-var weightExts = []string{".safetensors", ".bin", ".npz", ".gguf", ".onnx", ".pt", ".pth", ".mlmodelc", ".mlpackage"}
-
 // commitOf is the snapshot e uses on disk: its pinned commit, else what
 // its ref (refs/main) points at; "" when unknown.
 func commitOf(repoDir string, e catalog.Entry) string {
@@ -157,11 +152,6 @@ func statusOne(cacheDir string, e catalog.Entry, weights bool) (Local, error) {
 func isDir(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && st.IsDir()
-}
-
-func nonEmpty(dir string) bool {
-	entries, err := os.ReadDir(dir)
-	return err == nil && len(entries) > 0
 }
 
 // Verify hashes every file of e's snapshot against the HF API's listing

@@ -10,9 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/dub"
@@ -216,14 +214,6 @@ func (sc *stageCtx) progress(stage string, fraction float64, msg string) {
 	if sc.report != nil {
 		sc.report(jobs.Progress{Stage: stage, Fraction: fraction, Message: msg})
 	}
-}
-
-// relName makes a path relative to the project's directory when inside it.
-func (sc *stageCtx) relName(path string) string {
-	if rel, err := filepath.Rel(sc.dir(), path); err == nil && !strings.HasPrefix(rel, "..") {
-		return rel
-	}
-	return path
 }
 
 // dubFirst is the first non-empty string.

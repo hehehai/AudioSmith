@@ -22,11 +22,6 @@ const (
 	SkillDirectionParse     Skill = "direction_parse"     // "more urgent" → emotion / instruct / rate
 )
 
-// Skills lists every skill, in settings order.
-func Skills() []Skill {
-	return []Skill{SkillTranslate, SkillTranslateCinematic, SkillFitRewrite, SkillGlossaryExtract, SkillDictationCleanup, SkillDirectionParse}
-}
-
 // skillParent is the skill whose routes a skill falls back to before the default.
 var skillParent = map[Skill]Skill{
 	SkillTranslateCinematic: SkillTranslate,

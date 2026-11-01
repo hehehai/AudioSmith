@@ -2,12 +2,9 @@ package dub
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/netip"
 	"net/url"
@@ -188,23 +185,6 @@ func installYtDlp(ctx context.Context, src *mirror.Client, dir string, pin ytdlp
 		return "", "", err
 	}
 	return dst, from, nil
-}
-
-// VerifyYtDlp checks an installed yt-dlp against the pinned checksum.
-func VerifyYtDlp(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return err
-	}
-	if got := hex.EncodeToString(h.Sum(nil)); got != YtDlpSHA256 {
-		return &URLError{Code: CodeChecksum, Detail: got}
-	}
-	return nil
 }
 
 // URLInfo is what yt-dlp says about a URL.

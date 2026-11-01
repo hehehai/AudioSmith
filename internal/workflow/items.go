@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -89,6 +88,3 @@ func Excerpt(s string, n int) string {
 	r := []rune(s)
 	return strings.TrimSpace(string(r[:n-1])) + "…"
 }
-
-// ClipName is a clip's display name: its file name.
-func ClipName(path string) string { return filepath.Base(path) }
