@@ -1,14 +1,6 @@
 package translate
 
-import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
-	"testing"
-
-	"github.com/hehehai/AudioSmith/internal/llm"
-)
+import "testing"
 
 func kittenScript() StoryScript {
 	return StoryScript{Title: "我想领养一只小猫", Cast: []StoryRole{{Name: "孩子", Voice: "明亮的年轻女声"}, {Name: "妈妈", Persona: "温柔的妈妈"}},
@@ -20,142 +12,18 @@ func kittenScript() StoryScript {
 		}}
 }
 
-func TestStoryDirector(t *testing.T) {
-	m := &model{handle: func(sys, user string) (string, error) {
-		if !strings.Contains(sys, "radio drama") || !strings.Contains(sys, "Chinese") {
-			t.Errorf("system prompt: %s", sys)
+// TestClipScript: English is no longer cut at the Chinese limits
+// ("skeptical, testing the e", thread #44); too-long text ends at a
+// phrase or word break, Chinese at a clause break.
+func TestClipScript(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"bursting with excitement", "bursting with excitement"},
+		{"brightly, pleadingly, hopeful, almost breathless, words tumbling out over each other in a rush", "brightly, pleadingly, hopeful, almost breathless"},
+		{"yielding warmly agreeing to visit the shelter this very Saturday morning together", "yielding warmly agreeing to visit the shelter this very"},
+		{"温和但坚定，语气沉稳，慢慢地把每一个字都说得清清楚楚，带着一点无奈的笑", "温和但坚定，语气沉稳"},
+	} {
+		if got := clipScript(c.in, 24, 60); got != c.want {
+			t.Errorf("%q: %q, want %q", c.in, got, c.want)
 		}
-		for _, want := range []string{"1. 孩子: 妈妈，我想领养", "3. 孩子 (急切保证): 我能！", "4. Narrator: 妈妈笑了。", "- 妈妈: 温柔的妈妈", "- 孩子 (voice: 明亮的年轻女声)\n"} {
-			if !strings.Contains(user, want) {
-				t.Errorf("user prompt lacks %q:\n%s", want, user)
-			}
-		}
-		return `{"scene":"傍晚的家里，孩子想领养小猫，妈妈犹豫","cast":[{"name":"孩子","persona":"七岁女孩，活泼爱撒娇"},{"name":"妈妈","persona":""},{"name":"路人","persona":"多余"}],
-		"lines":[{"n":1,"direction":"（撒娇央求）","intensity":2},{"n":2,"direction":"犹豫但温和","intensity":1},{"n":3,"direction":"急切保证","intensity":3},{"n":4,"direction":"none","intensity":2},{"n":9,"direction":"越界","intensity":2},{"n":1,"direction":"重复","intensity":2}]}`, nil
-	}}
-	d := &StoryDirector{Router: router(m)}
-	got, err := d.Direct(context.Background(), kittenScript())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.Scene != "傍晚的家里，孩子想领养小猫，妈妈犹豫" {
-		t.Errorf("scene %q", got.Scene)
-	}
-	// Known characters only, a persona the model left empty kept.
-	if fmt.Sprint(got.Cast) != "[{孩子 七岁女孩，活泼爱撒娇 明亮的年轻女声} {妈妈 温柔的妈妈 }]" {
-		t.Errorf("cast %v", got.Cast)
-	}
-	want := "[{1 撒娇央求 2} {2 犹豫但温和 1} {3 急切保证 3} {4  0}]"
-	if fmt.Sprint(got.Lines) != want {
-		t.Errorf("lines %v, want %s", got.Lines, want)
-	}
-}
-
-func TestStoryDirectorSchemaAndErrors(t *testing.T) {
-	// The schema: an object with scene, cast and lines (n, direction, intensity 1–3).
-	raw, err := json.Marshal(StorySchema())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{`"required":["scene","cast","lines"]`, `"intensity":{"maximum":3,"minimum":1,"type":"integer"}`} {
-		if !strings.Contains(string(raw), want) {
-			t.Errorf("schema lacks %s: %s", want, raw)
-		}
-	}
-	if errs := StorySchema().Validate(json.RawMessage(`{"scene":"x","cast":[],"lines":[{"n":1,"direction":"y","intensity":5}]}`)); len(errs) == 0 {
-		t.Error("intensity 5 passes the schema")
-	}
-
-	// No model set up.
-	if _, err := (&StoryDirector{}).Direct(context.Background(), kittenScript()); Code(err) != CodeNoLLM {
-		t.Errorf("no router: %v", err)
-	}
-	// Nothing to direct.
-	m := &model{handle: func(string, string) (string, error) { return `{}`, nil }}
-	if _, err := (&StoryDirector{Router: router(m)}).Direct(context.Background(), StoryScript{}); Code(err) != CodeNoSegments {
-		t.Errorf("no lines: %v", err)
-	}
-	// A model that never answers in the schema.
-	m = &model{handle: func(string, string) (string, error) { return `I think the child is excited.`, nil }}
-	if _, err := (&StoryDirector{Router: router(m)}).Direct(context.Background(), kittenScript()); Code(err) != llm.CodeInvalidJSON {
-		t.Errorf("prose: %v", err)
-	}
-	// The model's own failure comes through.
-	m = &model{handle: func(string, string) (string, error) { return "", &llm.Error{Code: llm.CodeTimeout} }}
-	if _, err := (&StoryDirector{Router: router(m)}).Direct(context.Background(), kittenScript()); Code(err) != llm.CodeTimeout {
-		t.Errorf("timeout: %v", err)
-	}
-}
-
-func TestStoryDirectorBatches(t *testing.T) {
-	s := StoryScript{}
-	for i := range 90 {
-		s.Lines = append(s.Lines, StoryScriptLine{Speaker: []string{"Ann", "Bob"}[i%2], Text: fmt.Sprintf("Line number %d.", i+1)})
-	}
-	var ranges []string
-	m := &model{handle: func(sys, user string) (string, error) {
-		var first, last int
-		if i := strings.Index(user, "Direct lines "); i >= 0 {
-			fmt.Sscanf(user[i:], "Direct lines %d to %d", &first, &last)
-		}
-		ranges = append(ranges, fmt.Sprintf("%d-%d", first, last))
-		if first > 1 && !strings.Contains(user, "The lines just before") {
-			t.Errorf("batch %d has no context", first)
-		}
-		var lines []string
-		for n := first; n <= last; n++ {
-			lines = append(lines, fmt.Sprintf(`{"n":%d,"direction":"calm","intensity":2}`, n))
-		}
-		return `{"scene":"A kitchen","cast":[{"name":"Ann","persona":"tired"}],"lines":[` + strings.Join(lines, ",") + `]}`, nil
-	}}
-	got, err := (&StoryDirector{Router: router(m)}).Direct(context.Background(), s)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Join(ranges, " ") != "1-40 41-80 81-90" || len(got.Lines) != 90 || got.Scene != "A kitchen" {
-		t.Errorf("batches %v, %d lines, scene %q", ranges, len(got.Lines), got.Scene)
-	}
-	if fmt.Sprint(got.Cast) != "[{Ann tired } {Bob  }]" {
-		t.Errorf("cast %v", got.Cast)
-	}
-}
-
-// TestStoryDirectorEnglishLimits: English scene, personas and directions
-// are no longer cut at the Chinese limits ("skeptical, testing the e",
-// thread #44); too-long ones end at a phrase or word break.
-func TestStoryDirectorEnglishLimits(t *testing.T) {
-	m := &model{handle: func(sys, user string) (string, error) {
-		if !strings.Contains(sys, "2 to 6 words") {
-			t.Errorf("no English direction length in the prompt")
-		}
-		return `{"scene":"A cozy living room on a quiet Saturday morning. Mia, a bright seven-year-old, wants to adopt a kitten; Dad hesitates.",
-		"cast":[{"name":"Mia","persona":"seven-year-old girl, bright, eager, slightly impatient"},{"name":"Dad","persona":"warm, slightly weary middle-aged man, careful with promises, dry humour, soft heart underneath it all"}],
-		"lines":[{"n":1,"direction":"bursting with excitement","intensity":3},{"n":2,"direction":"skeptical, testing the edges of her promise","intensity":3},
-		{"n":3,"direction":"brightly, pleadingly, hopeful, almost breathless, words tumbling out over each other in a rush","intensity":2},
-		{"n":4,"direction":"yielding warmly agreeing to visit the shelter this very Saturday morning together","intensity":2}]}`, nil
-	}}
-	s := StoryScript{Lines: []StoryScriptLine{
-		{Speaker: "Mia", Text: "Dad, can we adopt a kitten?"}, {Speaker: "Dad", Text: "Who would feed it every day?"},
-		{Speaker: "Mia", Text: "Me! Every single day, I promise."}, {Speaker: "Dad", Text: "All right, we'll visit the shelter on Saturday."},
-	}}
-	got, err := (&StoryDirector{Router: router(m)}).Direct(context.Background(), s)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.HasSuffix(got.Scene, "Dad hesitates.") {
-		t.Errorf("scene %q", got.Scene)
-	}
-	if got.Cast[0].Persona != "seven-year-old girl, bright, eager, slightly impatient" || got.Cast[1].Persona != "warm, slightly weary middle-aged man, careful with promises, dry humour" {
-		t.Errorf("cast %q", got.Cast)
-	}
-	want := []string{"bursting with excitement", "skeptical, testing the edges of her promise", "brightly, pleadingly, hopeful, almost breathless", "yielding warmly agreeing to visit the shelter this very"}
-	for i, l := range got.Lines {
-		if l.Direction != want[i] {
-			t.Errorf("line %d: %q, want %q", i+1, l.Direction, want[i])
-		}
-	}
-	// Chinese keeps its limit, cut at a clause break.
-	if c := clipScript("温和但坚定，语气沉稳，慢慢地把每一个字都说得清清楚楚，带着一点无奈的笑", storyDirectionMax, storyDirectionMaxLatin); c != "温和但坚定，语气沉稳" {
-		t.Errorf("zh %q", c)
 	}
 }

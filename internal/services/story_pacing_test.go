@@ -271,7 +271,7 @@ func TestTightenTurn(t *testing.T) {
 		{Spans: []SpanSpec{{Text: "好吗？"}}},
 		{Direction: "急切保证", Intensity: 3, Spans: []SpanSpec{{Text: "我能！"}}},
 	})
-	if dir != "先认真恳求，再急切保证" || n != 3 || StoryInstruct("可以吗？", "", "", dir, n, "") != "这几句：先认真恳求，再急切保证，情绪饱满强烈。" {
+	if dir != "先认真恳求，再急切保证" || n != 3 || StoryInstruct("可以吗？", "", "", dir, n) != "这几句：先认真恳求，再急切保证，情绪饱满强烈。" {
 		t.Errorf("turn direction %q %d", dir, n)
 	}
 	if dir, _ := turnDirection([]LineSpec{{Direction: "calm", Spans: []SpanSpec{{Text: "Hi."}}}, {Direction: "calm"}}); dir != "calm" {
@@ -309,27 +309,27 @@ func TestStoryInstruct(t *testing.T) {
 	for _, c := range []struct {
 		text, scene, persona, dir string
 		intensity                 int
-		prev, want                string
+		want                      string
 	}{
-		{"我想养猫。", "", "", "", 0, "", ""},
-		{"我想养猫。", "傍晚，客厅", "七岁女孩，活泼", "撒娇央求", 3, "", "七岁女孩，活泼。场景：傍晚，客厅。这一句：撒娇央求，情绪饱满强烈。"},
-		{"我想养猫。", "", "", "小声", IntensityLight, "", "这一句：小声，情绪克制。"},
-		{"我想养猫。", "", "温柔的妈妈。", "", 0, "", "温柔的妈妈。"},
-		{"好吧。", "", "", "松口", 2, "犹豫", "对方刚才犹豫。这一句：松口。"},
-		{"Can I keep it?", "A rainy evening", "a seven-year-old girl", "pleading", 3, "", "A seven-year-old girl. Scene: A rainy evening. This line: pleading, with strong emotion."},
-		{"Fine.", "", "", "giving in", IntensityLight, "", "This line: giving in, restrained."},
-		{"Fine. OK.", "", "", "first sulking, then giving in", 0, "", "These lines: first sulking, then giving in."},
+		{"我想养猫。", "", "", "", 0, ""},
+		{"我想养猫。", "傍晚，客厅", "七岁女孩，活泼", "撒娇央求", 3, "七岁女孩，活泼。场景：傍晚，客厅。这一句：撒娇央求，情绪饱满强烈。"},
+		{"我想养猫。", "", "", "小声", IntensityLight, "这一句：小声，情绪克制。"},
+		{"我想养猫。", "", "温柔的妈妈。", "", 0, "温柔的妈妈。"},
+		{"好吧。", "", "", "松口", 2, "这一句：松口。"},
+		{"Can I keep it?", "A rainy evening", "a seven-year-old girl", "pleading", 3, "A seven-year-old girl. Scene: A rainy evening. This line: pleading, with strong emotion."},
+		{"Fine.", "", "", "giving in", IntensityLight, "This line: giving in, restrained."},
+		{"Fine. OK.", "", "", "first sulking, then giving in", 0, "These lines: first sulking, then giving in."},
 	} {
-		if got := StoryInstruct(c.text, c.scene, c.persona, c.dir, c.intensity, c.prev); got != c.want {
+		if got := StoryInstruct(c.text, c.scene, c.persona, c.dir, c.intensity); got != c.want {
 			t.Errorf("StoryInstruct(%q, %q, %q, %q) = %q, want %q", c.text, c.scene, c.persona, c.dir, got, c.want)
 		}
 	}
 	// Long parts are cut: the instruction stays short.
-	long := StoryInstruct("我想养猫。", strings.Repeat("场", 200), strings.Repeat("人", 200), strings.Repeat("情", 200), 2, "")
+	long := StoryInstruct("我想养猫。", strings.Repeat("场", 200), strings.Repeat("人", 200), strings.Repeat("情", 200), 2)
 	if n := len([]rune(long)); n > instructPersona+instructScene+instructDirection+20 {
 		t.Errorf("instruction of %d runes: %s", n, long)
 	}
-	longEn := StoryInstruct("Hello.", strings.Repeat("scene ", 100), strings.Repeat("persona ", 100), strings.Repeat("dir ", 100), 2, "")
+	longEn := StoryInstruct("Hello.", strings.Repeat("scene ", 100), strings.Repeat("persona ", 100), strings.Repeat("dir ", 100), 2)
 	if n := len(longEn); n > (instructPersona+instructScene+instructDirection)*instructLatin+60 {
 		t.Errorf("instruction of %d characters", n)
 	}

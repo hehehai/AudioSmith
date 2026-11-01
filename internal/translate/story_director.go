@@ -1,17 +1,11 @@
 package translate
 
-// The AI director of stories (Stories → AI director, MCP direct_story):
-// a language model reads a whole scene and proposes the scene summary, a
-// performance baseline per character and a direction (with an intensity)
-// per line. Stories send them to models that take an instruction, so each
-// line is said knowing what happened before it: the model's context
-// stays in the language model, and the voice model hears short
-// instructions. It routes as the direction_parse skill ("Direct a line"
-// in Tools), so it uses the writing-help model the user chose, by default
-// the local Qwen3 4B.
+// The AI director of stories: what it reads (StoryScript) and the
+// helpers its emotion pass (story_emotions.go) shares. It routes as the
+// direction_parse skill ("Direct a line" in Tools), so it uses the
+// writing-help model the user chose, by default the local Qwen3 4B.
 
 import (
-	"context"
 	"strings"
 	"time"
 	"unicode"
@@ -37,34 +31,18 @@ type StoryRole struct {
 	Voice   string `json:"-"`
 }
 
-// StoryScriptLine is one spoken line: who ("" for the narrator), what,
-// and its direction so far.
+// StoryScriptLine is one spoken line: who ("" for the narrator) and what.
 type StoryScriptLine struct {
-	Speaker   string
-	Text      string
+	Speaker string
+	Text    string
+	// Direction is the line's direction so far; the emotion director does
+	// not read it.
 	Direction string
 	// The line's emotion so far (DirectEmotions): Fixed when the user set
 	// it, so the director keeps it.
 	Emotion   string
 	Intensity int
 	Fixed     bool
-}
-
-// StoryDirection is the director's proposal.
-type StoryDirection struct {
-	Scene string      `json:"scene"`
-	Cast  []StoryRole `json:"cast"`
-	// Lines are by position (N, 1-based) in StoryScript.Lines; a line the
-	// model skipped has none.
-	Lines []StoryLineDirection `json:"lines"`
-}
-
-// StoryLineDirection is one line's direction: a few words of emotion and
-// delivery, and its intensity (1 restrained, 2 clear, 3 strong).
-type StoryLineDirection struct {
-	N         int    `json:"n"`
-	Direction string `json:"direction"`
-	Intensity int    `json:"intensity"`
 }
 
 // StoryDirector directs stories through the direction_parse skill.
@@ -79,38 +57,14 @@ type StoryDirector struct {
 // batches that carry the scene, the cast and the lines just before.
 const storyBatch = 40
 
-// Limits of what the director writes, per script: runes of Chinese (or
+// Limits of the scene the director writes: runes of Chinese (or
 // Japanese) text, characters of Latin text. A word is about 1.5 Chinese
 // characters but 6 Latin characters, so one limit for both cut English
-// directions mid-word ("skeptical, testing the e", thread #44). The
-// Latin limits stay within what StoryInstruct passes to the voice.
+// mid-word ("skeptical, testing the e", thread #44).
 const (
-	storySceneMax          = 60
-	storyPersonaMax        = 40
-	storyDirectionMax      = 24
-	storySceneMaxLatin     = 140
-	storyPersonaMaxLatin   = 90
-	storyDirectionMaxLatin = 60
+	storySceneMax      = 60
+	storySceneMaxLatin = 140
 )
-
-var storySchema = func() *llm.Schema {
-	s := llm.Object(map[string]*llm.Schema{
-		"scene": llm.String(),
-		"cast": llm.Array(llm.Object(map[string]*llm.Schema{
-			"name": llm.String(), "persona": llm.String(),
-		}, "name", "persona")),
-		"lines": llm.Array(llm.Object(map[string]*llm.Schema{
-			"n":         llm.Integer(),
-			"direction": llm.String(),
-			"intensity": llm.Integer().Range(1, 3),
-		}, "n", "direction", "intensity")),
-	}, "scene", "cast", "lines")
-	s.Name = "story_direction"
-	return s
-}()
-
-// StorySchema is the JSON schema of the director's answer (tests, docs).
-func StorySchema() *llm.Schema { return storySchema }
 
 type storyData struct {
 	Zh      bool
@@ -128,7 +82,6 @@ type storyPromptLine struct {
 	N         int
 	Speaker   string
 	Text      string
-	Direction string
 	Emotion   string
 	Intensity int
 	Fixed     bool
@@ -137,75 +90,10 @@ type storyPromptLine struct {
 // Available reports whether a language model is set up for the director.
 func (d *StoryDirector) Available() bool { return d.Router.Available(llm.SkillDirectionParse) }
 
-// Direct proposes a scene, personas and directions for s. Errors are
-// *Error (CodeNoLLM when no model is set up) or the llm layer's.
-func (d *StoryDirector) Direct(ctx context.Context, s StoryScript) (StoryDirection, error) {
-	if len(s.Lines) == 0 {
-		return StoryDirection{}, newErr(CodeNoSegments)
-	}
-	if !d.Available() {
-		return StoryDirection{}, newErr(CodeNoLLM, "skill", string(llm.SkillDirectionParse))
-	}
-	budget := d.Budget
-	if budget <= 0 {
-		budget = 3 * time.Minute
-	}
-	var all strings.Builder
-	for _, l := range s.Lines {
-		all.WriteString(l.Text)
-	}
-	cast := castNames(s)
-	out := StoryDirection{Scene: strings.TrimSpace(s.Scene), Cast: mergeCast(s.Cast, nil, cast)}
-	for first := 0; first < len(s.Lines); first += storyBatch {
-		last := min(first+storyBatch, len(s.Lines))
-		data := storyData{Zh: cjkShare(all.String()) > 0.3, Title: strings.TrimSpace(s.Title), Scene: out.Scene, Cast: out.Cast,
-			First: first + 1, Last: last, Batched: len(s.Lines) > storyBatch}
-		for i := max(first-4, 0); i < first; i++ {
-			data.Before = append(data.Before, promptLine(i, s.Lines[i]))
-		}
-		for i := first; i < last; i++ {
-			data.Lines = append(data.Lines, promptLine(i, s.Lines[i]))
-		}
-		msgs, err := messages("storydirect", data)
-		if err != nil {
-			return StoryDirection{}, newErr(CodeConfig, "service", "llm", "field", "template")
-		}
-		var got StoryDirection
-		req := llm.Request{Messages: msgs, Schema: storySchema, Timeout: budget, Temperature: llm.F64(0.4),
-			MaxTokens: 400 + 48*(last-first)}
-		bctx, cancel := llm.WithBudget(ctx, budget) // from when the model's turn comes
-		_, err = d.Router.JSON(bctx, llm.SkillDirectionParse, req, &got, 1)
-		cancel()
-		if err != nil {
-			return StoryDirection{}, err
-		}
-		if first == 0 {
-			if sc := clipScript(got.Scene, storySceneMax, storySceneMaxLatin); sc != "" {
-				out.Scene = sc
-			}
-			out.Cast = mergeCast(s.Cast, got.Cast, cast)
-		}
-		seen := map[int]bool{}
-		for _, l := range got.Lines {
-			if l.N < first+1 || l.N > last || seen[l.N] {
-				continue
-			}
-			seen[l.N] = true
-			l.Direction = clipScript(cleanDirection(l.Direction), storyDirectionMax, storyDirectionMaxLatin)
-			l.Intensity = min(max(l.Intensity, 1), 3)
-			if l.Direction == "" {
-				l.Intensity = 0
-			}
-			out.Lines = append(out.Lines, l)
-		}
-	}
-	return out, nil
-}
-
 func promptLine(i int, l StoryScriptLine) storyPromptLine {
 	who := strings.TrimSpace(l.Speaker)
 	return storyPromptLine{N: i + 1, Speaker: who, Text: clipRunes(strings.Join(strings.Fields(l.Text), " "), 600),
-		Direction: strings.TrimSpace(l.Direction), Emotion: strings.TrimSpace(l.Emotion), Intensity: l.Intensity, Fixed: l.Fixed}
+		Emotion: strings.TrimSpace(l.Emotion), Intensity: l.Intensity, Fixed: l.Fixed}
 }
 
 // castNames are the characters who speak, in order.
@@ -228,19 +116,14 @@ func castNames(s StoryScript) []string {
 	return out
 }
 
-// mergeCast keeps a persona per known character: the model's, else what
-// was set; characters the model made up are dropped.
-func mergeCast(had, got []StoryRole, names []string) []StoryRole {
+// mergeCast is a role per character of names, with the persona and
+// voice set in had.
+func mergeCast(had []StoryRole, names []string) []StoryRole {
 	byName := map[string]string{}
 	voice := map[string]string{}
 	for _, r := range had {
 		byName[strings.ToLower(strings.TrimSpace(r.Name))] = strings.TrimSpace(r.Persona)
 		voice[strings.ToLower(strings.TrimSpace(r.Name))] = strings.TrimSpace(r.Voice)
-	}
-	for _, r := range got {
-		if p := clipScript(r.Persona, storyPersonaMax, storyPersonaMaxLatin); p != "" {
-			byName[strings.ToLower(strings.TrimSpace(r.Name))] = p
-		}
 	}
 	var out []StoryRole
 	for _, n := range names {

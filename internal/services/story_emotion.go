@@ -267,7 +267,7 @@ func LineInstruct(lines []LineSpec, li int, scene string) string {
 	case l.Emotion != "":
 		return EmotionInstruct(l.Emotion, l.Intensity, l.Direction, emotionCont(lines, li), cjkShare(say) >= 0.3)
 	case l.Direction != "" || l.Persona != "" || scene != "":
-		return StoryInstruct(say, scene, l.Persona, l.Direction, l.Intensity, "")
+		return StoryInstruct(say, scene, l.Persona, l.Direction, l.Intensity)
 	}
 	return ""
 }

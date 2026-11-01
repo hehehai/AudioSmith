@@ -86,7 +86,8 @@ type emotionData struct {
 
 // DirectEmotions proposes the scene's emotional curve with the emotions
 // of vocab. Lines with Fixed set are the user's: the model sees them and
-// keeps them. Errors as Direct.
+// keeps them. Errors are *Error (CodeNoLLM when no model is set up) or
+// the llm layer's.
 func (d *StoryDirector) DirectEmotions(ctx context.Context, s StoryScript, vocab []EmotionWord) (StoryEmotions, error) {
 	if len(s.Lines) == 0 {
 		return StoryEmotions{}, newErr(CodeNoSegments)
@@ -111,7 +112,7 @@ func (d *StoryDirector) DirectEmotions(ctx context.Context, s StoryScript, vocab
 	for first := 0; first < len(s.Lines); first += storyBatch {
 		last := min(first+storyBatch, len(s.Lines))
 		data := emotionData{storyData: storyData{Zh: cjkShare(all.String()) > 0.3, Title: strings.TrimSpace(s.Title), Scene: out.Scene,
-			Cast: mergeCast(s.Cast, nil, cast), First: first + 1, Last: last, Batched: len(s.Lines) > storyBatch}, Vocab: vocab}
+			Cast: mergeCast(s.Cast, cast), First: first + 1, Last: last, Batched: len(s.Lines) > storyBatch}, Vocab: vocab}
 		for i := max(first-4, 0); i < first; i++ {
 			data.Before = append(data.Before, promptLine(i, s.Lines[i]))
 		}

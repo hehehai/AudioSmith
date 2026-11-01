@@ -27,9 +27,8 @@ const (
 // StoryInstruct is a story line's delivery instruction for models that
 // take one: the character's persona, the scene, and the line's direction
 // with its intensity, in Chinese when the line is (else English). "" when
-// all three are empty. prev is the direction of the line before, when
-// another character said it ("" to leave it out).
-func StoryInstruct(lineText, scene, persona, direction string, intensity int, prev string) string {
+// all three are empty.
+func StoryInstruct(lineText, scene, persona, direction string, intensity int) string {
 	zh := cjkShare(lineText) >= 0.3
 	lim := func(s string, n int) string {
 		s = strings.TrimSpace(strings.Join(strings.Fields(s), " "))
@@ -42,7 +41,7 @@ func StoryInstruct(lineText, scene, persona, direction string, intensity int, pr
 		}
 		return s
 	}
-	persona, scene, direction, prev = lim(persona, instructPersona), lim(scene, instructScene), lim(direction, instructDirection), lim(prev, instructDirection)
+	persona, scene, direction = lim(persona, instructPersona), lim(scene, instructScene), lim(direction, instructDirection)
 	var parts []string
 	if zh {
 		if persona != "" {
@@ -50,9 +49,6 @@ func StoryInstruct(lineText, scene, persona, direction string, intensity int, pr
 		}
 		if scene != "" {
 			parts = append(parts, "场景："+scene+"。")
-		}
-		if prev != "" && direction != "" {
-			parts = append(parts, "对方刚才"+prev+"。")
 		}
 		if direction != "" {
 			d := "这一句：" + direction
@@ -74,9 +70,6 @@ func StoryInstruct(lineText, scene, persona, direction string, intensity int, pr
 	}
 	if scene != "" {
 		parts = append(parts, "Scene: "+scene+".")
-	}
-	if prev != "" && direction != "" {
-		parts = append(parts, "The other speaker was just "+prev+".")
 	}
 	if direction != "" {
 		d := "This line: " + direction

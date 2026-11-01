@@ -157,11 +157,7 @@ func (pg *chapterProgram) take(li int, sp SpanSpec, say string) (core.Take, *int
 			t.Exaggeration = EmotionExaggeration(l.Intensity)
 		}
 	case l.Direction != "" || l.Persona != "" || p.Scene != "":
-		prev := ""
-		if li > 0 && pg.paced && !sameSpeaker(p.Lines[li-1], l) && p.Lines[li-1].Character != "" && StoryPrevDirection {
-			prev = p.Lines[li-1].Direction
-		}
-		withDelivery(&t, info, StoryInstruct(say, p.Scene, l.Persona, l.Direction, l.Intensity, prev))
+		withDelivery(&t, info, StoryInstruct(say, p.Scene, l.Persona, l.Direction, l.Intensity))
 	}
 	seed := p.Seed
 	if v.Seed != 0 {
@@ -307,11 +303,6 @@ func (cr chapterRenderer) turn(p *ChapterParams, g []int,
 	}
 	return &chapterStep{chunk: &c, brk: pl.Segments[0].Break, line: g[0], turn: ts}, nil
 }
-
-// StoryPrevDirection adds the other character's last direction to a
-// line's instruction ("对方刚才…"): an experiment of the A/B listening
-// (e2e_story_ab_test.go), off in the app.
-var StoryPrevDirection = false
 
 // dictionary is the pronunciation dictionary with the book's lexicon on
 // top (its words win).
