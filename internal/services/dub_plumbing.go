@@ -146,44 +146,7 @@ func (s *Dubs) endRun(p *dub.Project) {
 // call runs an engine method inside a stage's job; with model set, its
 // local snapshot is filled into *modelPath first.
 func (sc *stageCtx) call(ctx context.Context, method, model string, params any, modelPath *string, out any, report func(jobs.Progress)) error {
-	s := sc.s
-	if model != "" && modelPath != nil && s.cfg.ModelPath != nil {
-		dir, err := s.cfg.ModelPath(ctx, model)
-		if err != nil {
-			if errors.Is(err, core.ErrNotDownloaded) {
-				data, _ := json.Marshal(map[string]string{"model": model})
-				return &jobs.Error{Code: proto.CodeModelNotDownloaded, Message: err.Error(), Data: data}
-			}
-			return &jobs.Error{Code: proto.CodeInternal, Message: err.Error()}
-		}
-		*modelPath = dir
-	}
-	var ex jobs.Executor
-	if s.cfg.Engine != nil {
-		ex = s.cfg.Engine(method)
-	}
-	if ex == nil {
-		return &jobs.Error{Code: CodeEngineUnavailable, Message: "The engine is not connected.", Retryable: true}
-	}
-	raw, err := json.Marshal(params)
-	if err != nil {
-		return err
-	}
-	if report == nil {
-		report = func(jobs.Progress) {}
-	}
-	sub := jobs.Job{ID: sc.job.ID + "." + method, Spec: jobs.Spec{Kind: method, Lane: jobs.Lane(dub.RoleOf(method)), Params: raw, Owner: sc.job.Owner}}
-	res, err := ex.Run(ctx, sub, report, nil)
-	if err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		return err
-	}
-	if out == nil {
-		return nil
-	}
-	return json.Unmarshal(res, out)
+	return engineCaller{sc.s.cfg.Engine, sc.s.cfg.ModelPath}.call(ctx, sc.job, method, model, params, modelPath, out, report)
 }
 
 // missing reports an engine that lacks a method (or a model it needs is

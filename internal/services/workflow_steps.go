@@ -310,44 +310,9 @@ func (st *wfStep) audioValue(name string) (*workflow.Value, error) {
 
 // --- engine calls -------------------------------------------------------------------------
 
-// call runs one engine method inside the job (as Transcripts.call).
+// call runs one engine method inside the job (see engineCaller.call).
 func (st *wfStep) call(ctx context.Context, method, model string, params any, modelPath *string, out any, report func(jobs.Progress)) error {
-	s := st.s
-	if model != "" && modelPath != nil && s.cfg.ModelPath != nil {
-		dir, err := s.cfg.ModelPath(ctx, model)
-		if err != nil {
-			if errors.Is(err, core.ErrNotDownloaded) {
-				data, _ := json.Marshal(map[string]string{"model": model})
-				return &jobs.Error{Code: proto.CodeModelNotDownloaded, Message: err.Error(), Data: data}
-			}
-			return &jobs.Error{Code: proto.CodeInternal, Message: err.Error()}
-		}
-		*modelPath = dir
-	}
-	var ex jobs.Executor
-	if s.cfg.Engine != nil {
-		ex = s.cfg.Engine(method)
-	}
-	if ex == nil {
-		return &jobs.Error{Code: CodeEngineUnavailable, Message: "The engine is not connected.", Retryable: true}
-	}
-	raw, err := json.Marshal(params)
-	if err != nil {
-		return err
-	}
-	if report == nil {
-		report = func(jobs.Progress) {}
-	}
-	role, m := proto.SplitKind(method)
-	sub := jobs.Job{ID: st.job.ID + "." + m, Spec: jobs.Spec{Kind: method, Lane: jobs.Lane(role), Params: raw, Owner: st.job.Owner}}
-	res, err := ex.Run(ctx, sub, report, nil)
-	if err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		return err
-	}
-	return json.Unmarshal(res, out)
+	return engineCaller{st.s.cfg.Engine, st.s.cfg.ModelPath}.call(ctx, st.job, method, model, params, modelPath, out, report)
 }
 
 // decode writes an audio file as a WAV at rate and channels (0 keeps
