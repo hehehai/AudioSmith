@@ -18,6 +18,66 @@ func (a *app) newCallForm(c *ui.Context) {
 	k := tok(t)
 	f := &a.callForm
 	sectionHeading(c, i18n.T("New call"))
+	num := a.callNumberField(c)
+	ui.Field(c, i18n.T("What should it do?"), func() {
+		ui.TextArea(c.Key("nc-brief"), &f.brief).Height(px(t, 96)).Placeholder(i18n.T("Book a table for two this Friday at 7 pm under the name Sam. If 7 is taken, anything between 6 and 8 is fine.")).
+			Label(i18n.T("What should it do?"))
+	})
+	ui.Row(c.Key("nc-chips")).Gap(px(t, sp1)).Wrap().Children(func() {
+		for i, ex := range callExamples() {
+			b := chip(c.Key(i), ex.title, "", f.brief == ex.brief)
+			if f.brief != ex.brief && !b.Hovered() {
+				b.Background(k.Hover)
+			}
+			if b.Clicked() {
+				f.brief = ex.brief
+			}
+		}
+	})
+	a.callVoiceField(c)
+	a.callDisclosureFields(c)
+	mins := make([]string, len(callMinutes))
+	for i, n := range callMinutes {
+		mins[i] = minutesLabel(n)
+	}
+	ui.Field(c, i18n.T("Maximum length"), func() {
+		ui.Select(c.Key("nc-minutes"), &f.minutes, mins).Label(i18n.T("Maximum length")).Width(px(t, 140))
+	})
+	a.callPlanCard(c)
+	ready, _ := callsReady(a.callChecks())
+	problem := a.callFormProblem()
+	label := i18n.T("Call")
+	if telephony.ValidNumber(num) {
+		label = i18n.T("Call %s", num)
+	}
+	if a.callBusy {
+		label = i18n.T("Starting call…")
+	}
+	ui.Row(c.Key("nc-go")).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
+		if primaryButton(c.Key("nc-call"), label).Disabled(!ready || problem != "" || a.callBusy).Clicked() {
+			a.callAsk = true
+		}
+		if a.callBusy {
+			ui.Spinner(c)
+		}
+	})
+	switch {
+	case !ready:
+		caption(c, i18n.T("Finish the setup steps above to place calls."))
+	case problem != "":
+		caption(c, problem)
+	}
+	if a.callErr != "" {
+		ui.Text(c.Key("nc-err"), a.callErr).FontSize(px(t, fsCaption)).TextColor(t.Danger).Wrap()
+	}
+}
+
+// callNumberField is the phone number with its hint; it returns the
+// number normalized.
+func (a *app) callNumberField(c *ui.Context) string {
+	t := c.Theme()
+	k := tok(t)
+	f := &a.callForm
 	ui.Field(c, i18n.T("Phone number"), func() {
 		ui.TextInput(c.Key("nc-number"), &f.number).Placeholder("+1 555 010 0199").Label(i18n.T("Phone number"))
 	})
@@ -46,21 +106,13 @@ func (a *app) newCallForm(c *ui.Context) {
 		}
 		ui.Text(c.Key("nc-number-hint"), hint).FontSize(px(t, fsCaption)).TextColor(col)
 	}
-	ui.Field(c, i18n.T("What should it do?"), func() {
-		ui.TextArea(c.Key("nc-brief"), &f.brief).Height(px(t, 96)).Placeholder(i18n.T("Book a table for two this Friday at 7 pm under the name Sam. If 7 is taken, anything between 6 and 8 is fine.")).
-			Label(i18n.T("What should it do?"))
-	})
-	ui.Row(c.Key("nc-chips")).Gap(px(t, sp1)).Wrap().Children(func() {
-		for i, ex := range callExamples() {
-			b := chip(c.Key(i), ex.title, "", f.brief == ex.brief)
-			if f.brief != ex.brief && !b.Hovered() {
-				b.Background(k.Hover)
-			}
-			if b.Clicked() {
-				f.brief = ex.brief
-			}
-		}
-	})
+	return num
+}
+
+// callVoiceField is the voice select, or how to get a voice that can call.
+func (a *app) callVoiceField(c *ui.Context) {
+	t := c.Theme()
+	f := &a.callForm
 	labels, _ := a.callVoices()
 	ui.Field(c, i18n.T("Voice"), func() {
 		if len(labels) == 0 {
@@ -81,6 +133,12 @@ func (a *app) newCallForm(c *ui.Context) {
 		a.formVoice()
 		ui.Select(c.Key("nc-voice"), &f.voice, labels).Label(i18n.T("Voice")).Width(px(t, 300)).Shrink(1).MinWidth(0)
 	})
+}
+
+// callDisclosureFields are the AI disclosure switch and its text.
+func (a *app) callDisclosureFields(c *ui.Context) {
+	t := c.Theme()
+	f := &a.callForm
 	sectionTitle(c, i18n.T("What it will say first"))
 	settingRow(c, "nc-disclose", i18n.T("AI disclosure"), i18n.T("Plays in full before the conversation starts; it can't be interrupted."), func() {
 		ui.Switch(c.Key("nc-disclose-switch"), &f.disclose).Label(i18n.T("AI disclosure"))
@@ -97,13 +155,13 @@ func (a *app) newCallForm(c *ui.Context) {
 			banner(c, icons.DangerTriangle, t.Warning, i18n.T("Without a disclosure the other person may not know they are talking to an AI. In many places telling them is required."), nil)
 		})
 	}
-	mins := make([]string, len(callMinutes))
-	for i, n := range callMinutes {
-		mins[i] = minutesLabel(n)
-	}
-	ui.Field(c, i18n.T("Maximum length"), func() {
-		ui.Select(c.Key("nc-minutes"), &f.minutes, mins).Label(i18n.T("Maximum length")).Width(px(t, 140))
-	})
+}
+
+// callPlanCard is the plan preview.
+func (a *app) callPlanCard(c *ui.Context) {
+	t := c.Theme()
+	k := tok(t)
+	f := &a.callForm
 	// The plan.
 	fillCard(c.Key("nc-plan")).Gap(px(t, 6)).Padding(px(t, sp3), px(t, sp4)).Children(func() {
 		ui.Text(c, i18n.T("Plan preview")).FontWeight(600)
@@ -127,32 +185,6 @@ func (a *app) newCallForm(c *ui.Context) {
 			})
 		}
 	})
-	ready, _ := callsReady(a.callChecks())
-	problem := a.callFormProblem()
-	label := i18n.T("Call")
-	if telephony.ValidNumber(num) {
-		label = i18n.T("Call %s", num)
-	}
-	if a.callBusy {
-		label = i18n.T("Starting call…")
-	}
-	ui.Row(c.Key("nc-go")).Gap(px(t, 8)).AlignItems(ui.Center).Children(func() {
-		if primaryButton(c.Key("nc-call"), label).Disabled(!ready || problem != "" || a.callBusy).Clicked() {
-			a.callAsk = true
-		}
-		if a.callBusy {
-			ui.Spinner(c)
-		}
-	})
-	switch {
-	case !ready:
-		caption(c, i18n.T("Finish the setup steps above to place calls."))
-	case problem != "":
-		caption(c, problem)
-	}
-	if a.callErr != "" {
-		ui.Text(c.Key("nc-err"), a.callErr).FontSize(px(t, fsCaption)).TextColor(t.Danger).Wrap()
-	}
 }
 
 // callExample is an example task.
