@@ -2817,7 +2817,6 @@
   "The model the Studio starts with. Choosing another one in the Studio changes it too.": "工作室启动时使用的模型。在工作室中选择其他模型也会更改此项。",
   "The model's id.": "模型的 id。",
   "The model's licence has not been accepted. Review it in Settings → Models & network.": "尚未接受该模型的许可协议。请在“设置 → 模型与网络”中查看。",
-  "The model's own voices": "模型自带音色",
   "The multi-speaker dialogue model is not downloaded (or this Mac has too little memory for it): every line was made line by line.": "多人对话模型还没下载（或这台 Mac 内存不够）：每句都按逐句配音。",
   "The narrator (default voice): a saved voice's name or id, or a built-in speaker.": "旁白（默认音色）：已保存音色的名字或 id，或内置说话人。",
   "The narrator (lines without a character), the model, the title, the language and the format, as for create_audiobook.": "旁白（没有角色的台词）、模型、标题、语言和格式，与 create_audiobook 相同。",
