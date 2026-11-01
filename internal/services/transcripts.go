@@ -459,40 +459,7 @@ func writeWAVAtomic(out string, b dsp.Buffer) error {
 	return os.Rename(tmp, out)
 }
 
-// call runs one engine method inside the job: the model's snapshot is
-// filled into *modelPath first (when model is set), the result decoded
-// into out.
+// call runs one engine method inside the job (see engineCaller.call).
 func (s *Transcripts) call(ctx context.Context, job jobs.Job, method, model string, params any, modelPath *string, out any, report func(jobs.Progress)) error {
-	if model != "" && modelPath != nil && s.modelPath != nil {
-		dir, err := s.modelPath(ctx, model)
-		if err != nil {
-			if errors.Is(err, core.ErrNotDownloaded) {
-				data, _ := json.Marshal(map[string]string{"model": model})
-				return &jobs.Error{Code: proto.CodeModelNotDownloaded, Message: err.Error(), Data: data}
-			}
-			return &jobs.Error{Code: proto.CodeInternal, Message: err.Error()}
-		}
-		*modelPath = dir
-	}
-	var ex jobs.Executor
-	if s.engine != nil {
-		ex = s.engine(method)
-	}
-	if ex == nil {
-		return &jobs.Error{Code: CodeEngineUnavailable, Message: "The engine is not connected.", Retryable: true}
-	}
-	raw, err := json.Marshal(params)
-	if err != nil {
-		return err
-	}
-	role, m := proto.SplitKind(method) // a method, or "listen:stt.transcribe"
-	sub := jobs.Job{ID: job.ID + "." + m, Spec: jobs.Spec{Kind: method, Lane: jobs.Lane(role), Params: raw, Owner: job.Owner}}
-	res, err := ex.Run(ctx, sub, report, nil)
-	if err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		return err
-	}
-	return json.Unmarshal(res, out)
+	return engineCaller{s.engine, s.modelPath}.call(ctx, job, method, model, params, modelPath, out, report)
 }

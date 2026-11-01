@@ -223,7 +223,7 @@ type Settings struct {
 	// Model is the TTS model (repo) the dub speaks with.
 	Model string `json:"model,omitempty"`
 	// Translator: "llm" (the language-model router), or an online service
-	// ("deepl", "google", "google-v3", "microsoft").
+	// ("deepl", "google", "microsoft").
 	Translator     string              `json:"translator,omitempty"`
 	Quality        translate.Quality   `json:"quality,omitempty"`
 	Style          string              `json:"style,omitempty"`

@@ -19,9 +19,10 @@ type Setup struct {
 	// "max"; "" = none), FirstSound whether the welcome line played.
 	Pack       string `json:"pack,omitempty"`
 	FirstSound bool   `json:"firstSound,omitempty"`
-	// Starters maps the bundled starter voices imported (their file
-	// names) to the voices they became: each is imported once, so one
-	// the user deleted stays deleted.
+	// Starters mapped the bundled starter voices imported (their file
+	// names) to the voices they became. The app no longer bundles or
+	// reads them (0.5 cleanup); the field stays so settings files keep
+	// their shape.
 	Starters map[string]string `json:"starters,omitempty"`
 	// Intros are the features whose 「介绍」 dialog showed (0.5 F6: the
 	// first visit to Dub, Speech to text…); Settings → General clears it.

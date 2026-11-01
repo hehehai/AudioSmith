@@ -187,7 +187,7 @@ func allLines(src string) ([]text.Span, bool) {
 	start := 0
 	for i := 0; i <= len(src); i++ {
 		if i == len(src) || src[i] == '\n' {
-			sp := trim(src, text.Span{Start: start, End: i})
+			sp := text.Span{Start: start, End: i}.TrimSpace(src)
 			if sp.Len() == 0 {
 				sp = text.Span{Start: start, End: start}
 				if seen {
@@ -201,24 +201,6 @@ func allLines(src string) ([]text.Span, bool) {
 		}
 	}
 	return out, hasBlank
-}
-
-func trim(src string, sp text.Span) text.Span {
-	for sp.Start < sp.End {
-		r, n := utf8.DecodeRuneInString(src[sp.Start:sp.End])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		sp.Start += n
-	}
-	for sp.End > sp.Start {
-		r, n := utf8.DecodeLastRuneInString(src[sp.Start:sp.End])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		sp.End -= n
-	}
-	return sp
 }
 
 var (

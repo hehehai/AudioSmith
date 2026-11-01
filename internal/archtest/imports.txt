@@ -168,7 +168,6 @@ store                    core
 store                    jobs
 
 store/historyjson        core
-store/historyjson        store
 
 store/sqlitestore        core
 store/sqlitestore        jobs

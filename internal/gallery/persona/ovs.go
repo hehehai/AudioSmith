@@ -41,40 +41,82 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	var warn []string
-	docs := []map[string]any{}
+	o := &ovsReader{c: c, lim: lim}
+	if err := o.readDocs(); err != nil {
+		return nil, nil, err
+	}
+	m, instruct, attrs := o.manifest(size)
+	b := &Bundle{}
+	consentAudio, err := o.members(b, &m)
+	if err != nil {
+		return nil, nil, err
+	}
+	if b.Reference != nil {
+		m.Files.Reference = &FileRef{Text: o.str("ref_text", "transcript", "reference_text")}
+	}
+	o.kind(&m, b, instruct, attrs)
+	if err := o.consent(&m, b, consentAudio); err != nil {
+		return nil, nil, err
+	}
+	b.Manifest = m
+	if err := m.Validate(); err != nil {
+		return nil, o.warn, err
+	}
+	return b, o.warn, nil
+}
+
+// ovsReader reads one .ovsvoice (ReadOVS).
+type ovsReader struct {
+	c    *container
+	lim  Limits
+	docs []map[string]any // manifest.json, metadata.json
+	warn []string
+}
+
+// readDocs reads manifest.json and its legacy copy, metadata.json.
+func (o *ovsReader) readDocs() error {
+	o.docs = []map[string]any{}
 	for _, name := range []string{"manifest.json", "metadata.json"} {
-		if _, ok := c.files[name]; !ok {
+		if _, ok := o.c.files[name]; !ok {
 			continue
 		}
-		raw, err := c.read(name, lim.MaxManifest)
+		raw, err := o.c.read(name, o.lim.MaxManifest)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		var doc map[string]any
 		if err := json.Unmarshal(raw, &doc); err != nil {
-			return nil, nil, fmt.Errorf("%w: %s: %v", ErrCorrupt, name, err)
+			return fmt.Errorf("%w: %s: %v", ErrCorrupt, name, err)
 		}
-		docs = append(docs, doc)
+		o.docs = append(o.docs, doc)
 	}
-	if len(docs) == 0 {
-		return nil, nil, fmt.Errorf("%w: no manifest.json", ErrNotPersona)
+	if len(o.docs) == 0 {
+		return fmt.Errorf("%w: no manifest.json", ErrNotPersona)
 	}
-	look := func(keys ...string) any {
-		for _, d := range docs {
-			if v := find(d, keys, 0); v != nil {
-				return v
-			}
-		}
-		return nil
-	}
-	str := func(keys ...string) string {
-		if s, ok := look(keys...).(string); ok {
-			return strings.TrimSpace(s)
-		}
-		return ""
-	}
+	return nil
+}
 
+// look finds the first of keys in the documents (nested objects too).
+func (o *ovsReader) look(keys ...string) any {
+	for _, d := range o.docs {
+		if v := find(d, keys, 0); v != nil {
+			return v
+		}
+	}
+	return nil
+}
+
+func (o *ovsReader) str(keys ...string) string {
+	if s, ok := o.look(keys...).(string); ok {
+		return strings.TrimSpace(s)
+	}
+	return ""
+}
+
+// manifest reads the identity, licence and engine fields; it returns
+// the instruct and the design attributes too.
+func (o *ovsReader) manifest(size int64) (Manifest, string, vd.Attributes) {
+	look, str := o.look, o.str
 	m := Manifest{
 		Format: Format, SchemaVersion: SchemaVersion,
 		Name:        str("name", "display_name", "profile_name", "title"),
@@ -91,7 +133,7 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 	}
 	if m.Name == "" {
 		m.Name = "Imported voice"
-		warn = append(warn, "no name found")
+		o.warn = append(o.warn, "no name found")
 	}
 	if t, err := time.Parse(time.RFC3339, str("created_at", "exported_at", "createdAt")); err == nil {
 		m.CreatedAt = t
@@ -114,7 +156,7 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 	}
 	if !ValidSPDX(m.Licence.SPDX) {
 		if m.Licence.SPDX != "" {
-			warn = append(warn, "licence "+strconv.Quote(m.Licence.SPDX)+" is not an SPDX id; using the personal licence")
+			o.warn = append(o.warn, "licence "+strconv.Quote(m.Licence.SPDX)+" is not an SPDX id; using the personal licence")
 		}
 		m.Licence.SPDX = "LicenseRef-VoiceStudio-Personal"
 	}
@@ -129,19 +171,24 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 	// string), else the instruct tags
 	attrs, unknown := designAttrs(look("vd_states"), instruct)
 	if len(unknown) > 0 {
-		warn = append(warn, "design details not understood: "+strings.Join(unknown, ", "))
+		o.warn = append(o.warn, "design details not understood: "+strings.Join(unknown, ", "))
 	}
+	return m, instruct, attrs
+}
 
-	b := &Bundle{}
-	// members
+// members reads the preview and the audio members (reference, locked
+// take, consent recording); it returns the consent recording.
+func (o *ovsReader) members(b *Bundle, m *Manifest) ([]byte, error) {
+	c, lim := o.c, o.lim
 	if _, ok := c.files["preview.wav"]; !ok {
-		return nil, nil, fmt.Errorf("%w: no preview.wav", ErrCorrupt)
+		return nil, fmt.Errorf("%w: no preview.wav", ErrCorrupt)
 	}
+	var err error
 	if b.Preview, err = c.read("preview.wav", lim.MaxPreview); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if !isWAV(b.Preview) {
-		return nil, nil, invalid("preview is not a WAV file")
+		return nil, invalid("preview is not a WAV file")
 	}
 	names := make([]string, 0, len(c.files))
 	for n := range c.files {
@@ -164,10 +211,10 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 			}
 			data, err := c.read(n, max)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			if !sniffAudio(data, ext) {
-				warn = append(warn, n+" skipped: not a "+ext+" file")
+				o.warn = append(o.warn, n+" skipped: not a "+ext+" file")
 				continue
 			}
 			switch prefix {
@@ -182,24 +229,26 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 				if ext == "wav" {
 					consentAudio = data
 				} else {
-					warn = append(warn, n+" skipped: the consent recording must be WAV")
+					o.warn = append(o.warn, n+" skipped: the consent recording must be WAV")
 				}
 			}
 			break
 		}
 	}
-	if b.Reference != nil {
-		m.Files.Reference = &FileRef{Text: str("ref_text", "transcript", "reference_text")}
-	}
+	return consentAudio, nil
+}
 
-	switch k := strings.ToLower(str("kind")); {
+// kind makes m a designed voice (its recipe from attrs or the instruct)
+// or a cloned one.
+func (o *ovsReader) kind(m *Manifest, b *Bundle, instruct string, attrs vd.Attributes) {
+	switch k := strings.ToLower(o.str("kind")); {
 	case k == "design" || (k == "" && b.Reference == nil && (!attrs.IsAuto() || instruct != "")):
 		m.Kind = KindDesign
 		seed := int64(42) // VoiceStudio renders design samples with seed 42
 		if m.Engine.Seed != nil {
 			seed = *m.Engine.Seed
 		} else {
-			warn = append(warn, "no seed; using 42")
+			o.warn = append(o.warn, "no seed; using 42")
 		}
 		m.Recipe = &vd.Recipe{Attrs: attrs, Seed: seed}
 		if attrs.IsAuto() && instruct != "" {
@@ -208,43 +257,41 @@ func ReadOVS(r io.ReaderAt, size int64, lim Limits) (*Bundle, []string, error) {
 	default:
 		m.Kind = KindClone
 		if b.Reference == nil {
-			warn = append(warn, "no reference clip (preview-only bundle): the preview becomes the reference")
+			o.warn = append(o.warn, "no reference clip (preview-only bundle): the preview becomes the reference")
 		}
 	}
+}
 
-	// consent: all three parts, as VoiceStudio requires
-	if raw, err := c.readOptional("consent.json", lim.MaxManifest); err != nil {
-		return nil, nil, err
-	} else if raw != nil {
-		var cj map[string]any
-		if json.Unmarshal(raw, &cj) == nil {
-			statement := ""
-			for _, k := range []string{"statement", "consent_text", "text"} {
-				if s, ok := cj[k].(string); ok && strings.TrimSpace(s) != "" {
-					statement = strings.TrimSpace(s)
-					break
-				}
-			}
-			method, _ := cj["method"].(string)
-			if statement != "" && consentAudio != nil {
-				m.Consent = &Consent{Attested: true, Method: "recording", Statement: statement, AttestedBy: method}
-				if ts, ok := cj["timestamp"].(string); ok {
-					if t, err := time.Parse(time.RFC3339, ts); err == nil {
-						m.Consent.AttestedAt = t
-					}
-				}
-				b.ConsentAudio = consentAudio
-			} else {
-				warn = append(warn, "consent record incomplete; imported as unverified")
-			}
+// consent carries consent over: all three parts, as VoiceStudio requires.
+func (o *ovsReader) consent(m *Manifest, b *Bundle, consentAudio []byte) error {
+	raw, err := o.c.readOptional("consent.json", o.lim.MaxManifest)
+	if err != nil || raw == nil {
+		return err
+	}
+	var cj map[string]any
+	if json.Unmarshal(raw, &cj) != nil {
+		return nil
+	}
+	statement := ""
+	for _, k := range []string{"statement", "consent_text", "text"} {
+		if s, ok := cj[k].(string); ok && strings.TrimSpace(s) != "" {
+			statement = strings.TrimSpace(s)
+			break
 		}
 	}
-
-	b.Manifest = m
-	if err := m.Validate(); err != nil {
-		return nil, warn, err
+	method, _ := cj["method"].(string)
+	if statement != "" && consentAudio != nil {
+		m.Consent = &Consent{Attested: true, Method: "recording", Statement: statement, AttestedBy: method}
+		if ts, ok := cj["timestamp"].(string); ok {
+			if t, err := time.Parse(time.RFC3339, ts); err == nil {
+				m.Consent.AttestedAt = t
+			}
+		}
+		b.ConsentAudio = consentAudio
+	} else {
+		o.warn = append(o.warn, "consent record incomplete; imported as unverified")
 	}
-	return b, warn, nil
+	return nil
 }
 
 // languageCode maps "English", "en-US" or "Auto" to a BCP-47 primary

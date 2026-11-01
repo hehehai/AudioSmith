@@ -23,9 +23,6 @@ func rbj(rate int, f, q float64) (cosw, alpha float64) {
 	return math.Cos(w), math.Sin(w) / (2 * q)
 }
 
-// Identity passes the signal unchanged.
-func Identity() Biquad { return Biquad{B0: 1} }
-
 // HighPass is a 12 dB/octave high-pass at f Hz (q 0.7071 is Butterworth).
 func HighPass(rate int, f, q float64) Biquad {
 	c, al := rbj(rate, f, q)

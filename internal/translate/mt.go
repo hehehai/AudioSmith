@@ -29,7 +29,7 @@ import (
 // Files: mt.go (the shared adapter: protection, batching, retries, HTTP),
 // mt_services.go (DeepL, Google, Microsoft).
 
-// MTSecretPrefix starts MT key names: "mt.deepl", "mt.google", "mt.google-v3", "mt.microsoft".
+// MTSecretPrefix starts MT key names: "mt.deepl", "mt.google", "mt.microsoft".
 const MTSecretPrefix = "mt."
 
 // MTConfig is what every MT adapter needs.

@@ -42,58 +42,34 @@ func (s *Server) httpStartIsolation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	x, err := s.StartIsolation(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusAccepted, x)
+	writeResult(w, http.StatusAccepted, x, err)
 }
 
 func (s *Server) httpIsolations(w http.ResponseWriter, r *http.Request) {
 	l, err := s.Isolations(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": l})
+	writeList(w, l, err)
 }
 
 func (s *Server) httpIsolation(w http.ResponseWriter, r *http.Request) {
 	x, err := s.Isolation(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, x)
+	writeResult(w, http.StatusOK, x, err)
 }
 
 func (s *Server) httpAssets(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	l, err := s.Assets(r.Context(), AssetQuery{Kind: q.Get("kind"), Search: q.Get("search"),
 		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, 1<<30)})
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": l})
+	writeList(w, l, err)
 }
 
 func (s *Server) httpSamples(w http.ResponseWriter, r *http.Request) {
 	l, err := s.Samples(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": l})
+	writeList(w, l, err)
 }
 
 func (s *Server) httpOpenSample(w http.ResponseWriter, r *http.Request) {
 	o, err := s.OpenSample(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusCreated, o)
+	writeResult(w, http.StatusCreated, o, err)
 }
 
 func (s *Server) httpUpdateVoice(w http.ResponseWriter, r *http.Request) {
@@ -134,11 +110,7 @@ func (s *Server) httpExportVoice(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ID = r.PathValue("id")
 	out, err := s.ExportVoice(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeResult(w, http.StatusOK, out, err)
 }
 
 func (s *Server) httpImportVoice(w http.ResponseWriter, r *http.Request) {
@@ -148,11 +120,7 @@ func (s *Server) httpImportVoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, err := s.ImportVoice(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusCreated, v)
+	writeResult(w, http.StatusCreated, v, err)
 }
 
 // httpPreview serves a bundled preview clip.
@@ -178,11 +146,7 @@ func (s *Server) httpCheckReference(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.CheckReference(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeResult(w, http.StatusOK, out, err)
 }
 
 func (s *Server) httpWriteStory(w http.ResponseWriter, r *http.Request) {

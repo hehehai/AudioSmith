@@ -29,7 +29,7 @@ func Nuclei(b dsp.Buffer, o RateOptions) []float64 {
 	m := mono(b)
 	win := max(dsp.FramesAt(0.05, m.Rate), 1)
 	hop := max(dsp.FramesAt(0.01, m.Rate), 1)
-	db := frameDB(m.Samples, win, hop)
+	db := FrameDB(m.Samples, win, hop)
 	if len(db) < 3 {
 		return nil
 	}
@@ -43,7 +43,7 @@ func Nuclei(b dsp.Buffer, o RateOptions) []float64 {
 		}
 		sm[i] = s / float64(hi-lo)
 	}
-	top := percentile(sm, 0.99)
+	top := Percentile(sm, 0.99)
 	var speech []float64
 	for _, v := range sm {
 		if v > top-o.BelowTopDB {

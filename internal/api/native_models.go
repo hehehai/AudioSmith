@@ -56,11 +56,7 @@ func (s *Server) job(ctx context.Context, id string) (jobs.Job, error) {
 // ?wait=N waits up to N seconds (≤ 60) for it to end.
 func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 	j, err := s.Job(r.Context(), r.PathValue("id"), waitParam(r))
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, j)
+	writeResult(w, http.StatusOK, j, err)
 }
 
 func (s *Server) cancelJob(w http.ResponseWriter, r *http.Request) {
@@ -227,11 +223,7 @@ func (s *Server) Languages(model string) ([]LanguageJSON, error) {
 
 func (s *Server) languages(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Languages(r.URL.Query().Get("model"))
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": list})
+	writeList(w, list, err)
 }
 
 // --- tools -------------------------------------------------------------------
@@ -243,11 +235,7 @@ func (s *Server) toolProbe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info, err := s.Probe(r.Context(), b)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, info)
+	writeResult(w, http.StatusOK, info, err)
 }
 
 func (s *Server) toolDirection(w http.ResponseWriter, r *http.Request) {
@@ -257,11 +245,7 @@ func (s *Server) toolDirection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d, err := s.Direct(r.Context(), b)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, d)
+	writeResult(w, http.StatusOK, d, err)
 }
 
 func (s *Server) toolRateFit(w http.ResponseWriter, r *http.Request) {
@@ -271,9 +255,5 @@ func (s *Server) toolRateFit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := s.Fit(r.Context(), b)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, res)
+	writeResult(w, http.StatusOK, res, err)
 }

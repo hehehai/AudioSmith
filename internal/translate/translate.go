@@ -12,9 +12,6 @@ package translate
 import (
 	"context"
 	"errors"
-	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/llm"
@@ -120,7 +117,7 @@ type Result struct {
 
 // Info describes a translator.
 type Info struct {
-	ID         string    // "llm", "deepl", "google", "google-v3", "microsoft"
+	ID         string    // "llm", "deepl", "google", "microsoft"
 	Kind       string    // "llm" | "mt"
 	Network    bool      // sends text over the network (an LLM route may be local)
 	ThirdParty bool      // a third-party service
@@ -166,22 +163,7 @@ type Error struct {
 	Err    error             `json:"-"`
 }
 
-func (e *Error) Error() string {
-	var b strings.Builder
-	b.WriteString(e.Code)
-	keys := make([]string, 0, len(e.Params))
-	for k := range e.Params {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		fmt.Fprintf(&b, " %s=%q", k, e.Params[k])
-	}
-	if e.Err != nil {
-		b.WriteString(": " + e.Err.Error())
-	}
-	return b.String()
-}
+func (e *Error) Error() string { return llm.ErrorText(e.Code, e.Params, e.Err) }
 
 func (e *Error) Unwrap() []error {
 	var out []error
@@ -208,14 +190,7 @@ func (e *Error) Is(target error) bool {
 }
 
 func newErr(code string, params ...string) *Error {
-	e := &Error{Code: code}
-	if len(params) > 0 {
-		e.Params = map[string]string{}
-		for i := 0; i+1 < len(params); i += 2 {
-			e.Params[params[i]] = params[i+1]
-		}
-	}
-	return e
+	return &Error{Code: code, Params: llm.Params(params...)}
 }
 
 // Code returns the code of err: a *translate.Error's, else an *llm.Error's, else "".

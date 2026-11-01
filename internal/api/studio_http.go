@@ -60,11 +60,7 @@ func (s *Server) httpProjects(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	l, err := s.Projects(r.Context(), ProjectQuery{Category: q.Get("category"), Search: q.Get("search"),
 		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, 1<<30)})
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": l})
+	writeList(w, l, err)
 }
 
 func (s *Server) httpCreateLongform(kind string) http.HandlerFunc {
@@ -86,11 +82,7 @@ func (s *Server) httpCreateLongform(kind string) http.HandlerFunc {
 
 func (s *Server) httpLongform(w http.ResponseWriter, r *http.Request) {
 	p, err := s.Longform(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, p)
+	writeResult(w, http.StatusOK, p, err)
 }
 
 func (s *Server) httpUpdateLongform(w http.ResponseWriter, r *http.Request) {
@@ -101,11 +93,7 @@ func (s *Server) httpUpdateLongform(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ID = r.PathValue("id")
 	p, err := s.UpdateLongform(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, p)
+	writeResult(w, http.StatusOK, p, err)
 }
 
 func (s *Server) httpRenderLongform(w http.ResponseWriter, r *http.Request) {
@@ -131,11 +119,7 @@ func (s *Server) httpExportLongform(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ID = r.PathValue("id")
 	out, err := s.ExportLongform(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeResult(w, http.StatusOK, out, err)
 }
 
 // httpDelete deletes a project or a dub: ?confirm=true is required.
@@ -163,11 +147,7 @@ func (s *Server) httpCreateDub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d, err := s.CreateDub(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusCreated, d)
+	writeResult(w, http.StatusCreated, d, err)
 }
 
 func (s *Server) httpDub(w http.ResponseWriter, r *http.Request) {
@@ -177,11 +157,7 @@ func (s *Server) httpDub(w http.ResponseWriter, r *http.Request) {
 		req.Segments = &b
 	}
 	d, err := s.Dub(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, d)
+	writeResult(w, http.StatusOK, d, err)
 }
 
 func (s *Server) httpEditDub(w http.ResponseWriter, r *http.Request) {
@@ -192,11 +168,7 @@ func (s *Server) httpEditDub(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ID = r.PathValue("id")
 	d, err := s.EditDub(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, d)
+	writeResult(w, http.StatusOK, d, err)
 }
 
 func (s *Server) httpRunDub(w http.ResponseWriter, r *http.Request) {
@@ -231,11 +203,7 @@ func (s *Server) httpExportDub(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) httpBatch(w http.ResponseWriter, r *http.Request) {
 	b, err := s.Batch(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, b)
+	writeResult(w, http.StatusOK, b, err)
 }
 
 func (s *Server) httpBatchDub(w http.ResponseWriter, r *http.Request) {
@@ -245,11 +213,7 @@ func (s *Server) httpBatchDub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b, err := s.BatchDub(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusAccepted, b)
+	writeResult(w, http.StatusAccepted, b, err)
 }
 
 func (s *Server) httpGallery(w http.ResponseWriter, r *http.Request) {
@@ -257,11 +221,7 @@ func (s *Server) httpGallery(w http.ResponseWriter, r *http.Request) {
 	p, err := s.SearchGallery(r.Context(), GalleryQuery{Query: q.Get("query"), Category: q.Get("category"), Gender: q.Get("gender"),
 		Age: q.Get("age"), Language: q.Get("language"),
 		Limit: queryInt(r, "limit", 20, 1, 100), Offset: queryInt(r, "offset", 0, 0, 1<<20)})
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, p)
+	writeResult(w, http.StatusOK, p, err)
 }
 
 func (s *Server) httpGalleryVoice(w http.ResponseWriter, r *http.Request) {
@@ -298,11 +258,7 @@ func (s *Server) httpExportTake(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ID = r.PathValue("id")
 	out, err := s.ExportTake(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeResult(w, http.StatusOK, out, err)
 }
 
 func (s *Server) httpExportTranscript(w http.ResponseWriter, r *http.Request) {
@@ -313,20 +269,12 @@ func (s *Server) httpExportTranscript(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ID = r.PathValue("id")
 	out, err := s.ExportTranscript(r.Context(), req)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
+	writeResult(w, http.StatusOK, out, err)
 }
 
 func (s *Server) httpWorkflows(w http.ResponseWriter, r *http.Request) {
 	l, err := s.Workflows(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": l})
+	writeList(w, l, err)
 }
 
 func (s *Server) httpRunWorkflow(w http.ResponseWriter, r *http.Request) {

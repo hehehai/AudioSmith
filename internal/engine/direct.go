@@ -41,10 +41,6 @@ func callDirect(ctx context.Context, sup Supervisor, method string, params, resu
 	return json.Unmarshal(raw, result)
 }
 
-// JobError converts an error of Supervisor.Call into what a job executor
-// returns: a *jobs.Error with the protocol's code, or ctx's error.
-func JobError(ctx context.Context, err error) error { return jobError(ctx, err) }
-
 // Recording is a microphone recording running on the listen worker
 // (capture.start). Stop ends it and keeps the file; Cancel discards it.
 type Recording struct {

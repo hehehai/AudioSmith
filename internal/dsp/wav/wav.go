@@ -58,19 +58,6 @@ func (e Encoding) String() string {
 	return fmt.Sprintf("encoding(%d)", uint8(e))
 }
 
-// ParseEncoding maps "pcm16"/"16", "pcm24"/"24", "f32"/"32f"/"float32" to an Encoding.
-func ParseEncoding(s string) (Encoding, error) {
-	switch s {
-	case "pcm16", "16", "s16":
-		return PCM16, nil
-	case "pcm24", "24", "s24":
-		return PCM24, nil
-	case "f32", "32f", "float32", "float":
-		return Float32, nil
-	}
-	return 0, fmt.Errorf("wav: unknown encoding %q", s)
-}
-
 // Bits returns the bits per sample.
 func (e Encoding) Bits() int {
 	switch e {
@@ -87,8 +74,6 @@ func (e Encoding) Bits() int {
 	}
 	return 0
 }
-
-func (e Encoding) float() bool { return e == Float32 || e == Float64 }
 
 // Format describes a WAV stream.
 type Format struct {

@@ -48,20 +48,24 @@ type Error struct {
 	Err        error         // the cause, if any
 }
 
-func (e *Error) Error() string {
+func (e *Error) Error() string { return ErrorText(e.Code, e.Params, e.Err) }
+
+// ErrorText is a coded error's text: the code, the params sorted by key,
+// then the cause ("llm.http provider=\"x\" status=\"500\": …").
+func ErrorText(code string, params map[string]string, cause error) string {
 	var b strings.Builder
-	b.WriteString(e.Code)
-	keys := make([]string, 0, len(e.Params))
-	for k := range e.Params {
+	b.WriteString(code)
+	keys := make([]string, 0, len(params))
+	for k := range params {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		fmt.Fprintf(&b, " %s=%q", k, e.Params[k])
+		fmt.Fprintf(&b, " %s=%q", k, params[k])
 	}
-	if e.Err != nil {
+	if cause != nil {
 		b.WriteString(": ")
-		b.WriteString(e.Err.Error())
+		b.WriteString(cause.Error())
 	}
 	return b.String()
 }
@@ -104,14 +108,19 @@ func Code(err error) string {
 }
 
 func newErr(code string, params ...string) *Error {
-	e := &Error{Code: code}
-	if len(params) > 0 {
-		e.Params = map[string]string{}
-		for i := 0; i+1 < len(params); i += 2 {
-			e.Params[params[i]] = params[i+1]
-		}
+	return &Error{Code: code, Params: Params(params...)}
+}
+
+// Params makes an error's params from key, value pairs; nil for none.
+func Params(kv ...string) map[string]string {
+	if len(kv) == 0 {
+		return nil
 	}
-	return e
+	m := map[string]string{}
+	for i := 0; i+1 < len(kv); i += 2 {
+		m[kv[i]] = kv[i+1]
+	}
+	return m
 }
 
 func (e *Error) with(k, v string) *Error {

@@ -46,7 +46,6 @@ type Compressor struct {
 	ms          float64 // detector mean square
 	gr          float64 // current gain reduction, dB (≤ 0)
 	makeup      float32
-	minGR       float64
 	reductionDB float64 // last block's maximum reduction, for meters
 }
 
@@ -61,9 +60,6 @@ func NewCompressor(rate, channels int, p CompressorParams) *Compressor {
 		makeup: float32(math.Pow(10, p.MakeupDB/20)),
 	}
 }
-
-// Reset clears the detector and gain state.
-func (c *Compressor) Reset() { c.ms, c.gr = 0, 0 }
 
 // curve returns the static gain change (dB, ≤ 0) for a detector level in dB.
 func (c *Compressor) curve(level float64) float64 {

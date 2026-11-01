@@ -121,14 +121,30 @@ func (r *Report) Errors() int {
 // step's settings; check (optional) adds the app's own findings.
 func Validate(w *Workflow, check Check) *Report {
 	r := &Report{In: map[string]Type{}, Out: map[string]Type{}}
-	add := func(sev Severity, code, node, edge, arg string) {
-		r.Diags = append(r.Diags, Diagnostic{Severity: sev, Code: code, Node: node, Edge: edge, Arg: arg})
-	}
 	if len(w.Nodes) == 0 {
-		add(Error, CodeEmpty, "", "", "")
+		r.add(Error, CodeEmpty, "", "", "")
 		return r
 	}
-	// The input step.
+	r.findInput(w)
+	topo := r.checkLoops(w)
+	r.checkReach(w, topo)
+	r.checkTypes(w, topo)
+	for i := range w.Nodes {
+		n := &w.Nodes[i]
+		r.checkSettings(w, n)
+		if check != nil {
+			r.Diags = append(r.Diags, check(n, r.In[n.ID])...)
+		}
+	}
+	return r
+}
+
+func (r *Report) add(sev Severity, code, node, edge, arg string) {
+	r.Diags = append(r.Diags, Diagnostic{Severity: sev, Code: code, Node: node, Edge: edge, Arg: arg})
+}
+
+// findInput sets the input step: there must be one, and other steps.
+func (r *Report) findInput(w *Workflow) {
 	for _, n := range w.Nodes {
 		if !n.Kind.IsInput() {
 			continue
@@ -136,17 +152,19 @@ func Validate(w *Workflow, check Check) *Report {
 		if r.Input == "" {
 			r.Input = n.ID
 		} else {
-			add(Error, CodeExtraInput, n.ID, "", "")
+			r.add(Error, CodeExtraInput, n.ID, "", "")
 		}
 	}
 	if r.Input == "" {
-		add(Error, CodeNoInput, "", "", "")
+		r.add(Error, CodeNoInput, "", "", "")
 	} else if len(w.Nodes) == 1 {
-		add(Error, CodeNoSteps, "", "", "")
+		r.add(Error, CodeNoSteps, "", "", "")
 	}
+}
 
-	// Loops: the links left after removing every step reachable in a
-	// topological order close a loop.
+// checkLoops returns the steps in a topological order; the links left
+// after removing every step reachable in it close a loop.
+func (r *Report) checkLoops(w *Workflow) []string {
 	indeg := map[string]int{}
 	for _, e := range w.Edges {
 		indeg[e.To]++
@@ -175,11 +193,15 @@ func Validate(w *Workflow, check Check) *Report {
 	}
 	for _, e := range w.Edges {
 		if !inTopo[e.From] && !inTopo[e.To] && onCycle(w, e) {
-			add(Error, CodeCycle, e.To, e.ID, "")
+			r.add(Error, CodeCycle, e.To, e.ID, "")
 		}
 	}
+	return topo
+}
 
-	// Reachability from the input.
+// checkReach finds the steps unconnected or unreachable from the input,
+// and sets the run order: the reachable steps of topo.
+func (r *Report) checkReach(w *Workflow, topo []string) {
 	reach := map[string]bool{}
 	if r.Input != "" {
 		stack := []string{r.Input}
@@ -201,9 +223,9 @@ func Validate(w *Workflow, check Check) *Report {
 		}
 		switch {
 		case len(w.Incoming(n.ID)) == 0:
-			add(Error, CodeUnconnected, n.ID, "", "")
+			r.add(Error, CodeUnconnected, n.ID, "", "")
 		case r.Input != "" && !reach[n.ID]:
-			add(Error, CodeUnreachable, n.ID, "", "")
+			r.add(Error, CodeUnreachable, n.ID, "", "")
 		}
 	}
 	for _, id := range topo {
@@ -211,16 +233,17 @@ func Validate(w *Workflow, check Check) *Report {
 			r.Order = append(r.Order, id)
 		}
 	}
+}
 
-	// Types, and merges, in topological order.
+// checkTypes types the links and checks merges, in topological order.
+func (r *Report) checkTypes(w *Workflow, topo []string) {
 	tokens := map[string]map[string]bool{} // the condition branches every path to a step goes through
 	for _, id := range topo {
 		n := w.Node(id)
 		spec, _ := SpecOf(n.Kind)
-		in := w.Incoming(id)
 		var t Type
 		var sets []map[string]bool
-		for i, e := range in {
+		for i, e := range w.Incoming(id) {
 			src := w.Node(e.From)
 			st, known := r.Out[e.From]
 			set := map[string]bool{}
@@ -232,7 +255,7 @@ func Validate(w *Workflow, check Check) *Report {
 			}
 			for _, prev := range sets {
 				if !exclusive(prev, set) {
-					add(Error, CodeMerge, id, e.ID, "")
+					r.add(Error, CodeMerge, id, e.ID, "")
 					break
 				}
 			}
@@ -241,11 +264,11 @@ func Validate(w *Workflow, check Check) *Report {
 				continue
 			}
 			if len(spec.In) > 0 && !slices.Contains(spec.In[0].Accepts, st) {
-				add(Error, CodeType, id, e.ID, string(st))
+				r.add(Error, CodeType, id, e.ID, string(st))
 				continue
 			}
 			if t != "" && st != t {
-				add(Error, CodeMergeTypes, id, e.ID, string(st))
+				r.add(Error, CodeMergeTypes, id, e.ID, string(st))
 				continue
 			}
 			if i == 0 || t == "" {
@@ -280,81 +303,76 @@ func Validate(w *Workflow, check Check) *Report {
 			}
 		}
 	}
+}
 
-	// Settings.
-	for i := range w.Nodes {
-		n := &w.Nodes[i]
-		p := &n.P
-		switch n.Kind {
-		case KindStart:
-			if n.ID != r.Input {
+// checkSettings checks step n's settings.
+func (r *Report) checkSettings(w *Workflow, n *Node) {
+	p := &n.P
+	switch n.Kind {
+	case KindStart:
+		if n.ID != r.Input {
+			break
+		}
+		items := w.Items()
+		r.Items = len(items)
+		switch {
+		case len(items) == 0:
+			r.add(Error, CodeStartEmpty, n.ID, "", "")
+		case len(items) > MaxScripts:
+			r.add(Error, CodeStartTooMany, n.ID, "", strconv.Itoa(len(items)))
+		}
+		for j, it := range items {
+			if utf8.RuneCountInString(it.Text) > MaxScriptChars {
+				r.add(Error, CodeStartTooLong, n.ID, "", strconv.Itoa(j+1))
 				break
 			}
-			items := w.Items()
-			r.Items = len(items)
+		}
+	case KindSource:
+		if n.ID == r.Input {
+			r.Items = len(p.Clips)
+		}
+		switch {
+		case len(p.Clips) == 0:
+			r.add(Error, CodeSourceEmpty, n.ID, "", "")
+		case len(p.Clips) > MaxClips:
+			r.add(Error, CodeSourceTooMany, n.ID, "", strconv.Itoa(len(p.Clips)))
+		}
+		for _, c := range p.Clips {
 			switch {
-			case len(items) == 0:
-				add(Error, CodeStartEmpty, n.ID, "", "")
-			case len(items) > MaxScripts:
-				add(Error, CodeStartTooMany, n.ID, "", strconv.Itoa(len(items)))
-			}
-			for j, it := range items {
-				if utf8.RuneCountInString(it.Text) > MaxScriptChars {
-					add(Error, CodeStartTooLong, n.ID, "", strconv.Itoa(j+1))
-					break
-				}
-			}
-		case KindSource:
-			if n.ID == r.Input {
-				r.Items = len(p.Clips)
-			}
-			switch {
-			case len(p.Clips) == 0:
-				add(Error, CodeSourceEmpty, n.ID, "", "")
-			case len(p.Clips) > MaxClips:
-				add(Error, CodeSourceTooMany, n.ID, "", strconv.Itoa(len(p.Clips)))
-			}
-			for _, c := range p.Clips {
-				switch {
-				case c.Size > MaxClipBytes:
-					add(Error, CodeSourceLarge, n.ID, "", c.Name)
-				case c.Size == 0:
-					add(Error, CodeSourceZero, n.ID, "", c.Name)
-				}
-			}
-		case KindSpeak, KindConvert:
-			if p.Model == "" {
-				add(Error, CodeNoModel, n.ID, "", "")
-			}
-		case KindTranslate:
-			switch {
-			case p.To == "":
-				add(Error, CodeNoTarget, n.ID, "", "")
-			case p.From != "" && strings.EqualFold(p.From, p.To):
-				add(Error, CodeSameLanguage, n.ID, "", "")
-			}
-		case KindCondition:
-			if strings.TrimSpace(p.Text) == "" {
-				add(Error, CodeNoMatchText, n.ID, "", "")
-			}
-		case KindExport:
-			if t, ok := r.In[n.ID]; ok {
-				if f := ExportFormat(p.Format, t); !slices.Contains(FormatsFor(t), f) {
-					add(Error, CodeFormat, n.ID, "", f)
-				}
-			}
-			if !ValidTemplate(p.Template) {
-				add(Error, CodeTemplate, n.ID, "", "")
-			}
-			if strings.TrimSpace(p.Folder) == "" {
-				add(Warning, CodeNoFolder, n.ID, "", "")
+			case c.Size > MaxClipBytes:
+				r.add(Error, CodeSourceLarge, n.ID, "", c.Name)
+			case c.Size == 0:
+				r.add(Error, CodeSourceZero, n.ID, "", c.Name)
 			}
 		}
-		if check != nil {
-			r.Diags = append(r.Diags, check(n, r.In[n.ID])...)
+	case KindSpeak, KindConvert:
+		if p.Model == "" {
+			r.add(Error, CodeNoModel, n.ID, "", "")
+		}
+	case KindTranslate:
+		switch {
+		case p.To == "":
+			r.add(Error, CodeNoTarget, n.ID, "", "")
+		case p.From != "" && strings.EqualFold(p.From, p.To):
+			r.add(Error, CodeSameLanguage, n.ID, "", "")
+		}
+	case KindCondition:
+		if strings.TrimSpace(p.Text) == "" {
+			r.add(Error, CodeNoMatchText, n.ID, "", "")
+		}
+	case KindExport:
+		if t, ok := r.In[n.ID]; ok {
+			if f := ExportFormat(p.Format, t); !slices.Contains(FormatsFor(t), f) {
+				r.add(Error, CodeFormat, n.ID, "", f)
+			}
+		}
+		if !ValidTemplate(p.Template) {
+			r.add(Error, CodeTemplate, n.ID, "", "")
+		}
+		if strings.TrimSpace(p.Folder) == "" {
+			r.add(Warning, CodeNoFolder, n.ID, "", "")
 		}
 	}
-	return r
 }
 
 // onCycle reports whether e lies on a loop: e.From can be reached from e.To.

@@ -25,7 +25,6 @@ import (
 
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/dsp/wav"
-	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/jobs"
@@ -439,40 +438,7 @@ func (s *Isolations) decode(ctx context.Context, job jobs.Job, in, out string, r
 	return dr.AudioSeconds, nil
 }
 
-// call runs one engine method inside the job (as Transcripts.call).
+// call runs one engine method inside the job (see engineCaller.call).
 func (s *Isolations) call(ctx context.Context, job jobs.Job, method, model string, params any, modelPath *string, out any, report func(jobs.Progress)) error {
-	if model != "" && modelPath != nil && s.cfg.ModelPath != nil {
-		dir, err := s.cfg.ModelPath(ctx, model)
-		if err != nil {
-			if errors.Is(err, core.ErrNotDownloaded) {
-				data, _ := json.Marshal(map[string]string{"model": model})
-				return &jobs.Error{Code: proto.CodeModelNotDownloaded, Message: err.Error(), Data: data}
-			}
-			return &jobs.Error{Code: proto.CodeInternal, Message: err.Error()}
-		}
-		*modelPath = dir
-	}
-	var ex jobs.Executor
-	if s.cfg.Engine != nil {
-		ex = s.cfg.Engine(method)
-	}
-	if ex == nil {
-		return &jobs.Error{Code: CodeEngineUnavailable, Message: "The engine is not connected.", Retryable: true}
-	}
-	raw, err := json.Marshal(params)
-	if err != nil {
-		return err
-	}
-	sub := jobs.Job{ID: job.ID + "." + method, Spec: jobs.Spec{Kind: method, Lane: jobs.Lane(dub.RoleOf(method)), Params: raw, Owner: job.Owner}}
-	res, err := ex.Run(ctx, sub, report, nil)
-	if err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		return err
-	}
-	if out == nil {
-		return nil
-	}
-	return json.Unmarshal(res, out)
+	return engineCaller{s.cfg.Engine, s.cfg.ModelPath}.call(ctx, job, method, model, params, modelPath, out, report)
 }

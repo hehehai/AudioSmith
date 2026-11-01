@@ -36,9 +36,9 @@ type Contour struct {
 // Time returns the centre time of value i.
 func (c Contour) Time(i int) float64 { return c.Start + float64(i)*c.Hop }
 
-// frameDB returns the RMS level (dBFS, floor −120) of windows of win
+// FrameDB returns the RMS level (dBFS, floor −120) of windows of win
 // frames every hop frames; window i is centred at i·hop + win/2.
-func frameDB(x []float32, win, hop int) []float64 {
+func FrameDB(x []float32, win, hop int) []float64 {
 	if len(x) < win {
 		win = len(x)
 	}
@@ -58,7 +58,8 @@ func frameDB(x []float32, win, hop int) []float64 {
 	return out
 }
 
-func percentile(v []float64, p float64) float64 {
+// Percentile is v's p-quantile (0–1, nearest rank); NaN for none.
+func Percentile(v []float64, p float64) float64 {
 	if len(v) == 0 {
 		return math.NaN()
 	}
@@ -67,7 +68,7 @@ func percentile(v []float64, p float64) float64 {
 	return s[int(math.Round(p*float64(len(s)-1)))]
 }
 
-func median(v []float64) float64 { return percentile(v, 0.5) }
+func median(v []float64) float64 { return Percentile(v, 0.5) }
 
 // VADOptions tune the energy VAD; zero values take the defaults.
 type VADOptions struct {
@@ -105,11 +106,11 @@ func VAD(b dsp.Buffer, o VADOptions) []dsp.Range {
 	m := mono(b)
 	win := max(dsp.FramesAt(o.Frame, m.Rate), 1)
 	hop := max(dsp.FramesAt(o.Hop, m.Rate), 1)
-	db := frameDB(m.Samples, win, hop)
+	db := FrameDB(m.Samples, win, hop)
 	if len(db) == 0 {
 		return nil
 	}
-	floor := percentile(db, 0.1)
+	floor := Percentile(db, 0.1)
 	thr := max(floor+o.MarginDB, o.MinDB)
 	var segs []dsp.Range
 	in := false
@@ -164,7 +165,7 @@ func LoudnessContour(b dsp.Buffer, win, hop float64) Contour {
 	k := kweight(m)
 	w := max(dsp.FramesAt(win, m.Rate), 1)
 	h := max(dsp.FramesAt(hop, m.Rate), 1)
-	db := frameDB(k, w, h)
+	db := FrameDB(k, w, h)
 	for i := range db {
 		if db[i] > -120 {
 			db[i] -= 0.691

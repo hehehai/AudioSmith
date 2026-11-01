@@ -192,7 +192,6 @@ type agentMsg struct {
 	dur   time.Duration
 	err   error
 	reply Reply
-	lat   TurnLatency
 }
 
 func (a *Agent) init() {

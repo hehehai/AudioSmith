@@ -7,7 +7,6 @@ package voicedesign
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"sync"
 	"unicode"
@@ -117,13 +116,6 @@ func Register(e Engine) {
 		}
 	}
 	engines = append(engines, e)
-}
-
-// Engines lists the lowering table.
-func Engines() []Engine {
-	engMu.RLock()
-	defer engMu.RUnlock()
-	return slices.Clone(engines)
 }
 
 // EngineFor finds the lowering for a catalogue model; false when the

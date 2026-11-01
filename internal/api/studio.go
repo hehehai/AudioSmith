@@ -22,7 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -448,9 +447,4 @@ type TranscriptExport struct {
 	Format   string `json:"format,omitempty" jsonschema:"txt (default), srt, vtt or json."`
 	Dir      string `json:"directory,omitempty" jsonschema:"Absolute folder to write to; empty: AudioSmith's agents' folder."`
 	Filename string `json:"filename,omitempty" jsonschema:"The file's name (no folders); empty: from the transcript's title."`
-}
-
-// errorf is an error with a code and a status.
-func errorf(status int, code, param, format string, args ...any) *Error {
-	return &Error{Status: status, Code: code, Param: param, Message: fmt.Sprintf(format, args...)}
 }

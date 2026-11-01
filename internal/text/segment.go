@@ -77,7 +77,7 @@ func Chunks(src string, opt Options) []Chunk {
 	tags := Tags(src)
 	var out []Chunk
 	emit := func(sp Span, para int, heading bool, cut Cut) {
-		sp = trimSpan(src, sp)
+		sp = sp.TrimSpace(src)
 		if sp.Len() == 0 {
 			return
 		}
@@ -183,7 +183,7 @@ func Paras(src string) []Paragraph {
 	cur := Span{-1, -1}
 	flush := func() {
 		if cur.Start >= 0 {
-			if sp := trimSpan(src, cur); sp.Len() > 0 {
+			if sp := cur.TrimSpace(src); sp.Len() > 0 {
 				out = append(out, Paragraph{Span: sp})
 			}
 		}
@@ -195,7 +195,7 @@ func Paras(src string) []Paragraph {
 			flush()
 		case l.heading:
 			flush()
-			out = append(out, Paragraph{Span: trimSpan(src, l.Span), Heading: true})
+			out = append(out, Paragraph{Span: l.Span.TrimSpace(src), Heading: true})
 		default:
 			if !hasBlank {
 				flush()
@@ -224,26 +224,6 @@ func isBlank(s string) bool {
 		}
 	}
 	return true
-}
-
-// trimSpan shrinks sp to exclude leading and trailing white space
-// (including U+3000).
-func trimSpan(src string, sp Span) Span {
-	for sp.Start < sp.End {
-		r, n := utf8.DecodeRuneInString(src[sp.Start:sp.End])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		sp.Start += n
-	}
-	for sp.End > sp.Start {
-		r, n := utf8.DecodeLastRuneInString(src[sp.Start:sp.End])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		sp.End -= n
-	}
-	return sp
 }
 
 func paraOf(paras []Paragraph, off, from int) int {
@@ -348,14 +328,14 @@ func sentenceSpans(src string, para Span, tags []Span) []Span {
 			break
 		}
 		if sentenceEnds(src, para, i, j, r) {
-			if sp := trimSpan(src, Span{start, j}); sp.Len() > 0 {
+			if sp := (Span{start, j}).TrimSpace(src); sp.Len() > 0 {
 				out = append(out, sp)
 			}
 			start = j
 		}
 		i = j
 	}
-	if sp := trimSpan(src, Span{start, para.End}); sp.Len() > 0 {
+	if sp := (Span{start, para.End}).TrimSpace(src); sp.Len() > 0 {
 		out = append(out, sp)
 	}
 	return out
@@ -486,8 +466,8 @@ func splitLong(src string, s Span, max int, tags []Span) []piece {
 		if cut <= rest.Start || cut >= rest.End {
 			break
 		}
-		out = append(out, piece{Span: trimSpan(src, Span{rest.Start, cut}), cut: kind})
-		rest = trimSpan(src, Span{cut, rest.End})
+		out = append(out, piece{Span: Span{rest.Start, cut}.TrimSpace(src), cut: kind})
+		rest = Span{cut, rest.End}.TrimSpace(src)
 		if rest.Len() == 0 {
 			break
 		}

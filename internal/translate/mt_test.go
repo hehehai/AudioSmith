@@ -163,32 +163,6 @@ func TestGoogleV2Batches(t *testing.T) {
 	}
 }
 
-func TestGoogleV3(t *testing.T) {
-	f := newMTFake(t, func(w http.ResponseWriter, r *http.Request, body []byte, _ int) {
-		var in struct{ Contents []string }
-		_ = json.Unmarshal(body, &in)
-		var tr []map[string]string
-		for _, q := range in.Contents {
-			tr = append(tr, map[string]string{"translatedText": fakeTranslate(q)})
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"translations": tr})
-	})
-	res, err := NewGoogleV3(mtCfg(f, llm.StaticSecrets{"mt.google-v3": "ya29.token"}), "my-proj").Translate(context.Background(), Request{Source: "ja", Target: "zh-Hans", Segments: segs("abc")})
-	if err != nil || res.Segments[0].Text != "ABC" {
-		t.Fatal(err, res)
-	}
-	r := f.reqs[0]
-	if r.URL.Path != "/v3/projects/my-proj/locations/global:translateText" || r.Header.Get("Authorization") != "Bearer ya29.token" {
-		t.Fatal(r.URL.Path, r.Header)
-	}
-	if !strings.Contains(f.body[0], `"targetLanguageCode":"zh-CN"`) || !strings.Contains(f.body[0], `"sourceLanguageCode":"ja"`) {
-		t.Fatal(f.body[0])
-	}
-	if _, err := NewGoogleV3(mtCfg(f, llm.StaticSecrets{"mt.google-v3": "x"}), "").Translate(context.Background(), Request{Target: "fr", Segments: segs("a")}); Code(err) != CodeConfig {
-		t.Fatal(err)
-	}
-}
-
 func TestMicrosoft(t *testing.T) {
 	f := newMTFake(t, func(w http.ResponseWriter, r *http.Request, body []byte, _ int) {
 		var in []struct{ Text string }

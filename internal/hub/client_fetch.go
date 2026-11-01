@@ -66,13 +66,12 @@ type task struct {
 
 type fileState struct {
 	remoteFile
-	path   string // blobs/<blob>.incomplete
-	f      *os.File
-	mu     sync.Mutex
-	parts  *partsFile // nil: sequential
-	left   int        // tasks not done
-	failed error
-	lock   *models.HeldLock // the blob's family lock, released when it is in place
+	path  string // blobs/<blob>.incomplete
+	f     *os.File
+	mu    sync.Mutex
+	parts *partsFile       // nil: sequential
+	left  int              // tasks not done
+	lock  *models.HeldLock // the blob's family lock, released when it is in place
 }
 
 // Download fetches what Plan lists into the cache: the auxiliary repos
