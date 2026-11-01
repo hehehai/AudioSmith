@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/hehehai/AudioSmith/internal/api"
+	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/services"
 	vd "github.com/hehehai/AudioSmith/internal/voicedesign"
@@ -339,7 +340,8 @@ func (s *Server) listModels(ctx context.Context, req *sdk.CallToolRequest, in li
 	var out []map[string]any
 	for _, m := range models {
 		e := m.Entry
-		if e.Hidden {
+		dialogue := e.Has(catalog.CapDialogue)
+		if e.Hidden && !dialogue { // the dialogue models are hidden from the Studio's menu, not from agents (#136)
 			continue
 		}
 		task := ""
@@ -370,6 +372,9 @@ func (s *Server) listModels(ctx context.Context, req *sdk.CallToolRequest, in li
 		}
 		if m.LicenceNeeded {
 			item["licence_to_accept"] = true
+		}
+		if dialogue {
+			item["dialogue_only"] = "a dialogue model: create_story and create_dub use it for [dialogue] blocks and conversations; generate_speech does not take it"
 		}
 		if e.NeedsReference { // speaks cloned voices only
 			item["needs_reference"] = true
