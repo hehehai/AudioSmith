@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="docs/images/hero.webp" alt="AudioSmith's Studio window: a script, the model and voice, and a finished take" width="100%">
+  <img src="docs/images/hero.webp" alt="AudioSmith: Text to speech in front of the dub editor" width="100%">
 </p>
 
 <h1 align="center">AudioSmith</h1>
 
 <p align="center">
   <b>A voice studio that runs on your Mac.</b><br>
-  Speech, voices, stories, audiobooks, dubbing, transcription and dictation, on Apple silicon.
+  Speech, voices, stories, audiobooks, dubbing, transcription, voice isolation and dictation, on Apple silicon.
 </p>
 
 <p align="center">
@@ -20,47 +20,56 @@
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a></p>
 
-AudioSmith turns text into speech, clones and designs voices, gives a story a cast, reads a book into an M4B, dubs a video into another language, transcribes a recording with who said what, and types what you say into any app. Every model runs on your Mac's GPU with [MLX](https://github.com/ml-explore/mlx): no account, no cloud service, no Python. It runs on your Mac, and once its models are downloaded it works offline.
+AudioSmith turns text into speech, clones and designs voices, gives a story a cast, reads a book into an M4B, dubs a video into another language, transcribes a recording with who said what, separates voices from music and noise, and types what you say into any app. You start from one box on Home, and AI agents can drive all of it over MCP. Every model runs on your Mac's GPU with [MLX](https://github.com/ml-explore/mlx): no account, no cloud service, no Python. It runs on your Mac, and once its models are downloaded it works offline.
 
 [Features](#features) · [Install](#install) · [Models](#models) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Licence](#licence-and-credits)
 
-> **The current version, 0.4.0-beta.7, is a beta.** Releases are signed with a Developer ID, notarized by Apple and update themselves. Expect rough edges; see [Known limits](#known-limits) and [the changelog](https://actnow.dev/audiosmith/changelog).
+> **The current version, 0.5.0-beta.1, is a beta.** Releases are signed with a Developer ID, notarized by Apple and update themselves. Expect rough edges; see [Known limits](#known-limits) and [the changelog](https://actnow.dev/audiosmith/changelog).
 
 ## Features
 
-### Studio
+### Start from Home
 
-<img src="docs/images/studio-generate.webp" alt="Generating a take in the Studio" width="100%">
+<img src="docs/images/home.webp" alt="Home: one box to start from, the tools under it, and the samples" width="100%">
 
-- **Write or import** a script (TXT, MD, DOCX, EPUB, SRT, VTT). Markup adds pauses (`[pause 400ms]`), pace (`[slow]`, `[fast]`), emphasis, spelling and one-off pronunciations (`[[word|say]]`).
+- **One box to start from.** Type, paste a link or drop a file and press Enter: text opens in Text to speech as the script, a video or a link starts a dub, a recording is transcribed, a text file or an ebook becomes an audiobook.
+- **Places and tools.** The sidebar lists the places — Home, Voices, Projects, Assets — then the tools: Text to speech, New voice, Stories, Audiobook, Dub, Speech to text, Voice isolator and Dictation, with Workflows, Batch dubbing and Calls under ··· More. Each tool starts its work at the top of its page and lists what it made below; a result goes on to the next tool in one click.
+- **Five samples** — a story for two voices, an audiobook chapter, a product narration, a short dubbed video and a meeting transcript — open ready to play, as projects of your own you can edit or delete.
+- **⌘K searches everything:** pages, actions, voices, projects, samples and takes by their script.
+
+### Text to speech
+
+<img src="docs/images/tts-generate.webp" alt="Generating a take in Text to speech" width="100%">
+
+- **Write or import** a script (TXT, MD, DOCX, EPUB, SRT, VTT), or start from an example. Markup adds pauses (`[pause 400ms]`), pace (`[slow]`, `[fast]`), emphasis, spelling and one-off pronunciations (`[[word|say]]`).
 - **Pick a model by what it is for:** Standard voices, Fast clone, High-fidelity clone, Voice design, Fast English voices, English clone or Multilingual all-rounder. The technical name is one click away.
-- **Few controls:** the model, one Voice list and the speed. Everything else is under Advanced, filled with settings measured for each model.
+- **Few controls:** the voice, the model and the speed in the Settings panel. Everything else is under Advanced, filled with settings measured for each model. The History panel keeps the page's takes: export, reuse their settings, try another voice, or save one as a project.
 - **Long scripts** render in chunks and play while they render. Text you did not change comes from a cache.
 - **Export audio:** WAV or M4A, and MP3, FLAC or Opus with ffmpeg. Even out the loudness to −16, −18 or −23 LUFS, trim the silence, add tags, save the script and subtitles beside it.
 
-<img src="docs/images/model-picker.webp" alt="The model picker: friendly names, tags and search" width="100%">
-
 ### Voices
 
-<img src="docs/images/design-type.webp" alt="Designing a voice: the description is read into gender, age and style as you type" width="100%">
-
-| Discover voices | My voices |
+| Discover | Mine |
 |---|---|
-| <img src="docs/images/discover.webp" alt="Discover voices: chosen voices to preview"> | <img src="docs/images/voices.webp" alt="My voices: saved, designed and cloned voices"> |
+| <img src="docs/images/discover.webp" alt="Voices, Discover: chosen voices with filters and previews"> | <img src="docs/images/voices.webp" alt="Voices, Mine: saved, designed and cloned voices"> |
 
-- **Discover** 37 chosen voices, mostly Chinese and English: designed voices whose reference ships with the app, ready to speak at once, and the best built-in speakers. Preview them and save the ones you like.
-- **Clone** a voice from a recording or from any audio or video file. AudioSmith picks the best stretch and transcribes it. A recorded consent statement marks a voice as your own.
+- **Discover** 37 chosen voices, mostly Chinese and English: designed voices whose reference ships with the app, ready to speak at once, and the best built-in speakers. Filter by language, gender, age and use; ▶ plays one in its row, and its details offer Try a line, Use in Text to speech, Use as a story character, Narrate an audiobook and Save to My voices.
+- **Mine** lists your voices (cloned, designed, saved); rename, duplicate, export or delete them, with Undo.
+
+<img src="docs/images/newvoice.webp" alt="New voice: Quick clone or Design a voice" width="100%">
+
+- **New voice → Quick clone:** add a recording, or any audio or video file, and a guided page checks it, names it and saves it. AudioSmith picks the best stretch and transcribes it; a recorded consent statement marks a voice as your own.
 - **Checked references:** every reference is rated (good, fine, needs work) with a tip or two, and cleaned: noise removed only when there is some, silence trimmed, loudness evened out. The original is kept.
-- **Design** a voice from a sentence in English or Chinese ("a warm narrator in her thirties, calm and clear"), or start from one of eight presets.
-- **Hear before you pick:** every voice list (Studio, Stories, Audiobook, Dub) has a ▶ on each voice: built-in speakers play a short bundled sample, even before their model is downloaded; your own voices play their sample.
+- **New voice → Design a voice:** describe it in English or Chinese ("a warm narrator in her thirties, calm and clear"), or start from a preset, and pick one of three candidates.
+- **Hear before you pick:** every voice list (Text to speech, Stories, Audiobook, Dub) has a ▶ on each voice: built-in speakers play a short bundled sample, even before their model is downloaded; your own voices play their sample.
 - **Portable voices:** a model's built-in speaker or a designed voice can be turned into a clone that every cloning model can speak with. It sounds close to the original, not the same, and says so.
-- **Deleting a voice** says where it is used, and Undo in the toast brings it back for about 10 seconds.
 - Voices are `.asvoice` files you can share. VoiceStudio's `.ovsvoice` files import too.
 
 ### Stories
 
-<img src="docs/images/stories.webp" alt="A story with its cast, scene and line directions" width="100%">
+<img src="docs/images/stories.webp" alt="A story with its cast and each line's emotion" width="100%">
 
+- **Start from the composer:** paste a script, or turn on 「Help me write」 and describe a story in a sentence; the writing assistant (on this Mac) drafts a short scene for two or three voices, then it is cast and opened.
 - **Write `Name: line`** and AudioSmith casts the characters. Stage directions such as `MOM (softly):` become the line's direction instead of being read out.
 - **Dialogue that flows:** the gaps follow the conversation (Dialogue, Reading or Relaxed). A character's consecutive lines are said in one go, and each voice is brought to one loudness.
 - **AI director:** the writing assistant (Qwen3 4B, on this Mac) reads the whole story and gives each line one of 13 emotions with a strength, kept coherent across the scene; you can change any of them. Models that take instructions hear them; the others read the lines as written, and the page says so.
@@ -69,9 +78,9 @@ AudioSmith turns text into speech, clones and designs voices, gives a story a ca
 
 ### Audiobook
 
-<img src="docs/images/audiobook.webp" alt="An audiobook with chapters and a cover" width="100%">
+<img src="docs/images/audiobook.webp" alt="An audiobook with its chapters" width="100%">
 
-- **Import** an EPUB, TXT, Markdown or DOCX book. Chapters come from its headings.
+- **Paste or import** an EPUB, TXT, Markdown or DOCX book and pick the narrator. Chapters come from its headings.
 - **Dialogue passages:** mark a scene with `[dialogue]` … `[/dialogue]` (`[对话]` in Chinese) and one `Name: line` per turn, and a dialogue model speaks it with the characters answering each other. Without the model the passage is read line by line.
 - **Loudness** per chapter for ACX (Audible) or podcasts. A read-along player follows the text.
 - **Export** an M4B with chapters, cover and tags, a cue sheet, or one file per chapter.
@@ -79,41 +88,50 @@ AudioSmith turns text into speech, clones and designs voices, gives a story a ca
 
 ### Dub
 
-<img src="docs/images/dub-steps.webp" alt="A dub of an English video into Chinese and Spanish, step by step: source, transcript, translation, cast, voices, export" width="100%">
+<img src="docs/images/dub.webp" alt="The dub editor: the steps in the header, the video, the lines and the timeline" width="100%">
 
-- **Drop in a video or audio file,** or paste a link (yt-dlp, which you turn on). Before anything downloads, the page shows the cover, the site, the title and the length, then the download's real progress. New dubs are made in Chinese; when the video is already Chinese they switch to English. Add more languages as you like.
-- **Four steps:**
-  1. Separate the voices from the background (HTDemucs).
-  2. Transcribe and tell the speakers apart (Transcription with speakers, or Qwen3-ASR with Sortformer).
-  3. Translate with the local writing assistant, Ollama, a cloud model, DeepL, Google or Microsoft. A glossary keeps names right.
-  4. Speak each line in its speaker's cloned voice, fitted to the original timing, also from another language (a Japanese speaker speaking Chinese). Such lines are heard again: one in the wrong language or with the wrong words is made again, or marked Listen.
+- **Drop in a video or audio file,** or paste a link (yt-dlp, which you turn on), and press Dub. Before anything downloads, the page shows the cover, the site, the title and the length, then the download's real progress. New dubs are made in Chinese; when the video is already Chinese they switch to English. Add more languages as you like.
+- **The steps** — transcribe, translate, voices, generate, export — sit in the editor's header and show what is done, running or failed:
+  1. Separate the voices from the background (HTDemucs), transcribe and tell the speakers apart (Transcription with speakers, or Qwen3-ASR with Sortformer).
+  2. Translate with the local writing assistant, Ollama, a cloud model, DeepL, Google or Microsoft. A glossary keeps names right.
+  3. Speak each line in its speaker's cloned voice, fitted to the original timing, also from another language (a Japanese speaker speaking Chinese). Such lines are heard again: one in the wrong language or with the wrong words is made again, or marked Listen.
 - **Conversations recorded together:** for dubs into Chinese or English with two speakers or more, *Dialogue · Light* records each conversation as a whole, so answers sound like answers, then fits every line to its time. On by default for new dubs; needs 16 GB of memory.
-- **Edit** lines on a timeline (pinch or ⌘ with the wheel to zoom, swipe to pan), compare A/B, preview the video, and re-dub only what changed. A 2-hour video with 2,000 lines stays quick.
-- **Export** an MP4 with one audio track per language and soft subtitles, or M4A, WAV, SRT, VTT, ASS and stems. Batch dubs a whole folder, and can watch one.
+- **Edit** lines on a timeline (click to seek, pinch or ⌘ with the wheel to zoom, swipe to pan), compare A/B, preview the video, and re-dub only what changed. A 2-hour video with 2,000 lines stays quick.
+- **Export** an MP4 with one audio track per language and soft subtitles, or M4A, WAV, SRT, VTT, ASS and stems. Batch dubbing does a whole folder, and can watch one.
 
-### Transcribe and dictation
+### Speech to text and dictation
 
-<img src="docs/images/transcribe.webp" alt="A transcript with its speakers named" width="100%">
+<img src="docs/images/transcribe.webp" alt="A transcript with its speakers" width="100%">
 
-- **Transcribe** recordings and videos with word timings. Qwen3-ASR handles Chinese, English and 28 more languages; Whisper covers the rest and translates speech into English.
-- **Transcription with speakers** says who says what (S1, S2…) in one pass; click a speaker to name it. Copy, TXT, SRT, VTT and JSON exports carry the names.
+- **Transcribe** recordings and videos — drop, upload, paste a link or record — with word timings, Fast or Accurate. Qwen3-ASR handles Chinese, English and 28 more languages; Whisper covers the rest and translates speech into English.
+- **Transcription with speakers** says who says what (S1, S2…) in one pass; click a speaker to name it. Copy, TXT, SRT, VTT and JSON exports carry the names. A transcript goes on to Dub or to Text to speech in one click.
 - **Dictation anywhere:** press ⌘⇧Space in any app, speak, and the text is typed where your cursor is, about 0.2–0.3 s after you stop. Your clipboard is kept. A menu bar icon, a small pill and sounds you can choose show when it listens.
 
-### Workflows and batch
+### Voice isolator
 
-<img src="docs/images/workflows.webp" alt="A workflow on the canvas" width="100%">
+<img src="docs/images/isolator.webp" alt="Voice isolator: the voices, the background and the cleaned voices of a video" width="100%">
 
-- **Workflows:** chain steps on a canvas (sources, speak, transcribe, translate, convert, even out, condition, export), start from a template, and run them over up to 50 inputs. A run continues after a restart.
-- **Batch** queues dubs and watches a folder.
+- **Drop a song, a video or a noisy recording** and get the voices alone, the music and effects, and the voices denoised (HTDemucs, DeepFilterNet), on this Mac.
+- Each track plays, saves, and goes on to Speech to text or Dub.
+
+### Projects and Assets
+
+| Projects | Assets |
+|---|---|
+| <img src="docs/images/projects.webp" alt="Projects: stories, audiobooks, dubs, transcripts and isolations"> | <img src="docs/images/assets.webp" alt="Assets: every output and every file you brought in"> |
+
+- **Projects** lists stories, audiobooks, dubs, transcripts and voice isolations, newest first; search their titles and scripts, filter by type, show a table or cards.
+- **Assets** gathers every output and every file you brought in — takes, renders, exports, isolated tracks, the recordings and videos you used. Each plays in its row, opens in its tool, and sends on to Speech to text, Dub, Voice isolator or Text to speech.
+- **Workflows** chain steps on a canvas (sources, speak, transcribe, translate, convert, even out, condition, export), start from a template and run over up to 50 inputs; **Batch dubbing** queues dubs and watches a folder. Both continue after a restart.
 
 ### For agents and scripts
 
-<img src="docs/images/integrations.webp" alt="The Integrations page with a setup prompt for Claude Code" width="100%">
+<img src="docs/images/developers.webp" alt="Developers: Connect your agent, with a prompt for a coding agent" width="100%">
 
-- **OpenAI-compatible API** on `http://127.0.0.1:3901/v1`: speech, transcriptions, translations, models and voices. Point any OpenAI SDK at it.
-- **AudioSmith's own API** (`/api`) drives every page: voices, stories, audiobooks, dubs, batch, workflows, exports. Jobs report progress over SSE, and `/ws/tts` streams speech.
-- **MCP server** over HTTP (`/mcp`) and stdio (`AudioSmith --mcp-stdio`), with 33 tools. Deleting needs `confirm: true`; cloning needs consent and works only from this Mac (or with the API key).
-- **Integrations page:** one prompt sets up Claude Code, Codex or Cursor (server and agent skill); there are snippets for n8n, curl, Python, JavaScript and the OpenAI Agents SDK.
+- **Developers → Connect your agent:** choose Coding agent, MCP or cURL and copy the snippet — a prompt your coding agent follows to connect AudioSmith and install its skill, the MCP server's configuration, or a first request — then watch "Waiting for the first request…" turn into the time of the last one. Setups for Claude Code, Codex, Cursor, n8n and others are listed under it.
+- **MCP server** over HTTP (`/mcp`) and stdio (`AudioSmith --mcp-stdio`), with 57 tools: agents can do what the app does, except dictation, phone calls, the microphone, accepting licences and changing settings. Tested with ChatGPT (Codex) and WorkBuddy.
+- **Agents ask before they delete or download:** the agent says what goes or how big the download is and waits for your yes. Cloning needs consent and works only from this Mac (or with the API key).
+- **OpenAI-compatible API** on `http://127.0.0.1:3901/v1`: speech, transcriptions, translations, models and voices. Point any OpenAI SDK at it. **AudioSmith's own API** (`/api`) drives every page; jobs report progress over SSE, and `/ws/tts` streams speech.
 
 ```sh
 curl http://127.0.0.1:3901/v1/audio/speech \
@@ -126,12 +144,12 @@ The full reference is [docs/local-api.md](docs/local-api.md), and `/docs` in the
 
 ### And more
 
-<img src="docs/images/dark.webp" alt="The Dub page in dark mode" width="100%">
+<img src="docs/images/dark.webp" alt="The dub editor in dark mode" width="100%">
 
-- **Tools:** compare voices A/B, speak a recording again in another voice, fit text to a duration, probe a file, check a watermark.
+- **Tools** (Developers → Tools): compare voices A/B, speak a recording again in another voice, fit text to a duration, probe a file, check a watermark.
 - **Invisible watermark:** generated audio carries an AudioSeal mark, on by default (Settings → Privacy), and Tools can detect it.
 - **Calls:** an AI phone agent on your own Twilio account. It always says it is an AI, and uses only designed or consented voices. Off until you set it up.
-- **The app:** a sidebar with search (⌘F) and sections that fold; what is running shows as cards at its foot, and the Tasks page lists every job. Projects and History libraries, one job queue that resumes after a restart, the command palette (⌘K), ⌘1–9 for the main pages, light and dark themes, English and 简体中文.
+- **The app:** each page has its own header with its tools; ⌘1–8 open Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories and Audiobook, ⌘[ and ⌘] go back and forward. The bell beside Settings lists tasks and notifications; one job queue resumes after a restart. Light and dark themes, English and 简体中文.
 - **Memory:** models you have not used for 30 minutes are unloaded (Settings → Models & network → Memory) and load again when needed.
 
 ## Install
@@ -144,7 +162,7 @@ The full reference is [docs/local-api.md](docs/local-api.md), and `/docs` in the
 **Steps**
 1. Download the DMG from [actnow.dev/download/audiosmith](https://actnow.dev/download/audiosmith), AudioSmith's page on our website. AudioSmith is free; the download needs a free account. Rather not sign up? [Build it from source](#build-from-source). The current version is a beta; [the changelog](https://actnow.dev/audiosmith/changelog) lists every version.
 2. Drag **AudioSmith** to Applications and open it. Releases are signed and notarized, so Gatekeeper lets them open; macOS only asks once to confirm an app from the internet.
-3. The setup wizard checks your Mac (macOS, chip, memory, disk, network), suggests a model pack, and asks about privacy and dictation. You can skip the pack and download models later on the Models page.
+3. The setup wizard checks your Mac (macOS, chip, memory, disk, network), suggests a model pack, and asks about privacy and dictation. You can skip the pack and download models later in Settings → Models & network.
 
 | Pack | For | Download |
 |---|---|---|
@@ -155,7 +173,7 @@ The full reference is [docs/local-api.md](docs/local-api.md), and `/docs` in the
 
 **Updates.** Once a day AudioSmith checks actnow.dev for a new version (no account needed). A new one shows as "Update available" at the foot of the sidebar, with its notes; it installs when you say so. Updates are signed and checked before they install, and usually download only what changed. **AudioSmith → Check for Updates…** checks at once; **Settings → About → Software updates** has the other choices.
 
-**Beta updates.** Settings → About → Software updates → **Receive beta updates**. It is on in a beta (such as 0.4.0-beta.7) and off in a release until you choose. Turning it off never goes back to an older version: a beta stays until a newer release is out.
+**Beta updates.** Settings → About → Software updates → **Receive beta updates**. It is on in a beta (such as 0.5.0-beta.1) and off in a release until you choose. Turning it off never goes back to an older version: a beta stays until a newer release is out.
 
 **Downloads** come from the official sites or their mirrors, whichever is faster, through the system proxy: models from huggingface.co or hf-mirror.com, ffmpeg and yt-dlp from github.com or mirror.actnow.dev (ActNow's mirror), each checked before use. In mainland China, pick **Mirrors only** under **Settings → Models & network → Download from** if downloads stall.
 
@@ -165,9 +183,9 @@ The full reference is [docs/local-api.md](docs/local-api.md), and `/docs` in the
 
 ## Models
 
-AudioSmith names models for what they do. Their technical names, sizes and licences are in each model's Details on the Models page.
+AudioSmith names models for what they do. Their technical names, sizes and licences are in each model's details under Settings → Models & network.
 
-<img src="docs/images/models.webp" alt="The Models page with friendly names and tags" width="100%">
+<img src="docs/images/models.webp" alt="Settings → Models & network: friendly names, sizes and tags" width="100%">
 
 | In the app | Model | What it does | Licence |
 |---|---|---|---|
@@ -225,7 +243,7 @@ go tool mygo build              # build/darwin-arm64/AudioSmith.app and a DMG
 
 ## Known limits
 
-- **Beta.** 0.4.0 is not final yet; expect changes between betas.
+- **Beta.** 0.5.0 is not final yet; expect changes between betas.
 - **ffmpeg is optional and not bundled.** Without it AudioSmith reads and writes WAV, AIFF, M4A, MOV and MP4, and reads MP3. With it (Homebrew's, or one you choose) it also exports MP3, Opus and FLAC, reads WebM and MKV, and burns subtitles into videos.
 - **Dictation** types the text when you stop, not word by word. The first dictation after a long pause can take about a second longer while its model loads.
 - **Dialogue models** are evaluated for Chinese and English only; other languages are read line by line. Dub's conversations use *Dialogue · Light* only, and *Dialogue · One take* needs 24 GB of memory.
