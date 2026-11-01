@@ -73,7 +73,8 @@ func (a *app) tasksBell(c *ui.Context, rail bool) {
 	ui.PopoverBase(c, b, &a.noticesOpen, func(panel ui.Element) {
 		// Beside the sidebar, its foot at the bell's.
 		panel.AttachTo(b, ui.AnchorBottomEnd, ui.AnchorBottomStart).MarginStart(px(t, 8)).Padding(px(t, sp2)).
-			Radius(px(t, radiusCard)).Background(k.Bg).Border(1, k.Line).Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 0.18)).Label(i18n.T("Tasks and notifications"))
+			Label(i18n.T("Tasks and notifications"))
+		popoverShell(t, panel)
 		a.tasksPopover(c)
 	})
 }
@@ -126,29 +127,7 @@ func (a *app) bellTaskRow(c *ui.Context, cd actCard) {
 		if b.Hovered() {
 			b.Background(k.Hover)
 		}
-		b.Children(func() {
-			col := k.Text2
-			switch {
-			case cd.danger:
-				col = t.Danger
-			case cd.done:
-				col = t.Success
-			}
-			ui.Icon(c, cd.icon.Linear).Size(px(t, 16), px(t, 16)).TextColor(col).Shrink(0)
-			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 4)).Children(func() {
-				ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, cd.title).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
-					if cd.detail != "" {
-						ui.Text(c, cd.detail).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
-					}
-				})
-				if cd.frac > 0 && cd.frac <= 1 { // only real progress
-					ui.Box(c.Key("bar")).Height(px(t, 3)).Radius(px(t, 2)).Background(k.G[2]).Children(func() {
-						ui.Box(c).WidthPercent(float32(cd.frac) * 100).Height(px(t, 3)).Radius(px(t, 2)).Background(k.Accent)
-					})
-				}
-			})
-		})
+		b.Children(func() { taskCardFace(c, cd, true) })
 		if b.Clicked() && cd.open != nil {
 			a.noticesOpen = false
 			cd.open()

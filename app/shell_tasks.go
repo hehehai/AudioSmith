@@ -19,7 +19,6 @@ import (
 
 func (a *app) tasksPage(c *ui.Context) {
 	t := c.Theme()
-	k := tok(t)
 	active := a.activeJobs()
 	note := ""
 	if n := len(active); n > 0 {
@@ -45,37 +44,7 @@ func (a *app) tasksPage(c *ui.Context) {
 			}
 			settingGroup(c, i18n.N(len(active), "Running and waiting · %d", "Running and waiting · %d", len(active)), func() {
 				for _, j := range active {
-					settingBlock(c, "job-"+j.ID, func() {
-						ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-							ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 4)).Children(func() {
-								title := j.Title
-								if title == "" {
-									title = j.Kind
-								}
-								if p := a.dub; p != nil && j.Owner == services.DubOwner+p.ID && p.Source.URL != "" && p.Title != p.Source.URL {
-									title = strings.ReplaceAll(title, p.Source.URL, p.Title) // named before the video's title was known
-								}
-								truncText(c, title).FontSize(px(t, 13))
-								state := i18n.T("Waiting")
-								if j.State == jobs.StateRunning {
-									state = stageText(j.Progress.Stage)
-									if j.Progress.Fraction >= 0 {
-										state += fmt.Sprintf(" · %d%%", int(100*j.Progress.Fraction))
-									}
-									if j.Kind == services.KindDubFetch {
-										state = dubFetchStatus(j.Progress) // with the size and time left
-									}
-									if f := determinate(j); f > 0 {
-										ui.Progress(c, f).Label(title)
-									}
-								}
-								ui.Text(c, state).FontSize(px(t, 11)).TextColor(k.Text3)
-							})
-							if iconButton(c.Key("cancel"), icons.CloseCircle, i18n.T("Cancel")).Clicked() {
-								a.cancelJobByID(j)
-							}
-						})
-					})
+					a.taskJobRow(c, j)
 				}
 			})
 		})
@@ -93,27 +62,7 @@ func (a *app) taskCardRow(c *ui.Context, cd actCard) {
 			if b.Hovered() {
 				b.Background(k.Hover)
 			}
-			b.Children(func() {
-				col := k.Text2
-				switch {
-				case cd.danger:
-					col = t.Danger
-				case cd.done:
-					col = t.Success
-				}
-				ui.Icon(c, cd.icon.Linear).Size(px(t, 16), px(t, 16)).TextColor(col).Shrink(0)
-				ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 4)).Children(func() {
-					ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
-						truncText(c, cd.title).FontWeight(600).Grow(1)
-						if cd.detail != "" {
-							ui.Text(c, cd.detail).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
-						}
-					})
-					if cd.frac > 0 && cd.frac <= 1 { // as on the card: only real progress
-						ui.Progress(c, cd.frac).Label(cd.title)
-					}
-				})
-			})
+			b.Children(func() { taskCardFace(c, cd, false) })
 			if b.Clicked() && cd.open != nil {
 				cd.open()
 			}
@@ -122,6 +71,82 @@ func (a *app) taskCardRow(c *ui.Context, cd actCard) {
 					cd.action.run()
 				}
 			}
+		})
+	})
+}
+
+// taskJobRow is a running or waiting job as a row of the Tasks page:
+// its title, state and progress, and Cancel.
+func (a *app) taskJobRow(c *ui.Context, j jobs.Job) {
+	t := c.Theme()
+	k := tok(t)
+	settingBlock(c, "job-"+j.ID, func() {
+		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 4)).Children(func() {
+				title := j.Title
+				if title == "" {
+					title = j.Kind
+				}
+				if p := a.dub; p != nil && j.Owner == services.DubOwner+p.ID && p.Source.URL != "" && p.Title != p.Source.URL {
+					title = strings.ReplaceAll(title, p.Source.URL, p.Title) // named before the video's title was known
+				}
+				truncText(c, title).FontSize(px(t, 13))
+				state := i18n.T("Waiting")
+				if j.State == jobs.StateRunning {
+					state = stageText(j.Progress.Stage)
+					if j.Progress.Fraction >= 0 {
+						state += fmt.Sprintf(" · %d%%", int(100*j.Progress.Fraction))
+					}
+					if j.Kind == services.KindDubFetch {
+						state = dubFetchStatus(j.Progress) // with the size and time left
+					}
+					if f := determinate(j); f > 0 {
+						ui.Progress(c, f).Label(title)
+					}
+				}
+				ui.Text(c, state).FontSize(px(t, 11)).TextColor(k.Text3)
+			})
+			if iconButton(c.Key("cancel"), icons.CloseCircle, i18n.T("Cancel")).Clicked() {
+				a.cancelJobByID(j)
+			}
+		})
+	})
+}
+
+// taskCardFace is the inside of an activity card's row (Tasks page, the
+// bell's popover): the icon in the card's state colour, the title and its
+// detail, real progress only. compact is the bell's: no tooltip, a thin
+// bar.
+func taskCardFace(c *ui.Context, cd actCard, compact bool) {
+	t := c.Theme()
+	k := tok(t)
+	col := k.Text2
+	switch {
+	case cd.danger:
+		col = t.Danger
+	case cd.done:
+		col = t.Success
+	}
+	ui.Icon(c, cd.icon.Linear).Size(px(t, 16), px(t, 16)).TextColor(col).Shrink(0)
+	ui.Column(c).Grow(1).MinWidth(0).Gap(px(t, 4)).Children(func() {
+		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
+			title := ui.Text(c, cd.title).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
+			if !compact {
+				title.Tooltip(cd.title)
+			}
+			if cd.detail != "" {
+				ui.Text(c, cd.detail).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(0)
+			}
+		})
+		if cd.frac <= 0 || cd.frac > 1 {
+			return
+		}
+		if !compact {
+			ui.Progress(c, cd.frac).Label(cd.title)
+			return
+		}
+		ui.Box(c.Key("bar")).Height(px(t, 3)).Radius(px(t, 2)).Background(k.G[2]).Children(func() {
+			ui.Box(c).WidthPercent(float32(cd.frac) * 100).Height(px(t, 3)).Radius(px(t, 2)).Background(k.Accent)
 		})
 	})
 }
