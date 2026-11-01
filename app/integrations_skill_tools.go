@@ -108,7 +108,7 @@ func skillTools() []skillTool {
 			arg(i18n.T("wav (default), or m4b to make an M4B audiobook with chapters and cover as well."), "format"),
 		}, After: i18n.T("Returns the project: project_id, chapters, cast, problems (blocking ones stop a render) and the estimated length. It is saved in Projects and opens on the Audiobook page.")},
 		{Name: "create_story", Lead: i18n.T("a Stories project (several voices) from a script, a file or lines."), Args: []skillArg{
-			arg(i18n.T("The script: lines like %s go to that character, as Auto-cast does; %s lines start chapters.", "`Alice: Good morning.`", "`# Title`"), "text"),
+			arg(i18n.T("The script, one line per line: lines like %s go to that character, as Auto-cast does, lines without a name to the narrator; %s lines start chapters.", "`Alice: Good morning.`", "`# Title`"), "text"),
 			arg(i18n.T("Or a file to import (TXT, Markdown, EPUB, DOCX, SRT, VTT)."), "path"),
 			arg(i18n.T("Or the lines as data: objects with text, speaker, voice, speed, pause_after_ms, chapter."), "lines"),
 			arg(i18n.T("How text becomes lines: speakers (default), paragraphs, sentences or chapters."), "split"),

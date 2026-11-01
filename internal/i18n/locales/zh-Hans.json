@@ -2857,7 +2857,7 @@
   "The script has nothing to say.": "脚本里没有要朗读的内容。",
   "The script has nothing to say: only markup.": "脚本里只有标记，没有要朗读的内容。",
   "The script, as a text file (.txt)": "文稿，存为文本文件（.txt）",
-  "The script: lines like %s go to that character, as Auto-cast does; %s lines start chapters.": "剧本：像 %s 这样的行归给那个角色，与“自动选角”相同；%s 行开始一章。",
+  "The script, one line per line: lines like %s go to that character, as Auto-cast does, lines without a name to the narrator; %s lines start chapters.": "剧本，一行一句：像 %s 这样的行归那个角色（与“自动选角”相同），没有名字的行归旁白；%s 行开始新的一章。",
   "The seed keeps the voice's identity while you change the details.": "修改细节时，种子能让音色保持同一个“人”。",
   "The selection already has a dialogue passage.": "选中的文字里已经有对话段了。",
   "The service's API key is kept in the Keychain as “mt.%s”.": "该服务的 API 密钥以“mt.%s”保存在钥匙串中。",

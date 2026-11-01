@@ -49,7 +49,7 @@ type AudiobookCreate struct {
 type StoryCreate struct {
 	Title    string            `json:"title,omitempty" jsonschema:"The story's title; empty: the file's."`
 	Path     string            `json:"path,omitempty" jsonschema:"Absolute path of a file to import: TXT, Markdown, EPUB, DOCX, SRT or VTT."`
-	Text     string            `json:"text,omitempty" jsonschema:"Or the script itself: lines like 'Name: what they say' go to that character; '# Title' lines start chapters."`
+	Text     string            `json:"text,omitempty" jsonschema:"Or the script itself, one line per line: lines like 'Name: what they say' go to that character, lines without a name to the narrator; '# Title' lines start chapters."`
 	Lines    []StoryLineIn     `json:"lines,omitempty" jsonschema:"Or the lines as data, in order."`
 	Split    string            `json:"split,omitempty" jsonschema:"How text becomes lines: speakers (default: as Auto-cast does), paragraphs, sentences or chapters."`
 	Model    string            `json:"model,omitempty" jsonschema:"A speech model id (list_models); empty: AudioSmith's default."`

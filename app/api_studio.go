@@ -238,7 +238,11 @@ func voiceRef(voices []core.Voice, e catalog.Entry, name, param string) (string,
 	}
 	if v != nil {
 		if ok, why := voiceUsable(v, e); !ok {
-			return "", apiErr(http.StatusBadRequest, api.CodeUnsupportedModel, param, "%s", why)
+			// The voice and the models that can speak it, so an agent
+			// switches model at once (Mac test #136: both agents cast a
+			// designed voice on a clone model first).
+			return "", apiErr(http.StatusBadRequest, api.CodeUnsupportedModel, param, "%s: %s Models that can speak it: %s.",
+				promptName(v.Name), why, strings.Join(modelsFor(v), ", "))
 		}
 		return v.ID, nil
 	}
@@ -430,4 +434,18 @@ func (b *apiBackend) skillEnv(ctx context.Context) promptEnv {
 	}
 	e := integEnv{Base: "http://127.0.0.1:" + strconv.Itoa(st.API.LoopbackPort()), Exe: appExecutable(), NeedKey: st.API.RequireKey}
 	return promptEnvFrom(e, st, voices, dir)
+}
+
+// modelsFor lists the speech models (ids) that can speak v.
+func modelsFor(v *core.Voice) []string {
+	var ids []string
+	for _, e := range catalog.Builtin().ForTask(catalog.TaskTTS) {
+		if ok, _ := voiceUsable(v, e); ok && !e.Hidden {
+			ids = append(ids, e.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return []string{"none"}
+	}
+	return ids
 }

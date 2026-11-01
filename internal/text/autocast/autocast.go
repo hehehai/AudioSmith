@@ -114,9 +114,14 @@ func Detect(src string, opt *Options) Result {
 	// Walk the lines. A speaker line starts a block that runs to the next
 	// speaker line, heading or blank line; other lines form narration
 	// blocks (split per line when the text has no blank lines, as
-	// text.Paras does), which go through quote detection.
+	// text.Paras does), which go through quote detection. A text without
+	// blank lines is one line per line for speakers too: a line after
+	// "Name: …" is narration (Mac test #136: an agent's script read the
+	// narrator's lines in the characters' voices); only a name alone on
+	// its line ("[Mara]") takes the lines under it.
 	lines, hasBlank := allLines(src)
 	var cur *Line
+	curBare := false // cur's name stood alone on its line
 	narr := text.Span{Start: -1}
 	flushNarr := func() {
 		if narr.Start >= 0 {
@@ -145,8 +150,11 @@ func Detect(src string, opt *Options) Result {
 			if l, ok := speakerLine(src, ln, extra); ok {
 				flushCur()
 				flushNarr()
-				cur = &l
+				cur, curBare = &l, l.Text == ""
 				continue
+			}
+			if cur != nil && !hasBlank && !curBare && !markupOnly(body) {
+				flushCur()
 			}
 			switch {
 			case cur != nil: // continuation of a speaker line
@@ -370,4 +378,21 @@ func cleanName(s string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+// markupOnly reports whether a line is only markup tags ("[pause 1s]"):
+// it stays with the speaker line above it.
+func markupOnly(line string) bool {
+	line = strings.TrimSpace(line)
+	for line != "" {
+		if line[0] != '[' {
+			return false
+		}
+		end := strings.IndexByte(line, ']')
+		if end < 0 {
+			return false
+		}
+		line = strings.TrimSpace(line[end+1:])
+	}
+	return true
 }
