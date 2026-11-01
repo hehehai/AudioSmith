@@ -146,107 +146,10 @@ func (a *app) exportDialog(c *ui.Context) {
 	ef := f.fmt_()
 	sub := kindLabel(&f.take) + " · " + fileDetails(&f.take)
 	dialogFrame(c, "export-dialog", &f.open, i18n.T("Export audio"), sub, px(t, 560), func() {
-		sectionTitle(c, i18n.T("Audio"))
-		formRow(c, "ex-format", i18n.T("Format"), "", func() {
-			labels := make([]string, len(exportFormats))
-			off := make([]bool, len(exportFormats))
-			tips := make([]string, len(exportFormats))
-			for i, x := range exportFormats {
-				labels[i], off[i] = x.label, !f.availOK[x.id]
-				if off[i] {
-					tips[i] = f.availWhy[x.id]
-				}
-			}
-			segmentedSome(c.Key("ex-format-seg"), &f.format, labels, off, tips).Label(i18n.T("Format"))
-			if slices.Contains(off, true) {
-				infoTip(c.Key("ex-format-why"), exportMissing(f))
-			}
-		})
-		formRow(c, "ex-loud", i18n.T("Loudness"), i18n.T("Brings the whole file to a loudness target, with peaks held under a ceiling (−1.5 dBTP for podcasts, −1 dBTP otherwise). −16 LUFS suits podcasts and streaming, −23 LUFS broadcast (EBU R128)."), func() {
-			opts := make([]string, len(exportLoudness))
-			for i, key := range exportLoudness {
-				opts[i] = loudnessLabel(key)
-			}
-			if f.info != nil && f.info.Integrated > -70 {
-				caption(c, i18n.T("Now %s LUFS", signedDB(f.info.Integrated))).SingleLine()
-			}
-			ui.Select(c.Key("ex-loud-select"), &f.loud, opts).Label(i18n.T("Loudness")).Width(px(t, 200)).Shrink(1).MinWidth(px(t, 120))
-		})
-
-		sectionTitle(c, i18n.T("File"))
-		formRow(c, "ex-name", i18n.T("File name"), "", func() {
-			ui.TextInput(c.Key("ex-name-input"), &f.name).Label(i18n.T("File name")).Width(px(t, 220)).Shrink(1).MinWidth(px(t, 120))
-			ui.Text(c, "."+ef.ext).TextColor(k.Text2).SingleLine()
-		})
-		if ef.tags && f.kind.tags {
-			formRow(c, "ex-title", i18n.T("Title"), i18n.T("Written into the file, for players and libraries."), func() {
-				ui.TextInput(c.Key("ex-title-input"), &f.title).Label(i18n.T("Title")).Width(px(t, 240)).Shrink(1).MinWidth(px(t, 120))
-			})
-			formRow(c, "ex-artist", i18n.T("Artist"), "", func() {
-				ui.TextInput(c.Key("ex-artist-input"), &f.artist).Label(i18n.T("Artist")).Width(px(t, 240)).Shrink(1).MinWidth(px(t, 120))
-			})
-		}
-		if extras := f.extrasShown(); len(extras) > 0 {
-			sectionTitle(c, i18n.T("Also save"))
-			ui.Column(c.Key("ex-extras")).Gap(px(t, sp2)).Padding(px(t, 2), 0).Children(func() {
-				for _, x := range extras {
-					ui.Checkbox(c.Key("ex-extra-"+x), f.extras[x], extraLabel(x, ef.ext))
-				}
-			})
-		}
+		exportAudioRows(c, f)
+		exportFileRows(c, f, ef)
 		ui.Box(c).Height(px(t, sp1))
-		a.advancedSection(c, "export", f.changes(), false, f.restore, func() {
-			if len(ef.bits) > 0 {
-				formRow(c, "ex-bits", i18n.T("Bit depth"), i18n.T("16-bit plays everywhere; 24-bit keeps more headroom for editing; 32-bit float keeps the model's own samples."), func() {
-					labels := make([]string, len(ef.bits))
-					for i, b := range ef.bits {
-						labels[i] = bitsLabel(b)
-					}
-					segmentedFit(c.Key("ex-bits-"+ef.id), &f.bits[f.format], labels...).Label(i18n.T("Bit depth"))
-				})
-			}
-			if len(ef.bitrates) > 0 {
-				formRow(c, "ex-bitrate", i18n.T("Bitrate"), i18n.T("Higher keeps more detail and makes a larger file. Speech sounds clean from the lowest."), func() {
-					labels := make([]string, len(ef.bitrates))
-					for i, b := range ef.bitrates {
-						labels[i] = i18n.T("%d kb/s", b)
-					}
-					segmentedFit(c.Key("ex-bitrate-"+ef.id), &f.bitrate[f.format], labels...).Label(i18n.T("Bitrate"))
-				})
-			}
-			if ef.rates {
-				tip := i18n.T("Raising it does not add detail; choose 44.1 or 48 kHz when an app or a platform asks for it.")
-				if f.srcRate() < ef.minRate {
-					tip = i18n.T("%[1]s at %[2]s cannot hold these bitrates, so it is written at 44.1 or 48 kHz.", ef.label, khz(f.srcRate()))
-				}
-				formRow(c, "ex-rate", i18n.T("Sample rate"), tip, func() {
-					opts := f.rateOptions(ef)
-					labels := make([]string, len(opts))
-					for i, r := range opts {
-						if r == 0 {
-							labels[i] = i18n.X("audio", "Original (%s)", khz(f.srcRate()))
-						} else {
-							labels[i] = khz(r)
-						}
-					}
-					f.rate[f.format] = min(max(f.rate[f.format], 0), len(opts)-1)
-					segmentedFit(c.Key("ex-rate-"+ef.id), &f.rate[f.format], labels...).Label(i18n.T("Sample rate"))
-				})
-			}
-			formRow(c, "ex-channels", i18n.T("Channels"), i18n.T("Stereo puts the same voice in both channels, for players and editors that expect two."), func() {
-				orig, other := i18n.T("Original (mono)"), i18n.T("Stereo")
-				if f.srcChannels() > 1 {
-					orig, other = i18n.T("Original (stereo)"), i18n.T("Mono")
-				}
-				segmentedFit(c.Key("ex-ch-seg"), &f.channels, orig, other).Label(i18n.T("Channels"))
-			})
-			formRow(c, "ex-trim", i18n.T("Trim silence"), i18n.T("Cuts the silence before the first sound and after the last, keeping a short breath at each end."), func() {
-				if f.trim && f.info != nil && f.info.Seconds-f.info.Trimmed >= 0.05 {
-					caption(c, i18n.T("−%.1f s", f.info.Seconds-f.info.Trimmed)).SingleLine()
-				}
-				ui.Switch(c.Key("ex-trim-switch"), &f.trim).Label(i18n.T("Trim silence"))
-			})
-		})
+		a.advancedSection(c, "export", f.changes(), false, f.restore, func() { exportAdvancedRows(c, f, ef) })
 	}, func() {
 		size := humanBytes(f.estimate())
 		ui.Text(c, i18n.T("About %s · %s", size, i18n.T("%.1f s", f.seconds()))).FontSize(px(t, fsCaption)).TextColor(k.Text2).
@@ -257,6 +160,119 @@ func (a *app) exportDialog(c *ui.Context) {
 		if primaryButton(c.Key("ex-export"), i18n.T("Export")).Disabled(!f.availOK[ef.id]).Clicked() {
 			a.exportChoose(f)
 		}
+	})
+}
+
+// exportAudioRows are the format and the loudness.
+func exportAudioRows(c *ui.Context, f *exportForm) {
+	t := c.Theme()
+	sectionTitle(c, i18n.T("Audio"))
+	formRow(c, "ex-format", i18n.T("Format"), "", func() {
+		labels := make([]string, len(exportFormats))
+		off := make([]bool, len(exportFormats))
+		tips := make([]string, len(exportFormats))
+		for i, x := range exportFormats {
+			labels[i], off[i] = x.label, !f.availOK[x.id]
+			if off[i] {
+				tips[i] = f.availWhy[x.id]
+			}
+		}
+		segmentedSome(c.Key("ex-format-seg"), &f.format, labels, off, tips).Label(i18n.T("Format"))
+		if slices.Contains(off, true) {
+			infoTip(c.Key("ex-format-why"), exportMissing(f))
+		}
+	})
+	formRow(c, "ex-loud", i18n.T("Loudness"), i18n.T("Brings the whole file to a loudness target, with peaks held under a ceiling (−1.5 dBTP for podcasts, −1 dBTP otherwise). −16 LUFS suits podcasts and streaming, −23 LUFS broadcast (EBU R128)."), func() {
+		opts := make([]string, len(exportLoudness))
+		for i, key := range exportLoudness {
+			opts[i] = loudnessLabel(key)
+		}
+		if f.info != nil && f.info.Integrated > -70 {
+			caption(c, i18n.T("Now %s LUFS", signedDB(f.info.Integrated))).SingleLine()
+		}
+		ui.Select(c.Key("ex-loud-select"), &f.loud, opts).Label(i18n.T("Loudness")).Width(px(t, 200)).Shrink(1).MinWidth(px(t, 120))
+	})
+}
+
+// exportFileRows are the file name, the tags and what else to save.
+func exportFileRows(c *ui.Context, f *exportForm, ef exportFormat) {
+	t := c.Theme()
+	k := tok(t)
+	sectionTitle(c, i18n.T("File"))
+	formRow(c, "ex-name", i18n.T("File name"), "", func() {
+		ui.TextInput(c.Key("ex-name-input"), &f.name).Label(i18n.T("File name")).Width(px(t, 220)).Shrink(1).MinWidth(px(t, 120))
+		ui.Text(c, "."+ef.ext).TextColor(k.Text2).SingleLine()
+	})
+	if ef.tags && f.kind.tags {
+		formRow(c, "ex-title", i18n.T("Title"), i18n.T("Written into the file, for players and libraries."), func() {
+			ui.TextInput(c.Key("ex-title-input"), &f.title).Label(i18n.T("Title")).Width(px(t, 240)).Shrink(1).MinWidth(px(t, 120))
+		})
+		formRow(c, "ex-artist", i18n.T("Artist"), "", func() {
+			ui.TextInput(c.Key("ex-artist-input"), &f.artist).Label(i18n.T("Artist")).Width(px(t, 240)).Shrink(1).MinWidth(px(t, 120))
+		})
+	}
+	if extras := f.extrasShown(); len(extras) > 0 {
+		sectionTitle(c, i18n.T("Also save"))
+		ui.Column(c.Key("ex-extras")).Gap(px(t, sp2)).Padding(px(t, 2), 0).Children(func() {
+			for _, x := range extras {
+				ui.Checkbox(c.Key("ex-extra-"+x), f.extras[x], extraLabel(x, ef.ext))
+			}
+		})
+	}
+}
+
+// exportAdvancedRows are the format's bit depth, bitrate and sample rate,
+// the channels and trimming.
+func exportAdvancedRows(c *ui.Context, f *exportForm, ef exportFormat) {
+	if len(ef.bits) > 0 {
+		formRow(c, "ex-bits", i18n.T("Bit depth"), i18n.T("16-bit plays everywhere; 24-bit keeps more headroom for editing; 32-bit float keeps the model's own samples."), func() {
+			labels := make([]string, len(ef.bits))
+			for i, b := range ef.bits {
+				labels[i] = bitsLabel(b)
+			}
+			segmentedFit(c.Key("ex-bits-"+ef.id), &f.bits[f.format], labels...).Label(i18n.T("Bit depth"))
+		})
+	}
+	if len(ef.bitrates) > 0 {
+		formRow(c, "ex-bitrate", i18n.T("Bitrate"), i18n.T("Higher keeps more detail and makes a larger file. Speech sounds clean from the lowest."), func() {
+			labels := make([]string, len(ef.bitrates))
+			for i, b := range ef.bitrates {
+				labels[i] = i18n.T("%d kb/s", b)
+			}
+			segmentedFit(c.Key("ex-bitrate-"+ef.id), &f.bitrate[f.format], labels...).Label(i18n.T("Bitrate"))
+		})
+	}
+	if ef.rates {
+		tip := i18n.T("Raising it does not add detail; choose 44.1 or 48 kHz when an app or a platform asks for it.")
+		if f.srcRate() < ef.minRate {
+			tip = i18n.T("%[1]s at %[2]s cannot hold these bitrates, so it is written at 44.1 or 48 kHz.", ef.label, khz(f.srcRate()))
+		}
+		formRow(c, "ex-rate", i18n.T("Sample rate"), tip, func() {
+			opts := f.rateOptions(ef)
+			labels := make([]string, len(opts))
+			for i, r := range opts {
+				if r == 0 {
+					labels[i] = i18n.X("audio", "Original (%s)", khz(f.srcRate()))
+				} else {
+					labels[i] = khz(r)
+				}
+			}
+			f.rate[f.format] = min(max(f.rate[f.format], 0), len(opts)-1)
+			segmentedFit(c.Key("ex-rate-"+ef.id), &f.rate[f.format], labels...).Label(i18n.T("Sample rate"))
+		})
+	}
+	formRow(c, "ex-channels", i18n.T("Channels"), i18n.T("Stereo puts the same voice in both channels, for players and editors that expect two."), func() {
+		orig, other := i18n.T("Original (mono)"), i18n.T("Stereo")
+		if f.srcChannels() > 1 {
+			orig, other = i18n.T("Original (stereo)"), i18n.T("Mono")
+		}
+		segmentedFit(c.Key("ex-ch-seg"), &f.channels, orig, other).Label(i18n.T("Channels"))
+	})
+	formRow(c, "ex-trim", i18n.T("Trim silence"), i18n.T("Cuts the silence before the first sound and after the last, keeping a short breath at each end."), func() {
+		if f.trim && f.info != nil && f.info.Seconds-f.info.Trimmed >= 0.05 {
+			caption(c, i18n.T("−%.1f s", f.info.Seconds-f.info.Trimmed)).SingleLine()
+		}
+		ui.Switch(c.Key("ex-trim-switch"), &f.trim).Label(i18n.T("Trim silence"))
 	})
 }
 
