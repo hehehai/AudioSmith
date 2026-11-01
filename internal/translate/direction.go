@@ -366,12 +366,24 @@ func translateHint(emotions []string) string {
 // enHits finds English cues on word boundaries, longest first, and weighs
 // them by the modifiers just before them.
 func enHits(low string) []hit {
+	return cueHits(low, enCues, func(s, e int, _ string) (float64, bool) {
+		if !wordEdge(low, s, e) {
+			return 0, false
+		}
+		return enWeight(low[:s]), true
+	})
+}
+
+// cueHits finds the cues of cues in low, longest first, each span used
+// once; weigh gives a hit's weight from its span and keyword, or false to
+// skip the match.
+func cueHits(low string, cues map[string]cue, weigh func(s, e int, k string) (float64, bool)) []hit {
 	type kw struct {
 		k string
 		c cue
 	}
 	var kws []kw
-	for k, c := range enCues {
+	for k, c := range cues {
 		kws = append(kws, kw{k, c})
 	}
 	sort.Slice(kws, func(i, j int) bool {
@@ -390,13 +402,17 @@ func enHits(low string) []hit {
 			}
 			s, e := off+i, off+i+len(x.k)
 			off = e
-			if !wordEdge(low, s, e) || anyUsed(used, s, e) {
+			if anyUsed(used, s, e) {
+				continue
+			}
+			w, ok := weigh(s, e, x.k)
+			if !ok {
 				continue
 			}
 			for k := s; k < e; k++ {
 				used[k] = true
 			}
-			out = append(out, hit{c: x.c, weight: enWeight(low[:s]), pos: s})
+			out = append(out, hit{c: x.c, weight: w, pos: s})
 		}
 	}
 	return out
@@ -461,44 +477,13 @@ func enWeight(before string) float64 {
 // zhHits finds Chinese cues (substrings), longest first, weighing them by
 // the modifiers right before (and, for 一点/些, right after) them.
 func zhHits(low string) []hit {
-	type kw struct {
-		k string
-		c cue
-	}
-	var kws []kw
-	for k, c := range zhCues {
-		kws = append(kws, kw{k, c})
-	}
-	sort.Slice(kws, func(i, j int) bool {
-		if len(kws[i].k) != len(kws[j].k) {
-			return len(kws[i].k) > len(kws[j].k)
+	return cueHits(low, zhCues, func(s, e int, k string) (float64, bool) {
+		w := zhWeight(low[:s], low[e:])
+		if strings.HasSuffix(k, "点") || strings.HasSuffix(k, "些") {
+			w *= 0.5 // 快一点, 慢些: "a bit"
 		}
-		return kws[i].k < kws[j].k
+		return w, true
 	})
-	used := make([]bool, len(low))
-	var out []hit
-	for _, x := range kws {
-		for off := 0; ; {
-			i := strings.Index(low[off:], x.k)
-			if i < 0 {
-				break
-			}
-			s, e := off+i, off+i+len(x.k)
-			off = e
-			if anyUsed(used, s, e) {
-				continue
-			}
-			for k := s; k < e; k++ {
-				used[k] = true
-			}
-			w := zhWeight(low[:s], low[e:])
-			if strings.HasSuffix(x.k, "点") || strings.HasSuffix(x.k, "些") {
-				w *= 0.5 // 快一点, 慢些: "a bit"
-			}
-			out = append(out, hit{c: x.c, weight: w, pos: s})
-		}
-	}
-	return out
 }
 
 func zhWeight(before, after string) float64 {
