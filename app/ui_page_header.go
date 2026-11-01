@@ -107,7 +107,7 @@ func iconSide(t *ui.Theme) float32 {
 // room on each side, so the title's left edge and the header's last
 // control's right edge are the lines the body's content lines up on: a
 // section label, a card, a row's band (its content inset in it), a
-// field. sp6 each side; on the left also headerInset (the window controls
+// field. sp4 (16) each side; on the left also headerInset (the window controls
 // beside the icon rail). Bodies pad by gutterL and gutterR, and bodyTop
 // above; a column
 // docked at the page's left (Calls' recent calls, Workflows' rail, Batch's
@@ -135,10 +135,10 @@ func gutterRBeside(t *ui.Theme, w float32, inLane bool) float32 {
 }
 
 // gutterL is the page gutter on the left.
-func gutterL(t *ui.Theme) float32 { return px(t, sp6) + headerInset }
+func gutterL(t *ui.Theme) float32 { return px(t, sp4) + headerInset }
 
 // gutterR is the page gutter on the right.
-func gutterR(t *ui.Theme) float32 { return px(t, sp6) }
+func gutterR(t *ui.Theme) float32 { return px(t, sp4) } // 16 | 16 (user, 11-01: 24 was too wide)
 
 // headerInset is the room the headers leave on their left for the window
 // controls: set each frame by sidebarFrame, non-zero beside the icon rail.
