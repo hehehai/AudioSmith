@@ -12,7 +12,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -197,7 +196,7 @@ func (s *Server) deleteItem(ctx context.Context, req *sdk.CallToolRequest, in de
 		return nil, nil, err
 	}
 	if in.Confirm {
-		if err := askUser(ctx, req, fmt.Sprintf("AudioSmith: delete the %s %s? This cannot be undone.", strings.TrimSpace(in.Kind), strings.TrimSpace(in.ID))); err != nil {
+		if err := askUser(ctx, req, s.deletePrompt(ctx, strings.TrimSpace(in.Kind), strings.TrimSpace(in.ID))); err != nil {
 			return nil, nil, err
 		}
 	}

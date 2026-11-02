@@ -46,8 +46,9 @@ func askUser(ctx context.Context, req *sdk.CallToolRequest, message string) erro
 }
 
 // annotate gives each tool its hints: read only (list_, get_, check_…),
-// destructive (delete_item, cancel_job), going online (download_model,
-// create_dub with a link); the rest add to the library.
+// destructive (deleting, cancelling, overwriting), going online
+// (downloads, links, cloud translation and writing help); the rest add
+// to the library.
 func annotate(t *sdk.Tool) {
 	if t.Annotations != nil {
 		return
@@ -57,12 +58,18 @@ func annotate(t *sdk.Tool) {
 	switch t.Name {
 	case "probe_media", "detect_watermark", "direct_performance":
 		a.ReadOnlyHint = true
-	case "delete_item", "cancel_job":
-		a.DestructiveHint = &yes
-	case "download_model", "create_dub":
-		a.OpenWorldHint = &yes
 	default:
 		a.ReadOnlyHint = readOnlyTool(t.Name)
+	}
+	// Code review 11-02, N7: what overwrites (files of the same name, a
+	// script, a voice's profile) is destructive too, and what may reach a
+	// cloud model (translation, the writing help) goes online.
+	switch t.Name {
+	case "delete_item", "cancel_job", "export_audio", "export_dub", "export_longform", "export_transcript", "export_voice",
+		"update_longform", "edit_dub", "update_voice":
+		a.DestructiveHint = &yes
+	case "download_model", "create_dub", "run_dub", "batch_dub", "write_story", "check_line_fit":
+		a.OpenWorldHint = &yes
 	}
 	if a.ReadOnlyHint {
 		a.IdempotentHint = true

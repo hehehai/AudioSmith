@@ -16,6 +16,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/hehehai/AudioSmith/internal/api"
 )
 
 // HeaderTransport tells the server how a client reaches it: the stdio
@@ -41,6 +43,7 @@ type sessions struct {
 	m         map[string]*session
 	connected bool
 	onChange  func(bool)
+	timer     bool // a recheck is scheduled
 }
 
 func newSessions() *sessions {
@@ -51,22 +54,17 @@ func newSessions() *sessions {
 	}
 }
 
-func (t *sessions) get(id string) *session {
-	s := t.m[id]
-	if s == nil {
-		s = &session{last: t.now()}
-		t.m[id] = s
-	}
-	return s
-}
-
 // opened marks a session open (the SDK's InitializedHandler).
 func (t *sessions) opened(id string) {
 	if id == "" {
 		return
 	}
 	t.mu.Lock()
-	s := t.get(id)
+	s := t.m[id]
+	if s == nil {
+		s = &session{}
+		t.m[id] = s
+	}
 	s.open, s.last = true, t.now()
 	t.changedLocked()
 }
@@ -78,14 +76,23 @@ func (t *sessions) closed(id string) {
 	t.changedLocked()
 }
 
-// begin and end bracket one HTTP request of a session.
-func (t *sessions) begin(id string, stdio bool) {
+// begin and end bracket one HTTP request of a session. Only sessions the
+// SDK opened are tracked: ids it never gave out (a client's made-up
+// Mcp-Session-Id, which the SDK answers with 404) leave nothing behind
+// (code review 11-02, N6). begin reports whether it counted the request;
+// end only ends counted ones.
+func (t *sessions) begin(id string, stdio bool) bool {
 	t.mu.Lock()
-	s := t.get(id)
+	s := t.m[id]
+	if s == nil {
+		t.mu.Unlock()
+		return false
+	}
 	s.inflight++
 	s.last = t.now()
 	s.stdio = s.stdio || stdio
 	t.changedLocked()
+	return true
 }
 
 func (t *sessions) end(id string) {
@@ -94,15 +101,52 @@ func (t *sessions) end(id string) {
 		s.inflight = max(0, s.inflight-1)
 		s.last = t.now()
 		if s.inflight == 0 && !s.stdio {
-			t.after(IdleAfter+time.Second, t.recheck)
+			t.scheduleLocked(IdleAfter + time.Second)
 		}
 	}
 	t.changedLocked()
 }
 
-// recheck notices sessions gone idle.
+// seen marks a request that was not counted (its session opened during
+// it: the initialized notification) as the session's latest, with its
+// transport.
+func (t *sessions) seen(id string, stdio bool) {
+	t.mu.Lock()
+	if s := t.m[id]; s != nil {
+		s.last = t.now()
+		s.stdio = s.stdio || stdio
+		if !s.stdio {
+			t.scheduleLocked(IdleAfter + time.Second)
+		}
+	}
+	t.changedLocked()
+}
+
+// scheduleLocked schedules one recheck in d unless one is pending.
+func (t *sessions) scheduleLocked(d time.Duration) {
+	if t.timer {
+		return
+	}
+	t.timer = true
+	t.after(d, t.recheck)
+}
+
+// recheck notices sessions gone idle, and schedules itself again while a
+// session counts only for its recent request.
 func (t *sessions) recheck() {
 	t.mu.Lock()
+	t.timer = false
+	now, next := t.now(), time.Duration(-1)
+	for _, s := range t.m {
+		if s.open && !s.stdio && s.inflight == 0 {
+			if left := IdleAfter - now.Sub(s.last); left > 0 && (next < 0 || left < next) {
+				next = left
+			}
+		}
+	}
+	if next > 0 {
+		t.scheduleLocked(next + time.Second)
+	}
 	t.changedLocked()
 }
 
@@ -151,7 +195,14 @@ func (t *sessions) wrap(h http.Handler) http.Handler {
 			h.ServeHTTP(w, r) // initialize: the session opens with initialized
 			return
 		}
-		t.begin(id, r.Header.Get(HeaderTransport) == "stdio")
+		// Only a client on this Mac can be the stdio shim: a LAN client
+		// claiming it would keep the menu bar's dot lit.
+		stdio := r.Header.Get(HeaderTransport) == "stdio" && r.Header.Get(api.HeaderVia) == api.ViaLoopback
+		if !t.begin(id, stdio) {
+			h.ServeHTTP(w, r)
+			t.seen(id, stdio)
+			return
+		}
 		defer t.end(id)
 		h.ServeHTTP(w, r)
 	})
