@@ -138,7 +138,7 @@ type listener struct {
 
 func (s *Server) serve(ln net.Listener, h http.Handler) *listener {
 	l := &listener{ln: ln, port: ln.Addr().(*net.TCPAddr).Port, done: make(chan struct{}),
-		srv: &http.Server{Handler: h, ReadHeaderTimeout: 15 * time.Second, IdleTimeout: 2 * time.Minute,
+		srv: &http.Server{Handler: h, ReadHeaderTimeout: 15 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 64 << 10,
 			ErrorLog: log.New(logWriter(s.o.Logf), "api: ", 0)}}
 	go func() {
 		defer close(l.done)
@@ -228,8 +228,9 @@ func isAddrInUse(err error) bool { return errors.Is(err, syscall.EADDRINUSE) }
 type shareState struct {
 	PIN   string
 	Port  int
-	Hosts []string // IPs and names the LAN listener answers to
-	URLs  []string // http://<ip>:<port>
+	Hosts []string     // IPs and names the LAN listener answers to
+	URLs  []string     // http://<ip>:<port>
+	fails atomic.Int32 // wrong PINs or keys from any address (maxPINFails)
 }
 
 // Share describes LAN sharing for the UI.
@@ -295,13 +296,14 @@ func (s *Server) Sharing() (Share, bool) {
 	return Share{PIN: st.PIN, Port: st.Port, URLs: st.URLs}, true
 }
 
-// newPIN is a random 6-digit PIN.
+// newPIN is a random 8-digit PIN (code review 11-02, L1: 6 digits were
+// within reach of guessing from many addresses).
 func newPIN() string {
-	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	n, err := rand.Int(rand.Reader, big.NewInt(100_000_000))
 	if err != nil {
 		panic(err)
 	}
-	return fmt.Sprintf("%06d", n.Int64())
+	return fmt.Sprintf("%08d", n.Int64())
 }
 
 // lanAddresses are the machine's private IPv4 addresses on interfaces

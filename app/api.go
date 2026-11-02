@@ -142,6 +142,11 @@ func (a *app) applyAPI() {
 		if err == nil {
 			err = api.WritePortFile(pf, api.PortFile{URL: "http://127.0.0.1:" + strconv.Itoa(port), Port: port,
 				PID: os.Getpid(), Version: version, Started: time.Now()})
+		} else {
+			// Not listening (another program may hold the port): no port
+			// file may send the stdio shim or scripts there (code review
+			// 11-02, N5).
+			os.Remove(pf)
 		}
 		a.post(func() {
 			if a.prefs.API.LoopbackPort() != port || !a.prefs.API.Enabled {

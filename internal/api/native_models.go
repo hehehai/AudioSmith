@@ -254,6 +254,14 @@ func (s *Server) toolRateFit(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	// The rewrite asks the writing help, which may be a cloud model on the
+	// user's account: not for LAN clients with the PIN only (code review
+	// 11-02, N3); the prediction stays open to them.
+	if b.Rewrite && r.Header.Get(HeaderVia) == ViaLAN {
+		writeError(w, &Error{Status: http.StatusForbidden, Code: CodeUnauthorized,
+			Message: "rewrite uses the user's writing help: send the API key (without rewrite the fit is predicted)."})
+		return
+	}
 	res, err := s.Fit(r.Context(), b)
 	writeResult(w, http.StatusOK, res, err)
 }

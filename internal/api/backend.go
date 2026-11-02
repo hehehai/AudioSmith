@@ -16,7 +16,7 @@
 // Origin are checked (DNS rebinding, browsers); state-changing /api routes
 // need a CSRF header; an API key (Bearer) is optional on loopback and
 // required by the "Require a key" setting; LAN sharing opens a second
-// listener whose clients need a one-time 6-digit PIN (consumption routes)
+// listener whose clients need a one-time 8-digit PIN (consumption routes)
 // or the key.
 //
 // The app (package main, api*.go) implements Backend over its library and
