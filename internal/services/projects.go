@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +25,7 @@ type Library struct {
 	store    store.Store
 	bus      *core.Bus
 	now      func() time.Time
+	dataDir  string
 	// docMu serializes the read-modify-writes of documents (SaveDocIf,
 	// UpdateDoc, Rename): two of them never lose each other's change.
 	docMu sync.Mutex
@@ -35,7 +37,11 @@ type Library struct {
 var ErrChanged = fmt.Errorf("the project was changed elsewhere since it was read: %w", core.ErrBusy)
 
 func newLibrary(cfg Config, p *Projects) *Library {
-	return &Library{projects: p, store: cfg.Store, bus: cfg.Bus, now: cfg.Now}
+	l := &Library{projects: p, store: cfg.Store, bus: cfg.Bus, now: cfg.Now, dataDir: cfg.DataDir}
+	if l.dataDir == "" {
+		l.dataDir = filepath.Dir(cfg.Store.Takes().AudioDir())
+	}
+	return l
 }
 
 // ProjectSummary is what the library shows of a project without reading
@@ -270,7 +276,9 @@ func (l *Library) Exports(ctx context.Context, search string, limit int) ([]core
 	return l.store.Exports().List(ctx, search, limit)
 }
 
-// DeleteExport deletes an export record; the file stays.
+// DeleteExport deletes an export record; the file stays, unless it is a
+// sample's copy in the data folder (<data>/samples/<id>/, code review
+// 1102 L1): only the app made it.
 func (l *Library) DeleteExport(ctx context.Context, id string) error {
 	e, err := l.store.Exports().Get(ctx, id)
 	if err != nil {
@@ -278,6 +286,11 @@ func (l *Library) DeleteExport(ctx context.Context, id string) error {
 	}
 	if err := l.store.Exports().Delete(ctx, id); err != nil {
 		return err
+	}
+	root := filepath.Join(l.dataDir, "samples")
+	if rel, err := filepath.Rel(root, filepath.Dir(e.Path)); err == nil && rel != "." && !strings.HasPrefix(rel, "..") &&
+		!strings.Contains(rel, string(filepath.Separator)) {
+		os.RemoveAll(filepath.Dir(e.Path))
 	}
 	l.bus.Publish(core.ExportChanged{Export: e, Deleted: true})
 	return nil

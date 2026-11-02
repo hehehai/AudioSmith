@@ -195,8 +195,10 @@ type renderer struct {
 	// (longformChunkDir); "" = the cache folder (tests).
 	dataDir   string
 	chunksDir sync.Once // the longform chunks moved out of the cache folder
-	bus       *core.Bus
-	logf      func(string, ...any)
+	// pruneChunksMu: one pruning of the longform chunks at a time.
+	pruneChunksMu sync.Mutex
+	bus           *core.Bus
+	logf          func(string, ...any)
 	// cacheMax caps the chunk cache, in bytes.
 	cacheMax int64
 	// pruneAt is when pruneCache last walked the cache.

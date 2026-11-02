@@ -71,6 +71,7 @@ func main() {
 		a.startAPI(dataDir)    // M5: api.go — the Local API and MCP (thread #20)
 		a.connectDictation()   // M2: dictation.go (shortcut, menu bar icon, close to tray)
 		a.startFamily(dataDir) // family_app.go: manifest and claims, in the background
+		a.startSweeps()        // storage_clean.go: disk space nothing needs (code review 1102)
 		mygo.App.OnSecondInstance(func([]string, string) { a.post(a.showMainWindow) })
 	})
 	// The engines stop on OnWillQuit (enginelink.go), so the scheduler

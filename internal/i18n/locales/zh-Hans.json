@@ -1467,7 +1467,7 @@
   "Item %d": "第 %d 项",
   "Its MCP server (Streamable HTTP): %s. Name the server %s.": "它的 MCP 服务器（Streamable HTTP）：%s。服务器名称用 %s。",
   "Its files leave the model folder. You can download it again.": "它的文件将从模型文件夹中删除。之后可以重新下载。",
-  "Its finished renders and exported files are kept.": "已完成的渲染和导出的文件会保留。",
+  "Its finished renders and exported files are kept; its unfinished renders are deleted.": "已完成的渲染和导出的文件会保留；未完成的渲染会一并删除。",
   "Its id.": "它的 id。",
   "Its identity: another seed gives another voice from the same description.": "音色的身份：同一描述换个 seed 就是另一个声音。",
   "Its language (BCP-47); a model that designs voices (empty: the first); how many candidates, 1–3 (default 3).": "它的语言（BCP-47）；能设计音色的模型（留空：第一个）；候选数量，1–3（默认 3）。",
@@ -4028,5 +4028,14 @@
   "%s (stop the render first)": "%s（请先停止渲染）",
   "Discard this draft?": "丢弃这份草稿？",
   "It was never saved: its text is gone for good. Its finished renders are kept.": "它从未保存过：文本将永久丢失。已完成的渲染会保留。",
-  "Discard": "丢弃"
+  "Discard": "丢弃",
+  "A dub frees its working files (the decoded audio, the separated stems) a week after its last export; they are made again when needed.": "配音最后一次导出一周后，会自动释放它的工作文件（解码出的音频、分离出的人声和背景）；需要时会重新生成。",
+  "Agent files": "智能体文件",
+  "Audiobook chunk cache": "有声书分段缓存",
+  "Could not clear: %v": "无法清除：%v",
+  "Could not decode the source again: %v": "无法重新解码源文件：%v",
+  "Its working files were freed to save space: they are made again when needed.": "为节省空间，它的工作文件已释放；需要时会重新生成。",
+  "The separated stems were freed to save space: generate the dub again to make them.": "为节省空间，分离出的人声和背景已释放：重新生成配音即可恢复。",
+  "The working files are being made again: try again in a moment.": "正在重新生成工作文件，请稍后再试。",
+  "The working files were freed to save space: decoding the source again.": "为节省空间，工作文件已释放：正在重新解码源文件。"
 }

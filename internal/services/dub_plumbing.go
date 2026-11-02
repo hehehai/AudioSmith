@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/dub"
@@ -78,6 +79,9 @@ func (s *Dubs) stage(st dub.Stage, fn stageFunc) jobs.Executor {
 				p.SetStage(st, params.Lang, state)
 				if state.Status == dub.StatusDone || state.Status == dub.StatusSkipped {
 					s.endRun(p)
+					if !p.Freed.IsZero() && !s.WorkGone(p) {
+						p.Freed = time.Time{} // made again (dub_free.go)
+					}
 				}
 				return nil
 			})
@@ -117,6 +121,10 @@ func (s *Dubs) endRun(p *dub.Project) {
 	}
 	through := p.Run.Through
 	switch through {
+	case dub.StageIngest:
+		if st := p.Stage(dub.StageIngest, "").Status; st != dub.StatusDone {
+			return
+		}
 	case dub.StageReferences:
 		if p.Stage(dub.StageReferences, "").Status != dub.StatusDone && p.Stage(dub.StageReferences, "").Status != dub.StatusSkipped {
 			return

@@ -140,6 +140,7 @@ func (s *Dubs) Export(ctx context.Context, req ExportRequest, progress func(floa
 		return ExportResult{}, err
 	}
 	progress(1)
+	s.noteExport(ctx, p.ID) // its working files go a while after (dub_free.go)
 	res := ExportResult{Output: req.Output, Format: req.Format}
 	if fi, err := os.Stat(req.Output); err == nil {
 		res.Bytes = fi.Size()
@@ -245,6 +246,9 @@ func (x *dubExport) stems() error {
 	t, err := x.track(lang)
 	if err != nil {
 		return err
+	}
+	if s.stemsGone(p) {
+		return &jobs.Error{Code: DubCodeFreed, Message: "The separated stems were freed to save space: generate the dub again to make them."}
 	}
 	entries := []dub.ZipEntry{{Name: dub.SafeName(lang) + "_speech.wav", Path: s.Path(p.ID, t.Speech)}}
 	if p.Media.Background != "" {

@@ -163,6 +163,7 @@ func (a *app) cloneClip(c *ui.Context) {
 			if ghostButton(c.Key("clone-change"), i18n.T("Change clip")).Clicked() {
 				a.pl.Stop()
 				s.gen++
+				a.dropCloneWork(s.work, s.original)
 				s.work, s.original, s.peaks, s.err, s.busy = "", "", nil, "", ""
 			}
 		})

@@ -107,6 +107,9 @@ type IsolationsConfig struct {
 type Isolations struct {
 	cfg IsolationsConfig
 	mu  sync.Mutex // serializes read-modify-write of one isolation
+	// deleteWait bounds how long Delete waits for a cancelled job to end
+	// (0 = 15 s).
+	deleteWait time.Duration
 }
 
 // NewIsolations builds the service and registers its executor.
@@ -257,7 +260,11 @@ func (s *Isolations) Get(_ context.Context, id string) (Isolation, error) {
 	return iso, nil
 }
 
-// Delete cancels isolation id's job and removes its folder.
+// Delete cancels isolation id's job, waits for it to end, and removes
+// its folder. A job still running after the wait (one that does not heed
+// its cancel) makes it ErrBusy: removing the folder under it would leave
+// a stray one behind when the engine writes its stems (code review 1102
+// M5, as Dubs.Delete since #101 M3).
 func (s *Isolations) Delete(ctx context.Context, id string) error {
 	iso, err := s.Get(ctx, id)
 	if err != nil {
@@ -269,6 +276,10 @@ func (s *Isolations) Delete(ctx context.Context, id string) error {
 				s.cfg.Scheduler.Cancel(ctx, j.ID)
 			}
 		}
+		if err := s.awaitStopped(ctx, id); err != nil {
+			logDelete(ctx, "isolation", id, iso.Title, err)
+			return err
+		}
 	}
 	s.mu.Lock()
 	err = os.RemoveAll(s.Dir(id))
@@ -279,6 +290,63 @@ func (s *Isolations) Delete(ctx context.Context, id string) error {
 	}
 	s.cfg.Bus.Publish(IsolationChanged{Isolation: iso, Deleted: true})
 	return nil
+}
+
+// awaitStopped waits, at most deleteWait, until isolation id's job is
+// no longer waiting, queued or running.
+func (s *Isolations) awaitStopped(ctx context.Context, id string) error {
+	limit := s.deleteWait
+	if limit == 0 {
+		limit = 15 * time.Second
+	}
+	deadline := time.Now().Add(limit)
+	for {
+		active, err := s.cfg.Scheduler.List(ctx, jobs.Filter{Owner: IsolateOwner + id, States: activeStates})
+		if err != nil {
+			return err
+		}
+		if len(active) == 0 {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("isolation %s is still stopping, try again in a moment: %w", id, core.ErrBusy)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+}
+
+// Sweep removes, once no isolation job runs, the folders without an
+// isolation.json (a Delete that raced a late write, before the wait)
+// and the decoded inputs of isolations that did not finish; it returns
+// how many it removed. Call it at startup.
+func (s *Isolations) Sweep(ctx context.Context) int {
+	if s.cfg.Scheduler != nil {
+		if l, err := s.cfg.Scheduler.List(ctx, jobs.Filter{Kind: KindIsolate, States: activeStates}); err != nil || len(l) > 0 {
+			return 0
+		}
+	}
+	ents, _ := os.ReadDir(s.cfg.Dir)
+	n := 0
+	for _, e := range ents {
+		if !e.IsDir() {
+			continue
+		}
+		dir := filepath.Join(s.cfg.Dir, e.Name())
+		if _, err := os.Stat(filepath.Join(dir, IsolateMeta)); os.IsNotExist(err) {
+			if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > time.Hour && os.RemoveAll(dir) == nil {
+				n++
+			}
+			continue
+		}
+		if os.Remove(filepath.Join(dir, IsolateAudio)) == nil {
+			n++
+		}
+	}
+	return n
 }
 
 // write saves iso's isolation.json through a temporary file.
@@ -323,6 +391,9 @@ func (s *Isolations) Executor() jobs.Executor {
 		}
 		iso, err := s.run(ctx, job, p.ID, report)
 		if err != nil {
+			// The decoded input is made again by a retry; kept, it is
+			// as big as the stems (code review 1102 M5).
+			os.Remove(s.Path(p.ID, IsolateAudio))
 			if _, gone := s.Get(context.WithoutCancel(ctx), p.ID); gone == nil {
 				msg, c := err.Error(), code(err)
 				state := IsolateFailed

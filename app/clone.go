@@ -99,6 +99,7 @@ func (a *app) startClone(replaceFor string) {
 func (a *app) resetClone(replaceFor string) {
 	devices, loaded, mic := a.clone.devices, a.clone.devicesLoaded, a.clone.mic
 	a.micCancel(&a.clone.mic)
+	a.dropCloneWork(a.clone.work, a.clone.original) // clone_sweep.go
 	a.clone = cloneState{replaceFor: replaceFor, gen: a.clone.gen + 1, devices: devices, devicesLoaded: loaded,
 		mic: micState{device: mic.device, channels: mic.channels}}
 	if v := a.findVoice(replaceFor); v != nil {
@@ -154,6 +155,7 @@ func (a *app) cloneLoad(src, name string, recorded bool) {
 	s.gen++
 	gen := s.gen
 	s.busy, s.err, s.srcName = i18n.T("Reading the clip…"), "", name
+	a.dropCloneWork(s.work, s.original) // the clip it replaces (clone_sweep.go)
 	s.work, s.original, s.peaks, s.speech, s.cleaned, s.cleanErr = "", "", nil, nil, false, ""
 	s.check, s.checkKey, s.noisy, s.tidy = nil, "", false, true
 	s.asr, s.asrErr = "", ""
@@ -256,6 +258,7 @@ func (a *app) cloneUndoClean() {
 	if !s.cleaned || s.original == "" {
 		return
 	}
+	a.dropCloneWork(s.work) // the cleaned copy
 	s.work, s.original, s.cleaned = s.original, "", false
 	path, gen := s.work, s.gen
 	a.background(func() {

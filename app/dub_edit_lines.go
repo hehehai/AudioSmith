@@ -187,7 +187,7 @@ func (a *app) dubMirror() {
 		return
 	}
 	name := p.Media.Vocals
-	if name == "" {
+	if name == "" || !fileExists(a.dubSvc.Path(p.ID, name)) { // the voices freed: the audio
 		name = p.Media.Audio
 	}
 	if name == "" {
@@ -195,6 +195,10 @@ func (a *app) dubMirror() {
 		return
 	}
 	path := a.dubSvc.Path(p.ID, name)
+	if !fileExists(path) { // freed (dub_freed.go)
+		a.dubRebuild()
+		return
+	}
 	q := p.Clone()
 	a.background(func() {
 		b, err := readWAVMono(path)

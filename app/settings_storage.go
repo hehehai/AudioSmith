@@ -118,12 +118,14 @@ func dataCategories() []storageCat {
 		{id: "voices", title: i18n.T("Voices"), dir: "voices"},
 		{id: "references", title: i18n.T("Unsaved voice clips"), dir: "references"},
 		{id: "renders", title: i18n.T("Stories and audiobooks"), dir: "renders"},
+		{id: "chunks", title: i18n.T("Audiobook chunk cache"), dir: "longform-chunks"},
 		{id: "covers", title: i18n.T("Covers"), dir: "covers"},
 		{id: "dubs", title: i18n.T("Dubs"), dir: "dubs"},
 		{id: "transcripts", title: i18n.T("Transcripts"), dir: "transcripts"},
 		{id: "dictation", title: i18n.T("Dictation recordings"), dir: "dictation"},
 		{id: "workflows", title: i18n.T("Workflows"), dir: "workflows"},
 		{id: "tools", title: i18n.T("Tools (ffmpeg, yt-dlp)"), dir: "tools"},
+		{id: "agents", title: i18n.T("Agent files"), dir: "mcp"},
 	}
 }
 
@@ -159,7 +161,7 @@ func (a *app) loadStorage() {
 		r.cats = append(r.cats, storageCat{id: "database", title: i18n.T("Library database"), bytes: db})
 		r.data, _ = treeSize(ctx, data, nil)
 		r.cats = append(r.cats, storageCat{id: "other", title: i18n.T("Other"), bytes: max(r.data-known-db, 0), dir: data})
-		cb, _ := treeSize(ctx, cache, nil)
+		cb := cacheBytes(ctx, cache) // storage_clean.go
 		r.cats = append(r.cats, storageCat{id: "caches", title: i18n.T("Caches"), bytes: cb, dir: cache})
 		if logs != "" {
 			lb, _ := treeSize(ctx, logs, nil)
@@ -190,30 +192,6 @@ func (a *app) loadStorage() {
 		r.free, r.freeModel = diskFree(data), diskFree(models)
 		a.measureFamily(r, models) // storage_family.go
 		a.post(func() { a.stReport, a.stLoading = r, false })
-	})
-}
-
-// cacheParts are the caches Clear removes (all rebuilt when needed).
-var cacheParts = []string{"peaks", "chunks", filepath.Join("longform", "chunks"), "auditions", "voice-previews", "ffmpeg"}
-
-// clearCaches empties the caches; work in progress may use them, so it
-// waits until no job runs.
-func (a *app) clearCaches() {
-	dir := a.cacheDir()
-	a.background(func() {
-		var freed int64
-		for _, p := range cacheParts {
-			d := filepath.Join(dir, p)
-			n, _ := treeSize(context.Background(), d, nil)
-			if os.RemoveAll(d) == nil {
-				freed += n
-			}
-		}
-		a.post(func() {
-			a.toast(i18n.T("Freed %s", humanBytes(freed)))
-			a.stReport = nil
-			a.loadStorage()
-		})
 	})
 }
 
@@ -397,22 +375,14 @@ func (a *app) stRoomGroup(c *ui.Context, r *storageReport) {
 					ui.Text(c, cat.title)
 					ui.Text(c, humanBytes(cat.bytes)).TextColor(t.TextMuted).TextAlign(ui.End)
 					ui.Row(c.Key("cat-" + cat.id)).Children(func() {
-						if cat.id == "caches" {
-							busy := len(a.activeJobs()) > 0
-							b := ui.Button(c.Key("st-clear"), i18n.T("Clear")).Disabled(busy || cat.bytes == 0)
-							if busy {
-								b.Tooltip(i18n.T("Wait for the jobs in progress"))
-							}
-							if b.Clicked() {
-								a.clearCaches()
-							}
-							return
+						if !a.stClearButton(c, cat) { // storage_clean.go
+							a.stOpen(c, "open", cat.dir)
 						}
-						a.stOpen(c, "open", cat.dir)
 					})
 				}
 			})
 			stMuted(c, i18n.T("Caches are rebuilt when needed: waveforms, rendered chunks, voice previews."))
+			stMuted(c, i18n.T("A dub frees its working files (the decoded audio, the separated stems) a week after its last export; they are made again when needed."))
 		}
 	})
 }

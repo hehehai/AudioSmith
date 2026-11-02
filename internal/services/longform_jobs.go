@@ -220,11 +220,16 @@ func (s *Longform) apply(j jobs.Job) {
 	if lr.rec.State != before {
 		durable = true
 	}
+	done := lr.rec.State == core.RenderDone && before != core.RenderDone
+	rec := lr.rec
 	s.mu.Unlock()
 	if durable {
 		s.save(ctx, id)
 	}
 	s.publish(id)
+	if done {
+		s.dropSuperseded(ctx, rec) // longform_sweep.go
+	}
 }
 
 // runOf is the run a longform job was submitted for (0: unknown, a job

@@ -254,15 +254,28 @@ func (r *renderer) longformChunkDir() string {
 }
 
 // Limits of the longform chunk cache: chunks unused for longformKeep are
-// deleted, and the oldest beyond longformCap.
+// deleted (a cache hit touches a chunk), and the least recently used
+// beyond longformCap, or 5 % of the disk when that is less (code review
+// 1102 H1: they were kept 60 days, up to 24 GB).
 const (
-	longformKeep = 60 * 24 * time.Hour
+	longformKeep = 14 * 24 * time.Hour
 	longformCap  = 24 << 30
 )
 
+// longformCapFor is the chunk cache's cap on the disk of dir.
+func longformCapFor(dir string) int64 {
+	limit := int64(longformCap)
+	if size := diskSize(dir); size > 0 {
+		limit = min(limit, size/20)
+	}
+	return limit
+}
+
 // pruneLongformChunks keeps the longform chunk cache within its limits
-// (after a book is assembled).
+// (after a book is assembled, renders are deleted, and by Sweep).
 func (r *renderer) pruneLongformChunks() {
+	r.pruneChunksMu.Lock()
+	defer r.pruneChunksMu.Unlock()
 	type file struct {
 		path string
 		size int64
@@ -291,12 +304,13 @@ func (r *renderer) pruneLongformChunks() {
 		files = append(files, file{path, fi.Size(), fi.ModTime()})
 		total += fi.Size()
 	}
-	if total <= longformCap {
+	limit := longformCapFor(r.longformChunkDir())
+	if total <= limit {
 		return
 	}
 	slices.SortFunc(files, func(a, b file) int { return a.at.Compare(b.at) })
 	for _, f := range files {
-		if total <= longformCap*9/10 {
+		if total <= limit*9/10 {
 			break
 		}
 		if os.Remove(f.path) == nil {

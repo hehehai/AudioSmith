@@ -186,10 +186,7 @@ func (s *Dubs) lineClip(p *dub.Project, seg dub.Segment) error {
 	if _, err := os.Stat(s.Path(p.ID, name)); err == nil {
 		return nil
 	}
-	src := dubAudio
-	if p.Media.Vocals != "" {
-		src = dubVocals
-	}
+	src := s.voiceSource(p) // the audio when the voices were freed (dub_free.go)
 	start, end := seg.Start, seg.End
 	if d := end - start; d < 3 {
 		start, end = max(start-(3-d)/2, 0), end+(3-d)/2

@@ -145,6 +145,11 @@ func New(cfg Config) *Services {
 		Drafts:   s.drafts,
 	}
 	s.Longform = newLongform(cfg, s.takes) // M3: longform.go
+	projects.dropped = func(ctx context.Context, id string) {
+		if n, err := s.Longform.DropProject(ctx, id); n > 0 || err != nil {
+			cfg.Logf("project %s deleted: removed %d unfinished renders (%v)", id, n, err)
+		}
+	}
 	s.Library = newLibrary(cfg, projects)
 	return s
 }

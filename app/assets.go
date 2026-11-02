@@ -258,7 +258,7 @@ func (a *app) exportAsset(e core.Export) (asset, bool) {
 	}
 	id := e.ID
 	as := asset{key: "export:" + id, kind: kind, title: firstOf(e.Title, filepath.Base(e.Path)), sub: i18n.T("Exported · %s", shortPath(e.Path)),
-		path: e.Path, at: e.CreatedAt, tool: tool, delRecord: true, del: func() { a.deleteExportRecord(id) }}
+		path: e.Path, at: e.CreatedAt, tool: tool, delRecord: !a.sampleCopy(e.Path), del: func() { a.deleteExportRecord(id) }}
 	switch kind {
 	case assetDub:
 		src := e.SourceID

@@ -61,7 +61,7 @@ func (a *app) homeLibDelete(it store.LibraryItem, title string) (func(), string)
 		default:
 			return nil, ""
 		}
-		return func() { a.deleteProj(projItem{kind: kind, id: id, title: title}) }, i18n.T("Its finished renders and exported files are kept.")
+		return func() { a.deleteProj(projItem{kind: kind, id: id, title: title}) }, i18n.T("Its finished renders and exported files are kept; its unfinished renders are deleted.")
 	}
 	return nil, ""
 }

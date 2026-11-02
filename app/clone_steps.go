@@ -60,6 +60,7 @@ func (a *app) cloneChangeClip() {
 	s := &a.clone
 	a.pl.Stop()
 	s.gen++
+	a.dropCloneWork(s.work, s.original)
 	s.work, s.original, s.peaks, s.err, s.busy = "", "", nil, "", ""
 	s.step = cloneAdd
 }
