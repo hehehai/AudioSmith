@@ -119,12 +119,14 @@ func TestHomeRecentDeleteEachKind(t *testing.T) {
 			t.Fatalf("%s: not deleted (%q)", title, a.toasts)
 		}
 		show()
-		if tt.HasText(title) {
-			t.Fatalf("%s: still in Recent: %q", title, tt.Texts())
+		for _, it := range a.homeItems(8) { // Recent's rows (a toast may still name it)
+			if it.title == title {
+				t.Fatalf("%s: still in Recent (%s)", title, it.key)
+			}
 		}
 	}
-	if !tt.HasText("Nothing made yet") {
-		t.Errorf("Recent after: %q", tt.Texts())
+	if n := len(a.homeItems(8)); n != 0 || !tt.HasText("Nothing made yet") {
+		t.Errorf("Recent after: %d rows, %q", n, tt.Texts())
 	}
 }
 
