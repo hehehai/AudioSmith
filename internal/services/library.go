@@ -18,6 +18,9 @@ type Projects struct {
 	bus   *core.Bus
 	now   func() time.Time
 	mu    sync.Mutex
+	// dropped deletes what a deleted project leaves: its unfinished
+	// renders (Longform.DropProject); nil: nothing.
+	dropped func(ctx context.Context, id string)
 }
 
 var _ core.ProjectService = (*Projects)(nil)
@@ -79,6 +82,13 @@ func (s *Projects) save(ctx context.Context, p core.Project) (core.Project, erro
 }
 
 func (s *Projects) Delete(ctx context.Context, id string) error {
+	if s.dropped != nil {
+		// First: the renders lose their project when it goes (ON DELETE
+		// SET NULL), and could not be found by it after.
+		if _, err := s.store.Get(ctx, id); err == nil {
+			s.dropped(ctx, id)
+		}
+	}
 	s.mu.Lock()
 	p, err := s.store.Get(ctx, id)
 	if err == nil {
