@@ -20,7 +20,6 @@ import (
 	"github.com/hehehai/AudioSmith/internal/api"
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
-	"github.com/hehehai/AudioSmith/internal/dsp"
 	"github.com/hehehai/AudioSmith/internal/dsp/refcheck"
 	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
@@ -225,12 +224,10 @@ func speakerClip(e catalog.Entry, speaker string) (api.VoicePreview, error) {
 
 // clipWAV is the start of a WAV (at most limit), as WAV bytes.
 func clipWAV(path string, limit time.Duration) ([]byte, error) {
-	buf, _, err := wav.ReadFile(path)
+	// Only the start is read (thread #150).
+	buf, _, err := wav.ReadSeconds(path, 0, limit.Seconds())
 	if err != nil {
 		return nil, err
-	}
-	if n := dsp.FramesAt(limit.Seconds(), buf.Rate); n < buf.Frames() {
-		buf = buf.Slice(0, n)
 	}
 	tmp, err := os.CreateTemp("", "audiosmith-preview-*.wav")
 	if err != nil {

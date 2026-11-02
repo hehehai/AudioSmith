@@ -118,6 +118,7 @@ type Reader struct {
 	frames int64 // -1 if unknown
 	pos    int64
 	buf    []byte
+	data   int64 // byte offset of the data chunk's samples
 }
 
 // NewReader parses the header up to the data chunk.
@@ -131,7 +132,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 	if (string(h[:4]) != "RIFF" && !rf64) || string(h[8:12]) != "WAVE" {
 		return nil, ErrInvalid
 	}
-	d := &Reader{r: br, frames: -1}
+	d := &Reader{r: br, frames: -1, data: 12}
 	var ds64Data int64 = -1
 	haveFmt := false
 	for {
@@ -141,6 +142,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 		}
 		size := int64(binary.LittleEndian.Uint32(ch[4:]))
 		id := string(ch[:4])
+		d.data += 8
 		switch id {
 		case "ds64":
 			if size < 24 || size > 1<<16 {
@@ -151,6 +153,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 				return nil, ErrInvalid
 			}
 			ds64Data = int64(binary.LittleEndian.Uint64(b[8:]))
+			d.data += int64(len(b))
 			continue
 		case "fmt ":
 			if size < 16 || size > 1<<16 {
@@ -187,6 +190,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 				return nil, fmt.Errorf("%w: %v", ErrInvalid, err)
 			}
 			haveFmt = true
+			d.data += int64(len(b))
 			continue
 		case "data":
 			if !haveFmt {
@@ -206,6 +210,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 		if _, err := io.CopyN(io.Discard, br, size+size&1); err != nil {
 			return nil, ErrInvalid
 		}
+		d.data += size + size&1
 	}
 }
 
@@ -275,19 +280,53 @@ func decode(dst []float32, b []byte, e Encoding) {
 
 // Decode reads a whole WAV stream into memory.
 func Decode(r io.Reader) (dsp.Buffer, Format, error) {
+	return decodeAll(r, -1)
+}
+
+// decodeAll reads a whole WAV stream; size, when known (≥ 0), is the
+// stream's length in bytes, which caps what the header may ask for.
+func decodeAll(r io.Reader, size int64) (dsp.Buffer, Format, error) {
 	d, err := NewReader(r)
 	if err != nil {
 		return dsp.Buffer{}, Format{}, err
 	}
 	f := d.Format()
 	b := dsp.Buffer{Rate: f.Rate, Channels: f.Channels}
-	// Trust the header's size only so far: a hostile one could ask for
-	// gigabytes up front.
-	if n := d.Frames(); n >= 0 && n*int64(f.Channels) <= 1<<24 {
+	n := d.Frames()
+	if size >= 0 {
+		// The file's size bounds the frames, so a hostile header cannot
+		// ask for more than the file holds; a streamed header (no size)
+		// gets it from the file.
+		have := max(size-d.data, 0) / int64(f.FrameBytes())
+		if n < 0 || n > have {
+			n = have
+		}
+	} else if n*int64(f.Channels) > 1<<24 {
+		// Trust a header with nothing to check it against only so far.
+		n = -1
+	}
+	if n >= 0 {
 		b.Samples = make([]float32, 0, int(n)*f.Channels)
 	}
-	buf := make([]float32, 16384*f.Channels)
+	const chunk = 16384
+	var buf []float32
 	for {
+		if n >= 0 && len(b.Samples) < cap(b.Samples) {
+			// Decode straight into the buffer, a chunk at a time: no
+			// second copy.
+			k, err := d.Read(b.Samples[len(b.Samples):min(cap(b.Samples), len(b.Samples)+chunk*f.Channels)])
+			b.Samples = b.Samples[:len(b.Samples)+k]
+			if err == io.EOF {
+				return b, f, nil
+			}
+			if err != nil {
+				return b, f, err
+			}
+			continue
+		}
+		if buf == nil {
+			buf = make([]float32, chunk*f.Channels)
+		}
 		k, err := d.Read(buf)
 		b.Samples = append(b.Samples, buf[:k]...)
 		if err == io.EOF {
@@ -299,12 +338,17 @@ func Decode(r io.Reader) (dsp.Buffer, Format, error) {
 	}
 }
 
-// ReadFile reads a whole WAV file into memory.
+// ReadFile reads a whole WAV file into memory, sized from the file so it
+// allocates the samples once.
 func ReadFile(path string) (dsp.Buffer, Format, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return dsp.Buffer{}, Format{}, err
 	}
 	defer f.Close()
-	return Decode(f)
+	size := int64(-1)
+	if fi, err := f.Stat(); err == nil && fi.Mode().IsRegular() {
+		size = fi.Size()
+	}
+	return decodeAll(f, size)
 }

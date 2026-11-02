@@ -241,18 +241,24 @@ func (s *Server) answerSpeech(w http.ResponseWriter, r *http.Request, sp *Speech
 		defer os.Remove(out)
 		path = out
 	}
-	if sse { // wav, normalized
-		data, err := os.ReadFile(path)
+	if sse { // wav, normalized; read a chunk at a time (thread #150)
+		f, err := os.Open(path)
 		if err != nil {
 			writeError(w, err)
 			return
 		}
+		defer f.Close()
 		lw.headers()
 		lw.started = true
-		for len(data) > 0 {
-			n := min(len(data), 48000)
-			lw.send(data[:n])
-			data = data[n:]
+		buf := make([]byte, 48000)
+		for {
+			n, err := io.ReadFull(f, buf)
+			if n > 0 && lw.send(buf[:n]) != nil {
+				return
+			}
+			if err != nil {
+				break
+			}
 		}
 		lw.finish(chars)
 		return

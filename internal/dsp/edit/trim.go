@@ -55,25 +55,9 @@ func activity(b dsp.Buffer, w int, thr float64) []bool {
 // the first window above the threshold to Keep after the last. All-silent
 // audio gives start == end.
 func TrimRange(b dsp.Buffer, o TrimOptions) (start, end int) {
-	o = o.norm()
-	w := max(dsp.FramesAt(o.Window, b.Rate), 1)
-	act := activity(b, w, math.Pow(10, o.ThresholdDB/10))
-	first, last := -1, -1
-	for k, a := range act {
-		if a {
-			if first < 0 {
-				first = k
-			}
-			last = k
-		}
-	}
-	if first < 0 {
-		return 0, 0
-	}
-	keep := dsp.FramesAt(o.Keep, b.Rate)
-	start = max(first*w-keep, 0)
-	end = min((last+1)*w+keep, b.Frames())
-	return start, end
+	sc := NewTrimScanner(b.Rate, b.Channels, o)
+	sc.Write(b.Samples)
+	return sc.Range()
 }
 
 // Trim returns a copy of b without its leading and trailing silence,

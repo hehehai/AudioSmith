@@ -83,8 +83,10 @@ func speakerWindows(seconds, window, overlap float64) []speakerWindow {
 // appearance through the whole file; its text joins theirs.
 func TranscribeSpeakers(ctx context.Context, call func(k, n int, p *proto.TranscribeParams, out *proto.TranscribeResult) error,
 	base proto.TranscribeParams, seconds float64) (proto.TranscribeResult, error) {
-	audio, _, rerr := wav.ReadFile(base.Audio)
+	// Read window by window, never whole (thread #150).
+	audio, rerr := wav.Open(base.Audio)
 	if rerr == nil {
+		defer audio.Close()
 		seconds = audio.Seconds()
 	}
 	wins := speakerWindows(seconds, speakersWindow, speakersOverlap)
@@ -107,7 +109,11 @@ func TranscribeSpeakers(ctx context.Context, call func(k, n int, p *proto.Transc
 		p := base
 		var own []proto.Segment
 		if rerr == nil {
-			piece := audio.Slice(int(math.Round(w.start*float64(audio.Rate))), int(math.Round(w.end*float64(audio.Rate))))
+			rate := float64(audio.Format().Rate)
+			piece, err := readSpan(audio, int(math.Round(w.start*rate)), int(math.Round(w.end*rate)))
+			if err != nil {
+				return res, err
+			}
 			if !audibleSpeech(piece) {
 				prev = &linkedWindow{end: w.end, labels: prevLabels(prev)}
 				fresh, heard = append(fresh, nil), append(heard, nil)
@@ -214,7 +220,7 @@ func TranscribeSpeakers(ctx context.Context, call func(k, n int, p *proto.Transc
 // model once; a new label it names like exactly one earlier person is
 // that person. segs (file ids) are renamed in place.
 func probeSpeakers(ctx context.Context, call func(k, n int, p *proto.TranscribeParams, out *proto.TranscribeResult) error,
-	base proto.TranscribeParams, audio dsp.Buffer, segs []proto.Segment, fresh, heard [][]string, n int) error {
+	base proto.TranscribeParams, audio *wav.File, segs []proto.Segment, fresh, heard [][]string, n int) error {
 	rename := map[string]string{}
 	id := func(x string) string {
 		for rename[x] != "" {
@@ -257,15 +263,16 @@ func probeSpeakers(ctx context.Context, call func(k, n int, p *proto.TranscribeP
 // then of each of fresh (ids of segs), 0.8 s apart, and returns the fresh
 // ids the model labels like exactly one candidate, mapped to it.
 func probeOnce(ctx context.Context, call func(k, n int, p *proto.TranscribeParams, out *proto.TranscribeResult) error,
-	base proto.TranscribeParams, audio dsp.Buffer, segs []proto.Segment, cands, fresh []string, k, n int) (map[string]string, error) {
+	base proto.TranscribeParams, audio *wav.File, segs []proto.Segment, cands, fresh []string, k, n int) (map[string]string, error) {
 	const maxClip, gap = 8.0, 0.8
 	type part struct {
 		who        string
 		start, end float64 // in the probe
 	}
 	var parts []part
-	probe := dsp.Buffer{Rate: audio.Rate, Channels: audio.Channels}
-	silence := make([]float32, int(gap*float64(audio.Rate))*audio.Channels)
+	af := audio.Format()
+	probe := dsp.Buffer{Rate: af.Rate, Channels: af.Channels}
+	silence := make([]float32, int(gap*float64(af.Rate))*af.Channels)
 	for _, who := range append(slices.Clone(cands), fresh...) {
 		// Its longest segment, at most maxClip of the middle of it.
 		best := -1
@@ -279,7 +286,10 @@ func probeOnce(ctx context.Context, call func(k, n int, p *proto.TranscribeParam
 		}
 		s := segs[best]
 		mid, half := (s.Start+s.End)/2, min(s.End-s.Start, maxClip)/2
-		clip := audio.Slice(int((mid-half)*float64(audio.Rate)), int((mid+half)*float64(audio.Rate)))
+		clip, err := readSpan(audio, int((mid-half)*float64(af.Rate)), int((mid+half)*float64(af.Rate)))
+		if err != nil {
+			return nil, err
+		}
 		probe.Samples = append(probe.Samples, silence...)
 		start := probe.Seconds()
 		probe.Samples = append(probe.Samples, clip.Samples...)
@@ -526,4 +536,10 @@ func isPromptEcho(text string, terms []string) bool {
 		n++
 	}
 	return n >= 2
+}
+
+// readSpan reads frames [from, to) of audio, clamped like dsp.Buffer.Slice.
+func readSpan(audio *wav.File, from, to int) (dsp.Buffer, error) {
+	from = max(from, 0)
+	return audio.ReadFrames(int64(from), int64(max(to, from)))
 }

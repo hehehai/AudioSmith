@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -107,8 +108,12 @@ func ProcessAudio(b dsp.Buffer, o AudioExport) (dsp.Buffer, float64, float64) {
 }
 
 // ExportAudio writes the WAV src to dst as o says; enc writes the formats
-// other than WAV. dst is written whole or not at all.
+// other than WAV. dst is written whole or not at all. Without a loudness
+// target it streams (export_stream.go); a target needs the whole take.
 func ExportAudio(ctx context.Context, src, dst string, o AudioExport, enc AudioEncoder) (ExportedAudio, error) {
+	if _, ok := ExportLoudness[o.Loudness]; !ok {
+		return exportStreamed(ctx, src, dst, o, enc)
+	}
 	var res ExportedAudio
 	in, _, err := wav.ReadFile(src)
 	if err != nil {
@@ -118,19 +123,29 @@ func ExportAudio(ctx context.Context, src, dst string, o AudioExport, enc AudioE
 		return res, err
 	}
 	out, offset, lufs := ProcessAudio(in, o)
+	in = dsp.Buffer{} // let it go before writing
 	res.Seconds, res.Offset, res.Loudness = out.Seconds(), offset, lufs
 	if err := ctx.Err(); err != nil {
 		return res, err
 	}
+	res.Bytes, err = writeExport(ctx, dst, o, enc, func(path string, e wav.Encoding) error {
+		return wav.WriteFile(path, out, e, wav.Options{Dither: e == wav.PCM16})
+	})
+	return res, err
+}
+
+// writeExport writes dst through write, which writes a WAV of the
+// encoding given at the path given: dst itself for WAV, else a temporary
+// WAV that enc encodes. It returns dst's size.
+func writeExport(ctx context.Context, dst string, o AudioExport, enc AudioEncoder, write func(path string, e wav.Encoding) error) (int64, error) {
 	format := strings.ToLower(o.Format)
 	if format == "" || format == FormatWAV {
-		e := encodingOf(o.Bits)
-		if err := wav.WriteFile(dst, out, e, wav.Options{Dither: e == wav.PCM16}); err != nil {
-			return res, err
+		if err := write(dst, encodingOf(o.Bits)); err != nil {
+			return 0, err
 		}
 	} else {
 		if enc == nil {
-			return res, fmt.Errorf("%w: %s", ErrNoEncoder, strings.ToUpper(format))
+			return 0, fmt.Errorf("%w: %s", ErrNoEncoder, strings.ToUpper(format))
 		}
 		// The encoder reads a WAV: FLAC keeps the bit depth asked for,
 		// the lossy formats get floats (no rounding before encoding).
@@ -143,26 +158,25 @@ func ExportAudio(ctx context.Context, src, dst string, o AudioExport, enc AudioE
 		}
 		tmp, err := os.CreateTemp("", "audiosmith-export-*.wav")
 		if err != nil {
-			return res, err
+			return 0, err
 		}
 		tmp.Close()
 		defer os.Remove(tmp.Name())
-		if err := wav.WriteFile(tmp.Name(), out, e, wav.Options{Dither: e == wav.PCM16}); err != nil {
-			return res, err
+		if err := write(tmp.Name(), e); err != nil {
+			return 0, err
 		}
 		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-			return res, err
+			return 0, err
 		}
 		if err := enc(ctx, tmp.Name(), dst, o); err != nil {
-			return res, err
+			return 0, err
 		}
 	}
 	fi, err := os.Stat(dst)
 	if err != nil {
-		return res, fmt.Errorf("export: %s was not written: %w", filepath.Base(dst), err)
+		return 0, fmt.Errorf("export: %s was not written: %w", filepath.Base(dst), err)
 	}
-	res.Bytes = fi.Size()
-	return res, nil
+	return fi.Size(), nil
 }
 
 // AudioInfo describes a WAV for the Export dialog: its length, the
@@ -175,16 +189,40 @@ type AudioInfo struct {
 	TruePeak       float64 // dBTP
 }
 
-// AnalyzeAudio reads a WAV's AudioInfo.
+// AnalyzeAudio reads a WAV's AudioInfo, streaming: a long take is never
+// held whole (thread #150).
 func AnalyzeAudio(path string) (AudioInfo, error) {
-	b, _, err := wav.ReadFile(path)
+	f, err := wav.Open(path)
 	if err != nil {
 		return AudioInfo{}, err
 	}
-	st := loudness.Measure(b)
-	info := AudioInfo{Rate: b.Rate, Channels: b.Channels, Seconds: b.Seconds(), Trimmed: b.Seconds(), Integrated: st.Integrated, TruePeak: st.TruePeak}
-	if start, end := edit.TrimRange(b, exportTrim); end > start {
-		info.Trimmed = dsp.SecondsAt(end-start, b.Rate)
+	defer f.Close()
+	r, err := f.Stream(0, -1)
+	if err != nil {
+		return AudioInfo{}, err
+	}
+	fm := f.Format()
+	m := loudness.NewMeter(fm.Rate, fm.Channels, loudness.Options{})
+	sc := edit.NewTrimScanner(fm.Rate, fm.Channels, exportTrim)
+	buf := make([]float32, 16384*fm.Channels)
+	frames := 0
+	for {
+		k, err := r.Read(buf)
+		m.Write(buf[:k])
+		sc.Write(buf[:k])
+		frames += k / fm.Channels
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return AudioInfo{}, err
+		}
+	}
+	st := m.Stats()
+	secs := dsp.SecondsAt(frames, fm.Rate)
+	info := AudioInfo{Rate: fm.Rate, Channels: fm.Channels, Seconds: secs, Trimmed: secs, Integrated: st.Integrated, TruePeak: st.TruePeak}
+	if start, end := sc.Range(); end > start {
+		info.Trimmed = dsp.SecondsAt(end-start, fm.Rate)
 	}
 	return info, nil
 }

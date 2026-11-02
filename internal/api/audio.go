@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/hehehai/AudioSmith/internal/dsp"
 	"github.com/hehehai/AudioSmith/internal/dsp/resample"
 	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 )
@@ -112,7 +111,11 @@ func (c *pcmConverter) flush() []byte {
 }
 
 func floatsToPCM16(s []float32) []byte {
-	b := make([]byte, 0, len(s)*2)
+	return appendPCM16(make([]byte, 0, len(s)*2), s)
+}
+
+// appendPCM16 appends s as pcm16le to b.
+func appendPCM16(b []byte, s []float32) []byte {
 	for _, v := range s {
 		v = min(max(v, -1), 1)
 		b = binary.LittleEndian.AppendUint16(b, uint16(int16(v*32767)))
@@ -121,28 +124,35 @@ func floatsToPCM16(s []float32) []byte {
 }
 
 // filePCM reads a WAV file as mono pcm16le at rate (OpenAI's pcm: PCMRate;
-// 0 keeps the file's).
+// 0 keeps the file's), a chunk at a time: only the result is held whole
+// (thread #150).
 func filePCM(path string, rate int) ([]byte, error) {
-	buf, _, err := wav.ReadFile(path)
+	f, err := wav.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	if buf.Rate <= 0 || buf.Channels <= 0 {
+	defer f.Close()
+	fm := f.Format()
+	if fm.Rate <= 0 || fm.Channels <= 0 {
 		return nil, fmt.Errorf("%s: no audio", path)
 	}
-	mono := buf
-	if buf.Channels > 1 {
-		mono = dsp.Buffer{Rate: buf.Rate, Channels: 1, Samples: make([]float32, buf.Frames())}
-		for f := range mono.Samples {
-			var sum float32
-			for ch := 0; ch < buf.Channels; ch++ {
-				sum += buf.Samples[f*buf.Channels+ch]
-			}
-			mono.Samples[f] = sum / float32(buf.Channels)
-		}
+	if rate <= 0 {
+		rate = fm.Rate
 	}
-	if rate > 0 && mono.Rate != rate {
-		mono = resample.Buffer(mono, rate, resample.Good)
+	r, err := f.Stream(0, -1)
+	if err != nil {
+		return nil, err
 	}
-	return floatsToPCM16(mono.Samples), nil
+	var out []byte
+	if n := f.Frames(); n >= 0 {
+		out = make([]byte, 0, (n*int64(rate)/int64(fm.Rate)+1)*2)
+	}
+	_, err = resample.Stream(r, rate, 1, resample.Good, func(s []float32) error {
+		out = appendPCM16(out, s)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
