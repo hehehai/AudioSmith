@@ -76,9 +76,20 @@ func (s *Server) listVoices(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]VoiceJSON, len(vs))
 	for i, v := range vs {
-		out[i] = voiceJSON(v)
+		out[i] = lanVoiceJSON(r, v)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": out})
+}
+
+// lanVoiceJSON is voiceJSON without the reference's transcript for LAN
+// clients with the PIN only: like the recording, it stays on the Mac
+// (code review 11-02, N1).
+func lanVoiceJSON(r *http.Request, v core.Voice) VoiceJSON {
+	j := voiceJSON(v)
+	if r.Header.Get(HeaderVia) == ViaLAN {
+		j.RefText = ""
+	}
+	return j
 }
 
 func (s *Server) getVoice(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +98,7 @@ func (s *Server) getVoice(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, voiceJSON(v))
+	writeJSON(w, http.StatusOK, lanVoiceJSON(r, v))
 }
 
 func (s *Server) voiceAudio(w http.ResponseWriter, r *http.Request) {

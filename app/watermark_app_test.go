@@ -104,7 +104,7 @@ func TestWatermarkWiring(t *testing.T) {
 	a.toolTab = 5
 	a.checkWatermark(take)
 	tt.Frame()
-	if !tt.HasText("Watermarked: 100% of the audio carries the mark.") || !tt.HasText("Made with AudioSmith (install 7).") {
+	if !tt.HasText("Watermarked: 100% of the audio carries the mark.") || !tt.HasText("The mark is in AudioSmith's format (install number 7): the audio likely came from an AudioSmith. A mark can be imitated or removed, so this is not proof.") {
 		t.Fatalf("tool %q", tt.Texts())
 	}
 }

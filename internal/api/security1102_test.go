@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hehehai/AudioSmith/internal/core"
 )
 
 // TestHeaders1102: every answer says nosniff and no framing; preflights
@@ -167,5 +169,36 @@ func TestBodyIdle(t *testing.T) {
 	r.Body.Close()
 	if string(b) != "<nil>" {
 		t.Errorf("long stream after a JSON body: %d %q", r.StatusCode, b)
+	}
+}
+
+// TestLANVoiceRefText (N1): LAN clients with the PIN only read voices
+// without the reference's transcript; on the Mac it is there.
+func TestLANVoiceRefText(t *testing.T) {
+	f := newFake(t)
+	f.update(func(f *fakeBackend) {
+		f.voices = append(f.voices, core.Voice{ID: "c1", Name: "Me", Kind: core.VoiceCloned, RefText: "my private words"})
+	})
+	s, ts := f.server()
+	share, err := s.StartLAN(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.StopLAN()
+	lan := httptest.NewServer(s.LANHandler(share.Port))
+	defer lan.Close()
+	var v VoiceJSON
+	if do(t, lan, "GET", "/api/voices/c1", nil, &v, HeaderPIN, share.PIN); v.Name != "Me" || v.RefText != "" {
+		t.Errorf("LAN voice %+v", v)
+	}
+	var list struct{ Data []VoiceJSON }
+	do(t, lan, "GET", "/api/voices", nil, &list, HeaderPIN, share.PIN)
+	for _, v := range list.Data {
+		if v.RefText != "" {
+			t.Errorf("LAN list %+v", v)
+		}
+	}
+	if do(t, ts, "GET", "/api/voices/c1", nil, &v); v.RefText != "my private words" {
+		t.Errorf("local voice %+v", v)
 	}
 }

@@ -158,7 +158,7 @@ type VoiceExport struct {
 	IncludeReference bool
 	Licence          string // SPDX id; "" = personal use
 	// Preview is a WAV to ship as the preview; "" picks the voice's sample,
-	// its latest take, or its reference (WAV).
+	// or its reference (WAV): never its takes (private).
 	Preview    string
 	App        string // creator software, "AudioSmith"
 	AppVersion string

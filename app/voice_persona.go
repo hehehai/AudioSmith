@@ -145,7 +145,7 @@ func (a *app) exportVoice(id string, includeRef bool, licence string) {
 			a.post(func() {
 				switch {
 				case errors.Is(err, services.ErrNoPreview):
-					a.toast(i18n.T("This voice has no audio to build a preview from: generate a take with it first."))
+					a.toast(i18n.T("This voice has no sample to share as its preview (its takes stay private): lock a take as its identity on its page first."))
 				case err != nil:
 					a.toastWarn(i18n.T("Export failed: %v", err))
 				default:

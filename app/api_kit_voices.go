@@ -131,7 +131,7 @@ func (b *apiBackend) ExportVoice(ctx context.Context, req api.VoiceExportRequest
 		App: "AudioSmith", AppVersion: b.version})
 	if errors.Is(err, services.ErrNoPreview) {
 		return api.ExportJSON{}, apiErr(http.StatusConflict, "not_ready", "voice_id",
-			"%s has no audio to build a preview from: generate a take with it first (generate_speech).", v.Name)
+			"%s has no sample to share as its preview (its takes stay private): the user locks a take as its identity in AudioSmith first.", v.Name)
 	}
 	if err != nil {
 		return api.ExportJSON{}, err
