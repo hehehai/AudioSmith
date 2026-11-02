@@ -28,8 +28,10 @@ func (t *Tool) runIn(ctx context.Context, dir string, args []string, out string,
 	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 		return err
 	}
-	ext := filepath.Ext(out)
-	tmp := filepath.Join(filepath.Dir(out), "."+strings.TrimSuffix(filepath.Base(out), ext)+".part"+ext)
+	tmp, err := partFile(out)
+	if err != nil {
+		return err
+	}
 	full := append([]string{"-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-nostats", "-progress", "pipe:1"}, args...)
 	full = append(full, tmp)
 	cmd := command(ctx, t.FFmpeg, full...)
@@ -52,6 +54,10 @@ func (t *Tool) runIn(ctx context.Context, dir string, args []string, out string,
 		}
 		return &RunError{Err: err, Tail: lastLine(errb.String())}
 	}
+	if err := os.Chmod(tmp, 0o644); err != nil {
+		os.Remove(tmp)
+		return err
+	}
 	if err := os.Rename(tmp, out); err != nil {
 		os.Remove(tmp)
 		return err
@@ -60,6 +66,21 @@ func (t *Tool) runIn(ctx context.Context, dir string, args []string, out string,
 		progress(1)
 	}
 	return nil
+}
+
+// partFile creates the empty temporary file ffmpeg writes out to: beside
+// it, hidden, with out's extension (ffmpeg picks the format by it) and a
+// random part, created exclusively (code review 11-02, N2: a predictable
+// name in a shared folder could be a symlink planted there, which ffmpeg
+// -y would follow). ffmpeg overwrites this file of ours.
+func partFile(out string) (string, error) {
+	ext := filepath.Ext(out)
+	f, err := os.CreateTemp(filepath.Dir(out), "."+strings.TrimSuffix(filepath.Base(out), ext)+".*.part"+ext)
+	if err != nil {
+		return "", err
+	}
+	f.Close()
+	return f.Name(), nil
 }
 
 // readProgress follows `-progress pipe:1`: key=value lines, a block per

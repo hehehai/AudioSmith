@@ -26,6 +26,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/api"
 	"github.com/hehehai/AudioSmith/internal/catalog"
+	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/hub"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -269,11 +270,15 @@ func redactedSettings(s settings.Settings) []byte {
 
 // writeBundle writes the diagnostic bundle (a ZIP) to path.
 func writeBundle(path, diag string, prefs settings.Settings, logDir string) error {
-	tmp := path + ".tmp"
-	f, err := os.Create(tmp)
-	if err != nil {
-		return err
-	}
+	// A temporary file of a random name, created exclusively: the folder
+	// may be shared (code review 11-02, N2).
+	return wav.WriteFileAtomic(path, 0o644, func(f *os.File) error {
+		return writeBundleZip(f, diag, prefs, logDir)
+	})
+}
+
+// writeBundleZip writes the bundle's ZIP to f.
+func writeBundleZip(f *os.File, diag string, prefs settings.Settings, logDir string) error {
 	zw := zip.NewWriter(f)
 	put := func(name string, data []byte) error {
 		w, err := zw.Create(name)
@@ -283,7 +288,7 @@ func writeBundle(path, diag string, prefs settings.Settings, logDir string) erro
 		_, err = w.Write(data)
 		return err
 	}
-	err = put("diagnostics.txt", []byte(diag))
+	err := put("diagnostics.txt", []byte(diag))
 	if err == nil {
 		err = put("settings.json", redactedSettings(prefs))
 	}
@@ -311,14 +316,7 @@ func writeBundle(path, diag string, prefs settings.Settings, logDir string) erro
 	if cerr := zw.Close(); err == nil {
 		err = cerr
 	}
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return os.Rename(tmp, path)
+	return err
 }
 
 // bundleDir is where tests save the bundle (no dialog).
