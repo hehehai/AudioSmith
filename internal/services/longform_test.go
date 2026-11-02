@@ -672,6 +672,18 @@ func TestLibrarySavesProjectsAndExports(t *testing.T) {
 	if _, err := os.Stat(f); err != nil {
 		t.Error("the file goes with the record")
 	}
+	// A sample's copy in the data folder goes with its record (code
+	// review 1102 L1).
+	sample := filepath.Join(e.dir, "samples", "01S", "story.ogg")
+	os.MkdirAll(filepath.Dir(sample), 0o755)
+	os.WriteFile(sample, []byte("ogg"), 0o644)
+	ex, _ = lib.RecordExport(ctx, core.Export{Kind: "story", ProjectID: p.ID, Path: sample, Format: "ogg"})
+	if err := lib.DeleteExport(ctx, ex.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Dir(sample)); !os.IsNotExist(err) {
+		t.Error("the sample's copy stayed")
+	}
 }
 
 func TestETA(t *testing.T) {

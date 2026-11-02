@@ -260,7 +260,7 @@ func (a *app) projConfirm(c *ui.Context) {
 	it := s.confirm
 	body := i18n.T("This cannot be undone.")
 	if it.kind == projStory || it.kind == projBook {
-		body = i18n.T("Its finished renders and exported files are kept.")
+		body = i18n.T("Its finished renders and exported files are kept; its unfinished renders are deleted.")
 	}
 	if ui.AlertDialog(c, &s.confirmOpen, i18n.T("Delete “%s”?", it.title), body, i18n.T("Cancel"), i18n.T("Delete")) == 1 {
 		a.deleteProj(it)

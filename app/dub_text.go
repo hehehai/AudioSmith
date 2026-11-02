@@ -40,6 +40,8 @@ func dubErrorText(e *jobs.Error) string {
 		return i18n.T("This needs ffmpeg: set it up in Settings → Audio tools.") // M7a
 	case services.DubCodeNotMixed:
 		return i18n.T("That track is not generated yet.")
+	case services.DubCodeFreed:
+		return i18n.T("The separated stems were freed to save space: generate the dub again to make them.")
 	case "dub.no_audio":
 		return i18n.T("The file has no sound to dub.")
 	case "dub.no_video":

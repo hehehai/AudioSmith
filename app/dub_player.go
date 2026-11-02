@@ -97,9 +97,20 @@ func (a *app) dubOpenTrack(track string, play bool) {
 		var dec myaudio.Decoder
 		var closer func() error
 		var err error
-		if track == dubOrig {
+		mixed := ""
+		if track != dubOrig && svc.WorkGone(q) {
+			mixed = svc.MixedTrack(q, track) // freed: the mix as made (dub_freed.go)
+		}
+		if track == dubOrig || mixed != "" {
+			path := svc.Path(q.ID, q.Media.Audio)
+			if mixed != "" {
+				path = mixed
+			} else if svc.WorkGone(q) && !fileExists(path) {
+				a.post(func() { pl.loading = false; a.dubRebuild() })
+				return
+			}
 			var w *dub.WAVSource
-			if w, err = dub.OpenWAV(svc.Path(q.ID, q.Media.Audio), 0, 0); err == nil {
+			if w, err = dub.OpenWAV(path, 0, 0); err == nil {
 				dec, closer = dubWAVDecoder{w}, w.Close
 			}
 		} else {

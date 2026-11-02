@@ -99,7 +99,7 @@ func openLibrary(dataDir, cacheDir string, opts ...libraryOptions) (*library, er
 	} else if n > 0 {
 		log.Printf("history.json: imported %d takes", n)
 	}
-	go cleanPartFiles(time.Hour, dataDir, cacheDir) // writes a crash or a quit cut short (audit A13, #101 L3)
+	go cleanLeftovers(dataDir, cacheDir) // writes a crash or a quit cut short (audit A13, #101 L3, code review 1102 M2)
 	bus := core.NewBus()
 	logJobFailures(bus)
 	l := &library{

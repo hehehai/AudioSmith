@@ -58,5 +58,22 @@ func Prepare(snapshot, dst string) (string, error) {
 			return "", fmt.Errorf("converting %s: %w", src, err)
 		}
 	}
+	dropOtherRevisions(dst)
 	return dst, nil
+}
+
+// dropOtherRevisions deletes the conversions of the repo's other
+// revisions beside dst (ConvertedDir): a model updated to a new revision
+// left its old conversion, about 100 MB (code review 1102 L6).
+func dropOtherRevisions(dst string) {
+	parent := filepath.Dir(dst)
+	if filepath.Base(filepath.Dir(parent)) != "audiosmith-converted" {
+		return
+	}
+	ents, _ := os.ReadDir(parent)
+	for _, e := range ents {
+		if e.IsDir() && e.Name() != filepath.Base(dst) {
+			os.RemoveAll(filepath.Join(parent, e.Name()))
+		}
+	}
 }

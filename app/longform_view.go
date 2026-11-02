@@ -284,7 +284,7 @@ func (a *app) lfConfirm(c *ui.Context, p *lfPage) {
 		}
 	case strings.HasPrefix(p.confirm, "delete:"):
 		id := strings.TrimPrefix(p.confirm, "delete:")
-		if ui.AlertDialog(c, &p.confirmOpen, i18n.T("Delete this project permanently?"), i18n.T("Its finished renders and exported files are kept."),
+		if ui.AlertDialog(c, &p.confirmOpen, i18n.T("Delete this project permanently?"), i18n.T("Its finished renders and exported files are kept; its unfinished renders are deleted."),
 			i18n.T("Cancel"), i18n.T("Delete")) == 1 {
 			a.lfDeleteOpen(p, id)
 		}

@@ -314,6 +314,8 @@ func (a *app) dubShow(p *dub.Project, active []jobs.Job) {
 	a.dubExport = dubExportState{}
 	a.dubPaste = dubPasteState{}
 	a.dubLoadPeaks()
+	// Notes the opening; says when its working files were freed (dub_freed.go).
+	a.dubOpened(p)
 	if m := p.Settings.Model; a.replaceRemovedRepo(&m, true) { // models_removed.go: a dub clones
 		a.dubSettings(func(s *dub.Settings) { s.Model = m })
 	}
