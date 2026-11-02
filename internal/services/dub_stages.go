@@ -235,7 +235,15 @@ func (s *Dubs) ingest(ctx context.Context, sc *stageCtx) error {
 	}
 	// Video: a poster and, for codecs the web view cannot play, a proxy.
 	poster, proxy := "", ""
-	if pr.HasVideo {
+	if p.Media.Audio != "" { // a freed dub decoded again (dub_free.go) keeps its poster and preview
+		if name := p.Media.Poster; name != "" && fileExists(sc.path(name)) {
+			poster = name
+		}
+		if name := p.Media.Proxy; name != "" && fileExists(sc.path(name)) {
+			proxy = name
+		}
+	}
+	if pr.HasVideo && poster == "" {
 		tp := dub.ThumbnailParams{Input: src, Times: []float64{min(1, duration*0.1)}, Outputs: []string{sc.path(dubPoster)}, Width: 640}
 		var tr dub.ThumbnailResult
 		switch err := sc.call(ctx, dub.MethodThumbnail, "", tp, nil, &tr, nil); {
@@ -246,6 +254,8 @@ func (s *Dubs) ingest(ctx context.Context, sc *stageCtx) error {
 		default:
 			return err
 		}
+	}
+	if pr.HasVideo && proxy == "" {
 		codec := ""
 		if pr.Video != nil {
 			codec = pr.Video.Codec
@@ -362,6 +372,9 @@ func (s *Dubs) separate(ctx context.Context, sc *stageCtx) error {
 	if model == "" {
 		sc.warn(DubWarnNoSeparation)
 		sc.skipped = DubWarnNoSeparation
+		if s.stemsGone(sc.p) {
+			return sc.save(ctx, func(p *dub.Project) { p.Media.Vocals, p.Media.Background, p.Media.Separator = "", "", "" })
+		}
 		return nil
 	}
 	sp := dub.SeparateParams{Model: model, Audio: sc.path(dubAudio),
@@ -377,6 +390,9 @@ func (s *Dubs) separate(ctx context.Context, sc *stageCtx) error {
 	if missing(err) {
 		sc.warn(DubWarnNoSeparation)
 		sc.skipped = DubWarnNoSeparation
+		if s.stemsGone(sc.p) { // freed, and cannot be made again: the original serves
+			return sc.save(ctx, func(p *dub.Project) { p.Media.Vocals, p.Media.Background, p.Media.Separator = "", "", "" })
+		}
 		return nil
 	}
 	if err != nil {

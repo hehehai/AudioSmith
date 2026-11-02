@@ -362,6 +362,13 @@ func (s *Dubs) List(ctx context.Context, q store.DubQuery) ([]store.DubRecord, e
 // Update applies fn to the saved project, saves it and publishes it. fn
 // may return an error to change nothing.
 func (s *Dubs) Update(ctx context.Context, id string, fn func(*dub.Project) error) (*dub.Project, error) {
+	return s.update(ctx, id, fn, true)
+}
+
+// update is Update; stamp false keeps UpdatedAt (what the user did not
+// do: recording an export, freeing the working files), so the list's
+// order stays.
+func (s *Dubs) update(ctx context.Context, id string, fn func(*dub.Project) error, stamp bool) (*dub.Project, error) {
 	s.mu.Lock()
 	p, err := s.Get(ctx, id)
 	var oldTitle string
@@ -371,7 +378,9 @@ func (s *Dubs) Update(ctx context.Context, id string, fn func(*dub.Project) erro
 	}
 	if err == nil {
 		p.ID = id
-		p.UpdatedAt = s.cfg.Now()
+		if stamp {
+			p.UpdatedAt = s.cfg.Now()
+		}
 		err = s.put(ctx, p)
 	}
 	s.mu.Unlock()

@@ -79,6 +79,12 @@ type Project struct {
 	Tracks map[string]Track `json:"tracks,omitempty"`
 	// Run is the run asked for last, until it ends (Resume).
 	Run *Run `json:"run,omitempty"`
+	// Exported is when the dub was last exported; Freed when its working
+	// files (the decoded audio, the separated stems) were freed, a while
+	// after an export, until a run makes them again (code review 1102 L4,
+	// services/dub_free.go). Neither changes UpdatedAt.
+	Exported time.Time `json:"exported,omitzero"`
+	Freed    time.Time `json:"freed,omitzero"`
 }
 
 // Source is what is dubbed.

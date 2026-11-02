@@ -18,7 +18,8 @@ import (
 
 // RunRequest asks for the pipeline up to a stage.
 type RunRequest struct {
-	// Through is the last stage: dub.StageReferences (the transcript),
+	// Through is the last stage: dub.StageIngest (the decoded audio
+	// alone: Rebuild), dub.StageReferences (the transcript),
 	// StageTranslate, StageMix (the dub) or StageQC (Verify).
 	Through dub.Stage
 	// Langs are the languages (nil = every language the project speaks).
@@ -100,6 +101,9 @@ func (s *Dubs) Run(ctx context.Context, id string, req RunRequest) (map[string]s
 	if len(active) > 0 {
 		return nil, fmt.Errorf("dub %s: a run is going on: %w", id, core.ErrBusy)
 	}
+	// The renders of lines and languages removed go now (code review
+	// 1102 L4, dub_free.go): no job of the dub runs.
+	s.pruneStale(p)
 	nodes := s.plan(p, req)
 	if len(nodes) == 0 {
 		return map[string]string{}, nil
@@ -134,6 +138,10 @@ func (s *Dubs) Plan(p *dub.Project, req RunRequest) []string {
 func (s *Dubs) plan(p *dub.Project, req RunRequest) []jobs.Node {
 	done := func(st dub.Stage, lang string) bool {
 		if slices.Contains(req.Force, st) {
+			return false
+		}
+		// Files a freed dub lacks (dub_free.go) are made again.
+		if st == dub.StageIngest && s.audioGone(p) || st == dub.StageSeparate && s.stemsGone(p) {
 			return false
 		}
 		switch p.Stage(st, lang).Status {
@@ -187,7 +195,10 @@ func (s *Dubs) plan(p *dub.Project, req RunRequest) []jobs.Node {
 		chain(dub.StageFetch)
 	}
 	chain(dub.StageIngest)
-	if p.Settings.KeepBackground || slices.Contains(req.Force, dub.StageSeparate) {
+	if req.Through == dub.StageIngest { // Rebuild: the audio alone
+		return nodes
+	}
+	if p.Settings.KeepBackground || slices.Contains(req.Force, dub.StageSeparate) || s.stemsGone(p) {
 		chain(dub.StageSeparate)
 	}
 	transcribing := false
