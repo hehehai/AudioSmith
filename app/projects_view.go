@@ -139,7 +139,8 @@ func (a *app) projRow(c *ui.Context, it projItem, withType, narrow bool) {
 	if it.running {
 		c.After(500 * time.Millisecond) // the progress moves
 	}
-	spec := listRowSpec{key: "pj-row-" + it.key(), label: it.title, del: func() { s.confirm, s.confirmOpen = it, true }}
+	spec := listRowSpec{key: "pj-row-" + it.key(), label: it.title, del: func() { s.confirm, s.confirmOpen = it, true },
+		menu: func(m *ui.Menu) { a.projMenuItems(m, it) }, menuTip: i18n.T("Project actions")}
 	open := listRow(c, spec, func() {
 		var bmp *ui.Bitmap
 		if it.kind == projDub {
@@ -165,31 +166,35 @@ func (a *app) projRow(c *ui.Context, it projItem, withType, narrow bool) {
 			col = k.Danger
 		}
 		listStatus(c, it.status, it.running, it.frac, col, 130)
-	}, func() { a.projMenu(c, it) })
+	}, nil)
 	if open {
 		a.openProj(it)
 	}
 }
 
-// projMenu is a row's ⋯.
+// projMenu is a card's ⋯.
 func (a *app) projMenu(c *ui.Context, it projItem) {
+	moreMenu(c.Key("pj-more-"+it.key()), i18n.T("Project actions"), func(m *ui.Menu) { a.projMenuItems(m, it) })
+}
+
+// projMenuItems are a project's ⋯ items, its row's and its card's
+// context menu too: Open, Rename, Duplicate, Delete.
+func (a *app) projMenuItems(m *ui.Menu, it projItem) {
 	s := &a.projects
 	lf := (it.kind == projStory || it.kind == projBook) && !it.draft
-	moreMenu(c.Key("pj-more-"+it.key()), i18n.T("Project actions"), func(m *ui.Menu) {
-		if m.Item(i18n.T("Open")).Chosen() {
-			a.openProj(it)
-		}
-		if lf && m.Item(i18n.T("Rename")).Chosen() {
-			s.renaming, s.renameText = it.key(), it.title
-		}
-		if lf && m.Item(i18n.T("Duplicate")).Chosen() {
-			a.duplicateProj(it)
-		}
-		m.Separator()
-		if m.Item(i18n.T("Delete")).Chosen() {
-			s.confirm, s.confirmOpen = it, true
-		}
-	})
+	if m.Item(i18n.T("Open")).Chosen() {
+		a.openProj(it)
+	}
+	if lf && m.Item(i18n.T("Rename")).Chosen() {
+		s.renaming, s.renameText = it.key(), it.title
+	}
+	if lf && m.Item(i18n.T("Duplicate")).Chosen() {
+		a.duplicateProj(it)
+	}
+	m.Separator()
+	if m.Item(i18n.T("Delete")).Chosen() {
+		s.confirm, s.confirmOpen = it, true
+	}
 }
 
 // projRename is a row being renamed: the name's field, Save, Cancel.
@@ -237,6 +242,7 @@ func (a *app) projCards(c *ui.Context, items []projItem) {
 				}
 				listStatus(c, it.status, it.running, it.frac, col, 160)
 			})
+			cardMenu(b, func(m *ui.Menu) { a.projMenuItems(m, it) })
 			if b.Clicked() {
 				a.openProj(it)
 			}

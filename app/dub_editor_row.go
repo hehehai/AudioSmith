@@ -50,6 +50,12 @@ func (a *app) dubRow(c *ui.Context, i int) (after func()) {
 			a.dubLineOptions(c, s, locked, &after)
 		}
 	})
+	// The ⋯'s items on a secondary click (thread #144); the line becomes
+	// the current one, as a click makes it. Its text keeps its own menu.
+	row.ContextMenu(func(m *ui.Menu) {
+		a.dubCur, a.dubTL.sel = id, id
+		a.dubLineMenu(m, i, &after)
+	})
 	return after
 }
 
@@ -61,7 +67,6 @@ func (a *app) dubRowHead(c *ui.Context, i int, after *func()) {
 	p := a.dub
 	s := p.Segments[i]
 	id := s.ID
-	locked := a.dubLocked()
 	overlap := i+1 < len(p.Segments) && s.End > p.Segments[i+1].Start+0.01
 	ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).KeepFocus().Children(func() {
 		sel := a.dubSel[id]
@@ -112,16 +117,24 @@ func (a *app) dubRowHead(c *ui.Context, i int, after *func()) {
 				*after = func() { a.dubAuditionLine(id) }
 			}
 		}
-		moreMenu(c.Key("menu"), i18n.T("Line actions"), func(m *ui.Menu) {
-			menuDo(m, i18n.T("Split (⌘D)"), locked, func() { *after = func() { a.dubSplit(id, -1) } })
-			menuDo(m, i18n.T("Merge with previous (⇧⌘M)"), locked || i == 0, func() { *after = func() { a.dubMerge(id, false) } })
-			menuDo(m, i18n.T("Merge with next (⌘M)"), locked || i+1 >= len(p.Segments), func() { *after = func() { a.dubMerge(id, true) } })
-			menuDo(m, i18n.T("Insert a line below"), locked, func() { *after = func() { a.dubInsert(id) } })
-			a.dubDialogueMenu(m, s, locked, after)
-			m.Separator()
-			menuDo(m, i18n.T("Delete"), locked, func() { *after = func() { a.dubDelete(id) } })
-		})
+		moreMenu(c.Key("menu"), i18n.T("Line actions"), func(m *ui.Menu) { a.dubLineMenu(m, i, after) })
 	})
+}
+
+// dubLineMenu fills a line's ⋯ (and its context menu): split, merge,
+// insert, the dialogue items, delete; *after makes the change.
+func (a *app) dubLineMenu(m *ui.Menu, i int, after *func()) {
+	p := a.dub
+	s := p.Segments[i]
+	id := s.ID
+	locked := a.dubLocked()
+	menuDo(m, i18n.T("Split (⌘D)"), locked, func() { *after = func() { a.dubSplit(id, -1) } })
+	menuDo(m, i18n.T("Merge with previous (⇧⌘M)"), locked || i == 0, func() { *after = func() { a.dubMerge(id, false) } })
+	menuDo(m, i18n.T("Merge with next (⌘M)"), locked || i+1 >= len(p.Segments), func() { *after = func() { a.dubMerge(id, true) } })
+	menuDo(m, i18n.T("Insert a line below"), locked, func() { *after = func() { a.dubInsert(id) } })
+	a.dubDialogueMenu(m, s, locked, after)
+	m.Separator()
+	menuDo(m, i18n.T("Delete"), locked, func() { *after = func() { a.dubDelete(id) } })
 }
 
 // dubRowNotes are a line's shorter rewrite and translation error.

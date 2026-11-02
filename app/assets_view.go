@@ -168,7 +168,8 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 	h := &a.history
 	playing := a.assetPlaying(as)
 	ui.Column(c.Key("as-" + as.key)).Shrink(0).Children(func() {
-		spec := listRowSpec{key: "row", label: as.title, tip: as.title, state: rowState{selected: as.take != nil && h.selected == as.take.ID, playing: playing}}
+		spec := listRowSpec{key: "row", label: as.title, tip: as.title, state: rowState{selected: as.take != nil && h.selected == as.take.ID, playing: playing},
+			menu: func(m *ui.Menu) { a.assetMenu(m, as) }, menuTip: i18n.T("Asset actions")}
 		if as.del != nil {
 			spec.del = func() { h.ask, h.askOpen = as, true }
 		}
@@ -205,7 +206,6 @@ func (a *app) assetRow(c *ui.Context, as asset, narrow bool) {
 			} else {
 				ui.Box(c).Width(px(t, 28)).Shrink(0)
 			}
-			moreMenu(c.Key("more"), i18n.T("Asset actions"), func(m *ui.Menu) { a.assetMenu(m, as) })
 		})
 		if open {
 			if as.take != nil {

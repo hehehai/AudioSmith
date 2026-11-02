@@ -353,7 +353,20 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 		c.After(500 * time.Millisecond) // the progress moves
 	}
 	del := func() { a.dubConfirm, a.dubConfirmOpen = "delete:"+id, true }
-	open := listRow(c, listRowSpec{key: "dub-row-" + id, label: title, del: del}, func() {
+	menu := func(m *ui.Menu) {
+		if m.Item(i18n.T("Open")).Chosen() {
+			a.openDub(id)
+		}
+		if m.Item(i18n.T("Export")).Disabled(dub.Phase(r.Phase) != dub.PhaseDone).Chosen() {
+			a.dubWant = dubStepExport
+			a.openDub(id)
+		}
+		m.Separator()
+		if m.Item(i18n.T("Delete")).Chosen() {
+			del()
+		}
+	}
+	open := listRow(c, listRowSpec{key: "dub-row-" + id, label: title, del: del, menu: menu, menuTip: i18n.T("Dub actions")}, func() {
 		ic := dubIcon
 		if ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(r.Source), ".")); slices.Contains(homeAudioExts, ext) {
 			ic = icons.Soundwave // sound alone
@@ -383,21 +396,7 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 			col = k.Danger
 		}
 		listStatus(c, status, j.ID != "", frac, col, 150)
-	}, func() {
-		moreMenu(c.Key("dub-row-more-"+id), i18n.T("Dub actions"), func(m *ui.Menu) {
-			if m.Item(i18n.T("Open")).Chosen() {
-				a.openDub(id)
-			}
-			if m.Item(i18n.T("Export")).Disabled(dub.Phase(r.Phase) != dub.PhaseDone).Chosen() {
-				a.dubWant = dubStepExport
-				a.openDub(id)
-			}
-			m.Separator()
-			if m.Item(i18n.T("Delete")).Chosen() {
-				del()
-			}
-		})
-	})
+	}, nil)
 	if open {
 		a.openDub(id)
 	}

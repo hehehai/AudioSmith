@@ -217,7 +217,27 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 		a.selectTranscript(id)
 		a.trConfirm = id
 	}
-	open := listRow(c, listRowSpec{key: "tr-item-" + id, label: title, del: del}, func() {
+	menu := func(m *ui.Menu) {
+		if m.Item(i18n.T("Open")).Chosen() {
+			a.selectTranscript(id)
+		}
+		if m.Item(i18n.T("Export")).Chosen() {
+			a.selectTranscript(id)
+			a.trExport = true
+		}
+		m.Separator()
+		if m.Item(i18n.X("action", "Dub")).Disabled(a.trMediaOf(tr) == "").Chosen() {
+			a.trToDub(tr)
+		}
+		if m.Item(i18n.T("Read it in Text to speech")).Chosen() {
+			a.trToStudio(id)
+		}
+		m.Separator()
+		if m.Item(i18n.T("Delete")).Chosen() {
+			del()
+		}
+	}
+	open := listRow(c, listRowSpec{key: "tr-item-" + id, label: title, del: del, menu: menu, menuTip: i18n.T("Transcript actions")}, func() {
 		listThumb(c, ic, nil)
 		listTitle(c, title, strings.TrimSpace(tr.Preferred()))
 		if !narrow {
@@ -225,28 +245,7 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 			metaCell(c, icons.ClockCircle, i18n.T("Length"), clock(tr.Duration), 76)
 		}
 		metaCell(c, icons.CalendarMinimalistic, i18n.T("Created"), ago(tr.CreatedAt), 120)
-	}, func() {
-		moreMenu(c.Key("tr-row-more-"+id), i18n.T("Transcript actions"), func(m *ui.Menu) {
-			if m.Item(i18n.T("Open")).Chosen() {
-				a.selectTranscript(id)
-			}
-			if m.Item(i18n.T("Export")).Chosen() {
-				a.selectTranscript(id)
-				a.trExport = true
-			}
-			m.Separator()
-			if m.Item(i18n.X("action", "Dub")).Disabled(a.trMediaOf(tr) == "").Chosen() {
-				a.trToDub(tr)
-			}
-			if m.Item(i18n.T("Read it in Text to speech")).Chosen() {
-				a.trToStudio(id)
-			}
-			m.Separator()
-			if m.Item(i18n.T("Delete")).Chosen() {
-				del()
-			}
-		})
-	})
+	}, nil)
 	if open {
 		a.selectTranscript(id)
 	}

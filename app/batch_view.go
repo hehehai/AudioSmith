@@ -316,22 +316,25 @@ func (a *app) batchCard(c *ui.Context, r store.DubRecord) {
 	p := b.docs[r.ID]
 	id := r.ID
 	status := a.batchStatus(id)
-	card(c.Key("card-"+id)).Padding(px(t, sp3), px(t, sp4)).Gap(px(t, 6)).Children(func() {
+	menu := func(m *ui.Menu) {
+		if m.Item(i18n.T("Open in the Dub page")).Chosen() {
+			a.openDubAny(id)
+		}
+		m.Separator()
+		if m.Item(i18n.T("Delete")).Chosen() {
+			b.confirm = id
+		}
+	}
+	cd := card(c.Key("card-"+id)).Padding(px(t, sp3), px(t, sp4)).Gap(px(t, 6))
+	cd.ContextMenu(menu) // the ⋯'s items on a secondary click too
+	cd.Children(func() {
 		ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
 			iconMark(c, dubIcon, k.Text2, "")
 			ui.Text(c, firstOf(r.Title, filepath.Base(r.Source))).FontWeight(600).Grow(1).MinWidth(0).SingleLine().Ellipsis("…")
 			for _, l := range r.Languages {
 				tagChip(c, l)
 			}
-			moreMenu(c.Key("more"), i18n.T("Dub actions"), func(m *ui.Menu) {
-				if m.Item(i18n.T("Open in the Dub page")).Chosen() {
-					a.openDubAny(id)
-				}
-				m.Separator()
-				if m.Item(i18n.T("Delete")).Chosen() {
-					b.confirm = id
-				}
-			})
+			moreMenu(c.Key("more"), i18n.T("Dub actions"), menu)
 		})
 		meta := []string{i18n.DateTime(r.CreatedAt)}
 		if r.Duration > 0 {

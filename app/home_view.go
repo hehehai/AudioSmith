@@ -325,7 +325,17 @@ func (a *app) homeRecent(c *ui.Context) {
 	hp := &a.homeUI
 	ui.Column(c.Key("home-recent")).Children(func() {
 		for _, it := range items {
-			spec := listRowSpec{key: "recent-" + it.key, label: it.title}
+			spec := listRowSpec{key: "recent-" + it.key, label: it.title, menuTip: i18n.T("Item actions"), menu: func(m *ui.Menu) {
+				if m.Item(i18n.T("Open")).Chosen() {
+					it.open()
+				}
+				if it.del != nil {
+					m.Separator()
+					if m.Item(i18n.T("Delete")).Chosen() { // asks first, as Delete on the row does
+						hp.ask, hp.askOpen = it, true
+					}
+				}
+			}}
 			if it.del != nil {
 				spec.del = func() { hp.ask, hp.askOpen = it, true }
 			}
@@ -333,19 +343,7 @@ func (a *app) homeRecent(c *ui.Context) {
 				listThumb(c, it.icon, nil)
 				listTitle(c, it.title, it.kind)
 				metaCell(c, icons.CalendarMinimalistic, i18n.T("Updated"), ago(it.at), 120)
-			}, func() {
-				moreMenu(c.Key("more"), i18n.T("Item actions"), func(m *ui.Menu) {
-					if m.Item(i18n.T("Open")).Chosen() {
-						it.open()
-					}
-					if it.del != nil {
-						m.Separator()
-						if m.Item(i18n.T("Delete")).Chosen() { // asks first, as Delete on the row does
-							hp.ask, hp.askOpen = it, true
-						}
-					}
-				})
-			}) {
+			}, nil) {
 				it.open()
 			}
 		}

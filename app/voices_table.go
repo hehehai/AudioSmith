@@ -21,13 +21,15 @@ const voiceTableTrail = 148
 // cells (avatar, name, meta values) in a button that opens the voice's
 // detail, then actions. It reports a click on the row's body.
 func voiceRow(c *ui.Context, key, label string, st rowState, cells, actions func()) bool {
-	return voiceRowDel(c, key, label, st, nil, cells, actions)
+	return voiceListRow(c, listRowSpec{key: key, label: label, state: st}, cells, actions)
 }
 
-// voiceRowDel is voiceRow whose Delete (on the focused row) runs del
-// (which asks first); nil none.
-func voiceRowDel(c *ui.Context, key, label string, st rowState, del, cells, actions func()) bool {
-	return listRow(c, listRowSpec{key: key, label: label, tip: i18n.T("Open the voice's details"), state: st, trail: voiceTableTrail, del: del}, cells, actions)
+// voiceListRow is voiceRow from a row spec (key, label, state, del,
+// menu: the ⋯ that ends the actions and the row's context menu); it
+// sets the tooltip and the actions' width.
+func voiceListRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
+	s.tip, s.trail = i18n.T("Open the voice's details"), voiceTableTrail
+	return listRow(c, s, cells, actions)
 }
 
 // voiceNameCell is a row's avatar (portrait or initial) and its name

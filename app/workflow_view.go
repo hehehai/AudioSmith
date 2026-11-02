@@ -297,6 +297,21 @@ func (a *app) wfListRow(c *ui.Context, r store.WorkflowRecord) {
 	case hovered:
 		row.Background(k.Hover)
 	}
+	menu := func(m *ui.Menu) {
+		if m.Item(i18n.T("Rename")).Chosen() {
+			a.wfRenaming, a.wfRenameTx = id, r.Name
+		}
+		if m.Item(i18n.T("Duplicate")).Chosen() {
+			if !open {
+				a.wfOpen(id)
+			}
+			a.wfDuplicateID(id)
+		}
+		m.Separator()
+		if m.Item(i18n.T("Delete")).Chosen() {
+			a.wfConfirm, a.wfAsk = id, true
+		}
+	}
 	row.Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Children(func() {
 			name := ui.Text(c, firstOf(r.Name, i18n.T("Untitled workflow"))).SingleLine().Ellipsis("…").MinWidth(0)
@@ -307,22 +322,9 @@ func (a *app) wfListRow(c *ui.Context, r store.WorkflowRecord) {
 				ui.Text(c, s).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine()
 			}
 		})
-		moreMenu(c.Key("wf-row-menu-"+id), "", func(m *ui.Menu) {
-			if m.Item(i18n.T("Rename")).Chosen() {
-				a.wfRenaming, a.wfRenameTx = id, r.Name
-			}
-			if m.Item(i18n.T("Duplicate")).Chosen() {
-				if !open {
-					a.wfOpen(id)
-				}
-				a.wfDuplicateID(id)
-			}
-			m.Separator()
-			if m.Item(i18n.T("Delete")).Chosen() {
-				a.wfConfirm, a.wfAsk = id, true
-			}
-		})
+		moreMenu(c.Key("wf-row-menu-"+id), "", menu)
 	})
+	cardMenu(row, menu) // the ⋯'s items on a secondary click too
 	if row.Clicked() && !open {
 		a.wfOpen(id)
 	}

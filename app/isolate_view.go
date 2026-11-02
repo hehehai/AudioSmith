@@ -157,7 +157,23 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 		ic = dubIcon
 	}
 	del := func() { a.isoConfirm, a.isoConfirmOpen = id, true }
-	open := listRow(c, listRowSpec{key: "iso-row-" + id, label: x.Title, del: del}, func() {
+	menu := func(m *ui.Menu) {
+		if m.Item(i18n.T("Open")).Chosen() {
+			a.navigate("/isolate/" + id)
+		}
+		done := x.State == services.IsolateDone
+		if m.Item(i18n.T("Send to Speech to text")).Disabled(!done).Chosen() {
+			a.isoToTranscribe(x)
+		}
+		if m.Item(i18n.T("Send to Dub")).Chosen() {
+			a.isoToDub(x)
+		}
+		m.Separator()
+		if m.Item(i18n.T("Delete")).Chosen() {
+			del()
+		}
+	}
+	open := listRow(c, listRowSpec{key: "iso-row-" + id, label: x.Title, del: del, menu: menu, menuTip: i18n.T("Isolation actions")}, func() {
 		listThumb(c, ic, nil)
 		listTitle(c, x.Title, filepath.Base(x.Input))
 		if !narrow {
@@ -173,24 +189,7 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 			col = k.Danger
 		}
 		listStatus(c, status, running, frac, col, 130)
-	}, func() {
-		moreMenu(c.Key("iso-row-more-"+id), i18n.T("Isolation actions"), func(m *ui.Menu) {
-			if m.Item(i18n.T("Open")).Chosen() {
-				a.navigate("/isolate/" + id)
-			}
-			done := x.State == services.IsolateDone
-			if m.Item(i18n.T("Send to Speech to text")).Disabled(!done).Chosen() {
-				a.isoToTranscribe(x)
-			}
-			if m.Item(i18n.T("Send to Dub")).Chosen() {
-				a.isoToDub(x)
-			}
-			m.Separator()
-			if m.Item(i18n.T("Delete")).Chosen() {
-				del()
-			}
-		})
-	})
+	}, nil)
 	if open {
 		a.navigate("/isolate/" + id)
 	}

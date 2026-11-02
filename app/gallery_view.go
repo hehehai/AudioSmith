@@ -292,7 +292,8 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 			playing := p.ok() && a.pl.Playing(p.id)
 			name := arch.Name.In(loc)
 			st := rowState{selected: g.detail == arch.ID, playing: playing}
-			if voiceRow(c, "arch-"+arch.ID, name, st, func() {
+			spec := listRowSpec{key: "arch-" + arch.ID, label: name, state: st, menu: func(m *ui.Menu) { a.archetypeMenuItems(m, arch) }}
+			if voiceListRow(c, spec, func() {
 				voiceNameCell(c, name, arch.Description.In(loc), nil, playing, func() {
 					if g.favs.Has(arch.ID) {
 						iconMark(c, icons.Star, tok(c.Theme()).Text3, i18n.T("Favorite"))
@@ -311,7 +312,6 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 				if useButton(c, "use", i18n.T("Use it in Text to speech")).Disabled(g.using).Clicked() {
 					a.useArchetype(arch, true)
 				}
-				a.archetypeMenu(c, arch, "")
 			}) {
 				a.openArchetype(arch.ID)
 			}
@@ -322,25 +322,29 @@ func (a *app) galleryTable(c *ui.Context, items []gallery.Archetype, narrow bool
 // archetypeMenu is a Discover voice's ⋯: save it, Stories, Audiobook,
 // Design without saving, favorite; tip names it ("" More actions).
 func (a *app) archetypeMenu(c *ui.Context, arch gallery.Archetype, tip string) {
+	moreMenu(c.Key("more"), tip, func(m *ui.Menu) { a.archetypeMenuItems(m, arch) })
+}
+
+// archetypeMenuItems are a Discover voice's ⋯ items, its row's context
+// menu too.
+func (a *app) archetypeMenuItems(m *ui.Menu, arch gallery.Archetype) {
 	g := &a.gallery
-	moreMenu(c.Key("more"), tip, func(m *ui.Menu) {
-		saved := a.savedFrom(arch.ID) != nil
-		if m.Item(i18n.T("Save to My voices")).Disabled(saved || g.using).Chosen() {
-			a.saveArchetype(arch)
-		}
-		a.longformVoiceItems(m, func(then func(*core.Voice)) { a.useArchetypeThen(arch, then) }) // M3 (thread #18)
-		if arch.Designed() && m.Item(i18n.T("Open in Design without saving")).Chosen() {
-			a.designFromArchetype(arch)
-		}
-		m.Separator()
-		fav := i18n.T("Add to favorites")
-		if g.favs.Has(arch.ID) {
-			fav = i18n.T("Remove from favorites")
-		}
-		if m.Item(fav).Chosen() {
-			a.toggleFavorite(arch.ID)
-		}
-	})
+	saved := a.savedFrom(arch.ID) != nil
+	if m.Item(i18n.T("Save to My voices")).Disabled(saved || g.using).Chosen() {
+		a.saveArchetype(arch)
+	}
+	a.longformVoiceItems(m, func(then func(*core.Voice)) { a.useArchetypeThen(arch, then) }) // M3 (thread #18)
+	if arch.Designed() && m.Item(i18n.T("Open in Design without saving")).Chosen() {
+		a.designFromArchetype(arch)
+	}
+	m.Separator()
+	fav := i18n.T("Add to favorites")
+	if g.favs.Has(arch.ID) {
+		fav = i18n.T("Remove from favorites")
+	}
+	if m.Item(fav).Chosen() {
+		a.toggleFavorite(arch.ID)
+	}
 }
 
 // openArchetype opens a Discover voice's detail (or closes it, a second

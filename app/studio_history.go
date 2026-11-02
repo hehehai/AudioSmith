@@ -79,7 +79,9 @@ func (a *app) studioHistory(c *ui.Context) {
 func (a *app) studioHistoryRow(c *ui.Context, tk *core.Take) {
 	playing := a.pl.Playing(tk.ID)
 	text := scriptStart(tk.Text)
-	spec := listRowSpec{key: "hist-" + tk.ID, label: text, tip: text, dense: true, state: rowState{playing: playing}, lead: func() {
+	spec := listRowSpec{key: "hist-" + tk.ID, label: text, tip: text, dense: true, state: rowState{playing: playing}, menu: func(m *ui.Menu) {
+		a.takeHandoffs(m, tk, true)
+	}, lead: func() {
 		if playButton(c.Key("play"), playing, false, 28).Clicked() {
 			a.play(tk)
 		}
@@ -87,11 +89,7 @@ func (a *app) studioHistoryRow(c *ui.Context, tk *core.Take) {
 	if listRow(c, spec, func() {
 		meta := a.takeVoiceName(tk) + " · " + i18n.T("%.1f s", tk.AudioSeconds) + " · " + ago(tk.CreatedAt)
 		listTitleMarks(c, text, meta, playing, nil)
-	}, func() {
-		moreMenu(c.Key("hist-more"), "", func(m *ui.Menu) {
-			a.takeHandoffs(m, tk, true)
-		})
-	}) {
+	}, nil) {
 		a.play(tk)
 	}
 }

@@ -177,7 +177,8 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 	playing := a.savedPlaying(v)
 	st := rowState{selected: e != nil && e.id == v.ID, playing: playing}
 	id := v.ID
-	if voiceRowDel(c, "voice-"+v.ID, v.Name, st, func() { a.askDeleteVoice(id) }, func() {
+	spec := listRowSpec{key: "voice-" + v.ID, label: v.Name, state: st, del: func() { a.askDeleteVoice(id) }, menu: func(m *ui.Menu) { a.voiceMenuItems(m, v) }}
+	if voiceListRow(c, spec, func() {
 		voiceNameCell(c, v.Name, voiceLine(v), a.portrait(v), playing, func() { voiceMarks(c, v) })
 		// Badges: a click filters the table by the value (thread #129).
 		badgeCell(c, "kind", 92, func() { a.mineKindBadge(c, v) })
@@ -206,7 +207,6 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 				a.useVoiceInStudio(v)
 			}
 		}
-		a.voiceRowMenu(c, v, "")
 	}) {
 		a.toggleVoiceDetail(id)
 	}
@@ -215,38 +215,41 @@ func (a *app) voiceTableRow(c *ui.Context, v *core.Voice, narrow bool) {
 // voiceRowMenu is a saved voice's ⋯: rename, duplicate, export, Stories
 // and Audiobook, references, delete; tip names it ("" More actions).
 func (a *app) voiceRowMenu(c *ui.Context, v *core.Voice, tip string) {
+	moreMenu(c.Key("voice-more"), tip, func(m *ui.Menu) { a.voiceMenuItems(m, v) })
+}
+
+// voiceMenuItems are a saved voice's ⋯ items, its row's context menu too.
+func (a *app) voiceMenuItems(m *ui.Menu, v *core.Voice) {
 	id := v.ID
-	moreMenu(c.Key("voice-more"), tip, func(m *ui.Menu) {
-		if m.Item(i18n.T("Rename")).Chosen() {
-			a.mine.renaming, a.mine.renameText = id, v.Name
-		}
-		if m.Item(i18n.T("Duplicate")).Chosen() {
-			a.duplicateVoice(id)
-		}
-		if m.Item(i18n.T("Export voice file")).Chosen() {
-			a.exportVoice(id, v.Kind == core.VoiceCloned, "")
-		}
-		m.Separator()
-		a.longformVoiceItems(m, func(then func(*core.Voice)) {
-			if v := a.findVoice(id); v != nil {
-				then(v)
-			}
-		})
-		if canMakeReference(v) && v.RefAudio == "" && m.Item(i18n.T("Make reference")).Disabled(a.refMaking(id) != nil).Chosen() {
-			if v := a.findVoice(id); v != nil {
-				a.makeReference(v, nil)
-			}
-		}
-		if canMakePortable(v) && m.Item(i18n.T("Make a portable copy (approximate)")).Chosen() {
-			if v := a.findVoice(id); v != nil {
-				a.makePortable(v)
-			}
-		}
-		m.Separator()
-		if m.Item(i18n.T("Delete")).Chosen() {
-			a.askDeleteVoice(id)
+	if m.Item(i18n.T("Rename")).Chosen() {
+		a.mine.renaming, a.mine.renameText = id, v.Name
+	}
+	if m.Item(i18n.T("Duplicate")).Chosen() {
+		a.duplicateVoice(id)
+	}
+	if m.Item(i18n.T("Export voice file")).Chosen() {
+		a.exportVoice(id, v.Kind == core.VoiceCloned, "")
+	}
+	m.Separator()
+	a.longformVoiceItems(m, func(then func(*core.Voice)) {
+		if v := a.findVoice(id); v != nil {
+			then(v)
 		}
 	})
+	if canMakeReference(v) && v.RefAudio == "" && m.Item(i18n.T("Make reference")).Disabled(a.refMaking(id) != nil).Chosen() {
+		if v := a.findVoice(id); v != nil {
+			a.makeReference(v, nil)
+		}
+	}
+	if canMakePortable(v) && m.Item(i18n.T("Make a portable copy (approximate)")).Chosen() {
+		if v := a.findVoice(id); v != nil {
+			a.makePortable(v)
+		}
+	}
+	m.Separator()
+	if m.Item(i18n.T("Delete")).Chosen() {
+		a.askDeleteVoice(id)
+	}
 }
 
 // renameRow is a row being renamed: the name's field, Save, Cancel.

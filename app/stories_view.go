@@ -196,6 +196,23 @@ func (a *app) storyLine(c *ui.Context, p *lfPage, i int, l *services.StoryLine, 
 	if l.Chapter {
 		row.Margin(px(t, sp2), 0, 0, 0)
 	}
+	up := func() { after = func() { a.moveLine(p, i, -1) } }
+	down := func() { after = func() { a.moveLine(p, i, 1) } }
+	del := func() { after = func() { a.deleteLine(p, i) } }
+	// lineMenu is the narrow row's ⋯, and every row's context menu (thread
+	// #144): its text and title keep their own.
+	lineMenu := func(m *ui.Menu) {
+		if m.Item(i18n.T("Move up")).Disabled(locked || i == 0).Chosen() {
+			up()
+		}
+		if m.Item(i18n.T("Move down")).Disabled(locked || i == len(p.doc.Lines)-1).Chosen() {
+			down()
+		}
+		if m.Item(i18n.T("Remove line")).Disabled(locked).Chosen() {
+			del()
+		}
+	}
+	row.ContextMenu(lineMenu)
 	row.Children(func() {
 		ui.Row(c).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
 			if l.Chapter {
@@ -228,21 +245,8 @@ func (a *app) storyLine(c *ui.Context, p *lfPage, i int, l *services.StoryLine, 
 					}
 				}
 			}
-			up := func() { after = func() { a.moveLine(p, i, -1) } }
-			down := func() { after = func() { a.moveLine(p, i, 1) } }
-			del := func() { after = func() { a.deleteLine(p, i) } }
 			if p.narrow {
-				moreMenu(c.Key("line-more"), i18n.T("More line actions"), func(m *ui.Menu) {
-					if m.Item(i18n.T("Move up")).Disabled(locked || i == 0).Chosen() {
-						up()
-					}
-					if m.Item(i18n.T("Move down")).Disabled(locked || i == len(p.doc.Lines)-1).Chosen() {
-						down()
-					}
-					if m.Item(i18n.T("Remove line")).Disabled(locked).Chosen() {
-						del()
-					}
-				})
+				moreMenu(c.Key("line-more"), i18n.T("More line actions"), lineMenu)
 				return
 			}
 			if iconButton(c.Key("up"), icons.AltArrowUp, i18n.T("Move up")).Disabled(locked || i == 0).Clicked() {

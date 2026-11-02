@@ -9,6 +9,7 @@ package main
 // grey line, then grey meta values, each after a small icon — and its end
 // holds the actions (▶, the primary action, ⋯), whose buttons wear a
 // face under the pointer that shows on the row's own tint (inRowActs).
+// A row with a ⋯ has its items as its context menu too (thread #144).
 // Meta values a filter of the list knows are badges (ui_badge.go): a
 // click on one filters the list by it. Delete or Backspace on a
 // focused row asks to delete it where the list deletes. The meta values
@@ -44,6 +45,11 @@ type listRowSpec struct {
 	dense bool     // a side panel's row: listRowDenseH high
 	lead  func()   // before the body, outside it (a ▶ that is not the row's click); nil none
 	del   func()   // Delete / Backspace on the focused row (asks first); nil none
+	// menu fills the row's ⋯, the last of its actions, and its context
+	// menu (a secondary click, Control-click, the menu key) with the same
+	// items; nil none. menuTip is the ⋯'s tooltip ("" More actions).
+	menu    func(m *ui.Menu)
+	menuTip string
 }
 
 // listRow is a row: lead, then cells (listThumb or an avatar, listTitle,
@@ -77,15 +83,34 @@ func listRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
 		if s.del != nil && (body.Shortcut(0, ui.KeyDelete) || body.Shortcut(0, ui.KeyBackspace)) {
 			s.del()
 		}
-		if actions == nil {
+		if actions == nil && s.menu == nil {
 			return
 		}
 		acts := ui.Row(c.Key("acts")).Shrink(0).Gap(px(t, 2)).AlignItems(ui.Center).Justify(ui.End)
 		if s.trail > 0 {
 			acts.Width(px(t, s.trail))
 		}
-		acts.Children(func() { rowActs(actions) })
+		acts.Children(func() {
+			rowActs(func() {
+				if actions != nil {
+					actions()
+				}
+				if s.menu != nil {
+					moreMenu(c.Key("more"), s.menuTip, s.menu)
+				}
+			})
+		})
 	})
+	if s.menu != nil {
+		// The ⋯'s items, where the row is clicked with the secondary
+		// button; the row's body takes the focus, as a file in Finder
+		// does (Delete then asks to delete it), and the row keeps its
+		// tint under the pointer while the menu shows.
+		row.ContextMenu(func(m *ui.Menu) {
+			body.Focus()
+			s.menu(m)
+		})
+	}
 	switch {
 	case s.state.selected && row.Hovered():
 		row.Background(k.SelectedHover)
@@ -100,6 +125,15 @@ func listRow(c *ui.Context, s listRowSpec, cells, actions func()) bool {
 	}
 	probeBox("row", row)
 	return clicked
+}
+
+// cardMenu gives a card (a button) the items of its ⋯ as its context
+// menu; the card takes the focus as it opens, as a row does.
+func cardMenu(card ui.Element, build func(m *ui.Menu)) {
+	card.ContextMenu(func(m *ui.Menu) {
+		card.Focus()
+		build(m)
+	})
 }
 
 // inRowActs is true while a row's (or a card's) actions build: the
