@@ -57,6 +57,7 @@ type longformState struct {
 type lfRender struct {
 	rec  core.Render
 	body services.RenderBody
+	name string // what the lists call it (render_titles.go)
 }
 
 // lfAudition is what an audition render plays: a line or a chapter.

@@ -40,6 +40,9 @@ type homePage struct {
 	readAt   time.Time           // when they were read
 	reading  bool
 	readFail bool
+
+	ask     homeItem // the row the delete asks about (home_recent.go)
+	askOpen bool
 }
 
 // homeRecentKinds are the library's categories Recent shows: what the
@@ -52,6 +55,8 @@ type homeItem struct {
 	icon             icons.Icon
 	at               time.Time
 	open             func()
+	del              func() // deletes it (asked first: homeAsk); nil none
+	delNote          string // the question's second line
 }
 
 // homePlaceholders are the composer's examples, in turn.
@@ -279,12 +284,17 @@ func (a *app) homeItems(n int) []homeItem {
 			continue
 		}
 		it := it
-		out = append(out, homeItem{key: libKey(it), title: it.Title, kind: itemKind(it), icon: itemIcon(it), at: it.Updated, open: func() {
+		title := it.Title
+		if it.Source == "render" { // a draft's render: its first words (render_titles.go)
+			title = a.renderTitle(it.ID, it.Title)
+		}
+		del, note := a.homeLibDelete(it, title)
+		out = append(out, homeItem{key: libKey(it), title: title, kind: itemKind(it), icon: itemIcon(it), at: it.Updated, open: func() {
 			if it.Source == "take" {
 				a.navigate("/studio")
 			}
 			a.openItem(it)
-		}})
+		}, del: del, delNote: note})
 	}
 	for _, tr := range a.trList {
 		if tr.Source == core.SourceDictation {
@@ -293,13 +303,13 @@ func (a *app) homeItems(n int) []homeItem {
 		id := tr.ID
 		out = append(out, homeItem{key: "tr:" + id, title: transcriptTitle(tr), kind: i18n.T("Transcript"), icon: transcribeIcon, at: tr.CreatedAt, open: func() {
 			a.selectTranscript(id)
-		}})
+		}, del: func() { a.deleteTranscript(id) }})
 	}
 	for _, x := range a.isoList { // the Voice isolator's (F2)
 		id := x.ID
 		out = append(out, homeItem{key: "iso:" + id, title: x.Title, kind: i18n.T("Voice isolator"), icon: isolateIcon, at: x.CreatedAt, open: func() {
 			a.navigate("/isolate/" + id)
-		}})
+		}, del: func() { a.isoDelete(id, true) }})
 	}
 	slices.SortStableFunc(out, func(x, y homeItem) int { return y.at.Compare(x.at) })
 	return out[:min(n, len(out))]
@@ -312,17 +322,35 @@ func (a *app) homeRecent(c *ui.Context) {
 		ghostRows(c, 4, icons.History, i18n.T("Nothing made yet"), i18n.T("What you make in any tool shows here: speech, dubs, transcripts, stories and books."))
 		return
 	}
+	hp := &a.homeUI
 	ui.Column(c.Key("home-recent")).Children(func() {
 		for _, it := range items {
-			if listRow(c, listRowSpec{key: "recent-" + it.key, label: it.title}, func() {
+			spec := listRowSpec{key: "recent-" + it.key, label: it.title}
+			if it.del != nil {
+				spec.del = func() { hp.ask, hp.askOpen = it, true }
+			}
+			if listRow(c, spec, func() {
 				listThumb(c, it.icon, nil)
 				listTitle(c, it.title, it.kind)
 				metaCell(c, icons.CalendarMinimalistic, i18n.T("Updated"), ago(it.at), 120)
-			}, nil) {
+			}, func() {
+				moreMenu(c.Key("more"), i18n.T("Item actions"), func(m *ui.Menu) {
+					if m.Item(i18n.T("Open")).Chosen() {
+						it.open()
+					}
+					if it.del != nil {
+						m.Separator()
+						if m.Item(i18n.T("Delete")).Chosen() { // asks first, as Delete on the row does
+							hp.ask, hp.askOpen = it, true
+						}
+					}
+				})
+			}) {
 				it.open()
 			}
 		}
 	})
+	a.homeAsk(c)
 }
 
 // homeSamples is the Samples tab: the samples to start from

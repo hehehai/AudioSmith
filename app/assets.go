@@ -135,7 +135,7 @@ func (a *app) assets() []asset {
 			kind, tool = assetBook, "/audiobook"
 		}
 		rec := r.rec
-		out = append(out, asset{key: "render:" + rec.ID, kind: kind, title: firstOf(rec.Title, i18n.T("Untitled")), sub: a.renderRecipe(r),
+		out = append(out, asset{key: "render:" + rec.ID, kind: kind, title: firstOf(r.name, i18n.T("Untitled")), sub: a.renderRecipe(r),
 			path: r.body.Output.Book, dur: rec.AudioSeconds, at: rec.UpdatedAt, tool: tool, render: rec.ID,
 			open: func() { a.openRenderAsset(rec) }, del: func() { a.deleteRenderAsset(rec.ID) }})
 	}

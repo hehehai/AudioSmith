@@ -75,13 +75,14 @@ func (a *app) storyHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 		if m.Item(i18n.T("Load sample")).Disabled(locked).Chosen() {
 			a.loadSampleStory(p)
 		}
-		if m.Item(i18n.T("Clear")).Disabled(locked || p.empty()).Chosen() {
+		if m.Item(i18n.T("Clear")).Disabled(locked || !p.clearable()).Chosen() {
 			p.confirm, p.confirmOpen = "clear", true
 		}
 		m.Separator()
 		if m.Item(i18n.T("Go to Audiobook")).Chosen() {
 			a.navigate("/audiobook")
 		}
+		a.lfDeleteItem(m, p, locked) // longform_entry.go
 	})
 }
 

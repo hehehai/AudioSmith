@@ -160,7 +160,7 @@ func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJ
 		if err != nil || body.Output == nil {
 			continue
 		}
-		add(api.AssetJSON{ID: "render:" + r.ID, Kind: kind, Title: firstOf(r.Title, "Untitled"), File: body.Output.Book,
+		add(api.AssetJSON{ID: "render:" + r.ID, Kind: kind, Title: firstOf(renderName(r, &body.Spec), "Untitled"), File: body.Output.Book,
 			Seconds: round2(r.AudioSeconds), At: r.UpdatedAt, Page: page, Tool: "get_longform", Source: r.ProjectID})
 	}
 	if lib := b.lib.svc.Library; lib != nil {

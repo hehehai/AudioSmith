@@ -118,6 +118,13 @@ func (p *lfPage) empty() bool {
 	return len(p.doc.Lines) == 0 && strings.TrimSpace(p.doc.Script) == "" && strings.TrimSpace(p.doc.ImportText) == ""
 }
 
+// clearable reports whether Clear has something to empty: lines (even
+// without text), the review text or the manuscript (even blank). The
+// title and the cast stay.
+func (p *lfPage) clearable() bool {
+	return len(p.doc.Lines) > 0 || p.doc.Script != "" || p.doc.ImportText != ""
+}
+
 // saveLf saves a page as its project, or as a new one (copy). A project
 // saved elsewhere since the page opened or saved it (an agent, thread
 // #35) is not overwritten: the page asks (lfConfirm "changed", #101 M7).
@@ -200,21 +207,6 @@ func (a *app) openLfProject(id string) {
 			p.render = d.Render
 			p.opened, p.listing = true, false
 			a.navigate("/" + lfRoute(pr.Kind))
-		})
-	})
-}
-
-// deleteLfProject deletes a saved project; its renders stay.
-func (a *app) deleteLfProject(id string) {
-	svc := a.lib.svc.Projects
-	a.background(func() {
-		err := svc.Delete(context.Background(), id)
-		a.post(func() {
-			if err != nil {
-				a.toastWarn(i18n.T("Could not delete: %v", err))
-			} else {
-				a.toast(i18n.T("Project deleted"))
-			}
 		})
 	})
 }

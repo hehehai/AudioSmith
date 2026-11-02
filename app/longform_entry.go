@@ -308,3 +308,27 @@ func (a *app) lfSaveItems(m *ui.Menu, p *lfPage) {
 	}
 	m.Separator()
 }
+
+// lfDeleteItem is the editor's ⋯ last item (thread #143): Delete project
+// for a saved one, Discard draft for one never saved; asked first
+// (lfConfirm "delete:<id>", "delete:" the draft). While the page is
+// locked (a render runs, a book imports) it is off and says why.
+func (a *app) lfDeleteItem(m *ui.Menu, p *lfPage, locked bool) {
+	m.Separator()
+	label := i18n.T("Delete project")
+	if p.project == "" {
+		label = i18n.T("Discard draft")
+	}
+	if locked {
+		label = i18n.T("%s (stop the render first)", label)
+	}
+	if m.Item(label).Disabled(locked).Chosen() {
+		p.confirm, p.confirmOpen = "delete:"+p.project, true
+	}
+}
+
+// lfDeleteOpen deletes the project a page has open (or discards its
+// draft) and goes back to the list (asked already).
+func (a *app) lfDeleteOpen(p *lfPage, id string) {
+	a.deleteProj(projItem{kind: lfKindOf(p), id: id, title: lfProjectName(p), draft: id == ""}) // it closes the page
+}

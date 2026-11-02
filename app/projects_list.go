@@ -364,11 +364,13 @@ func (a *app) deleteProj(it projItem) {
 	switch it.kind {
 	case projStory, projBook:
 		p := a.lfPageOf(core.ProjectKind(it.kind))
+		if a.lfLocked(p) && (it.draft || p.project == it.id) {
+			a.toast(i18n.T("Longform work is active: stop the render first."))
+			return
+		}
 		if it.draft {
-			if !a.lfLocked(p) {
-				a.newLf(p)
-				p.opened = false
-			}
+			a.newLf(p)
+			p.opened, p.listing = false, false
 			return
 		}
 		open := p.project == it.id
@@ -382,7 +384,7 @@ func (a *app) deleteProj(it projItem) {
 				}
 				if open && !a.lfLocked(p) { // the page closes it
 					a.newLf(p)
-					p.opened = false
+					p.opened, p.listing = false, false
 				}
 				a.projects.dirty = true
 				a.toast(i18n.T("Project deleted"))

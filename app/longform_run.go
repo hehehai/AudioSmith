@@ -47,7 +47,10 @@ func (a *app) putRender(r core.Render) *lfRender {
 	if err != nil {
 		return nil
 	}
-	lr := &lfRender{rec: r, body: b}
+	lr := &lfRender{rec: r, body: b, name: renderName(r, &b.Spec)}
+	if old := a.lfRenders[r.ID]; lr.name == "" && old != nil { // a published body has no chapters
+		lr.name = old.name
+	}
 	lr.body.Spec.Chapters, lr.body.Spec.Voices = nil, nil // the pages need the summary only
 	a.lfRenders[r.ID] = lr
 	return lr
@@ -242,8 +245,8 @@ func (a *app) startLf(p *lfPage, what string) {
 	}
 	spec := p.spec
 	spec.Project = p.project
-	if spec.Title == "" {
-		spec.Title = i18n.T("Untitled")
+	if spec.Title == "" { // a draft's: its first words (render_titles.go)
+		spec.Title = firstOf(spec.FirstWords(renderTitleRunes), i18n.T("Untitled"))
 	}
 	a.bookDialogueSpec(p, &spec)
 	switch {

@@ -277,11 +277,16 @@ func (a *app) lfConfirm(c *ui.Context, p *lfPage) {
 		case 2:
 			a.saveLfAs(p, false, true)
 		}
+	case p.confirm == "delete:": // a draft never saved (lfDeleteItem)
+		if ui.AlertDialog(c, &p.confirmOpen, i18n.T("Discard this draft?"), i18n.T("It was never saved: its text is gone for good. Its finished renders are kept."),
+			i18n.T("Cancel"), i18n.T("Discard")) == 1 {
+			a.lfDeleteOpen(p, "")
+		}
 	case strings.HasPrefix(p.confirm, "delete:"):
 		id := strings.TrimPrefix(p.confirm, "delete:")
 		if ui.AlertDialog(c, &p.confirmOpen, i18n.T("Delete this project permanently?"), i18n.T("Its finished renders and exported files are kept."),
 			i18n.T("Cancel"), i18n.T("Delete")) == 1 {
-			a.deleteLfProject(id)
+			a.lfDeleteOpen(p, id)
 		}
 	default:
 		title := p.confirm

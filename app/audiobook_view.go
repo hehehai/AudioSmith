@@ -65,13 +65,14 @@ func (a *app) bookHeader(c *ui.Context, p *lfPage, locked, shown bool) {
 		if m.Item(i18n.T("Load sample")).Disabled(locked).Chosen() {
 			a.loadSample(p)
 		}
-		if m.Item(i18n.T("Clear")).Disabled(locked || strings.TrimSpace(p.doc.Script) == "").Chosen() {
+		if m.Item(i18n.T("Clear")).Disabled(locked || !p.clearable()).Chosen() {
 			p.confirm, p.confirmOpen = "clear", true
 		}
 		m.Separator()
 		if m.Item(i18n.T("Go to Stories")).Chosen() {
 			a.navigate("/stories")
 		}
+		a.lfDeleteItem(m, p, locked) // longform_entry.go
 	})
 }
 

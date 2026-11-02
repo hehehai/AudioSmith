@@ -4020,5 +4020,13 @@
   "the isolations: all of them, or one with its state and stems (vocals, background, clean: absolute WAV paths).": "人声分离：全部，或者某一个及其状态和分轨（vocals、background、clean：WAV 的绝对路径）。",
   "what an audio or video file holds: duration, streams, codecs, sample rate, channels.": "音频或视频文件里有什么：时长、流、编码、采样率、声道。",
   "write a saved voice as an .asvoice file, to share it or move it to another Mac.": "把已保存的音色写成 .asvoice 文件，用来分享或搬到另一台 Mac。",
-  "write_story with the idea and %s (it needs the writing help's model; on %s write the %s lines yourself and use create_story). get_longform to check the cast, update_longform for other voices, render_longform, get_job until done, export_longform.": "用点子和 %s 调用 write_story（它需要写作助手的模型；返回 %s 时就自己写 %s 格式的台词，用 create_story）。用 get_longform 检查角色分配，用 update_longform 换音色，render_longform，用 get_job 跟进到完成，再 export_longform。"
+  "write_story with the idea and %s (it needs the writing help's model; on %s write the %s lines yourself and use create_story). get_longform to check the cast, update_longform for other voices, render_longform, get_job until done, export_longform.": "用点子和 %s 调用 write_story（它需要写作助手的模型；返回 %s 时就自己写 %s 格式的台词，用 create_story）。用 get_longform 检查角色分配，用 update_longform 换音色，render_longform，用 get_job 跟进到完成，再 export_longform。",
+  "Item actions": "条目操作",
+  "Its audio is deleted; the files you exported are kept.": "它的音频会被删除；你导出的文件会保留。",
+  "Delete project": "删除项目",
+  "Discard draft": "丢弃草稿",
+  "%s (stop the render first)": "%s（请先停止渲染）",
+  "Discard this draft?": "丢弃这份草稿？",
+  "It was never saved: its text is gone for good. Its finished renders are kept.": "它从未保存过：文本将永久丢失。已完成的渲染会保留。",
+  "Discard": "丢弃"
 }
