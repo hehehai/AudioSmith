@@ -10,6 +10,7 @@ package main
 
 import (
 	"path/filepath"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -23,6 +24,67 @@ func (a *app) toolPage(c *ui.Context, key string, body func()) {
 	ui.Scroll(c.Key(key)).Grow(1).MinHeight(0).Children(func() {
 		ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp8), gutterL(t)).Gap(px(t, sp4)).Children(body)
 	}).ClipX()
+}
+
+// toolList is a tool page whose list may be long (perf review 11-02 H2):
+// the page is one ui.List, which builds only the rows in view, its first
+// row everything above the list (head: the composer, notices, gap sp4
+// between them, as toolPage), then lead (rows not in the list: a job
+// running, no match; no gap above the list) and the n rows, row(i) keyed
+// by keyOf(i). Same padding as toolPage; the list is not in a Scroll
+// (a List in a Scroll builds every row).
+type toolList struct {
+	key   string
+	state *ui.ListState
+	head  func()
+	lead  func() // optional
+	n     int
+	keyOf func(i int) any
+	row   func(i int)
+}
+
+type toolListHead struct{}
+
+// pageLists are the ListStates of the tool pages' lists.
+type pageLists struct {
+	tr, dub, iso, voices, proj, cards ui.ListState
+	lfEntry                           [2]ui.ListState // Stories', Audiobook's
+}
+
+// textHead is s cut to about n bytes (on a rune), with … when cut: a list
+// row's subtitle, which shows one line of it, need not hold a whole
+// script (perf review 11-02 C1, H3).
+func textHead(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n] + "…"
+}
+
+func (a *app) toolListPage(c *ui.Context, p toolList) {
+	t := c.Theme()
+	ui.List(c.Key(p.key), p.state, p.n+1).Grow(1).MinHeight(0).Padding(bodyTop(t), gutterR(t), px(t, sp8), gutterL(t)).
+		ItemKey(func(i int) any {
+			if i == 0 {
+				return toolListHead{}
+			}
+			return p.keyOf(i - 1)
+		}).Rows(func(r ui.ListRow) {
+		if r.Index > 0 {
+			p.row(r.Index - 1)
+			return
+		}
+		ui.Column(c.Key("head")).Children(func() {
+			ui.Column(c).Gap(px(t, sp4)).Children(p.head)
+			ui.Box(c).Height(px(t, sp4))
+			if p.lead != nil {
+				p.lead()
+			}
+		})
+	})
 }
 
 // toolNarrow reports whether a tool page's list drops its secondary

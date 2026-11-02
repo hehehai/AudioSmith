@@ -397,6 +397,7 @@ func (a *app) openTakes(lib *library) {
 			a.post(func() { a.takeDeleted(ev.ID) })
 		}
 	}, "take.")
+	a.homeFollow(lib.bus) // home_recent.go
 	a.followRenders()
 	a.loadTakes()
 	a.restoreStudioDraft()

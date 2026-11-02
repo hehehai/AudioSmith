@@ -3,6 +3,7 @@ package core
 import (
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // TranscriptSource says where a transcript's audio came from.
@@ -75,18 +76,40 @@ type TranscriptWord struct {
 
 // Text is the transcript as the segments read, edits included.
 func (t Transcript) Text() string {
+	return t.joined(-1)
+}
+
+// TextPrefix is the start of Text, at least max bytes of it when the
+// transcript is that long (cut after a whole segment): enough for a list
+// row's subtitle without joining an hour of speech.
+func (t Transcript) TextPrefix(max int) string { return t.joined(max) }
+
+// joined joins the segments like Text; max >= 0 stops once it has that
+// many bytes. Linear: it keeps the last rune instead of looking back at
+// the text it built.
+func (t Transcript) joined(max int) string {
 	var b strings.Builder
+	var last rune
 	for _, s := range t.Segments {
 		txt := strings.TrimSpace(s.Text)
 		if txt == "" {
 			continue
 		}
-		if b.Len() > 0 && needsSpace(b.String(), txt) {
+		if b.Len() > 0 && !(isUnspaced(last) || isUnspaced(firstRune(txt))) {
 			b.WriteByte(' ')
 		}
 		b.WriteString(txt)
+		last, _ = utf8.DecodeLastRuneInString(txt)
+		if max >= 0 && b.Len() >= max {
+			break
+		}
 	}
 	return b.String()
+}
+
+func firstRune(s string) rune {
+	r, _ := utf8.DecodeRuneInString(s)
+	return r
 }
 
 // Preferred is the text to copy, export as text and reuse: the clean-up
@@ -98,17 +121,8 @@ func (t Transcript) Preferred() string {
 	return t.Text()
 }
 
-// needsSpace reports whether a space goes between two pieces of text:
-// not between CJK characters.
-func needsSpace(before, after string) bool {
-	b := []rune(before)
-	a := []rune(after)
-	if len(a) == 0 || len(b) == 0 {
-		return false
-	}
-	return !(isUnspaced(b[len(b)-1]) || isUnspaced(a[0]))
-}
-
+// isUnspaced reports CJK characters and punctuation: no space goes next
+// to them.
 func isUnspaced(r rune) bool {
 	return r >= 0x2E80 && r <= 0x9FFF || r >= 0xF900 && r <= 0xFAFF || r >= 0xFF00 && r <= 0xFFEF || r >= 0x3000 && r <= 0x303F
 }

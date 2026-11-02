@@ -6,8 +6,6 @@ package main
 // route is here too (developers_view.go builds the page).
 
 import (
-	"strings"
-
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -147,7 +145,7 @@ func (a *app) recentDictations(c *ui.Context) {
 	}
 	ui.Column(c.Key("dict-recent")).Gap(px(t, 2)).Children(func() {
 		for _, tr := range list {
-			text := strings.TrimSpace(tr.Preferred())
+			text := trSubtitle(tr)
 			row := ui.ButtonBase(c.Key("dict-" + tr.ID)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusControl)).Label(orDash(text))
 			if row.Hovered() {
 				row.Background(k.Hover)

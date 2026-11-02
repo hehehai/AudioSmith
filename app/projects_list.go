@@ -170,24 +170,15 @@ func (a *app) projTextHits(q string) map[string]bool {
 }
 
 // projItems are the list's rows of kind ("" all) whose title or source
-// has q, newest change first.
+// has q, newest change first. Built each frame, so what is slow is kept
+// (perf review 11-02 H2/M1): the summaries' lengths, the transcripts
+// whose text has q, each project's latest render (one pass).
 func (a *app) projItems(kind projKind, q string) []projItem {
 	a.refreshProjects()
 	var out []projItem
 	lq := strings.ToLower(q)
 	hits := a.projTextHits(q)
-	var texts map[string]bool // transcripts whose text has q
-	if q != "" {
-		texts = map[string]bool{}
-		for _, tr := range a.trList {
-			for _, sg := range tr.Segments {
-				if strings.Contains(strings.ToLower(sg.Text), lq) {
-					texts[tr.ID] = true
-					break
-				}
-			}
-		}
-	}
+	texts := a.projTranscriptHits(lq) // transcripts whose text has q
 	add := func(it projItem) {
 		if kind != "" && it.kind != kind {
 			return
@@ -203,23 +194,32 @@ func (a *app) projItems(kind projKind, q string) []projItem {
 			add(a.lfDraftItem(p))
 		}
 	}
-	for _, it := range a.projects.lf {
-		add(a.lfProjItem(it))
-	}
-	for _, r := range a.dubList {
-		add(a.dubProjItem(r))
-	}
-	for _, tr := range a.trList {
-		if tr.Source == core.SourceDictation {
-			continue
+	if kind == "" || kind == projStory || kind == projBook {
+		latest := a.lfLatestRenders()
+		for _, it := range a.projects.lf {
+			add(a.lfProjItem(it, latest))
 		}
-		add(projItem{kind: projTranscript, id: tr.ID, title: transcriptTitle(tr), sub: trFirstWords(tr), updated: tr.UpdatedAt,
-			length: durText(tr.Duration), status: i18n.T("Done"), frac: -1})
 	}
-	for _, x := range a.isoList {
-		st, running, frac, failed := a.isoStatus(x)
-		add(projItem{kind: projIsolate, id: x.ID, title: x.Title, sub: filepath.Base(x.Input), updated: x.UpdatedAt,
-			length: durText(x.Duration), status: st, running: running, frac: frac, failed: failed})
+	if kind == "" || kind == projDub {
+		for _, r := range a.dubList {
+			add(a.dubProjItem(r))
+		}
+	}
+	if kind == "" || kind == projTranscript {
+		for _, tr := range a.trList {
+			if tr.Source == core.SourceDictation {
+				continue
+			}
+			add(projItem{kind: projTranscript, id: tr.ID, title: transcriptTitle(tr), sub: trFirstWords(tr), updated: tr.UpdatedAt,
+				length: durText(tr.Duration), status: i18n.T("Done"), frac: -1})
+		}
+	}
+	if kind == "" || kind == projIsolate {
+		for _, x := range a.isoList {
+			st, running, frac, failed := a.isoStatus(x)
+			add(projItem{kind: projIsolate, id: x.ID, title: x.Title, sub: filepath.Base(x.Input), updated: x.UpdatedAt,
+				length: durText(x.Duration), status: st, running: running, frac: frac, failed: failed})
+		}
 	}
 	slices.SortStableFunc(out, func(x, y projItem) int {
 		if x.draft != y.draft { // the drafts first
@@ -230,6 +230,83 @@ func (a *app) projItems(kind projKind, q string) []projItem {
 		}
 		return y.updated.Compare(x.updated)
 	})
+	return out
+}
+
+// projTotal is how many rows projItems("", "") has, without making them.
+func (a *app) projTotal() int {
+	n := len(a.projects.lf) + len(a.dubList) + len(a.isoList)
+	for _, p := range []*lfPage{a.lfStories, a.lfBook} {
+		if p != nil && p.project == "" && !p.empty() {
+			n++
+		}
+	}
+	for _, tr := range a.trList {
+		if tr.Source != core.SourceDictation {
+			n++
+		}
+	}
+	return n
+}
+
+// projTranscriptHits are the transcripts whose text has lq (lower case),
+// kept until q or a transcript changes: their segments are an hour of
+// speech each.
+func (a *app) projTranscriptHits(lq string) map[string]bool {
+	if lq == "" {
+		return nil
+	}
+	s := &a.projects
+	sig := make([]trSig, 0, len(a.trList))
+	for _, tr := range a.trList {
+		sig = append(sig, trSig{tr.ID, tr.UpdatedAt, len(tr.Segments)})
+	}
+	if s.trHitsQ == lq && slices.Equal(s.trHitsSig, sig) {
+		return s.trHits
+	}
+	hits := map[string]bool{}
+	for _, tr := range a.trList {
+		for _, sg := range tr.Segments {
+			if containsFold(sg.Text, lq) {
+				hits[tr.ID] = true
+				break
+			}
+		}
+	}
+	s.trHitsQ, s.trHitsSig, s.trHits = lq, sig, hits
+	return hits
+}
+
+// trSig is what tells a transcript changed (projTranscriptHits).
+type trSig struct {
+	id  string
+	at  time.Time
+	seg int
+}
+
+// containsFold reports whether s has lq (lower case), in any case;
+// without lower-casing s when lq has no letter that has a case (Chinese).
+func containsFold(s, lq string) bool {
+	if strings.ToUpper(lq) == lq {
+		return strings.Contains(s, lq)
+	}
+	return strings.Contains(strings.ToLower(s), lq)
+}
+
+// lfLatestRenders is each project's latest render that is not an
+// audition and is running, done or failed (lfRecent is newest first).
+func (a *app) lfLatestRenders() map[string]*lfRender {
+	out := map[string]*lfRender{}
+	for _, rid := range a.lfRecent {
+		r := a.lfRenders[rid]
+		if r == nil || r.rec.Audition || out[r.rec.ProjectID] != nil {
+			continue
+		}
+		switch r.rec.State {
+		case core.RenderRunning, core.RenderDone, core.RenderFailed:
+			out[r.rec.ProjectID] = r
+		}
+	}
 	return out
 }
 
@@ -260,28 +337,15 @@ func trFirstWords(tr core.Transcript) string {
 
 // lfProjItem is a story or a book: its length from the summary, its
 // state from its renders.
-func (a *app) lfProjItem(it store.LibraryItem) projItem {
+func (a *app) lfProjItem(it store.LibraryItem, latest map[string]*lfRender) projItem {
 	kind := projStory
 	if core.ProjectKind(it.Category) == core.ProjectAudiobook {
 		kind = projBook
 	}
 	out := projItem{kind: kind, id: it.ID, title: firstOf(strings.TrimSpace(it.Title), i18n.T("Untitled")), updated: it.Updated, frac: -1}
-	sum := services.SummaryOf(it.Detail)
-	switch {
-	case kind == projBook && sum.Chapters > 0:
-		out.length = i18n.N(sum.Chapters, "%d chapter", "%d chapters", sum.Chapters)
-	case sum.Lines > 0:
-		out.length = i18n.N(sum.Lines, "%d line", "%d lines", sum.Lines)
-	}
-	if sum.Seconds > 0 {
-		out.length = strings.TrimPrefix(out.length+" · ~"+clock(sum.Seconds), " · ")
-	}
+	out.length = a.projLength(kind, it.Detail)
 	out.status = i18n.T("Draft")
-	for _, rid := range a.lfRecent { // newest first
-		r := a.lfRenders[rid]
-		if r == nil || r.rec.ProjectID != it.ID || r.rec.Audition {
-			continue
-		}
+	if r := latest[it.ID]; r != nil {
 		switch r.rec.State {
 		case core.RenderRunning:
 			out.status, out.running = i18n.T("Rendering %d/%d", r.body.Done(), len(r.body.Chapters)), true
@@ -292,15 +356,43 @@ func (a *app) lfProjItem(it store.LibraryItem) projItem {
 			out.status = i18n.T("Rendered")
 		case core.RenderFailed:
 			out.status, out.failed = i18n.T("Failed"), true
-		default:
-			continue
 		}
-		break
 	}
 	if p := a.lfPageOf(core.ProjectKind(kind)); p.project == it.ID && p.unsaved() {
 		out.sub = i18n.T("Unsaved changes")
 	}
 	return out
+}
+
+// projLength is a story's or a book's length as its summary (JSON, in
+// the library item's detail) says, kept by the summary and the locale.
+func (a *app) projLength(kind projKind, detail string) string {
+	s := &a.projects
+	key := projLenKey{kind, detail, i18n.Locale()}
+	if l, ok := s.lengths[key]; ok {
+		return l
+	}
+	var out string
+	sum := services.SummaryOf(detail)
+	switch {
+	case kind == projBook && sum.Chapters > 0:
+		out = i18n.N(sum.Chapters, "%d chapter", "%d chapters", sum.Chapters)
+	case sum.Lines > 0:
+		out = i18n.N(sum.Lines, "%d line", "%d lines", sum.Lines)
+	}
+	if sum.Seconds > 0 {
+		out = strings.TrimPrefix(out+" · ~"+clock(sum.Seconds), " · ")
+	}
+	if s.lengths == nil || len(s.lengths) > 4096 { // old summaries go
+		s.lengths = map[projLenKey]string{}
+	}
+	s.lengths[key] = out
+	return out
+}
+
+type projLenKey struct {
+	kind           projKind
+	detail, locale string
 }
 
 // lfDraftItem is a page's draft that was never saved as a project.

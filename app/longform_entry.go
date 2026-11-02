@@ -140,21 +140,29 @@ func (a *app) lfEntryPage(c *ui.Context, p *lfPage) {
 		head.search = &headSearch{key: "lf-search-" + string(p.kind), value: &p.entryQuery, placeholder: ph}
 	}
 	pageHeaderBar(c, head)
-	a.toolPage(c, "lf-entry-"+string(p.kind), func() {
-		a.lfComposer(c, p)
-		switch {
-		case len(all) == 0:
-			title, body := i18n.T("No stories yet"), i18n.T("Describe a story or paste a script above: it opens in the editor and shows here.")
-			if p.kind == core.ProjectAudiobook {
-				title, body = i18n.T("No audiobooks yet"), i18n.T("Paste or import a manuscript above: it opens in the editor and shows here.")
+	st := &a.lists.lfEntry[0]
+	if p.kind == core.ProjectAudiobook {
+		st = &a.lists.lfEntry[1]
+	}
+	if len(all) == 0 {
+		items = nil
+	}
+	narrow := a.toolNarrow(c)
+	a.toolListPage(c, toolList{key: "lf-entry-" + string(p.kind), state: st, head: func() { a.lfComposer(c, p) },
+		lead: func() {
+			switch {
+			case len(all) == 0:
+				title, body := i18n.T("No stories yet"), i18n.T("Describe a story or paste a script above: it opens in the editor and shows here.")
+				if p.kind == core.ProjectAudiobook {
+					title, body = i18n.T("No audiobooks yet"), i18n.T("Paste or import a manuscript above: it opens in the editor and shows here.")
+				}
+				ghostRows(c.Key("lf-ghost"), 4, projKindIcon(kind), title, body)
+			case len(items) == 0:
+				ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() { caption(c, i18n.T("No projects match.")) })
 			}
-			ghostRows(c.Key("lf-ghost"), 4, projKindIcon(kind), title, body)
-		case len(items) == 0:
-			ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() { caption(c, i18n.T("No projects match.")) })
-		default:
-			a.projTable(c, items, false)
-		}
-	})
+		},
+		n: len(items), keyOf: func(i int) any { return items[i].key() },
+		row: func(i int) { a.projRow(c, items[i], false, narrow) }})
 	a.projConfirm(c)
 }
 

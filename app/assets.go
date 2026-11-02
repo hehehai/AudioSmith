@@ -111,20 +111,75 @@ func (a *app) refreshAssetExports() {
 	})
 }
 
-// assets are every asset, newest first, before the filters.
+// assets are every asset, newest first, before the filters: the takes'
+// rows as takeAssets keeps them, then the rest (far fewer), merged.
 func (a *app) assets() []asset {
 	a.refreshAssetExports()
-	var out []asset
+	takes := a.takeAssets()
+	rest := a.otherAssets()
+	slices.SortStableFunc(rest, func(x, y asset) int { return y.at.Compare(x.at) })
+	// Merged as a stable sort of takes then rest would order them: the
+	// takes are newest first already (sortTakes), a take first on a tie.
+	out := make([]asset, 0, len(takes)+len(rest))
+	i, j := 0, 0
+	for i < len(takes) || j < len(rest) {
+		if j == len(rest) || i < len(takes) && !rest[j].at.After(takes[i].at) {
+			out = append(out, takes[i])
+			i++
+		} else {
+			out = append(out, rest[j])
+			j++
+		}
+	}
+	return out
+}
+
+// takeAssets are the takes as rows, kept while no take changed (perf
+// review 11-02 H3: a title was the whole script on one line, each frame,
+// 25 MB for 2 000 takes). A row holds its take by pointer: a new snapshot
+// (another array) makes them anew.
+func (a *app) takeAssets() []asset {
+	h := &a.history
+	sigOf := func(tk *core.Take) takeAssetSig {
+		return takeAssetSig{tk, tk.ID, tk.Text, tk.Model, tk.Voice, tk.File, tk.AudioSeconds, tk.CreatedAt}
+	}
+	same := h.takeLocale == i18n.Locale() && len(h.takeSig) == len(a.takes)
+	for i := 0; same && i < len(a.takes); i++ {
+		same = h.takeSig[i] == sigOf(&a.takes[i])
+	}
+	if same {
+		return h.takeRows
+	}
+	sig := make([]takeAssetSig, len(a.takes))
+	for i := range a.takes {
+		sig[i] = sigOf(&a.takes[i])
+	}
+	out := make([]asset, 0, len(a.takes))
 	for i := range a.takes {
 		tk := &a.takes[i]
 		sub := modelName(tk.Model)
 		if tk.Voice != "" {
 			sub += " · " + tk.Voice
 		}
-		out = append(out, asset{key: "take:" + tk.ID, kind: assetSpeech, title: oneLine(tk.Text), sub: sub,
+		out = append(out, asset{key: "take:" + tk.ID, kind: assetSpeech, title: oneLine(textHead(tk.Text, 400)), sub: sub,
 			path: a.takeStore.AudioPath(*tk), dur: tk.AudioSeconds, at: tk.CreatedAt, tool: "/studio", take: tk, text: tk.Text,
 			open: func() { a.reuse(tk) }, del: func() { a.deleteClip(tk) }})
 	}
+	h.takeSig, h.takeRows, h.takeLocale = sig, out, i18n.Locale()
+	return out
+}
+
+// takeAssetSig is what a take's row is made of (takeAssets).
+type takeAssetSig struct {
+	p                         *core.Take
+	id, text, model, voice, f string
+	secs                      float64
+	at                        time.Time
+}
+
+// otherAssets are the renders, exports, stems and imported files.
+func (a *app) otherAssets() []asset {
+	out := make([]asset, 0, len(a.lfRecent)+len(a.history.exports)+3*len(a.isoList)+len(a.trList)+len(a.dubList))
 	for _, id := range a.lfRecent {
 		r := a.lfRenders[id]
 		if r == nil || r.rec.Audition || r.rec.State != core.RenderDone || r.body.Output == nil || r.body.Output.Book == "" {
@@ -179,7 +234,6 @@ func (a *app) assets() []asset {
 		out = append(out, asset{key: "in:dub:" + id, kind: assetImport, title: filepath.Base(r.Source), sub: inFolder(r.Source),
 			path: r.Source, dur: r.Duration, at: r.CreatedAt, tool: "/dub", open: func() { a.openDub(id) }})
 	}
-	slices.SortStableFunc(out, func(x, y asset) int { return y.at.Compare(x.at) })
 	return out
 }
 

@@ -35,6 +35,12 @@ type projectsState struct {
 	textQ            string
 	textHits         map[string]bool
 	textBusy         bool
+	// Kept between frames (projects_list.go): the transcripts whose text
+	// has trHitsQ, as of trHitsSig; the summaries' lengths.
+	trHitsQ   string
+	trHitsSig []trSig
+	trHits    map[string]bool
+	lengths   map[projLenKey]string
 
 	renaming    string // a row's key
 	renameText  string

@@ -65,11 +65,10 @@ func (a *app) transcribePage(c *ui.Context) {
 		}
 	}
 	pageHeaderBar(c, head)
-	a.toolPage(c, "transcribe-page", func() {
+	a.trListView(c, func() {
 		a.trNeedNotice(c)
 		a.trComposer(c)
 		a.transcriptStatus(c)
-		a.trListView(c)
 	})
 }
 

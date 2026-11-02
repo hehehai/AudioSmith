@@ -21,6 +21,8 @@ import (
 //
 // Add fields to your area's struct, not here.
 type app struct {
+	lists        pageLists    // the tool pages' lists (ui_kit_tool.go)
+	palMemo      paletteMemo  // ⌘K's projects and takes found (palette.go)
 	modelsKind   int          // the Models page's tab (modelKinds)
 	win          *mygo.Window // nil in tests
 	toasts       []string     // shown by the next build of the view

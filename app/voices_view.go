@@ -114,12 +114,7 @@ func (a *app) voicesPage(c *ui.Context) {
 	}
 	body.Children(func() {
 		narrow := a.pageWidth(c) < px(t, 720)
-		ui.Scroll(c.Key("voices-scroll")).Grow(1).MinWidth(0).Children(func() {
-			ui.Column(c).Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).Gap(px(t, sp2)).Children(func() {
-				a.mineLangFilter(c)
-				a.voicesTable(c, narrow)
-			})
-		})
+		a.voicesTable(c, narrow)
 		var build func()
 		var item any
 		if a.edit != nil {
@@ -137,33 +132,56 @@ func (a *app) voicesPage(c *ui.Context) {
 // to "2026年10月3…").
 const voiceDateW = 126
 
-// voicesTable is the saved voices' table, or its empty states.
+// voicesTable is the saved voices' table under the language filter, or
+// its empty states: one ui.List, which builds only the rows in view
+// (perf review 11-02 H2); the filter and the empty states are its first
+// row when they show.
 func (a *app) voicesTable(c *ui.Context, narrow bool) {
 	t := c.Theme()
 	vs := a.shownVoices()
-	if len(vs) == 0 {
-		switch {
-		case !a.voicesLoaded:
-			ui.Column(c).Grow(1).Center().Padding(px(t, sp6)).Children(func() { caption(c, i18n.T("Loading…")) })
-		case len(a.voices) > 0:
-			ghostRows(c, 3, icons.Magnifer, i18n.T("No matches"), "")
-		default:
-			ghostRows(c, 4, icons.UserSpeakRounded, i18n.T("No saved voices yet"),
-				i18n.T("Clone a voice from a recording, design one from a description, or save one from Discover."))
-			ui.Row(c.Key("voices-empty-acts")).Gap(px(t, sp2)).Justify(ui.Center).Children(func() {
-				if ui.Button(c.Key("empty-new"), i18n.T("New voice")).Clicked() {
-					a.navigate("/voices/new")
-				}
-				if ghostButton(c.Key("empty-gallery"), i18n.T("Discover voices")+" ›").Clicked() {
-					a.navigate("/voices/discover")
-				}
-			})
-		}
-		return
+	head := 0
+	if a.voiceLang != "" || len(vs) == 0 {
+		head = 1
 	}
-	for i := range vs {
-		v := &vs[i]
-		a.voiceTableRow(c, v, narrow)
+	ui.List(c.Key("voices-scroll"), &a.lists.voices, head+len(vs)).Grow(1).MinWidth(0).MinHeight(0).Gap(px(t, sp2)).
+		Padding(bodyTop(t), gutterR(t), px(t, sp6), gutterL(t)).ItemKey(func(i int) any {
+		if i < head {
+			return toolListHead{}
+		}
+		return vs[i-head].ID
+	}).Rows(func(r ui.ListRow) {
+		if r.Index >= head {
+			a.voiceTableRow(c, &vs[r.Index-head], narrow)
+			return
+		}
+		ui.Column(c.Key("head")).Gap(px(t, sp2)).Children(func() {
+			a.mineLangFilter(c)
+			if len(vs) == 0 {
+				a.voicesEmpty(c)
+			}
+		})
+	})
+}
+
+// voicesEmpty is the table's empty states.
+func (a *app) voicesEmpty(c *ui.Context) {
+	t := c.Theme()
+	switch {
+	case !a.voicesLoaded:
+		ui.Column(c).Grow(1).Center().Padding(px(t, sp6)).Children(func() { caption(c, i18n.T("Loading…")) })
+	case len(a.voices) > 0:
+		ghostRows(c, 3, icons.Magnifer, i18n.T("No matches"), "")
+	default:
+		ghostRows(c, 4, icons.UserSpeakRounded, i18n.T("No saved voices yet"),
+			i18n.T("Clone a voice from a recording, design one from a description, or save one from Discover."))
+		ui.Row(c.Key("voices-empty-acts")).Gap(px(t, sp2)).Justify(ui.Center).Children(func() {
+			if ui.Button(c.Key("empty-new"), i18n.T("New voice")).Clicked() {
+				a.navigate("/voices/new")
+			}
+			if ghostButton(c.Key("empty-gallery"), i18n.T("Discover voices")+" ›").Clicked() {
+				a.navigate("/voices/discover")
+			}
+		})
 	}
 }
 

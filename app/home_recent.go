@@ -9,12 +9,33 @@ package main
 import (
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
+	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/store"
 )
+
+// homeReadGap and homeReadMax bound how often Home's Recent is read
+// again: after a change, not sooner than the gap since the last read;
+// without one, once in a while.
+const (
+	homeReadGap = time.Second
+	homeReadMax = time.Minute
+)
+
+// homeFollow marks Recent stale when the library changes: a take, a
+// project, a render or a dub (perf review 11-02 H1: it was read every
+// 5 s while Home showed).
+func (a *app) homeFollow(bus *core.Bus) {
+	bus.Subscribe(func(core.Event) { a.post(func() { a.homeUI.changed++ }) },
+		"take.", core.ProjectChanged{}.Topic(), core.RenderChanged{}.Topic(), services.DubChanged{}.Topic())
+}
+
+// stale reports whether the library changed since Recent was read.
+func (hp *homePage) stale() bool { return hp.changed != hp.readGen }
 
 // homeLibDelete is how a library item of Recent is deleted, and the
 // question's second line; nil for what Recent does not delete.

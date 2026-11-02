@@ -39,12 +39,11 @@ type dubListState struct {
 // dubListPage is /dub: the composer and the list.
 func (a *app) dubListPage(c *ui.Context) {
 	a.dubListHeader(c)
-	a.toolPage(c, "dub-list-page", func() {
+	a.dubListView(c, func() {
 		a.dubComposer(c)
 		if a.dubErr != "" {
 			a.dubErrorNotice(c)
 		}
-		a.dubListView(c)
 	})
 	a.dubConfirmDialog(c)
 }
@@ -249,7 +248,7 @@ func (a *app) dubRowJob(id string) jobs.Job {
 	}
 	var best jobs.Job
 	for _, j := range a.jobList {
-		if j.Owner != services.DubOwner+id || j.State.Terminal() || j.State == jobs.StateInterrupted {
+		if own, ok := strings.CutPrefix(j.Owner, services.DubOwner); !ok || own != id || j.State.Terminal() || j.State == jobs.StateInterrupted {
 			continue
 		}
 		if j.State == jobs.StateRunning {
@@ -262,22 +261,26 @@ func (a *app) dubRowJob(id string) jobs.Job {
 	return best
 }
 
-// dubListView: the search and filters, then the dubs (ghost rows when none).
-func (a *app) dubListView(c *ui.Context) {
-	if len(a.dubList) == 0 {
-		ghostRows(c.Key("dub-ghost"), 4, dubIcon, i18n.T("No dubs yet"), i18n.T("Drop a video above or paste its link: the dub starts at once and shows here."))
-		return
-	}
+// dubListView is the page (head on top: the composer, notices) and the
+// dubs searched and filtered (ghost rows when none). One ui.List: only
+// the rows in view are built (perf review 11-02 H2).
+func (a *app) dubListView(c *ui.Context, head func()) {
 	narrow := a.toolNarrow(c)
-	rows := a.dubShown()
-	ui.Column(c.Key("dub-table")).Shrink(0).Children(func() {
-		if len(rows) == 0 {
-			listNoMatch(c, i18n.T("No dubs match."))
-		}
-		for _, r := range rows {
-			a.dubListRow(c, r, narrow)
-		}
-	})
+	var rows []store.DubRecord
+	if len(a.dubList) > 0 {
+		rows = a.dubShown()
+	}
+	a.toolListPage(c, toolList{key: "dub-list-page", state: &a.lists.dub, head: head, n: len(rows),
+		lead: func() {
+			switch {
+			case len(a.dubList) == 0:
+				ghostRows(c.Key("dub-ghost"), 4, dubIcon, i18n.T("No dubs yet"), i18n.T("Drop a video above or paste its link: the dub starts at once and shows here."))
+			case len(rows) == 0:
+				listNoMatch(c, i18n.T("No dubs match."))
+			}
+		},
+		keyOf: func(i int) any { return rows[i].ID },
+		row:   func(i int) { a.dubListRow(c, rows[i], narrow) }})
 }
 
 // dubStatusNames are the list's status filters, by a.dubFilter.

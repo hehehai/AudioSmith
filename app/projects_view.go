@@ -25,7 +25,10 @@ func (a *app) projectsPage(c *ui.Context) {
 	kind := projFilters[s.filter]
 	q := strings.TrimSpace(s.query)
 	items := a.projItems(kind, q)
-	total := len(a.projItems("", ""))
+	total := len(items)
+	if q != "" || kind != "" {
+		total = a.projTotal()
+	}
 	count := ""
 	if s.loaded {
 		count = i18n.N(total, "%d item", "%d items", total)
@@ -74,10 +77,15 @@ func (a *app) projectsPage(c *ui.Context) {
 		s.cards = 1
 	}
 	cols := cardCols(t, a.pageWidth(c)-gutterL(t)-gutterR(t))
-	a.toolPage(c, "pj-page", func() {
+	// One ui.List (perf review 11-02 H2): the samples on top, then the
+	// rows, or the cards a row of cols a list row; only those in view are
+	// built.
+	head := func() {
 		sectionTitleText(c, i18n.T("Samples")) // first: no room above it but the page's (bodyTop)
 		a.templateCards(c, cols)               // projects_templates.go
 		ui.Box(c).Height(px(t, sp2))
+	}
+	lead := func() {
 		switch {
 		case total == 0 && !s.loaded:
 			ui.Row(c).Justify(ui.Center).Padding(px(t, sp5)).Children(func() { ui.Spinner(c).Label(i18n.T("Loading…")) })
@@ -88,12 +96,24 @@ func (a *app) projectsPage(c *ui.Context) {
 			ui.Column(c).Padding(px(t, sp5)).AlignItems(ui.Center).Children(func() {
 				caption(c, i18n.T("No projects match."))
 			})
-		case s.cards == 1:
-			a.projCards(c, items, cols)
-		default:
-			a.projTable(c, items, true)
 		}
-	})
+	}
+	if total == 0 {
+		items = nil
+	}
+	if s.cards == 1 {
+		rows := (len(items) + cols - 1) / cols
+		a.toolListPage(c, toolList{key: "pj-page-cards", state: &a.lists.cards, head: head, lead: lead, n: rows,
+			keyOf: func(i int) any { return i },
+			row: func(i int) {
+				a.projCards(c, items[i*cols:min(len(items), (i+1)*cols)], cols, i < rows-1)
+			}})
+	} else {
+		narrow := a.toolNarrow(c)
+		a.toolListPage(c, toolList{key: "pj-page", state: &a.lists.proj, head: head, lead: lead, n: len(items),
+			keyOf: func(i int) any { return items[i].key() },
+			row:   func(i int) { a.projRow(c, items[i], true, narrow) }})
+	}
 	a.projConfirm(c)
 }
 
@@ -114,17 +134,6 @@ func (a *app) newProjectMenu(m *ui.Menu) {
 	if m.Item(i18n.T("New isolation")).Chosen() {
 		a.navigate("/isolate")
 	}
-}
-
-// projTable is the rows (the row kit's, no column titles); withType
-// shows each row's type (the Projects page lists every kind).
-func (a *app) projTable(c *ui.Context, items []projItem, withType bool) {
-	narrow := a.toolNarrow(c)
-	ui.Column(c.Key("pj-table")).Shrink(0).Children(func() {
-		for _, it := range items {
-			a.projRow(c, it, withType, narrow)
-		}
-	})
 }
 
 // projRow is a row: icon, title over its source, type, updated, length,
@@ -214,8 +223,19 @@ func (a *app) projRename(c *ui.Context, it projItem) {
 	})
 }
 
-// projCards are the rows as cards in cols columns of one width.
-func (a *app) projCards(c *ui.Context, items []projItem, cols int) {
+// projCards are a row of cards in cols columns of one width (a list
+// row; gap: space under it for the next).
+func (a *app) projCards(c *ui.Context, items []projItem, cols int, gap bool) {
+	t := c.Theme()
+	bottom := float32(0)
+	if gap {
+		bottom = px(t, sp3)
+	}
+	ui.Column(c).Padding(0, 0, bottom).Children(func() { a.projCardRow(c, items, cols) })
+}
+
+// projCardRow is projCards' grid.
+func (a *app) projCardRow(c *ui.Context, items []projItem, cols int) {
 	t := c.Theme()
 	k := tok(t)
 	cardGrid(c, "pj-cards", cols, func() {

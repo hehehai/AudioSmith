@@ -156,30 +156,33 @@ func (a *app) transcriptStatus(c *ui.Context) {
 	})
 }
 
-// trListView: the search and the transcripts (dictations too), the one
-// being made on top; ghost rows when there are none.
-func (a *app) trListView(c *ui.Context) {
+// trListView is the page (head on top: the composer, notices) and the
+// transcripts (dictations too), the one being made on top; ghost rows
+// when there are none. One ui.List: only the rows in view are built.
+func (a *app) trListView(c *ui.Context, head func()) {
 	list := a.shownTranscripts()
-	if len(a.trList) == 0 && a.trJob == nil {
-		sub := i18n.T("Transcribe a file or a recording.")
-		if a.prefs.Dictation.Enabled {
-			sub = i18n.T("Transcribe a file or a recording, or dictate anywhere with %s.", dictation.GlyphsOf(a.prefs.Dictation.Shortcut))
-		}
-		ghostRows(c.Key("tr-ghost"), 4, transcribeIcon, i18n.T("No transcripts yet"), sub)
-		return
-	}
 	narrow := a.toolNarrow(c)
-	ui.Column(c.Key("tr-table")).Shrink(0).Children(func() {
-		if a.trJob != nil {
+	p := toolList{key: "transcribe-page", state: &a.lists.tr, head: head, n: len(list),
+		keyOf: func(i int) any { return list[i].ID },
+		row:   func(i int) { a.trListRow(c, list[i], narrow) }}
+	if len(a.trList) == 0 && a.trJob == nil {
+		p.n = 0
+	}
+	p.lead = func() {
+		switch {
+		case len(a.trList) == 0 && a.trJob == nil:
+			sub := i18n.T("Transcribe a file or a recording.")
+			if a.prefs.Dictation.Enabled {
+				sub = i18n.T("Transcribe a file or a recording, or dictate anywhere with %s.", dictation.GlyphsOf(a.prefs.Dictation.Shortcut))
+			}
+			ghostRows(c.Key("tr-ghost"), 4, transcribeIcon, i18n.T("No transcripts yet"), sub)
+		case a.trJob != nil:
 			a.trJobRow(c, narrow)
-		}
-		if len(list) == 0 && a.trJob == nil {
+		case len(list) == 0:
 			listNoMatch(c, i18n.T("No matching transcripts"))
 		}
-		for _, tr := range list {
-			a.trListRow(c, tr, narrow)
-		}
-	})
+	}
+	a.toolListPage(c, p)
 }
 
 // trJobRow is the transcription running: its title, stage and bar, and
@@ -239,7 +242,7 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 	}
 	open := listRow(c, listRowSpec{key: "tr-item-" + id, label: title, del: del, menu: menu, menuTip: i18n.T("Transcript actions")}, func() {
 		listThumb(c, ic, nil)
-		listTitle(c, title, strings.TrimSpace(tr.Preferred()))
+		listTitle(c, title, trSubtitle(tr))
 		if !narrow {
 			metaCell(c, noIcon, i18n.T("Language"), langName(tr.Language), 112)
 			metaCell(c, icons.ClockCircle, i18n.T("Length"), clock(tr.Duration), 76)
@@ -250,6 +253,18 @@ func (a *app) trListRow(c *ui.Context, tr core.Transcript, narrow bool) {
 		a.selectTranscript(id)
 	}
 }
+
+// trSubtitle is a transcript row's subtitle: the start of its clean-up or
+// its text (Text joins every segment: an hour of speech, each frame).
+func trSubtitle(tr core.Transcript) string {
+	if tr.Clean != "" {
+		return textHead(strings.TrimSpace(tr.Clean), trSubBytes)
+	}
+	return textHead(tr.TextPrefix(trSubBytes), trSubBytes)
+}
+
+// trSubBytes is how much of a transcript its row's subtitle holds.
+const trSubBytes = 300
 
 // trMediaOf is the media a transcript was made of: the file picked if it
 // is still there, else the audio kept with it ("" none).

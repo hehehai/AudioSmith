@@ -289,8 +289,12 @@ var libParts = []libPart{
 	// transcript projects are listed through the projects part.
 }
 
-// query builds the UNION of the parts that can list category, matching search.
-func libQuery(category, search string) (string, []any) {
+// query builds the UNION of the parts that can list category, matching
+// search. top > 0 keeps each part's newest top rows (offset+limit of the
+// page: the page is among them), ordered as Search orders the whole, so
+// the outer sort reads top rows a part instead of every row of every
+// table (perf review 11-02 H1: 31 ms for 10 000 takes, each script read).
+func libQuery(category, search string, top int) (string, []any) {
 	search = strings.TrimSpace(search)
 	var parts []string
 	var args []any
@@ -320,6 +324,10 @@ func libQuery(category, search string) (string, []any) {
 		if len(where) > 0 {
 			sql += ` WHERE ` + strings.Join(where, ` AND `)
 		}
+		if top > 0 {
+			sql = `SELECT * FROM (` + sql + ` ORDER BY at DESC, id DESC LIMIT ?)`
+			args = append(args, top)
+		}
 		parts = append(parts, sql)
 	}
 	return strings.Join(parts, "\nUNION ALL\n"), args
@@ -335,7 +343,11 @@ func libCategory(source, kind string) string {
 }
 
 func (r *libraryRepo) Search(ctx context.Context, q store.LibraryQuery) ([]store.LibraryItem, error) {
-	sql, args := libQuery(q.Category, q.Search)
+	top := 0
+	if q.Limit > 0 {
+		top = q.Limit + max(q.Offset, 0)
+	}
+	sql, args := libQuery(q.Category, q.Search, top)
 	if sql == "" {
 		return nil, nil
 	}
@@ -354,7 +366,7 @@ func (r *libraryRepo) Search(ctx context.Context, q store.LibraryQuery) ([]store
 }
 
 func (r *libraryRepo) Counts(ctx context.Context, search string) (map[string]int, error) {
-	sql, args := libQuery("", search)
+	sql, args := libQuery("", search, 0)
 	rows, err := r.db.Query(ctx, `SELECT src, cat, COUNT(*) FROM (`+sql+`) GROUP BY src, cat`, args...)
 	if err != nil {
 		return nil, wrap("library counts", err)

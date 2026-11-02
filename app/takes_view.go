@@ -39,6 +39,12 @@ type historyView struct {
 
 	ask     asset // the asset Delete on its focused row asks about
 	askOpen bool  // that question shows
+
+	// The takes' rows kept (assets.go takeAssets): as of takeSig and
+	// takeLocale.
+	takeSig    []takeAssetSig
+	takeRows   []asset
+	takeLocale string
 }
 
 // searchTakes looks the query up in the library's full-text index in
@@ -69,30 +75,24 @@ func (a *app) searchTakes() {
 	})
 }
 
-// historyTakes are the takes the filters let through, newest first.
-func (a *app) historyTakes() []core.Take {
+// historyTakeOK reports whether the filters let take t through (the
+// star, the model, the script search). It copies no take: Assets asks
+// for each take each frame (perf review 11-02 H3).
+func (a *app) historyTakeOK(t *core.Take) bool {
 	h := &a.history
-	q := strings.TrimSpace(h.query)
-	var out []core.Take
-	for _, t := range a.takes {
-		if h.filter == 1 && !t.Starred {
-			continue
-		}
-		if h.model != "" && modelName(t.Model) != h.model {
-			continue
-		}
-		if q != "" {
-			if h.searchFor == q {
-				if !h.results[t.ID] {
-					continue
-				}
-			} else if !strings.Contains(strings.ToLower(t.Text), strings.ToLower(q)) {
-				continue // until the index answers
-			}
-		}
-		out = append(out, t)
+	if h.filter == 1 && !t.Starred {
+		return false
 	}
-	return out
+	if h.model != "" && modelName(t.Model) != h.model {
+		return false
+	}
+	if q := strings.TrimSpace(h.query); q != "" {
+		if h.searchFor == q {
+			return h.results[t.ID]
+		}
+		return containsFold(t.Text, strings.ToLower(q)) // until the index answers
+	}
+	return true
 }
 
 // historyModels are the models of the takes, for the filter.

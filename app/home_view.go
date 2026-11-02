@@ -40,6 +40,9 @@ type homePage struct {
 	readAt   time.Time           // when they were read
 	reading  bool
 	readFail bool
+	// changed counts the library's changes (homeFollow), readGen the
+	// count recent was read at.
+	changed, readGen int
 
 	ask     homeItem // the row the delete asks about (home_recent.go)
 	askOpen bool
@@ -74,6 +77,9 @@ func (a *app) homePage(c *ui.Context) {
 	k := tok(t)
 	_, h := c.Size()
 	a.homeReadRecent()
+	if a.homeUI.stale() {
+		c.After(homeReadGap) // the change waits for the gap since the last read
+	}
 	// No title: the question is; ‹ › only.
 	pageHeaderBar(c, pageHead{title: i18n.T("Home"), bare: true})
 	top := px(t, sp8) + px(t, sp4)
@@ -122,7 +128,11 @@ func (a *app) homeComposer(c *ui.Context) {
 		n := 0
 		if a.win != nil { // in turn, every 4 s (tests keep the first)
 			n = int(time.Now().Unix()/4) % len(ph)
-			c.After(4 * time.Second)
+			// Only while it shows, in the window in front: an idle Home
+			// built itself again every 4 s (perf review 11-02 H1).
+			if hp.text == "" && hp.file == "" && a.win.IsVisible() && a.win.IsFocused() {
+				c.After(4 * time.Second)
+			}
 		}
 		if hp.file != "" {
 			ph[n] = i18n.T("Add a note, or send the file as it is…")
@@ -255,21 +265,27 @@ func (a *app) homeTiles(c *ui.Context) {
 	})
 }
 
-// homeReadRecent reads the library's latest items in the background, at
-// most every few seconds while Home shows.
+// homeReadRecent reads the library's latest items in the background
+// while Home shows: once, then when the library changed (homeFollow), at
+// most every homeReadGap, and every homeReadMax for what no event says.
 func (a *app) homeReadRecent() {
 	hp := &a.homeUI
-	if hp.reading || time.Since(hp.readAt) < 5*time.Second || a.lib == nil || a.lib.svc.Library == nil {
+	if hp.reading || a.lib == nil || a.lib.svc.Library == nil {
+		return
+	}
+	since := time.Since(hp.readAt)
+	if !hp.readAt.IsZero() && since < homeReadMax && !(hp.stale() && since >= homeReadGap) {
 		return
 	}
 	hp.reading = true
+	gen := hp.changed
 	lib := a.lib.svc.Library
 	a.background(func() {
 		items, err := lib.Search(context.Background(), store.LibraryQuery{Limit: 60})
 		a.post(func() {
 			hp.reading, hp.readAt, hp.readFail = false, time.Now(), err != nil
 			if err == nil {
-				hp.recent = items
+				hp.recent, hp.readGen = items, gen
 			}
 		})
 	})

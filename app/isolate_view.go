@@ -23,13 +23,12 @@ func (a *app) isolatePage(c *ui.Context) {
 		head.search = &headSearch{key: "iso-search", value: &a.isoQuery, placeholder: i18n.T("Search isolations")}
 	}
 	pageHeaderBar(c, head)
-	a.toolPage(c, "iso-page", func() {
+	a.isoListView(c, func() {
 		a.isoNeedNotice(c)
 		a.isoComposer(c)
 		if a.isoErr != "" {
 			notice(c, "iso-err", noticeError, a.isoErr, "", nil, func() { a.isoErr = "" })
 		}
-		a.isoListView(c)
 	})
 	a.isoConfirmDialog(c)
 }
@@ -91,27 +90,29 @@ func (a *app) isoComposer(c *ui.Context) {
 	})
 }
 
-// isoListView: the search and the isolations; ghost rows when none.
-func (a *app) isoListView(c *ui.Context) {
-	if len(a.isoList) == 0 {
-		ghostRows(c.Key("iso-ghost"), 4, isolateIcon, i18n.T("No isolations yet"), i18n.T("Drop a song, a video or a noisy recording above: its stems show here."))
-		return
-	}
+// isoListView is the page (head on top: the composer, notices) and the
+// isolations searched; ghost rows when none. One ui.List: only the rows
+// in view are built (perf review 11-02 H2).
+func (a *app) isoListView(c *ui.Context, head func()) {
 	narrow := a.toolNarrow(c)
 	q := strings.ToLower(strings.TrimSpace(a.isoQuery))
-	ui.Column(c.Key("iso-table")).Shrink(0).Children(func() {
-		n := 0
-		for _, x := range a.isoList {
-			if q != "" && !strings.Contains(strings.ToLower(x.Title), q) {
-				continue
+	var rows []services.Isolation
+	for _, x := range a.isoList {
+		if q == "" || strings.Contains(strings.ToLower(x.Title), q) {
+			rows = append(rows, x)
+		}
+	}
+	a.toolListPage(c, toolList{key: "iso-page", state: &a.lists.iso, head: head, n: len(rows),
+		lead: func() {
+			switch {
+			case len(a.isoList) == 0:
+				ghostRows(c.Key("iso-ghost"), 4, isolateIcon, i18n.T("No isolations yet"), i18n.T("Drop a song, a video or a noisy recording above: its stems show here."))
+			case len(rows) == 0:
+				listNoMatch(c, i18n.T("Nothing matches."))
 			}
-			n++
-			a.isoRow(c, x, narrow)
-		}
-		if n == 0 {
-			listNoMatch(c, i18n.T("Nothing matches."))
-		}
-	})
+		},
+		keyOf: func(i int) any { return rows[i].ID },
+		row:   func(i int) { a.isoRow(c, rows[i], narrow) }})
 }
 
 // isoStatus is how far x is: its text, whether it runs, the bar's

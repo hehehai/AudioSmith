@@ -13,9 +13,12 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/gallery"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
+	"github.com/hehehai/AudioSmith/internal/services"
+	"github.com/hehehai/AudioSmith/internal/store"
 )
 
 // paletteRow is a row of the palette.
@@ -69,9 +72,10 @@ func (a *app) paletteRows() []paletteRow {
 		}
 	}
 	out = append(sorted, a.paletteVoices(q)...)
-	out = append(out, a.paletteProjects(q)...)
+	projects, takes := a.paletteFound(q)
+	out = append(out, projects...)
 	out = append(out, a.paletteSamples(q)...)
-	out = append(out, a.paletteTakes(q)...)
+	out = append(out, takes...)
 	return append(out, a.paletteTail(q)...)
 }
 
@@ -166,16 +170,66 @@ func (a *app) paletteProjects(q string) []paletteRow {
 	return out
 }
 
+// paletteMemo keeps the projects and takes found for a query while
+// nothing they come from changed: each frame (a caret's blink, an arrow)
+// searched every script before (perf review 11-02 M1: 21 ms a frame for
+// 2 000 takes).
+type paletteMemo struct {
+	q               string
+	sig             paletteSig
+	projects, takes []paletteRow
+}
+
+// paletteSig is what the projects and takes found come from: the lists
+// (where they are and how long) and the scripts read for the search.
+type paletteSig struct {
+	takes   *core.Take
+	nTakes  int
+	lf      *store.LibraryItem
+	nLf     int
+	dubs    *store.DubRecord
+	nDubs   int
+	trs     *core.Transcript
+	nTrs    int
+	isos    *services.Isolation
+	nIsos   int
+	textGen int
+	locale  string
+}
+
+// paletteFound are the projects and takes found for q, as paletteMemo
+// keeps them.
+func (a *app) paletteFound(q string) (projects, takes []paletteRow) {
+	a.refreshProjects() // when they changed
+	sig := paletteSig{takes: first(a.takes), nTakes: len(a.takes), lf: first(a.projects.lf), nLf: len(a.projects.lf),
+		dubs: first(a.dubList), nDubs: len(a.dubList), trs: first(a.trList), nTrs: len(a.trList), isos: first(a.isoList), nIsos: len(a.isoList),
+		textGen: a.projects.textGen, locale: i18n.Locale()}
+	m := &a.palMemo
+	if m.q != q || m.sig != sig {
+		m.q, m.sig, m.projects, m.takes = q, sig, a.paletteProjects(q), a.paletteTakes(q)
+	}
+	return m.projects, m.takes
+}
+
+// first is a pointer to s's first element, nil when s is empty: where a
+// slice is, to tell that it was replaced.
+func first[T any](s []T) *T {
+	if len(s) == 0 {
+		return nil
+	}
+	return &s[0]
+}
+
 // paletteTakes are the takes whose script has q (Assets).
 func (a *app) paletteTakes(q string) []paletteRow {
 	var out []paletteRow
 	lq := strings.ToLower(q)
 	for i := range a.takes {
 		tk := &a.takes[i]
-		if !strings.Contains(strings.ToLower(tk.Text), lq) {
+		if !containsFold(tk.Text, lq) {
 			continue
 		}
-		out = append(out, paletteRow{key: "t-" + tk.ID, group: i18n.T("Assets"), icon: studioIcon, title: oneLine(tk.Text),
+		out = append(out, paletteRow{key: "t-" + tk.ID, group: i18n.T("Assets"), icon: studioIcon, title: oneLine(textHead(tk.Text, 400)),
 			sub: modelName(tk.Model) + " · " + ago(tk.CreatedAt), run: func() {
 				a.history.selected = tk.ID
 				a.navigate("/assets")

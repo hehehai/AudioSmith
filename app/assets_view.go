@@ -15,30 +15,28 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-// assetsShown are the assets the search and filters let through.
-func (a *app) assetsShown(all []asset) []asset {
+// assetsShown are the assets the search and filters let through, by
+// their index in all (no copy of every row each frame).
+func (a *app) assetsShown(all []asset) []int {
 	h := &a.history
 	kind := assetKinds[min(max(h.kind, 0), len(assetKinds)-1)]
 	src := assetSources[min(max(h.source, 0), len(assetSources)-1)]
 	q := strings.ToLower(strings.TrimSpace(h.query))
-	takes := map[string]bool{} // the takes the star, model and script search let through
-	for _, tk := range a.historyTakes() {
-		takes[tk.ID] = true
-	}
 	takeFilter := h.filter == 1 || h.model != ""
-	var out []asset
-	for _, as := range all {
+	var out []int
+	for i := range all {
+		as := &all[i]
 		if kind != "" && as.kind != kind || src != "" && as.tool != src {
 			continue
 		}
 		if as.take != nil {
-			if !takes[as.take.ID] {
+			if !a.historyTakeOK(as.take) {
 				continue
 			}
 		} else if takeFilter || q != "" && !strings.Contains(strings.ToLower(as.title+" "+as.sub), q) {
 			continue
 		}
-		out = append(out, as)
+		out = append(out, i)
 	}
 	return out
 }
@@ -90,8 +88,8 @@ func (a *app) historyPage(c *ui.Context) {
 				return
 			}
 			ui.List(c.Key("assets-list"), &a.historyList, len(rows)).Grow(1).MinHeight(0).Padding(0, 0, px(t, sp4)).
-				ItemKey(func(i int) any { return rows[i].key }).Rows(func(r ui.ListRow) {
-				a.assetRow(c, rows[r.Index], narrow)
+				ItemKey(func(i int) any { return all[rows[i]].key }).Rows(func(r ui.ListRow) {
+				a.assetRow(c, all[rows[r.Index]], narrow)
 			})
 		})
 		var build func()
