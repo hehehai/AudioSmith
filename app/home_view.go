@@ -353,4 +353,7 @@ func (a *app) homeRecent(c *ui.Context) {
 
 // homeSamples is the Samples tab: the samples to start from
 // (projects_templates.go, as on Projects).
-func (a *app) homeSamples(c *ui.Context) { a.templateCards(c) }
+func (a *app) homeSamples(c *ui.Context) {
+	t := c.Theme()
+	a.templateCards(c, cardCols(t, min(px(t, 720), a.pageWidth(c)-gutterL(t)-gutterR(t))))
+}

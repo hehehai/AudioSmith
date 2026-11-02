@@ -73,9 +73,10 @@ func (a *app) projectsPage(c *ui.Context) {
 	if c.Shortcut(ui.Alt, ui.Key2) {
 		s.cards = 1
 	}
+	cols := cardCols(t, a.pageWidth(c)-gutterL(t)-gutterR(t))
 	a.toolPage(c, "pj-page", func() {
 		sectionTitleText(c, i18n.T("Samples")) // first: no room above it but the page's (bodyTop)
-		a.templateCards(c)                     // projects_templates.go
+		a.templateCards(c, cols)               // projects_templates.go
 		ui.Box(c).Height(px(t, sp2))
 		switch {
 		case total == 0 && !s.loaded:
@@ -88,7 +89,7 @@ func (a *app) projectsPage(c *ui.Context) {
 				caption(c, i18n.T("No projects match."))
 			})
 		case s.cards == 1:
-			a.projCards(c, items)
+			a.projCards(c, items, cols)
 		default:
 			a.projTable(c, items, true)
 		}
@@ -213,14 +214,14 @@ func (a *app) projRename(c *ui.Context, it projItem) {
 	})
 }
 
-// projCards are the rows as cards that wrap.
-func (a *app) projCards(c *ui.Context, items []projItem) {
+// projCards are the rows as cards in cols columns of one width.
+func (a *app) projCards(c *ui.Context, items []projItem, cols int) {
 	t := c.Theme()
 	k := tok(t)
-	ui.Row(c.Key("pj-cards")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).Children(func() {
+	cardGrid(c, "pj-cards", cols, func() {
 		for _, it := range items {
 			b := ui.ButtonBase(c.Key("pj-card-"+it.key())).Column().AlignItems(ui.Stretch).Justify(ui.Start).Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).
-				Border(1, k.Line).Background(k.Bg).Grow(1).Basis(px(t, 220)).MinWidth(px(t, 180)).MaxWidth(px(t, 320)).Label(it.title)
+				Border(1, k.Line).Background(k.Bg).MinWidth(0).Label(it.title)
 			if b.Hovered() {
 				b.Background(k.Hover)
 			}

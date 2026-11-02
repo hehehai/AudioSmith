@@ -106,12 +106,16 @@ func snapshotsF5(t *testing.T, out string) {
 		a.projects.dirty = true
 
 		shoot("02-projects-list", func() { a.navigate("/projects") })
+		if !cfg.all {
+			shoot("03-projects-grid", func() { a.projects.cards = 1 })
+			a.projects.cards = 0
+		}
 		shoot("06-stories-entry", func() { a.navigate("/stories") })
 		if !cfg.all {
 			shoot("04-assets", func() { a.navigate("/assets") })
 			continue
 		}
-		shoot("03-projects-grid", func() { a.projects.cards = 1 })
+		shoot("03-projects-grid", func() { a.navigate("/projects"); a.projects.cards = 1 })
 		a.projects.cards = 0
 		shoot("04-assets", func() { a.navigate("/assets") })
 		shoot("05a-cmdk-empty", func() {

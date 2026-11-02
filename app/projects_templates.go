@@ -12,15 +12,15 @@ import (
 	"github.com/hehehai/AudioSmith/internal/icons"
 )
 
-// templateCards are the samples as a row of cards that wraps.
-func (a *app) templateCards(c *ui.Context) {
+// templateCards are the samples as cards in cols columns of one width.
+func (a *app) templateCards(c *ui.Context, cols int) {
 	t := c.Theme()
 	k := tok(t)
 	compact := a.toolCompact(c) // a short or narrow window: the titles only
-	ui.Row(c.Key("pj-templates")).Wrap().GapX(px(t, sp3)).GapY(px(t, sp3)).AlignItems(ui.Stretch).Children(func() {
+	cardGrid(c, "pj-templates", cols, func() {
 		for _, s := range a.sampleCards() {
 			b := ui.ButtonBase(c.Key("sample-" + s.key)).Column().Gap(px(t, sp2)).Padding(px(t, sp3)).Radius(px(t, radiusCard)).Background(k.Subtle).
-				AlignItems(ui.Stretch).Justify(ui.Start).Grow(1).Basis(px(t, 160)).MinWidth(px(t, 140)).Label(s.title)
+				AlignItems(ui.Stretch).Justify(ui.Start).MinWidth(0).Label(s.title)
 			if b.Hovered() {
 				b.Background(k.Hover)
 			}
@@ -63,4 +63,22 @@ func sampleIcon(name string) (icons.Icon, bool) {
 		return transcribeIcon, true
 	}
 	return icons.Icon{}, false
+}
+
+// cardMin is a card's narrowest width in a card grid, DIPs at 100 %.
+const cardMin = 160
+
+// cardCols is how many cards of at least cardMin fit avail (a page's
+// content width): 1 to 5. Projects' samples and project cards use the
+// same count, so their columns line up.
+func cardCols(t *ui.Theme, avail float32) int {
+	gap := px(t, sp3)
+	return max(1, min(5, int((avail+gap)/(px(t, cardMin)+gap))))
+}
+
+// cardGrid lays cards out in cols columns of one width: a short last row
+// keeps the others' width (user, 11-02: cards must all be as wide).
+func cardGrid(c *ui.Context, key string, cols int, body func()) {
+	t := c.Theme()
+	ui.Grid(c.Key(key)).Columns(max(1, cols)).GapX(px(t, sp3)).GapY(px(t, sp3)).Children(body)
 }
