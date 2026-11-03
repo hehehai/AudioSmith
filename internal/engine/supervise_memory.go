@@ -83,7 +83,10 @@ func (s *supervisor) SetMemoryBudget(bytes int64) {
 	s.mu.Lock()
 	s.cfg.MemoryBudget = max(bytes, 0)
 	s.mu.Unlock()
-	go s.evict()
+	go func() {
+		s.pushConfigAll(-1) // the engines' own makeRoom keeps to it too
+		s.evict()
+	}()
 }
 
 // SetCacheDir changes Config.CacheDir for the workers started next.
@@ -110,6 +113,7 @@ func (s *supervisor) Hold(roles ...proto.Role) (release func()) {
 		}
 	}
 	s.mu.Unlock()
+	s.pushConfigOf(roles...)
 	var once sync.Once
 	return func() {
 		once.Do(func() {
@@ -120,6 +124,7 @@ func (s *supervisor) Hold(roles ...proto.Role) (release func()) {
 				}
 			}
 			s.mu.Unlock()
+			s.pushConfigOf(roles...)
 		})
 	}
 }
@@ -138,6 +143,7 @@ func (s *supervisor) HoldModels(role proto.Role, models ...string) (release func
 		}
 	}
 	s.mu.Unlock()
+	s.pushConfigOf(role)
 	var once sync.Once
 	return func() {
 		once.Do(func() {
@@ -151,6 +157,7 @@ func (s *supervisor) HoldModels(role proto.Role, models ...string) (release func
 				}
 			}
 			s.mu.Unlock()
+			s.pushConfigOf(role)
 		})
 	}
 }
@@ -231,6 +238,7 @@ func (s *supervisor) resident() (total int64, idle []candidate) {
 // longer than IdleUnload.
 func (s *supervisor) evict() {
 	budget := s.budget()
+	s.pushConfigAll(budget) // the family's share may have changed
 	s.mu.Lock()
 	idle := s.cfg.IdleUnload.Seconds()
 	s.mu.Unlock()

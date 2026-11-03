@@ -78,6 +78,9 @@ func Main() {
 // Methods returns what an engine of role implements (hello.methods).
 func Methods(role proto.Role) []string {
 	common := []string{proto.MethodHello, proto.MethodStats, proto.MethodFlush, proto.MethodShutdown, proto.MethodJobCancel}
+	if role != proto.RoleMedia {
+		common = append(common, proto.MethodEngineConfig)
+	}
 	switch role {
 	case proto.RoleMedia:
 		return append(common, proto.MethodMediaProbe, proto.MethodMediaDecode, proto.MethodMediaEncode,
@@ -115,6 +118,7 @@ type fakeEngine struct {
 	stop     map[string]chan bool // capture.start jobs: closed by capture.stop
 	finished map[string]chan struct{}
 	models   map[string]time.Time // loaded model → last use
+	config   proto.EngineConfigResult // engine.config: the app's budget and holds
 }
 
 func runFakeEngine() {
@@ -283,6 +287,8 @@ func (f *fakeEngine) handle(m proto.Message) {
 		f.result(m.ID, proto.CancelResult{Cancelled: running})
 	case proto.MethodMediaProbe:
 		f.probe(m)
+	case proto.MethodEngineConfig:
+		f.configure(m)
 	case proto.MethodCaptureDevices:
 		f.result(m.ID, proto.DevicesResult{Devices: FakeDevices()})
 	case proto.MethodCaptureStop:

@@ -91,7 +91,7 @@ Unknown members must be ignored by both sides, so optional fields can be added w
    - Any model job may also carry `auxPaths` (`{repo id: snapshot directory}`, Go `proto.ParamAuxPaths`): the snapshots of the model's auxiliary repos at their pinned commits (Kokoro's G2P repos, Chatterbox's S3 tokenizer, Whisper's tokenizer), which the executors fill with the path (`hub.AuxSnapshots`): the engine job kinds (`engine.RegisterExecutors`) and the app's own engine calls (renders' `tts.synthesize`, transcripts, dub and workflow steps: `engine.Executor` / `KindExecutor` with `ExecutorOptions.AuxPaths`). mlx-audio-swift finds those repos by id in its folders `mlx-audio/<owner>_<name>` (`…_tokenizer_only` for Whisper's tokenizer); the engine links them to these snapshots before the job (`AuxLinks.swift`), so another app's commit of the repo is never used. A directory that is not there fails the job with `model_not_downloaded` (`data.model` is the auxiliary repo).
    - The engine keeps several models resident (`AUDIOSMITH_MAX_MODELS`, least recently used first out). The supervisor polls `engine.stats` while jobs run and after each, and unloads the least recently used idle models when all workers' models together exceed `engine.Config.MemoryBudget`. It also unloads, on every worker (the listen worker's dictation model included), models idle for longer than `engine.Config.IdleUnload` (setting `models.autoUnload`, 30 minutes by default since #109; 0 = never); `Supervisor.Hold(roles…)` keeps a worker's models while a call is live; `Supervisor.HoldModels(role, models…)` keeps only those models (a dictation pins its recogniser and, with clean-up on the engine's language model, that model; not the gpu worker's others).
    - Before every load the gpu worker makes room in its budget for the model's weights (`makeRoom`, size = the `*.safetensors` in its folder and the folders under it; every task passes it since code review 1102 M1: TTS, separation, diarization, aligner, VAD, denoiser, speech-to-text, LLM, dialogue).
-   - **Memory pressure.** The gpu worker watches the system's memory pressure (`DispatchSource.makeMemoryPressureSource`). From `warning` up it unloads every model no job uses and clears MLX's buffer cache; at `critical` it also refuses to load a model (`oom`, `data:{reason:"memory_pressure", level, model}`, retryable) until the kernel's level (`kern.memorystatus_vm_pressure_level`, read at each load) falls. It sends `engine.memory` at each change; the supervisor then unloads the other workers' idle models too (holds apply) and polls `engine.stats`. `AUDIOSMITH_MEMORY_PRESSURE=normal|warning|critical` forces the level loads go by, and with `AUDIOSMITH_MEMORY_PRESSURE_SIGNALS=1` SIGUSR1 plays a `warning` event and SIGUSR2 a `normal` one (tests: simulating the system's pressure needs root).
+   - **Memory pressure.** The gpu worker watches the system's memory pressure (`DispatchSource.makeMemoryPressureSource`). From `warning` up it unloads every model no job uses (at `warning` not those the app holds, `engine.config`) and clears MLX's buffer cache; at `critical` it also refuses to load a model (`oom`, `data:{reason:"memory_pressure", level, model}`, retryable) until the kernel's level (`kern.memorystatus_vm_pressure_level`, read at each load) falls. It sends `engine.memory` at each change; the supervisor then unloads the other workers' idle models too (holds apply) and polls `engine.stats`. `AUDIOSMITH_MEMORY_PRESSURE=normal|warning|critical` forces the level loads go by, and with `AUDIOSMITH_MEMORY_PRESSURE_SIGNALS=1` SIGUSR1 plays a `warning` event and SIGUSR2 a `normal` one (tests: simulating the system's pressure needs root).
 
 ## 5. Requests
 
@@ -124,6 +124,15 @@ Returns:
 - the ids of running jobs.
 
 The supervisor polls it while jobs run, and on demand for the ⌘E switcher.
+
+### `engine.config` (control, gpu and listen)
+
+```json
+→ {"id":"c7","method":"engine.config","params":{"memoryBudget":20000000000,"held":["mlx-community/Qwen3-4B-Instruct-2507-4bit"]}}
+← {"id":"c7","result":{"memoryBudget":20000000000,"held":["mlx-community/Qwen3-4B-Instruct-2507-4bit"]}}
+```
+
+The app's side of the worker's memory (code review 1103 F4/F5; Go `proto.EngineConfigParams`). `memoryBudget` is what `makeRoom` keeps to before a load (the memory limit setting, or the ActNow family's share; `0` = the engine's default, 60 % of the Mac's memory or `AUDIOSMITH_MEMORY_BUDGET`); `held` the models the app holds (`HoldModels`), `holdAll` every model of the worker (`Hold`, a live call). A memory-pressure `warning` leaves held models, `makeRoom` drops them only when the others are not enough; `critical` drops them too. A missing field keeps what the engine had; the result is what applies. The supervisor sends it after `engine.hello` (before the worker is ready), and whenever the budget or the holds change. Workers that list it in `hello.methods` get it.
 
 ### `engine.flush` (control)
 

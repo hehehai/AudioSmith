@@ -147,6 +147,7 @@ final class Server: @unchecked Sendable {
 
     var methods: [String] {
         var m = [Method.hello, Method.stats, Method.flush, Method.shutdown]
+        if store != nil { m.append(Method.engineConfig) }
         switch role {
         case .gpu:
             m += [Method.modelsLoad, Method.modelsUnload, Method.modelsLoaded, Method.ttsSynthesize, Method.ttsEncodeVoice,
@@ -227,6 +228,10 @@ final class Server: @unchecked Sendable {
             case Method.jobCancel:
                 let p = try msg.decodeParams(CancelParams.self)
                 out.result(id, CancelResult(cancelled: cancel(p.job)))
+            case Method.engineConfig:
+                let p = try msg.decodeParams(EngineConfigParams.self)
+                guard let store else { throw EngineError.badRequest("The \(role.rawValue) worker keeps no models") }
+                out.result(id, store.configure(p))
             case Method.modelsLoaded:
                 out.result(id, LoadedResult(models: store?.loaded() ?? []))
             case Method.modelsUnload:

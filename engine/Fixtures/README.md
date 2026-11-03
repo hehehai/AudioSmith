@@ -8,7 +8,7 @@ Golden transcripts of the engine protocol: the contract between the Go app and t
 | `tts_stream.jsonl` | `tts.synthesize` with progress and streamed `tts.chunk`s |
 | `tts_clone.jsonl` | cloning with sampling parameters and a seed |
 | `cancel.jsonl` | `job.cancel` of a running job, and of a finished one |
-| `models.jsonl` | `models.load` / `loaded` / `unload`, `engine.stats`, `flush`, `engine.memory` (memory pressure), `shutdown` |
+| `models.jsonl` | `models.load` / `loaded` / `unload`, `engine.stats`, `flush`, `engine.memory` (memory pressure), `engine.config` (the app's budget and holds), `shutdown` |
 | `errors.jsonl` | the M0 error codes, a load refused under critical memory pressure (`oom`, `memory_pressure`), `input_too_long`, and a model that only clones (MOSS-TTS-Nano) without a reference (`bad_request`) |
 | `voice.jsonl` | `tts.encodeVoice`, a take from a voice prompt, VoiceDesign, CustomVoice + instruct, Chatterbox parameters |
 | `stt.jsonl` | `stt.transcribe` (auto language, word timings, translate refused, missing file, speaker labels from MOSS-Transcribe-Diarize), `stt.align` |

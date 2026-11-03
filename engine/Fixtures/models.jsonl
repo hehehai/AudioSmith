@@ -11,6 +11,10 @@
 {"to":"app","msg":{"id":"c5","result":{"unloaded":["mlx-community/Kokoro-82M-bf16"]}}}
 {"to":"app","msg":{"method":"engine.memory","params":{"level":"warning","unloaded":["mlx-community/Kokoro-82M-bf16"]}}}
 {"to":"app","msg":{"method":"engine.memory","params":{"level":"normal","unloaded":[]}}}
+{"to":"engine","msg":{"id":"c7","method":"engine.config","params":{"memoryBudget":20000000000,"held":["mlx-community/Qwen3-4B-Instruct-2507-4bit"]}}}
+{"to":"app","msg":{"id":"c7","result":{"memoryBudget":20000000000,"held":["mlx-community/Qwen3-4B-Instruct-2507-4bit"]}}}
+{"to":"engine","msg":{"id":"c8","method":"engine.config","params":{"memoryBudget":0,"held":[],"holdAll":true}}}
+{"to":"app","msg":{"id":"c8","result":{"memoryBudget":14771054182,"held":[],"holdAll":true}}}
 {"to":"engine","msg":{"id":"c6","method":"models.unload","params":{}}}
 {"to":"app","msg":{"id":"c6","result":{"unloaded":[]}}}
 {"to":"engine","msg":{"id":"c9","method":"engine.shutdown"}}
