@@ -47,10 +47,10 @@ func (sc *stageCtx) path(name string) string { return sc.s.Path(sc.p.ID, name) }
 
 // save applies fn to the latest project.
 func (sc *stageCtx) save(ctx context.Context, fn func(*dub.Project)) error {
-	_, err := sc.s.Update(ctx, sc.p.ID, func(p *dub.Project) error {
+	_, err := sc.s.save(ctx, sc.p.ID, func(p *dub.Project) error { // no copy back (dub_cache.go)
 		fn(p)
 		return nil
-	})
+	}, true)
 	return err
 }
 

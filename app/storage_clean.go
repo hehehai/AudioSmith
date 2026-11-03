@@ -184,6 +184,7 @@ func (a *app) sweepDisk(ctx context.Context) {
 	if lib.sched.Idle() { // a long job's temporary files may be over an hour old
 		cleanLeftovers(data, a.cacheDir()) // data_cleanup.go
 	}
+	lib.maintainDB(ctx) // jobs_prune.go
 }
 
 // dubExports is when each dub was last exported, by the export records.

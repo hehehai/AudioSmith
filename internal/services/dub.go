@@ -32,6 +32,7 @@ package services
 // dub_export.go.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -218,6 +219,7 @@ type DubsConfig struct {
 type Dubs struct {
 	cfg   DubsConfig
 	mu    sync.Mutex // serializes read-modify-write of projects
+	cache dubCache   // decoded projects (dub_cache.go)
 	runMu sync.Mutex // serializes starting runs and deleting (#101 M4, M3)
 	batch batch
 	// deleteWait bounds how long Delete waits for a project's cancelled
@@ -311,7 +313,7 @@ func (s *Dubs) Create(ctx context.Context, p *dub.Project) (*dub.Project, error)
 		return nil, err
 	}
 	s.mu.Lock()
-	err := s.put(ctx, p)
+	err := s.put(ctx, p.Clone(), nil) // the caller keeps p
 	s.mu.Unlock()
 	logSave(ctx, "dub", true, "", p.ID, p.Title, err, "source", string(p.Source.Kind))
 	if err != nil {
@@ -321,17 +323,27 @@ func (s *Dubs) Create(ctx context.Context, p *dub.Project) (*dub.Project, error)
 	return p.Clone(), nil
 }
 
-func (s *Dubs) put(ctx context.Context, p *dub.Project) error {
-	doc, err := json.Marshal(p)
-	if err != nil {
-		return err
+// put saves p, encoded as doc (nil: encoded here), and caches it; p is
+// the cache's from then on. The caller holds s.mu.
+func (s *Dubs) put(ctx context.Context, p *dub.Project, doc []byte) error {
+	if doc == nil {
+		var err error
+		if doc, err = json.Marshal(p); err != nil {
+			return err
+		}
 	}
 	src := p.Source.Path
 	if p.Source.Kind == dub.SourceURL && p.Source.URL != "" {
 		src = p.Source.URL
 	}
-	return s.cfg.Store.Put(ctx, store.DubRecord{ID: p.ID, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt, Batch: p.Batch,
+	err := s.cfg.Store.Put(ctx, store.DubRecord{ID: p.ID, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt, Batch: p.Batch,
 		Title: p.Title, Source: src, Languages: p.Targets, Phase: string(p.Phase()), Duration: p.Source.Duration, Doc: doc})
+	if err != nil {
+		s.cache.drop(p.ID) // the row may or may not have changed
+		return err
+	}
+	s.cache.saved(p.ID, p, doc)
+	return nil
 }
 
 func (s *Dubs) publish(p *dub.Project) {
@@ -340,18 +352,13 @@ func (s *Dubs) publish(p *dub.Project) {
 	}
 }
 
-// Get reads a project.
+// Get reads a project (a copy of the cached one, dub_cache.go).
 func (s *Dubs) Get(ctx context.Context, id string) (*dub.Project, error) {
-	r, err := s.cfg.Store.Get(ctx, id)
+	p, _, err := s.cached(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	p := &dub.Project{}
-	if err := json.Unmarshal(r.Doc, p); err != nil {
-		return nil, fmt.Errorf("dub %s: %w", id, err)
-	}
-	p.Normalize()
-	return p, nil
+	return p.Clone(), nil
 }
 
 // List lists projects (without their documents).
@@ -360,7 +367,8 @@ func (s *Dubs) List(ctx context.Context, q store.DubQuery) ([]store.DubRecord, e
 }
 
 // Update applies fn to the saved project, saves it and publishes it. fn
-// may return an error to change nothing.
+// may return an error to change nothing; when it changes nothing,
+// nothing is saved or published (and UpdatedAt stays).
 func (s *Dubs) Update(ctx context.Context, id string, fn func(*dub.Project) error) (*dub.Project, error) {
 	return s.update(ctx, id, fn, true)
 }
@@ -369,19 +377,46 @@ func (s *Dubs) Update(ctx context.Context, id string, fn func(*dub.Project) erro
 // do: recording an export, freeing the working files), so the list's
 // order stays.
 func (s *Dubs) update(ctx context.Context, id string, fn func(*dub.Project) error, stamp bool) (*dub.Project, error) {
+	p, err := s.save(ctx, id, fn, stamp)
+	if err != nil {
+		return nil, err
+	}
+	return p.Clone(), nil
+}
+
+// save is update without the copy for the caller: the project it
+// returns is shared (the cache's), to read only. The pipeline saves
+// with it (stageCtx.save), which needs no copy.
+func (s *Dubs) save(ctx context.Context, id string, fn func(*dub.Project) error, stamp bool) (*dub.Project, error) {
 	s.mu.Lock()
-	p, err := s.Get(ctx, id)
+	cur, saved, err := s.cached(ctx, id)
+	var p *dub.Project
 	var oldTitle string
 	if err == nil {
+		p = cur.Clone()
 		oldTitle = p.Title
 		err = fn(p)
 	}
+	var doc []byte
 	if err == nil {
 		p.ID = id
+		doc, err = json.Marshal(p)
+	}
+	if err == nil && bytes.Equal(doc, saved) {
+		s.mu.Unlock()
+		return p, nil // nothing changed (p is a copy)
+	}
+	if err == nil {
 		if stamp {
+			old := p.UpdatedAt
 			p.UpdatedAt = s.cfg.Now()
+			if d, ok := restamp(doc, old, p.UpdatedAt); ok {
+				doc = d
+			} else {
+				doc = nil // put encodes it again
+			}
 		}
-		err = s.put(ctx, p)
+		err = s.put(ctx, p, doc)
 	}
 	s.mu.Unlock()
 	if err != nil {
@@ -391,7 +426,7 @@ func (s *Dubs) update(ctx context.Context, id string, fn func(*dub.Project) erro
 		logSave(ctx, "dub", false, oldTitle, id, p.Title, nil)
 	}
 	s.publish(p)
-	return p.Clone(), nil
+	return p, nil
 }
 
 // Delete cancels a project's jobs, waits for them to end, and removes
@@ -420,6 +455,7 @@ func (s *Dubs) delete(ctx context.Context, id string) error {
 	}
 	s.mu.Lock()
 	err := s.cfg.Store.Delete(ctx, id)
+	s.cache.drop(id)
 	s.mu.Unlock()
 	if err != nil {
 		return err

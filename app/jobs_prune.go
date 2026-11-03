@@ -32,3 +32,24 @@ func (l *library) pruneJobs(ctx context.Context) {
 		log.Printf("jobs: removed %d finished more than %d days ago", n, jobsKeepDays)
 	}
 }
+
+// maintainDB is the database's daily housekeeping, with the disk sweep
+// (storage_clean.go: two minutes after the start, then every day; off
+// the main thread): the jobs past jobsKeepDays again (a session may last
+// longer than a day), then, when no job runs, the free pages back to the
+// disk and the WAL truncated (code review 1102 L2). Other queries wait
+// for one vacuum step at most; the one rebuild of a file made before
+// (at most 256 MB) holds the database for a second or two.
+func (l *library) maintainDB(ctx context.Context) {
+	l.pruneJobs(ctx)
+	if !l.sched.Idle() {
+		return // next time: a vacuum would hold the database while jobs save
+	}
+	m, err := l.store.Maintain(ctx)
+	switch {
+	case err != nil:
+		log.Printf("database: maintenance: %v", err)
+	case m.Freed > 0 || m.Converted:
+		log.Printf("database: gave back %s (rebuilt: %v)", humanBytes(m.Freed), m.Converted)
+	}
+}

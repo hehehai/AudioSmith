@@ -129,6 +129,11 @@ type RenderQuery struct {
 	States    []core.RenderState
 	Auditions bool // include auditions
 	Limit     int
+	// Light lists bodies holding only their "output" (where the book
+	// is), rather than whole bodies with the book's manifest (1 MB for a
+	// long book; code review 1102 perf M4); a render of no project keeps
+	// its whole body (its title is its script's first words).
+	Light bool
 }
 
 // Renders stores longform renders (core.Render).

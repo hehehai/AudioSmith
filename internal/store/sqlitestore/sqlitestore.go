@@ -162,6 +162,17 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 			return nil, err
 		}
 	}
+	if v == 0 {
+		// A new file gives deleted rows' pages back in steps (Maintain).
+		// The file exists already (WAL), so it takes with a VACUUM:
+		// instant while it is empty.
+		for _, q := range []string{"PRAGMA auto_vacuum = INCREMENTAL", "VACUUM"} {
+			if _, err := db.Execute(ctx, q); err != nil {
+				db.Close()
+				return nil, fmt.Errorf("sqlitestore: %s: %w", q, err)
+			}
+		}
+	}
 	for _, m := range migrations[v:] {
 		stmts := make([]sqlite.Statement, 0, len(m.statements)+1)
 		for _, s := range m.statements {

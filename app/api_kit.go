@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/hehehai/AudioSmith/internal/api"
 	"github.com/hehehai/AudioSmith/internal/core"
@@ -125,7 +126,11 @@ func (b *apiBackend) DeleteIsolation(ctx context.Context, id string) error {
 var assetMediaExts = append(slices.Clone(assetAudioExts), "mp4", "mov", "m4v", "mkv", "webm", "zip")
 
 // Assets lists every output and imported file, as the Assets page does,
-// from the services rather than the page's state.
+// from the services rather than the page's state. Without a search, each
+// source is read only as far as the page can reach (code review 1102
+// perf M4: it read 2000 takes and decoded up to 1000 whole render
+// bodies a call, and silently dropped what lay past those); sources of
+// other kinds than q.Kind are not read.
 func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJSON, error) {
 	var out []api.AssetJSON
 	add := func(a api.AssetJSON) {
@@ -133,63 +138,65 @@ func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJ
 			out = append(out, a)
 		}
 	}
-	takes, err := b.lib.svc.Takes.List(ctx, core.TakeQuery{Limit: 2000})
-	if err != nil {
-		return nil, err
+	need := 0 // per source; 0 = all (a search looks at every title)
+	if strings.TrimSpace(q.Search) == "" && q.Limit > 0 {
+		need = max(q.Offset, 0) + q.Limit
 	}
-	for _, t := range takes {
-		add(api.AssetJSON{ID: "take:" + t.ID, Kind: "speech", Title: firstWords(oneLine(t.Text), 12), Detail: modelName(t.Model),
-			File: b.TakeAudio(t), Seconds: round2(t.AudioSeconds), At: t.CreatedAt, Page: "/studio", Tool: "list_takes", Source: t.ID})
-	}
-	renders, err := b.lib.svc.Longform.List(ctx, store.RenderQuery{States: []core.RenderState{core.RenderDone}, Limit: 1000})
-	if err != nil {
-		return nil, err
+	wants := func(kinds ...string) bool { return q.Kind == "" || slices.Contains(kinds, q.Kind) }
+	if wants("speech") {
+		takes, err := newest(need, func(n int) ([]core.Take, error) { return b.lib.svc.Takes.List(ctx, core.TakeQuery{Limit: n}) },
+			nil, func(t core.Take) time.Time { return t.CreatedAt })
+		if err != nil {
+			return nil, err
+		}
+		for _, t := range takes {
+			add(api.AssetJSON{ID: "take:" + t.ID, Kind: "speech", Title: firstWords(oneLine(t.Text), 12), Detail: modelName(t.Model),
+				File: b.TakeAudio(t), Seconds: round2(t.AudioSeconds), At: t.CreatedAt, Page: "/studio", Tool: "list_takes", Source: t.ID})
+		}
 	}
 	storyRender := map[string]bool{}
-	for _, r := range renders {
-		if r.Audition {
-			continue
+	if wants("speech", "dub", "story", "audiobook") { // the exports need storyRender too
+		// Light: the output, not the manifest. All of them: the list is
+		// by creation, assets by update.
+		renders, err := b.lib.svc.Longform.List(ctx, store.RenderQuery{States: []core.RenderState{core.RenderDone}, Light: true})
+		if err != nil {
+			return nil, err
 		}
-		kind, page := "story", "/stories"
-		if r.Kind == core.ProjectAudiobook {
-			kind, page = "audiobook", "/audiobook"
-		} else {
-			storyRender[r.ID] = true
+		for _, r := range renders {
+			if r.Audition {
+				continue
+			}
+			kind, page := "story", "/stories"
+			if r.Kind == core.ProjectAudiobook {
+				kind, page = "audiobook", "/audiobook"
+			} else {
+				storyRender[r.ID] = true
+			}
+			body, err := services.DecodeRender(r)
+			if err != nil || body.Output == nil || !wants(kind) {
+				continue
+			}
+			add(api.AssetJSON{ID: "render:" + r.ID, Kind: kind, Title: firstOf(renderName(r, &body.Spec), "Untitled"), File: body.Output.Book,
+				Seconds: round2(r.AudioSeconds), At: r.UpdatedAt, Page: page, Tool: "get_longform", Source: r.ProjectID})
 		}
-		body, err := services.DecodeRender(r)
-		if err != nil || body.Output == nil {
-			continue
-		}
-		add(api.AssetJSON{ID: "render:" + r.ID, Kind: kind, Title: firstOf(renderName(r, &body.Spec), "Untitled"), File: body.Output.Book,
-			Seconds: round2(r.AudioSeconds), At: r.UpdatedAt, Page: page, Tool: "get_longform", Source: r.ProjectID})
 	}
-	if lib := b.lib.svc.Library; lib != nil {
-		exports, err := lib.Exports(ctx, "", 1000)
+	if lib := b.lib.svc.Library; lib != nil && wants("speech", "dub", "story", "audiobook") {
+		keep := func(e core.Export) bool {
+			a, ok := exportAsset(e, storyRender)
+			return ok && wants(a.Kind)
+		}
+		exports, err := newest(need, func(n int) ([]core.Export, error) { return lib.Exports(ctx, "", n) },
+			keep, func(e core.Export) time.Time { return e.CreatedAt })
 		if err != nil {
 			return nil, err
 		}
 		for _, e := range exports {
-			if !slices.Contains(assetMediaExts, strings.ToLower(strings.TrimPrefix(filepath.Ext(e.Path), "."))) {
-				continue
+			if a, ok := exportAsset(e, storyRender); ok {
+				add(a)
 			}
-			a := api.AssetJSON{ID: "export:" + e.ID, Kind: "speech", Title: e.Title, Detail: "exported " + e.Kind, File: e.Path, At: e.CreatedAt,
-				Page: "/studio", Tool: "list_takes", Source: e.SourceID}
-			switch e.Kind {
-			case "take", "voice", "transcript", "cues":
-			case "dub":
-				a.Kind, a.Page, a.Tool = "dub", "/dub", "get_dub"
-			case "story":
-				a.Kind, a.Page, a.Tool, a.Source = "story", "/stories", "get_longform", e.ProjectID
-			default: // book, chapter, stem
-				a.Kind, a.Page, a.Tool, a.Source = "audiobook", "/audiobook", "get_longform", e.ProjectID
-				if storyRender[e.SourceID] {
-					a.Kind, a.Page = "story", "/stories"
-				}
-			}
-			add(a)
 		}
 	}
-	if b.iso != nil {
+	if b.iso != nil && wants("stems", "import") {
 		isos, err := b.iso.List(ctx)
 		if err != nil {
 			return nil, err
@@ -203,13 +210,15 @@ func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJ
 				Seconds: round2(x.Duration), At: x.CreatedAt, Page: "/isolate", Tool: "get_isolation", Source: x.ID})
 		}
 	}
-	if b.tr != nil {
-		trs, err := b.tr.List(ctx, core.TranscriptQuery{})
+	if b.tr != nil && wants("import") {
+		notDictation := func(t core.Transcript) bool { return t.Source != core.SourceDictation }
+		trs, err := newest(need, func(n int) ([]core.Transcript, error) { return b.tr.List(ctx, core.TranscriptQuery{Limit: n}) },
+			notDictation, func(t core.Transcript) time.Time { return t.CreatedAt })
 		if err != nil {
 			return nil, err
 		}
 		for _, t := range trs {
-			if t.Source == core.SourceDictation {
+			if !notDictation(t) {
 				continue
 			}
 			path := t.SourcePath
@@ -220,8 +229,8 @@ func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJ
 				Seconds: round2(t.Duration), At: t.CreatedAt, Page: "/transcripts", Tool: "export_transcript", Source: t.ID})
 		}
 	}
-	if b.dubs != nil {
-		dubs, err := b.dubs.List(ctx, store.DubQuery{AllBatches: true})
+	if b.dubs != nil && wants("import") {
+		dubs, err := b.dubs.List(ctx, store.DubQuery{AllBatches: true}) // by update; assets by creation: all (no documents)
 		if err != nil {
 			return nil, err
 		}
@@ -234,6 +243,57 @@ func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJ
 		}
 	}
 	return pageAssets(out, q), nil
+}
+
+// exportAsset is an export record as an asset; false for files that are
+// no audio or video (captions, scripts, voice files).
+func exportAsset(e core.Export, storyRender map[string]bool) (api.AssetJSON, bool) {
+	if !slices.Contains(assetMediaExts, strings.ToLower(strings.TrimPrefix(filepath.Ext(e.Path), "."))) {
+		return api.AssetJSON{}, false
+	}
+	a := api.AssetJSON{ID: "export:" + e.ID, Kind: "speech", Title: e.Title, Detail: "exported " + e.Kind, File: e.Path, At: e.CreatedAt,
+		Page: "/studio", Tool: "list_takes", Source: e.SourceID}
+	switch e.Kind {
+	case "take", "voice", "transcript", "cues":
+	case "dub":
+		a.Kind, a.Page, a.Tool = "dub", "/dub", "get_dub"
+	case "story":
+		a.Kind, a.Page, a.Tool, a.Source = "story", "/stories", "get_longform", e.ProjectID
+	default: // book, chapter, stem
+		a.Kind, a.Page, a.Tool, a.Source = "audiobook", "/audiobook", "get_longform", e.ProjectID
+		if storyRender[e.SourceID] {
+			a.Kind, a.Page = "story", "/stories"
+		}
+	}
+	return a, true
+}
+
+// newest reads a source listed newest first (by at): all of it when need
+// is 0, else at least as far as its need newest items that keep accepts
+// (nil: all) and any as new as the last of those, which the page's order
+// may put before it. fetch(0) reads all.
+func newest[T any](need int, fetch func(limit int) ([]T, error), keep func(T) bool, at func(T) time.Time) ([]T, error) {
+	if need <= 0 {
+		return fetch(0)
+	}
+	for limit := need + 1; ; limit *= 2 {
+		l, err := fetch(limit)
+		if err != nil || len(l) < limit {
+			return l, err // all of it
+		}
+		kept := 0
+		for i, x := range l {
+			if keep != nil && !keep(x) {
+				continue
+			}
+			if kept++; kept == need {
+				if i+1 < len(l) && at(l[i+1]).Before(at(x)) {
+					return l[:i+1], nil
+				}
+				break
+			}
+		}
+	}
 }
 
 // pageAssets filters, sorts (newest first) and pages assets.

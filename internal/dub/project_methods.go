@@ -304,7 +304,13 @@ func (p *Project) Clone() *Project {
 	q.Segments = CloneSegments(p.Segments)
 	q.Names = maps.Clone(p.Names)
 	q.Cast = maps.Clone(p.Cast)
-	q.References = maps.Clone(p.References)
+	if p.References != nil {
+		q.References = make(map[string]Reference, len(p.References))
+		for k, r := range p.References {
+			r.Hints = slices.Clone(r.Hints)
+			q.References[k] = r
+		}
+	}
 	q.RefTried = slices.Clone(p.RefTried)
 	q.Glossary = slices.Clone(p.Glossary)
 	q.Settings.Export.Tracks = slices.Clone(p.Settings.Export.Tracks)
@@ -318,7 +324,13 @@ func (p *Project) Clone() *Project {
 		m.Captions = slices.Clone(m.Captions)
 		q.Source.Meta = &m
 	}
-	q.Stages = maps.Clone(p.Stages)
+	if p.Stages != nil {
+		q.Stages = make(map[string]StageState, len(p.Stages))
+		for k, st := range p.Stages {
+			st.Warnings = slices.Clone(st.Warnings)
+			q.Stages[k] = st
+		}
+	}
 	if p.Run != nil {
 		r := *p.Run
 		r.Langs = slices.Clone(p.Run.Langs)
