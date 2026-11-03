@@ -102,7 +102,8 @@ extension Analyzer {
 
     func stemModel(_ model: String, path: String?, job: String, offline: Bool) async throws -> StemModel {
         let dir = try modelDirectory(model, path: path, offline: offline)
-        let (m, _) = try await store.acquire(model, task: "separate", job: job, as: StemModel.self, sampleRate: { $0.sampleRate }) {
+        let (m, _) = try await store.acquire(model, task: "separate", job: job, as: StemModel.self, sampleRate: { $0.sampleRate },
+                                             estimate: weightBytes(dir)) {
             guard let dir else { throw EngineError.notDownloaded(model: model, missing: ["model files"]) }
             let lower = model.lowercased()
             if lower.contains("roformer") {
@@ -207,7 +208,8 @@ extension Analyzer {
                            data: .object(["capability": .string("speakers"), "max": .int(Int64(maxSpeakers))]))
         }
         let dir = try modelDirectory(p.model, path: p.modelPath, offline: offline)
-        let (model, _) = try await store.acquire(p.model, task: "diarize", job: job, as: SortformerModel.self, sampleRate: { _ in 16000 }) {
+        let (model, _) = try await store.acquire(p.model, task: "diarize", job: job, as: SortformerModel.self, sampleRate: { _ in 16000 },
+                                                 estimate: weightBytes(dir)) {
             if let dir { return try SortformerModel.fromModelDirectory(dir) }
             return try await SortformerModel.fromPretrained(p.model)
         }

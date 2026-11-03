@@ -1,4 +1,5 @@
 import AudioSmithProtocol
+import AudioSmithStream
 import Foundation
 @preconcurrency import MLX
 import MLXAudioCore
@@ -90,7 +91,7 @@ final class Analyzer: @unchecked Sendable {
         let dir = try modelDirectory(model, path: path, offline: offline)
         let moss = Self.isMoss(model) || dir.map { modelType($0) == Self.mossModelType } ?? false
         let (m, _) = try await store.acquire(model, task: "stt", job: job, as: (any STTGenerationModel).self,
-                                             sampleRate: { _ in 16000 }, estimate: moss ? Self.mossEstimate : 0) {
+                                             sampleRate: { _ in 16000 }, estimate: moss ? Self.mossEstimate : weightBytes(dir)) {
             if moss {
                 return try await self.loadMoss(model, dir: dir)
             }
@@ -118,18 +119,21 @@ final class Analyzer: @unchecked Sendable {
             _ = try await sttModel(p.model, path: p.path, job: job, offline: offline)
         case "align":
             let dir = try modelDirectory(p.model, path: p.path, offline: offline)
-            _ = try await store.acquire(p.model, task: "align", job: job, as: Qwen3ForcedAlignerModel.self, sampleRate: { _ in 16000 }) {
+            _ = try await store.acquire(p.model, task: "align", job: job, as: Qwen3ForcedAlignerModel.self, sampleRate: { _ in 16000 },
+                                        estimate: weightBytes(dir)) {
                 try await loadAligner(p.model, dir: dir)
             }
         case "vad":
             let dir = try modelDirectory(p.model, path: p.path, offline: offline)
-            _ = try await store.acquire(p.model, task: "vad", job: job, as: SileroVAD.self, sampleRate: { _ in 16000 }) {
+            _ = try await store.acquire(p.model, task: "vad", job: job, as: SileroVAD.self, sampleRate: { _ in 16000 },
+                                        estimate: weightBytes(dir)) {
                 if let dir { return try SileroVAD.fromModelDirectory(dir) }
                 return try await SileroVAD.fromPretrained(p.model)
             }
         case "enhance":
             let dir = try modelDirectory(p.model, path: p.path, offline: offline)
-            let (m, _) = try await store.acquire(p.model, task: "enhance", job: job, as: DeepFilterNetModel.self, sampleRate: { $0.sampleRate }) {
+            let (m, _) = try await store.acquire(p.model, task: "enhance", job: job, as: DeepFilterNetModel.self, sampleRate: { $0.sampleRate },
+                                                 estimate: weightBytes(dir)) {
                 if let dir { return try DeepFilterNetModel.fromLocal(dir, subfolder: DeepFilterNetModel.defaultSubfolder) }
                 return try await DeepFilterNetModel.fromPretrained(p.model)
             }
@@ -173,7 +177,7 @@ final class Analyzer: @unchecked Sendable {
         guard let text = nonEmpty(p.text) else { throw EngineError.badRequest("Missing text") }
         let dir = try modelDirectory(p.model, path: p.modelPath, offline: offline)
         let (model, _) = try await store.acquire(p.model, task: "align", job: job, as: Qwen3ForcedAlignerModel.self,
-                                                 sampleRate: { _ in 16000 }) {
+                                                 sampleRate: { _ in 16000 }, estimate: weightBytes(dir)) {
             try await loadAligner(p.model, dir: dir)
         }
         defer { store.release(p.model) }
@@ -206,7 +210,8 @@ final class Analyzer: @unchecked Sendable {
     func vad(_ p: VADParams, job: String, offline: Bool) async throws -> VADResult {
         guard !p.model.isEmpty else { throw EngineError.badRequest("Missing model") }
         let dir = try modelDirectory(p.model, path: p.modelPath, offline: offline)
-        let (model, _) = try await store.acquire(p.model, task: "vad", job: job, as: SileroVAD.self, sampleRate: { _ in 16000 }) {
+        let (model, _) = try await store.acquire(p.model, task: "vad", job: job, as: SileroVAD.self, sampleRate: { _ in 16000 },
+                                                 estimate: weightBytes(dir)) {
             if let dir { return try SileroVAD.fromModelDirectory(dir) }
             return try await SileroVAD.fromPretrained(p.model)
         }
@@ -242,52 +247,56 @@ final class Analyzer: @unchecked Sendable {
         let (url, bits) = try outputURL(p.output)
         let dir = try modelDirectory(p.model, path: p.modelPath, offline: offline)
         let (model, _) = try await store.acquire(p.model, task: "enhance", job: job, as: DeepFilterNetModel.self,
-                                                 sampleRate: { $0.sampleRate }) {
+                                                 sampleRate: { $0.sampleRate }, estimate: weightBytes(dir)) {
             if let dir { return try DeepFilterNetModel.fromLocal(dir, subfolder: DeepFilterNetModel.defaultSubfolder) }
             return try await DeepFilterNetModel.fromPretrained(p.model)
         }
         defer { store.release(p.model) }
         let rate = model.sampleRate
-        let samples = try await decodeMono(p.audio, sampleRate: rate)
+        let media = try await openMedia(p.audio)
         let progress = JobProgress(out: out, job: job)
         progress.send("enhancing", force: true)
         let started = Date()
         let strength = Float(min(max(p.strength ?? 1, 0), 1))
 
-        // Long inputs go in 60 s pieces that overlap by 1 s and crossfade.
-        let piece = 60 * rate, overlap = rate
-        var result = [Float](repeating: 0, count: samples.count)
-        var start = 0
-        while start < samples.count {
-            try Task.checkCancellation()
-            let end = min(start + piece, samples.count)
-            let input = MLXArray(Array(samples[start ..< end]))
-            let enhanced = try model.enhance(input)
-            eval(enhanced)
-            let e = enhanced.asArray(Float.self)
-            for i in 0 ..< min(e.count, end - start) {
-                let j = start + i
-                var v = strength * e[i] + (1 - strength) * samples[j]
-                if start > 0, i < overlap {
-                    let w = Float(i) / Float(overlap)
-                    v = w * v + (1 - w) * result[j]
-                }
-                result[j] = v
-            }
-            progress.fraction = Double(end) / Double(max(samples.count, 1))
-            progress.send("enhancing")
-            if end == samples.count { break }
-            start = end - overlap
-        }
-        MLX.Memory.clearCache()
-        progress.send("writing", force: true)
+        // Long inputs go in 60 s pieces that overlap by 1 s and crossfade,
+        // read, enhanced and written as they come (code review 1102 M5:
+        // the whole track was held twice), the same samples as before.
+        var stream = OverlapStream(piece: 60 * rate, overlap: rate, strength: strength)
+        let expected = max(media.probe.duration * Double(rate), 1)
+        let cannotWrite = { (error: Error) in RPCError(Code.internal, "Could not write \(url.path): \(error.localizedDescription)") }
+        let writer: WAVWriter
         do {
-            try writeWAV(result, sampleRate: rate, bits: bits, to: url)
+            writer = try WAVWriter(url: url, sampleRate: rate, channels: 1, bits: bits)
         } catch {
-            throw RPCError(Code.internal, "Could not write \(url.path): \(error.localizedDescription)")
+            throw cannotWrite(error)
         }
-        return EnhanceResult(output: url.path, sampleRate: rate, channels: 1, frames: Int64(result.count),
-                             audioSeconds: Double(result.count) / Double(rate), model: p.model,
+        do {
+            let enhance = { (x: [Float]) throws -> [Float] in
+                try Task.checkCancellation()
+                let enhanced = try model.enhance(MLXArray(x))
+                eval(enhanced)
+                return enhanced.asArray(Float.self)
+            }
+            let emit = { (y: [Float]) throws in
+                do { try writer.append(y[...]) } catch { throw cannotWrite(error) }
+                progress.fraction = min(Double(writer.frames) / expected, 1)
+                progress.send("enhancing")
+            }
+            _ = try readAudio(media, sampleRate: rate, channels: 1) { try stream.push($0, process: enhance, emit: emit) }
+            try stream.finish(process: enhance, emit: emit)
+            MLX.Memory.clearCache()
+            if writer.frames == 0 { throw EngineError.unsupportedMedia(media.url.path, "it has no audio samples") }
+            progress.send("writing", force: true)
+            do { try writer.finish() } catch { throw cannotWrite(error) }
+        } catch {
+            writer.cancel()
+            MLX.Memory.clearCache()
+            throw error
+        }
+        let frames = writer.frames
+        return EnhanceResult(output: url.path, sampleRate: rate, channels: 1, frames: frames,
+                             audioSeconds: Double(frames) / Double(rate), model: p.model,
                              seconds: Date().timeIntervalSince(started))
     }
 }

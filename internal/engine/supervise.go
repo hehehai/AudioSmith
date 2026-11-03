@@ -83,6 +83,8 @@ type worker struct {
 	restarts []time.Time   // automatic restarts within the window
 	timer    *time.Timer   // the pending automatic restart
 	holds    int           // Hold calls not released: its models stay
+	// HoldModels calls not released, per model: those models stay.
+	modelHolds map[string]int
 }
 
 // proc is one engine process.

@@ -383,6 +383,8 @@ func ParamsFor(method string) any {
 		return new(DialogueParams)
 	case MethodTTSTurn:
 		return new(TurnParams)
+	case MethodEngineMemory:
+		return new(MemoryParams)
 	case MethodHello:
 		return new(HelloParams)
 	case MethodStats, MethodFlush, MethodShutdown, MethodModelsLoaded:

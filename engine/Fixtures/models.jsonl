@@ -9,6 +9,8 @@
 {"to":"app","msg":{"id":"c4","result":{}}}
 {"to":"engine","msg":{"id":"c5","method":"models.unload","params":{"model":"mlx-community/Kokoro-82M-bf16"}}}
 {"to":"app","msg":{"id":"c5","result":{"unloaded":["mlx-community/Kokoro-82M-bf16"]}}}
+{"to":"app","msg":{"method":"engine.memory","params":{"level":"warning","unloaded":["mlx-community/Kokoro-82M-bf16"]}}}
+{"to":"app","msg":{"method":"engine.memory","params":{"level":"normal","unloaded":[]}}}
 {"to":"engine","msg":{"id":"c6","method":"models.unload","params":{}}}
 {"to":"app","msg":{"id":"c6","result":{"unloaded":[]}}}
 {"to":"engine","msg":{"id":"c9","method":"engine.shutdown"}}

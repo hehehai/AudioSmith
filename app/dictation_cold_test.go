@@ -43,8 +43,8 @@ func TestDictationColdModel(t *testing.T) {
 	if len(loads) != 1 || loads[0].Spec.Kind != proto.KindFor(proto.RoleListen, proto.MethodModelsLoad) || loads[0].Spec.Lane != jobs.LaneListen {
 		t.Fatalf("no prewarm on the press: %+v", loads)
 	}
-	if !slices.Contains(eng.held(), proto.RoleListen) {
-		t.Fatalf("listen not held while dictating: %v", eng.held())
+	if h := eng.held(); !slices.Equal(h, []string{"listen/" + a.dictModel().Repo}) {
+		t.Fatalf("only dictation's model should be held while dictating: %v", h)
 	}
 	load := loads[0].ID
 	eng.progress(load, "loading", -1, 0) // still loading when the user stops

@@ -82,6 +82,10 @@ func (f *fakeEngine) load(m proto.Message) {
 		f.fail(m.ID, proto.CodeBadRequest, "Missing model")
 		return
 	}
+	if level, ok := strings.CutPrefix(p.Model, "pressure/"); ok {
+		f.pressure(m.ID, level)
+		return
+	}
 	if !f.ensure(m.ID, p.Model) {
 		return
 	}
@@ -96,6 +100,30 @@ func (f *fakeEngine) load(m proto.Message) {
 		res.SampleRate = 16000
 	}
 	f.result(m.ID, res)
+}
+
+// pressure plays a memory-pressure event at level (models.load of
+// "pressure/<level>"): as the engine's MemoryWatch, the idle models go
+// (from "warning" up) and engine.memory says so; at "critical" the load
+// is refused with oom, else it answers without loading anything.
+func (f *fakeEngine) pressure(id, level string) {
+	unloaded := []string{}
+	if level != proto.PressureNormal {
+		f.mu.Lock()
+		for model := range f.models {
+			delete(f.models, model)
+			unloaded = append(unloaded, model)
+		}
+		f.mu.Unlock()
+		slices.Sort(unloaded)
+	}
+	f.notify(proto.MethodEngineMemory, proto.MemoryParams{Level: level, Unloaded: unloaded})
+	if level == proto.PressureCritical {
+		f.send(proto.NewError(id, &proto.Error{Code: proto.CodeOOM, Message: "The Mac is critically low on memory",
+			Data: json.RawMessage(`{"reason":"memory_pressure","level":"critical"}`)}))
+		return
+	}
+	f.result(id, proto.LoadResult{Model: "pressure/" + level, Task: "tts"})
 }
 
 // work runs the steps of a job whose behaviour key (text or input path)

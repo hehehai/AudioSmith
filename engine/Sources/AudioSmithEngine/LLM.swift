@@ -302,16 +302,3 @@ extension Analyzer {
                                  constrained: constrained ? true : nil)
     }
 }
-
-/// The bytes of a model's weights on disk: what loading it adds, about.
-func weightBytes(_ dir: URL) -> Int64 {
-    let fm = FileManager.default
-    guard let names = try? fm.contentsOfDirectory(atPath: dir.path) else { return 0 }
-    var total: Int64 = 0
-    for n in names where n.hasSuffix(".safetensors") {
-        // Snapshots hold symlinks to blobs: follow them.
-        let path = dir.appendingPathComponent(n).resolvingSymlinksInPath().path
-        total += ((try? fm.attributesOfItem(atPath: path)[.size]) as? NSNumber)?.int64Value ?? 0
-    }
-    return total
-}

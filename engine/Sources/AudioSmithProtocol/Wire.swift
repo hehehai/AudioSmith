@@ -57,6 +57,8 @@ public enum Method {
     public static let log = "log"
     public static let captureLevel = "capture.level"
     public static let llmToken = "llm.token"
+    // Code review 1102 M1: the system's memory pressure changed (MemoryParams).
+    public static let engineMemory = "engine.memory"
 
     /// Long-running, cancellable requests that count against concurrency.
     public static func isJob(_ method: String) -> Bool {
@@ -579,6 +581,7 @@ public func paramsType(_ method: String) -> (Decodable & Encodable).Type? {
     case Method.watermarkDetect: WatermarkDetectParams.self
     case Method.ttsDialogue: DialogueParams.self
     case Method.ttsTurn: TurnParams.self
+    case Method.engineMemory: MemoryParams.self
     default: nil
     }
 }

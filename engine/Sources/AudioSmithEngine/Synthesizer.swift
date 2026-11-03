@@ -31,7 +31,8 @@ final class Synthesizer: @unchecked Sendable {
         let token = ProcessInfo.processInfo.environment["HF_TOKEN"]
         markAuxCopies()
         let (m, _) = try await store.acquire(model, task: "tts", job: job, as: SpeechGenerationModel.self,
-                                             sampleRate: { $0.sampleRate }) {
+                                             sampleRate: { $0.sampleRate },
+                                             estimate: weightBytes(weightsDirectory(model, path: path))) {
             if let path, !path.isEmpty {
                 do {
                     let m = try await TTS.loadModel(modelRepo: path, hfToken: token)

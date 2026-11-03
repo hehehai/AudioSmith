@@ -58,11 +58,11 @@ type fakeEngine struct {
 	callErr  map[string]*proto.Error // method → error to answer with
 	levels   []proto.LevelParams     // sent by capture.start (job id filled in)
 	captures map[string]chan struct{}
-	holds    []proto.Role // Hold calls not released
+	holds    []string // Hold ("gpu") and HoldModels ("gpu/<model>") calls not released
 }
 
-// held lists the roles held (fakeSup.Hold) now.
-func (f *fakeEngine) held() []proto.Role {
+// held lists the roles ("gpu") and models ("gpu/<model>") held now.
+func (f *fakeEngine) held() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.holds)
@@ -256,10 +256,26 @@ func (s fakeSup) SetIdleUnload(d time.Duration) { s.f.idle = d }
 func (s fakeSup) SetCacheDir(dir string)        { s.f.cacheDir = dir }
 
 func (s fakeSup) Hold(roles ...proto.Role) func() {
+	var keys []string
+	for _, r := range roles {
+		keys = append(keys, string(r))
+	}
+	return s.hold(keys)
+}
+
+func (s fakeSup) HoldModels(role proto.Role, models ...string) func() {
+	var keys []string
+	for _, m := range models {
+		keys = append(keys, string(role)+"/"+m)
+	}
+	return s.hold(keys)
+}
+
+func (s fakeSup) hold(keys []string) func() {
 	s.f.mu.Lock()
-	s.f.holds = append(s.f.holds, roles...)
+	s.f.holds = append(s.f.holds, keys...)
 	s.f.mu.Unlock()
-	held := slices.Clone(roles)
+	held := keys
 	return func() {
 		s.f.mu.Lock()
 		defer s.f.mu.Unlock()

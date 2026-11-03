@@ -40,7 +40,8 @@ package enginetest
 // tts.synthesize reacts to its text, and the other jobs to their input
 // path: "crash" exits 3 mid-job, "oom" fails with oom, "slow" runs 100
 // steps of 20 ms (cancellable), anything else 3 steps. Models whose repo
-// contains "broken" fail to load.
+// contains "broken" fail to load. models.load of "pressure/<level>" plays
+// a memory-pressure event (engine.memory; see fakeEngine.pressure).
 
 import (
 	"bufio"

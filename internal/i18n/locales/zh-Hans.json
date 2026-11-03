@@ -4053,5 +4053,6 @@
   "%s kept stopping as the audio devices changed, even with echo cancellation.": "音频设备反复变动，%s 一再中断，打开回声消除后也一样。",
   "The microphone stopped as the audio devices changed: what was recorded is kept.": "音频设备变动，麦克风已停止：已录下的部分会保留。",
   "%s Try: switch Echo cancellation on or off, choose another input, quit other apps that are recording, and check that AudioSmith may use the microphone (System Settings → Privacy & Security → Microphone).": "%s可以试试：打开或关闭“回声消除”，换一个输入设备，退出其他正在录音的 App，并确认 AudioSmith 有麦克风权限（系统设置 → 隐私与安全性 → 麦克风）。",
-  "Turn on if the microphone records no sound or picks up the speakers; the voice may sound processed. Applies to every recording.": "麦克风录不到声音、或录进了扬声器的声音时打开；人声可能听起来有处理痕迹。对所有录音生效。"
+  "Turn on if the microphone records no sound or picks up the speakers; the voice may sound processed. Applies to every recording.": "麦克风录不到声音、或录进了扬声器的声音时打开；人声可能听起来有处理痕迹。对所有录音生效。",
+  "The Mac is short of memory right now, so the model was not loaded. Close other apps, then try again.": "这台 Mac 现在内存紧张，模型没有加载。请退出其他 App 后再试。"
 }

@@ -89,7 +89,9 @@ Unknown members must be ignored by both sides, so optional fields can be added w
    - Without a path, the engine resolves the repo in `hello.cacheDir` (it sets `HF_HUB_CACHE` to it). A repo counts as present when `<cacheDir>/mlx-audio/<owner>_<name>/config.json` exists or `<cacheDir>/models--<owner>--<name>/snapshots/` has a non-empty snapshot.
    - Without a path, a job loads the repo's snapshot only when there is exactly one (non-empty, not `<commit>.incomplete`); with several it fails with `model_path_required`. The cache is shared with other apps (the ActNow family spec §7.1), which may keep another commit of the same repo there, so the engine never picks one.
    - Any model job may also carry `auxPaths` (`{repo id: snapshot directory}`, Go `proto.ParamAuxPaths`): the snapshots of the model's auxiliary repos at their pinned commits (Kokoro's G2P repos, Chatterbox's S3 tokenizer, Whisper's tokenizer), which the executors fill with the path (`hub.AuxSnapshots`): the engine job kinds (`engine.RegisterExecutors`) and the app's own engine calls (renders' `tts.synthesize`, transcripts, dub and workflow steps: `engine.Executor` / `KindExecutor` with `ExecutorOptions.AuxPaths`). mlx-audio-swift finds those repos by id in its folders `mlx-audio/<owner>_<name>` (`…_tokenizer_only` for Whisper's tokenizer); the engine links them to these snapshots before the job (`AuxLinks.swift`), so another app's commit of the repo is never used. A directory that is not there fails the job with `model_not_downloaded` (`data.model` is the auxiliary repo).
-   - The engine keeps several models resident (`AUDIOSMITH_MAX_MODELS`, least recently used first out). The supervisor polls `engine.stats` while jobs run and after each, and unloads the least recently used idle models when all workers' models together exceed `engine.Config.MemoryBudget`. It also unloads, on every worker (the listen worker's dictation model included), models idle for longer than `engine.Config.IdleUnload` (setting `models.autoUnload`, 30 minutes by default since #109; 0 = never); `Supervisor.Hold(roles…)` keeps a worker's models while a dictation records or a call is live.
+   - The engine keeps several models resident (`AUDIOSMITH_MAX_MODELS`, least recently used first out). The supervisor polls `engine.stats` while jobs run and after each, and unloads the least recently used idle models when all workers' models together exceed `engine.Config.MemoryBudget`. It also unloads, on every worker (the listen worker's dictation model included), models idle for longer than `engine.Config.IdleUnload` (setting `models.autoUnload`, 30 minutes by default since #109; 0 = never); `Supervisor.Hold(roles…)` keeps a worker's models while a call is live; `Supervisor.HoldModels(role, models…)` keeps only those models (a dictation pins its recogniser and, with clean-up on the engine's language model, that model; not the gpu worker's others).
+   - Before every load the gpu worker makes room in its budget for the model's weights (`makeRoom`, size = the `*.safetensors` in its folder and the folders under it; every task passes it since code review 1102 M1: TTS, separation, diarization, aligner, VAD, denoiser, speech-to-text, LLM, dialogue).
+   - **Memory pressure.** The gpu worker watches the system's memory pressure (`DispatchSource.makeMemoryPressureSource`). From `warning` up it unloads every model no job uses and clears MLX's buffer cache; at `critical` it also refuses to load a model (`oom`, `data:{reason:"memory_pressure", level, model}`, retryable) until the kernel's level (`kern.memorystatus_vm_pressure_level`, read at each load) falls. It sends `engine.memory` at each change; the supervisor then unloads the other workers' idle models too (holds apply) and polls `engine.stats`. `AUDIOSMITH_MEMORY_PRESSURE=normal|warning|critical` forces the level loads go by, and with `AUDIOSMITH_MEMORY_PRESSURE_SIGNALS=1` SIGUSR1 plays a `warning` event and SIGUSR2 a `normal` one (tests: simulating the system's pressure needs root).
 
 ## 5. Requests
 
@@ -261,7 +263,7 @@ Segments are in time order and cover `text`. Whisper gives about one per 30 s wi
 
 ### `enhance.run` (job, gpu)
 
-`{model, modelPath, audio, output, strength?}` → `{output, sampleRate, channels, frames, audioSeconds, model, seconds}`. DeepFilterNet v3 (the `v3/` folder of `mlx-community/DeepFilterNet-mlx`). The output is mono at the model's rate (48 kHz); the app resamples if it needs another. `strength` (0–1, default 1) mixes the enhanced signal over the original, to keep some room tone.
+`{model, modelPath, audio, output, strength?}` → `{output, sampleRate, channels, frames, audioSeconds, model, seconds}`. DeepFilterNet v3 (the `v3/` folder of `mlx-community/DeepFilterNet-mlx`). The output is mono at the model's rate (48 kHz); the app resamples if it needs another. `strength` (0–1, default 1) mixes the enhanced signal over the original, to keep some room tone. The input is read, enhanced in 60 s windows that overlap by 1 s and crossfade, and written as it goes (`OverlapStream` in AudioSmithStream; code review 1102 M5): memory stays at about a window whatever the length, with the same output as enhancing the whole track at once.
 
 ### `media.probe` (control, media)
 
@@ -514,6 +516,7 @@ Errors: a model that is not a dialogue model fails with `unsupported`, `data.cap
 | `capture.level` | `job`, `seconds`, `rms`, `peak`, `clipped?`, `aecAuto?`, `aecReason?` | The input meter of a `capture.start` job, about 20 per second (§5.2). |
 | `llm.token` | `job`, `text` | The next piece of an `llm.generate` reply with `stream` (§5.4). |
 | `tts.turn` | `job`, `index`, `speaker`, `output`, `frames`, `audioSeconds`, `sampleRate` | A `tts.dialogue` turn's file is written (§5.6). |
+| `engine.memory` | `level`, `unloaded` | The gpu worker: the system's memory pressure changed to `normal`, `warning` or `critical`; `unloaded` are the idle models it dropped for it (§4). Names no job. |
 
 At 24 kHz mono, PCM16 in base64 is about 64 KB/s. If profiling ever shows that to be costly, a binary side channel (an fd 3 pipe) can be added in a later minor change.
 
@@ -529,7 +532,7 @@ At 24 kHz mono, PCM16 in base64 is about 64 KB/s. If profiling ever shows that t
 | `model_not_downloaded` | Offline and files missing | `{"model","missing":[…]}` | offer the download (hub) |
 | `model_load_failed` | Files present but unloadable | — | show the message; offer Verify/Repair |
 | `licence_required` | Reserved: the app gates licences before sending | `{"licence"}` | licence dialog |
-| `oom` | Out of memory | `{"active":…}` | **retryable** after unloading or a restart |
+| `oom` | Out of memory; or a load refused under critical memory pressure | `{"active":…}`; `{"reason":"memory_pressure","level","model"}` | **retryable** after unloading or a restart; the pressure one says the Mac is short of memory |
 | `busy` | Over `concurrency` | — | **retryable** (scheduler bug if seen) |
 | `cancelled` | The job was cancelled | — | none |
 | `internal` | Anything else | — | show the message, keep the stderr tail |

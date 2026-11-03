@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -59,6 +60,11 @@ func TestLocalLLMWarm(t *testing.T) {
 	loads := warmLoads(m)
 	if len(loads) != 1 || loads[0].Model != e.Repo || !strings.Contains(string(loads[0].Params), `"task":"llm"`) || loads[0].Spec.Kind != proto.MethodModelsLoad {
 		t.Fatalf("warm-up %+v", loads)
+	}
+	// It pins its recogniser and the clean-up model, not the gpu worker's
+	// other models (code review 1102 M1).
+	if h := m.eng.held(); !slices.Equal(h, []string{"listen/" + a.dictModel().Repo, "gpu/" + e.Repo}) {
+		t.Fatalf("held %v", h)
 	}
 	keys.press(t, defaultAcc)
 	answer = `{"text":"Meet me at five."}`

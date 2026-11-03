@@ -92,6 +92,10 @@ func jobErrorText(e *jobs.Error) string {
 	case proto.CodeLicenceRequired:
 		return i18n.T("The model's licence has not been accepted. Review it in Settings → Models & network.")
 	case proto.CodeOOM:
+		var d struct{ Reason string }
+		if json.Unmarshal(e.Data, &d) == nil && d.Reason == proto.ReasonMemoryPressure {
+			return i18n.T("The Mac is short of memory right now, so the model was not loaded. Close other apps, then try again.")
+		}
 		return i18n.T("Out of memory. Unload other models, or choose a smaller one.")
 	case proto.CodeInputTooLong:
 		return i18n.T("The text is too long for this model in one piece. Split it into shorter parts.")

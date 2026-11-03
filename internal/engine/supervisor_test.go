@@ -274,6 +274,9 @@ func TestSupervisorReplaysFixtures(t *testing.T) {
 					}
 					var m proto.Message
 					json.Unmarshal(l.Msg, &m)
+					if m.Method == proto.MethodEngineMemory {
+						continue // names no job: the supervisor's own (supervise_pressure.go)
+					}
 					if m.Kind() == proto.KindNotification {
 						wantNotes = append(wantNotes, string(m.Params))
 					} else if m.ID == req.ID {

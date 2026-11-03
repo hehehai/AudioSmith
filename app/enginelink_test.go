@@ -441,3 +441,20 @@ func TestEngineCallSeams(t *testing.T) {
 		t.Errorf("zh stage: %q", got)
 	}
 }
+
+// Code review 1102 M1: a load the engine refused under memory pressure
+// says so, not "unload other models".
+func TestJobErrorTextMemoryPressure(t *testing.T) {
+	oom := &jobs.Error{Code: proto.CodeOOM, Data: []byte(`{"reason":"memory_pressure","level":"critical"}`)}
+	if got := jobErrorText(oom); !strings.HasPrefix(got, "The Mac is short of memory right now") {
+		t.Errorf("pressure: %q", got)
+	}
+	if got := jobErrorText(&jobs.Error{Code: proto.CodeOOM}); !strings.HasPrefix(got, "Out of memory.") {
+		t.Errorf("plain oom: %q", got)
+	}
+	i18n.SetLocale("zh-Hans")
+	defer i18n.SetLocale("en")
+	if got := jobErrorText(oom); !strings.HasPrefix(got, "这台 Mac 现在内存紧张") {
+		t.Errorf("zh pressure: %q", got)
+	}
+}

@@ -33,11 +33,13 @@ func (a *app) dictStart(target dictation.Target, hold bool) {
 	s := &dictSession{gen: gen, target: target, phase: dictStarting, hold: hold, pressed: time.Now(), out: out, level: -120}
 	a.dict = s
 	// Its models stay loaded until it ends, however long the user speaks
-	// (#109): the recogniser, and the language model that cleans up.
-	if a.prefs.Dictation.Cleanup {
-		s.release = a.holdModels(proto.RoleListen, proto.RoleGPU)
-	} else {
-		s.release = a.holdModels(proto.RoleListen)
+	// (#109): the recogniser, and the engine's language model when it
+	// cleans up; not the gpu worker's other models (code review 1102 M1).
+	asr := a.holdModelsOf(proto.RoleListen, a.dictModel().Repo)
+	s.release = asr
+	if a.prefs.Dictation.Cleanup && a.localLLMFirst(llm.SkillDictationCleanup) {
+		cleanup := a.holdModelsOf(proto.RoleGPU, a.localLLMEntry().Repo)
+		s.release = func() { asr(); cleanup() }
 	}
 	if a.dictSys.Microphone() == dictation.PermissionDenied || a.dictSys.Microphone() == dictation.PermissionRestricted {
 		a.dictFail(s, i18n.T("AudioSmith may not use the microphone. Allow it in System Settings → Privacy & Security → Microphone."))

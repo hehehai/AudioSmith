@@ -124,6 +124,42 @@ func (s *supervisor) Hold(roles ...proto.Role) (release func()) {
 	}
 }
 
+// HoldModels keeps models of role resident until release (Supervisor).
+func (s *supervisor) HoldModels(role proto.Role, models ...string) (release func()) {
+	models = slices.DeleteFunc(slices.Clone(models), func(m string) bool { return m == "" })
+	s.mu.Lock()
+	w := s.workers[role]
+	if w != nil {
+		if w.modelHolds == nil {
+			w.modelHolds = map[string]int{}
+		}
+		for _, m := range models {
+			w.modelHolds[m]++
+		}
+	}
+	s.mu.Unlock()
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			if w == nil {
+				return
+			}
+			s.mu.Lock()
+			for _, m := range models {
+				if w.modelHolds[m]--; w.modelHolds[m] <= 0 {
+					delete(w.modelHolds, m)
+				}
+			}
+			s.mu.Unlock()
+		})
+	}
+}
+
+// heldLocked reports whether a Hold or HoldModels keeps w's model m. Caller holds s.mu.
+func (w *worker) heldLocked(m string) bool {
+	return w.holds > 0 || w.modelHolds[m] > 0
+}
+
 func sameModels(a, b []proto.LoadedModel) bool {
 	return slices.EqualFunc(a, b, func(x, y proto.LoadedModel) bool { return x.Model == y.Model })
 }
@@ -169,7 +205,8 @@ type candidate struct {
 
 // resident sums the resident models of the ready workers (as their last
 // engine.stats said) and lists the idle ones, the longest idle first. A
-// held worker's models (Hold) are counted but never listed: they stay.
+// held worker's or model's (Hold, HoldModels) are counted but never
+// listed: they stay.
 func (s *supervisor) resident() (total int64, idle []candidate) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -180,7 +217,7 @@ func (s *supervisor) resident() (total int64, idle []candidate) {
 		}
 		for _, m := range w.status.Stats.Models {
 			total += m.Bytes
-			if m.IdleSeconds > 0 && w.holds == 0 {
+			if m.IdleSeconds > 0 && !w.heldLocked(m.Model) {
 				idle = append(idle, candidate{w.role, m})
 			}
 		}

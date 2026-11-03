@@ -295,7 +295,7 @@ func TestFixturesCoverMethods(t *testing.T) {
 		}
 	}
 	all := append(slices.Clone(JobMethods), MethodHello, MethodStats, MethodFlush, MethodShutdown, MethodModelsUnload, MethodModelsLoaded,
-		MethodJobCancel, MethodJobProgress, MethodTTSChunk, MethodLog, MethodMediaProbe, MethodCaptureDevices, MethodCaptureStop, MethodCaptureLevel, MethodLLMToken, MethodTTSTurn)
+		MethodJobCancel, MethodJobProgress, MethodTTSChunk, MethodLog, MethodMediaProbe, MethodCaptureDevices, MethodCaptureStop, MethodCaptureLevel, MethodLLMToken, MethodTTSTurn, MethodEngineMemory)
 	for _, m := range all {
 		if !seen[m] {
 			t.Errorf("no fixture shows %s", m)

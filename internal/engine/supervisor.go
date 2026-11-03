@@ -158,6 +158,11 @@ type Supervisor interface {
 	// something uses them between jobs (a dictation that records, a live
 	// call). Holds of a role add up.
 	Hold(roles ...proto.Role) (release func())
+	// HoldModels is Hold for some models of role only (a dictation
+	// pins its recogniser and the clean-up language model, not every
+	// model the gpu worker has; code review 1102 M1). A model not
+	// resident yet is held once it loads.
+	HoldModels(role proto.Role, models ...string) (release func())
 	// SetCacheDir changes Config.CacheDir; it applies to the workers
 	// started (or restarted) after the call.
 	SetCacheDir(dir string)

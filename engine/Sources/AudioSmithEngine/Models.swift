@@ -1,4 +1,5 @@
 import AudioSmithProtocol
+import AudioSmithStream
 import Foundation
 @preconcurrency import MLX
 
@@ -10,7 +11,9 @@ import Foundation
 /// models (under smallModelBytes: aligners, VAD) do not count against: a
 /// story render turns between TTS, the aligner, the recognizer and the
 /// dialogue model at every segment, and a cap of 3 reloaded one each time
-/// (review #102). Jobs are serialized
+/// (review #102). The system's memory pressure (MemoryWatch.swift) unloads
+/// idle models at "warning" and refuses loads at "critical" (code review
+/// 1102 M1). Jobs are serialized
 /// by the Server (gpu concurrency 1): MLX models must not run from two jobs
 /// at once.
 final class ModelStore: @unchecked Sendable {
@@ -27,6 +30,8 @@ final class ModelStore: @unchecked Sendable {
     private let lock = NSLock()
     private var resident: [String: Resident] = [:]
     private let maxResident: Int
+    /// The level of the last memory-pressure event (MemoryWatch).
+    private var pressureEvent = MemoryPressure.normal
 
     /// maxResident overrides AUDIOSMITH_MAX_MODELS (the listen worker keeps one).
     init(out: Writer, maxResident: Int? = nil) {
@@ -69,13 +74,15 @@ final class ModelStore: @unchecked Sendable {
 
     /// Returns model as T, loading it with load (stage "loading") when it
     /// is not resident. Call release(model) when the job is done with it.
-    /// estimate (bytes the load adds, e.g. its weights on disk) first
-    /// drops idle models, least recently used first, until it fits in the
-    /// memory budget: a language model evicts TTS models when memory is
-    /// tight, without waiting for the app's supervisor.
+    /// estimate (bytes the load adds: its weights on disk, weightBytes)
+    /// first drops idle models, least recently used first, until it fits
+    /// in the memory budget: a model evicts others when memory is tight,
+    /// without waiting for the app's supervisor. Every load passes one
+    /// (code review 1102 M1: only the dialogue models and the LLM did).
+    /// Under critical memory pressure it loads nothing: a retryable oom.
     func acquire<T>(
         _ model: String, task: String, job: String, as type: T.Type,
-        sampleRate: (T) -> Int, estimate: Int64 = 0, load: () async throws -> T
+        sampleRate: (T) -> Int, estimate: Int64, load: () async throws -> T
     ) async throws -> (T, Resident) {
         if let r = take(model) {
             guard let m = r.model as? T else {
@@ -83,6 +90,12 @@ final class ModelStore: @unchecked Sendable {
                 throw EngineError.badRequest("\(model) is loaded as a \(r.task) model, not for \(task)")
             }
             return (m, r)
+        }
+        let level = pressure()
+        if level.refusesLoads {
+            out.logLine("warning", "Did not load \(model): the system is critically low on memory", job: job)
+            throw RPCError(Code.oom, "The Mac is critically low on memory: \(shortName(model)) was not loaded",
+                           data: .object(["reason": .string("memory_pressure"), "level": .string(level.rawValue), "model": .string(model)]))
         }
         out.notify(Method.jobProgress, ProgressParams(job: job, stage: "loading", message: "Loading \(shortName(model))"))
         if estimate > 0 { makeRoom(for: estimate) }
@@ -134,6 +147,30 @@ final class ModelStore: @unchecked Sendable {
         }
     }
 
+    /// The memory pressure a load goes by (MemoryPressure.effective).
+    func pressure() -> MemoryPressure {
+        let event = lock.withLock { pressureEvent }
+        return MemoryPressure.effective(event: event, kernel: MemoryPressure.current(),
+                                        forced: ProcessInfo.processInfo.environment["AUDIOSMITH_MEMORY_PRESSURE"])
+    }
+
+    /// A memory-pressure event: from "warning" up, every model no job
+    /// uses is dropped and MLX's buffer cache cleared. Returns the
+    /// dropped models.
+    func relieve(_ level: MemoryPressure) -> [String] {
+        lock.lock()
+        pressureEvent = level
+        guard level.unloadsIdle else {
+            lock.unlock()
+            return []
+        }
+        let ids = resident.filter { $0.value.inUse == 0 }.keys.sorted()
+        for id in ids { resident[id] = nil }
+        lock.unlock()
+        MLX.Memory.clearCache()
+        return ids
+    }
+
     private func take(_ model: String) -> Resident? {
         lock.withLock {
             guard var r = resident[model] else { return nil }
@@ -169,6 +206,37 @@ final class ModelStore: @unchecked Sendable {
         }
         lock.unlock()
     }
+}
+
+/// The bytes of a model's weights on disk (*.safetensors, in its folder
+/// and the folders under it, as DeepFilterNet's v3/): what loading it
+/// adds, about. 0 without a folder.
+func weightBytes(_ dir: URL?) -> Int64 {
+    guard let dir else { return 0 }
+    let fm = FileManager.default
+    func walk(_ dir: URL, depth: Int) -> Int64 {
+        guard let names = try? fm.contentsOfDirectory(atPath: dir.path) else { return 0 }
+        var total: Int64 = 0
+        for n in names where !n.hasPrefix(".") {
+            // Snapshots hold symlinks to blobs: follow them.
+            let url = dir.appendingPathComponent(n)
+            let path = url.resolvingSymlinksInPath().path
+            if n.hasSuffix(".safetensors") {
+                total += ((try? fm.attributesOfItem(atPath: path)[.size]) as? NSNumber)?.int64Value ?? 0
+            } else if depth > 0, (try? fm.attributesOfItem(atPath: path)[.type]) as? FileAttributeType == .typeDirectory {
+                total += walk(url, depth: depth - 1)
+            }
+        }
+        return total
+    }
+    return walk(dir, depth: 2)
+}
+
+/// The folder a model loads from: path when set, else its one snapshot in
+/// the cache (nil when there is none, or several).
+func weightsDirectory(_ model: String, path: String?) -> URL? {
+    if let path, !path.isEmpty { return URL(fileURLWithPath: path) }
+    return try? modelDirectory(model, path: nil, offline: false)
 }
 
 func shortName(_ model: String) -> String {

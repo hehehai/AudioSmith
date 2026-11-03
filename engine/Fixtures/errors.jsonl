@@ -16,6 +16,9 @@
 {"to":"engine","msg":{"id":"j6","method":"tts.synthesize","params":{"model":"mlx-community/Kokoro-82M-bf16","text":"Second","output":{"path":"/tmp/j6.wav"}}}}
 {"to":"app","msg":{"id":"j6","error":{"code":"busy","message":"The engine runs 1 job at a time"}}}
 {"to":"app","msg":{"id":"j5","error":{"code":"oom","message":"Out of memory while generating","data":{"active":15800000000}}}}
+{"to":"engine","msg":{"id":"jm1","method":"models.load","params":{"model":"mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit","task":"tts"}}}
+{"to":"app","msg":{"method":"log","params":{"level":"warning","message":"Did not load mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit: the system is critically low on memory","job":"jm1"}}}
+{"to":"app","msg":{"id":"jm1","error":{"code":"oom","message":"The Mac is critically low on memory: Qwen3-TTS-12Hz-1.7B-Base-8bit was not loaded","data":{"reason":"memory_pressure","level":"critical","model":"mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"}}}}
 {"to":"engine","msg":{"id":"j7","method":"tts.synthesize","params":{"model":"mlx-community/Kokoro-82M-bf16","text":"Hi","output":{"path":"/nonexistent/dir/j7.wav"}}}}
 {"to":"app","msg":{"id":"j7","error":{"code":"internal","message":"Could not write /nonexistent/dir/j7.wav: No such file or directory"}}}
 {"to":"engine","msg":{"id":"j8","method":"tts.synthesize","params":{"model":"mlx-community/Kokoro-82M-bf16","text":"A very long paragraph …","voice":"af_heart","output":{"path":"/tmp/j8.wav"}}}}

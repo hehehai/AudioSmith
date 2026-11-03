@@ -127,6 +127,9 @@ final class Server: @unchecked Sendable {
     /// worker one recording, the media worker two decodes.
     let concurrency: Int
     let store: ModelStore?
+    /// The gpu worker's watch over memory pressure (the listen worker's
+    /// one small model is the app's to keep: its Hold).
+    private var memoryWatch: MemoryWatch?
 
     init(role: Role, out: Writer) {
         self.role = role
@@ -139,6 +142,7 @@ final class Server: @unchecked Sendable {
         media = role == .media ? MediaWorker(out: out) : nil
         recorder = role == .listen ? Recorder(out: out) : nil
         concurrency = role == .gpu ? 1 : 2
+        if role == .gpu, let store { memoryWatch = MemoryWatch(store: store, out: out) }
     }
 
     var methods: [String] {

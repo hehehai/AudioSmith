@@ -210,6 +210,9 @@ func (p *proc) handleLine(line []byte) {
 		if m.Method == proto.MethodLog {
 			p.log(m)
 		}
+		if m.Method == proto.MethodEngineMemory {
+			go p.s.memoryPressure(p, m)
+		}
 		if ref.Job == "" {
 			return
 		}

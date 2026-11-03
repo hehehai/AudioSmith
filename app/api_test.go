@@ -50,12 +50,13 @@ func (s *apiTestSup) Status() []engine.WorkerStatus {
 	return []engine.WorkerStatus{{Role: proto.RoleGPU, State: st, Err: "crashed",
 		Hello: &proto.HelloResult{Version: "e1", Device: proto.Device{Name: "Apple M4", Memory: 24 << 30}, Families: []string{"kokoro"}}}}
 }
-func (s *apiTestSup) Restart(proto.Role) error    { return nil }
-func (s *apiTestSup) SetMemoryBudget(int64)       {}
-func (s *apiTestSup) SetIdleUnload(time.Duration) {}
-func (s *apiTestSup) SetCacheDir(string)          {}
-func (s *apiTestSup) Hold(...proto.Role) func()   { return func() {} }
-func (s *apiTestSup) Stop()                       {}
+func (s *apiTestSup) Restart(proto.Role) error                { return nil }
+func (s *apiTestSup) SetMemoryBudget(int64)                   {}
+func (s *apiTestSup) SetIdleUnload(time.Duration)             {}
+func (s *apiTestSup) SetCacheDir(string)                      {}
+func (s *apiTestSup) Hold(...proto.Role) func()               { return func() {} }
+func (s *apiTestSup) HoldModels(proto.Role, ...string) func() { return func() {} }
+func (s *apiTestSup) Stop()                                   {}
 func (s *apiTestSup) Call(ctx context.Context, role proto.Role, id, method string, params any, notify func(proto.Message)) (json.RawMessage, error) {
 	if method == proto.MethodMediaProbe {
 		return json.Marshal(proto.ProbeResult{Format: "wav", Duration: 2, HasAudio: true, Codec: "lpcm", SampleRate: 24000, Channels: 1, Bits: 16})
