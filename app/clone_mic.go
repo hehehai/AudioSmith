@@ -23,6 +23,7 @@ type micState struct {
 	err      string
 	device   string // capture device id; "" = the system's default
 	channels int    // 0 auto, 1 mono, 2 stereo
+	aecAuto  string // why the engine turned echo cancellation on in this recording (mic_aec.go)
 	onStop   func(path string)
 }
 
@@ -33,18 +34,19 @@ func (a *app) micStart(m *micState, done func(path string)) {
 	}
 	m.onStop = done
 	a.micCapture(m, proto.CaptureParams{Device: m.device, Channels: m.channels,
-		Output: proto.Output{Path: a.workPath("rec"), Format: "wav"}, MaxSeconds: 600})
+		Output: proto.Output{Path: a.workPath("rec"), Format: "wav"}, MaxSeconds: 600, AEC: a.echoOn()})
 }
 
 // micCapture starts the capture p into p.Output.Path for m: m shows it
 // starting, then recording with its input level (Clone, Transcribe).
 func (a *app) micCapture(m *micState, p proto.CaptureParams) {
 	out := p.Output.Path
-	m.phase, m.err, m.level, m.out = "starting", "", -120, out
+	m.phase, m.err, m.level, m.out, m.aecAuto = "starting", "", -120, out, ""
 	os.MkdirAll(filepath.Dir(out), 0o755)
 	a.startRecording(p, func(l proto.LevelParams) {
 		if m.out == out {
 			m.level = l.RMS
+			a.noteAutoEcho(l, &m.aecAuto)
 		}
 	}, func(rec *engine.Recording, err error) {
 		if m.out != out || m.phase != "starting" {
@@ -79,9 +81,7 @@ func (a *app) micStop(m *micState) {
 		case res.AudioSeconds < 0.5:
 			m.err = i18n.T("Recording too short.")
 		default:
-			if res.Reason == proto.CaptureDeviceLost {
-				a.toast(i18n.T("The microphone went away: what was recorded is kept."))
-			}
+			a.noteRecordingEnd(res)
 			if done != nil {
 				done(firstOf(res.Output, out))
 			}

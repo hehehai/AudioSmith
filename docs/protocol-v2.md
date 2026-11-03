@@ -297,7 +297,7 @@ Audio fields describe the first audio track; `bits` is set for PCM only.
 
 ### `capture.devices` (control, listen)
 
-Returns `{devices:[{id, name, channels, sampleRate, default?, transport?}]}`, the system default first. `id` is the Core Audio device UID (stable across launches and reconnections); `transport` is `builtin`, `usb`, `bluetooth`, `aggregate`, `virtual` or absent.
+Returns `{devices:[{id, name, channels, sampleRate, default?, transport?}]}`, the system default first. `id` is the Core Audio device UID (stable across launches and reconnections); `transport` is `builtin`, `usb`, `bluetooth`, `aggregate`, `virtual` or absent. Voice processing's private aggregates (`CADefaultDeviceAggregate-*`, made while an app records with echo cancellation) are left out.
 
 ### `capture.start` (job, listen) → `capture.level` … → `capture.stop` (control)
 
@@ -311,11 +311,13 @@ Returns `{devices:[{id, name, channels, sampleRate, default?, transport?}]}`, th
 ```
 
 - **A recording is a job** whose response comes when it ends, so its meter (`capture.level`, which names the job) and its result follow the usual job rules: notifications first, nothing after the response.
-- **Params.** `device` is a device `id` (`""` = the system default input). `inputChannels` are the device's channels numbered from 1, as in Audio MIDI Setup (default `[1]`, or `[1,2]` for stereo); with `channels` 1 several are mixed down. `sampleRate` is the file's (default: the device's). `maxSeconds` stops it by itself (0 = no limit).
+- **Params.** `device` is a device `id` (`""` = the system default input). `inputChannels` are the device's channels numbered from 1, as in Audio MIDI Setup (default `[1]`, or `[1,2]` for stereo); with `channels` 1 several are mixed down. `sampleRate` is the file's (default: the device's). `maxSeconds` stops it by itself (0 = no limit). `aec: true` records with macOS voice processing (echo cancellation, with noise suppression and automatic gain: the voice may sound processed; other apps' audio is ducked as little as the system allows); its processed signal is one channel, so `inputChannels` do not apply.
+- **Keeping the input running.** macOS, another app or a virtual audio driver may reconfigure the devices while recording (`AVAudioEngineConfigurationChange`), which stops the engine without an error. The engine checks a moment later (0.4 s, doubling with each recent restart, at most 5 s) and, when no buffers come, starts the same engine again in place — the device chosen again, the tap installed with the input's format now (a new rate is resampled to the file's), the same file. Buffers stopping for 1 s after sound came count the same. More than 6 restarts within 30 s count as `deviceChanges`.
+- **No sound.** Without voice processing, no buffers or only digital silence (every sample below −120 dBFS) for 1.5 s after the start count as `noSound`. Either reason turns voice processing on by itself, once (when `aec` was off): the silence recorded so far is dropped, and every `capture.level` after it carries `aecAuto:true, aecReason`. With voice processing on, 4 s without sound, or the restarts running out again, give up: the job fails with `no_input` (`data:{device, name, reason}`; the file is removed), or, when sound came before, ends with `reason:"inputStopped"` keeping what was recorded. A recording stopped after 1.5 s or more of digital silence throughout fails with `no_input` too, rather than leaving a silent file.
 - **Start.** `job.progress {stage:"recording"}` is sent once the device runs. The first time, macOS asks for microphone access before that; refusal fails the job with `permission_denied`, `data:{"permission":"microphone"}`. An unknown or busy device fails with `device_unavailable`, `data:{"device"}`.
 - **Meter.** `capture.level` about 20 times a second: `seconds` recorded so far, `rms` and `peak` in dBFS (at least −120) over the recorded channels, `clipped` when a sample reached full scale since the last one.
-- **End.** `capture.stop {job}` finalises the file; the job answers with the result **before** the stop request is answered `{stopped:true}` (`false` if the job had already ended). It also ends by itself: `reason` is `stopped`, `maxSeconds`, or `deviceLost` (unplugged; what was recorded is kept). `job.cancel` discards the file and the job ends `cancelled`.
-- **Result.** The `proto.AudioOut` fields, the `device` used, the loudest `peak` (dBFS) and `clipped`, the number of samples at full scale.
+- **End.** `capture.stop {job}` finalises the file; the job answers with the result **before** the stop request is answered `{stopped:true}` (`false` if the job had already ended). It also ends by itself: `reason` is `stopped`, `maxSeconds`, `deviceLost` (unplugged; what was recorded is kept) or `inputStopped` (above). `job.cancel` discards the file and the job ends `cancelled`.
+- **Result.** The `proto.AudioOut` fields, the `device` used, the loudest `peak` (dBFS) and `clipped`, the number of samples at full scale; `aec:true` when voice processing was on at the end, and `aecAuto:true, aecReason` when the engine turned it on.
 - **In the app**, `engine.StartCapture` returns once `recording` arrives; `Recording.Stop` sends `capture.stop` and returns the job's result; `Recording.Cancel` cancels.
 
 ## 5.3 Methods added in M4 (dubbing)
@@ -509,7 +511,7 @@ Errors: a model that is not a dialogue model fails with `unsupported`, `data.cap
 | `job.progress` | `job`, `stage`, `fraction?`, `audioSeconds?`, `message?` | `stage` is an open set: `loading`, `generating`, `writing`, … Omit `fraction` when it is unknown; the UI then shows an indeterminate bar. `message` is English, for logs and the status line. At most about 10 per second per job. |
 | `tts.chunk` | `job`, `seq`, `sampleRate`, `channels`, `encoding`, `data`, `final?` | `encoding` is `"pcm16le"` (the only one in M0). `data` is base64 (Go `[]byte`, Swift `Data`). Send chunks of up to about 1 s of audio. The last chunk has `final:true` and may be empty. |
 | `log` | `level`, `message`, `job?` | Structured log line for the Logs panel. `level` is `debug`, `info`, `warning` or `error`. It may name any job. |
-| `capture.level` | `job`, `seconds`, `rms`, `peak`, `clipped?` | The input meter of a `capture.start` job, about 20 per second (§5.2). |
+| `capture.level` | `job`, `seconds`, `rms`, `peak`, `clipped?`, `aecAuto?`, `aecReason?` | The input meter of a `capture.start` job, about 20 per second (§5.2). |
 | `llm.token` | `job`, `text` | The next piece of an `llm.generate` reply with `stream` (§5.4). |
 | `tts.turn` | `job`, `index`, `speaker`, `output`, `frames`, `audioSeconds`, `sampleRate` | A `tts.dialogue` turn's file is written (§5.6). |
 
@@ -538,6 +540,7 @@ At 24 kHz mono, PCM16 in base64 is about 64 KB/s. If profiling ever shows that t
 | `device_unavailable` (M1) | The capture device is unknown, gone or busy | `{"device"}` | refresh the device list |
 | `context_too_long` | `llm.generate`: prompt + reply over the context the engine allows | `{"limit","actual","unit":"tokens"}` | split the work |
 | `model_path_required` | A job without `path` / `modelPath`, and several snapshots of the model in the cache | `{"model","snapshots":[…]}` | bug: the executors always send the pinned snapshot |
+| `no_input` | `capture.start`: the input brought no sound, even with voice processing (§5.2) | `{"device","name","reason":"noSound"\|"deviceChanges"}` | say what to try: echo cancellation, another input, quitting other recording apps, the microphone permission |
 
 Messages are the error's own words: the engine takes a Swift error's `errorDescription` (LocalizedError), else its `description` (CustomStringConvertible), else `String(describing:)` (`errorMessage` in Wire.swift), never Cocoa's generic "The operation couldn’t be completed. (… error 0.)". A model's invalid-input errors (`AudioGenerationError.invalidInput`, `MossTTSNanoError.invalidInput`) are `bad_request`.
 

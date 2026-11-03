@@ -77,7 +77,7 @@ func (a *app) trRecStart() {
 	a.loadDevices()
 	out := filepath.Join(a.lib.store.Transcripts().AudioDir(), "rec-"+core.NewID(time.Now())+".wav")
 	a.micCapture(m, proto.CaptureParams{Device: a.prefs.Transcribe.Device, Channels: 1, SampleRate: services.TranscriptRate,
-		Output: proto.Output{Path: out, Format: "wav", Bits: 16}, MaxSeconds: trRecMaxSeconds})
+		Output: proto.Output{Path: out, Format: "wav", Bits: 16}, MaxSeconds: trRecMaxSeconds, AEC: a.echoOn()})
 }
 
 // trRecStop ends the recording and transcribes it.
@@ -101,9 +101,7 @@ func (a *app) trRecStop() {
 			os.Remove(path)
 			m.err = i18n.T("Recording too short.")
 		default:
-			if res.Reason == proto.CaptureDeviceLost {
-				a.toast(i18n.T("The microphone went away: what was recorded is kept."))
-			}
+			a.noteRecordingEnd(res)
 			a.transcribeRecording(path)
 		}
 	})

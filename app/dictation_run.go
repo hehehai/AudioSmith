@@ -52,10 +52,11 @@ func (a *app) dictStart(target dictation.Target, hold bool) {
 	}
 	os.MkdirAll(filepath.Dir(out), 0o755)
 	p := proto.CaptureParams{Device: a.prefs.Dictation.Device, Channels: 1, SampleRate: services.TranscriptRate,
-		Output: proto.Output{Path: out, Format: "wav", Bits: 16}, MaxSeconds: dictMaxSeconds}
+		Output: proto.Output{Path: out, Format: "wav", Bits: 16}, MaxSeconds: dictMaxSeconds, AEC: a.echoOn()}
 	a.startRecording(p, func(l proto.LevelParams) {
 		if a.dict == s {
 			s.level = l.RMS
+			a.noteAutoEcho(l, &s.aecAuto)
 		}
 	}, func(rec *engine.Recording, err error) {
 		if a.dict != s || s.phase != dictStarting {

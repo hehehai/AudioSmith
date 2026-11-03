@@ -118,6 +118,12 @@ func (a *app) trRecordButtons(c *ui.Context, busy bool) {
 				a.updateSettings(func(s *settings.Settings) { s.Transcribe.Device = id })
 			}
 		}
+		m.Separator()
+		// Shared by every recording (mic_aec.go); the hint is the tooltip
+		// of the switch beside the Record button's other pickers.
+		if m.Item(i18n.T("Echo cancellation")).Checked(a.echoOn()).Chosen() {
+			a.setEcho(!a.echoOn())
+		}
 	})
 }
 
