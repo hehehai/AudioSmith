@@ -8,6 +8,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -19,8 +20,10 @@ import (
 )
 
 const (
-	// orphanRenderAge is how long an unfinished render of no project
-	// (its project deleted, or none) stays for Resume.
+	// orphanRenderAge is how long an unfinished render whose project was
+	// deleted stays for Resume. A draft's render (a page never saved as
+	// a project) is no orphan: the draft resumes it (code review 1103
+	// M-2).
 	orphanRenderAge = 7 * 24 * time.Hour
 	// strayDirAge is how old a render folder without a record must be to
 	// go (a render being started makes its folder before its record).
@@ -33,6 +36,8 @@ var unfinished = []core.RenderState{core.RenderFailed, core.RenderStopped}
 // DropProject deletes project id's unfinished renders (its finished books
 // stay, as the delete confirmation says) and returns how many went; a
 // running one is left (the app refuses to delete the project first).
+// The chunk cache is trimmed to its limits unless another render runs:
+// its plan may count on chunks not read yet (code review 1103 L-6).
 func (s *Longform) DropProject(ctx context.Context, project string) (int, error) {
 	if project == "" {
 		return 0, nil
@@ -43,7 +48,9 @@ func (s *Longform) DropProject(ctx context.Context, project string) (int, error)
 	}
 	n, err := s.deleteAll(ctx, l)
 	if n > 0 {
-		s.render.pruneLongformChunks()
+		if _, busy, rerr := s.rendering(ctx); rerr == nil && !busy {
+			s.render.pruneLongformChunks()
+		}
 	}
 	return n, err
 }
@@ -84,8 +91,9 @@ func (s *Longform) dropSuperseded(ctx context.Context, done core.Render) {
 }
 
 // Sweep removes what renders left behind: folders in renders/ no record
-// names (older than strayDirAge), unfinished renders of no project older
-// than orphanRenderAge, and chunks beyond the cache's limits. It returns
+// names (older than strayDirAge), unfinished renders whose project was
+// deleted older than orphanRenderAge (not a draft's: orphanOf), and
+// chunks beyond the cache's limits. It returns
 // how many renders and folders went. Call it once the renders are
 // reconciled (after Reconcile), at startup and daily.
 func (s *Longform) Sweep(ctx context.Context) (int, error) {
@@ -108,7 +116,7 @@ func (s *Longform) Sweep(ctx context.Context) (int, error) {
 			running = true
 		}
 		if r.ProjectID == "" && !r.Audition && (state == core.RenderFailed || state == core.RenderStopped) &&
-			s.now().Sub(r.UpdatedAt) > orphanRenderAge {
+			s.now().Sub(r.UpdatedAt) > orphanRenderAge && orphanOf(r) {
 			orphans = append(orphans, r)
 		}
 	}
@@ -137,13 +145,24 @@ func (s *Longform) Sweep(ctx context.Context) (int, error) {
 // ChunkDir is the longform chunk cache's folder (Settings → Storage).
 func (s *Longform) ChunkDir() string { return s.render.longformChunkDir() }
 
-// ClearChunks empties the longform chunk cache and returns the bytes it
-// freed; it refuses (core.ErrBusy) while a render runs: its chapters
-// read and write chunks.
-func (s *Longform) ClearChunks(ctx context.Context) (int64, error) {
+// orphanOf reports whether r, a render with no project, had one, since
+// deleted (the store sets project_id NULL; the manifest keeps it), not a
+// draft's (its manifest names none).
+func orphanOf(r core.Render) bool {
+	var body struct {
+		Spec struct {
+			Project string `json:"project"`
+		} `json:"spec"`
+	}
+	return json.Unmarshal(r.Body, &body) == nil && body.Spec.Project != ""
+}
+
+// rendering reports whether a render runs (in memory, else as stored),
+// with its title.
+func (s *Longform) rendering(ctx context.Context) (string, bool, error) {
 	running, err := s.renders.List(ctx, store.RenderQuery{Auditions: true, States: []core.RenderState{core.RenderRunning}})
 	if err != nil {
-		return 0, err
+		return "", false, err
 	}
 	s.mu.Lock()
 	for _, l := range s.live {
@@ -154,8 +173,22 @@ func (s *Longform) ClearChunks(ctx context.Context) (int64, error) {
 	s.mu.Unlock()
 	for _, r := range running {
 		if title, busy := s.busyRender(r.ID); busy {
-			return 0, fmt.Errorf("longform: %q is rendering: %w", title, core.ErrBusy)
+			return title, true, nil
 		}
+	}
+	return "", false, nil
+}
+
+// ClearChunks empties the longform chunk cache and returns the bytes it
+// freed; it refuses (core.ErrBusy) while a render runs: its chapters
+// read and write chunks.
+func (s *Longform) ClearChunks(ctx context.Context) (int64, error) {
+	title, busy, err := s.rendering(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if busy {
+		return 0, fmt.Errorf("longform: %q is rendering: %w", title, core.ErrBusy)
 	}
 	dir := s.render.longformChunkDir()
 	ents, err := os.ReadDir(dir)

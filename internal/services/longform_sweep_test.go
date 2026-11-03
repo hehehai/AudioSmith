@@ -117,19 +117,36 @@ func TestDoneRenderDropsEarlierAttempts(t *testing.T) {
 	}
 }
 
-// Sweep: folders no record names, and unfinished renders of no project
-// a week old, go; a recent one, and a young folder, stay.
+// Sweep: folders no record names, and unfinished renders of a deleted
+// project a week old, go; a recent one, and a young folder, stay. A
+// draft's render (no project ever) is no orphan, however old: the draft
+// resumes it (code review 1103 M-2: a week-old draft lost its chapters).
 func TestLongformSweep(t *testing.T) {
 	e := newLongformEnv(t, t.TempDir(), false)
 	defer e.close()
-	orphan := e.stoppedRender(t, holdSpec(""))
-	recent := e.stoppedRender(t, holdSpec(""))
-	rec, _ := e.st.Renders().Get(ctx, orphan.ID)
-	rec.UpdatedAt = time.Now().Add(-8 * 24 * time.Hour)
-	if err := e.st.Renders().Put(ctx, rec); err != nil {
+	p, err := e.svc.Projects.Save(ctx, core.Project{Kind: core.ProjectStory, Title: "Lighthouse"})
+	if err != nil {
 		t.Fatal(err)
 	}
-	e.svc.Longform.forget(orphan.ID)
+	orphan := e.stoppedRender(t, holdSpec(p.ID))
+	recent := e.stoppedRender(t, holdSpec(p.ID))
+	draft := e.stoppedRender(t, holdSpec(""))
+	// The project goes past DropProject (as before it existed): the
+	// store unlinks its renders.
+	if err := e.st.Projects().Delete(ctx, p.ID); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range []core.Render{orphan, draft} {
+		rec, _ := e.st.Renders().Get(ctx, r.ID)
+		rec.UpdatedAt = time.Now().Add(-8 * 24 * time.Hour)
+		if err := e.st.Renders().Put(ctx, rec); err != nil {
+			t.Fatal(err)
+		}
+		e.svc.Longform.forget(r.ID)
+	}
+	if rec, _ := e.st.Renders().Get(ctx, orphan.ID); rec.ProjectID != "" {
+		t.Fatalf("the deleted project's render still names it: %+v", rec)
+	}
 	root := filepath.Join(e.dir, "renders")
 	stray, young := filepath.Join(root, "01STRAY"), filepath.Join(root, "01YOUNG")
 	for _, d := range []string{stray, young} {
@@ -145,14 +162,56 @@ func TestLongformSweep(t *testing.T) {
 	if _, _, err := e.svc.Longform.Get(ctx, orphan.ID); !errors.Is(err, core.ErrNotFound) {
 		t.Errorf("the week-old orphan stayed: %v", err)
 	}
-	if _, _, err := e.svc.Longform.Get(ctx, recent.ID); err != nil {
-		t.Errorf("the recent one went: %v", err)
+	for _, r := range []core.Render{recent, draft} {
+		if _, b, err := e.svc.Longform.Get(ctx, r.ID); err != nil {
+			t.Errorf("%s went: %v", r.ID, err)
+		} else if _, err := os.Stat(b.Dir); err != nil {
+			t.Errorf("%s's folder went: %v", r.ID, err)
+		}
 	}
 	if _, err := os.Stat(stray); !os.IsNotExist(err) {
 		t.Error("the stray folder stayed")
 	}
 	if _, err := os.Stat(young); err != nil {
 		t.Error("a young folder went (a render being started)")
+	}
+}
+
+// Code review 1103 L-6: deleting a project trimmed the chunk cache while
+// another project's book rendered (Sweep and ClearChunks wait): chunks
+// its plan counted on could go. It waits for no render now.
+func TestDropProjectLeavesChunksWhileRendering(t *testing.T) {
+	e := newLongformEnv(t, t.TempDir(), false)
+	defer e.close()
+	p, _ := e.svc.Projects.Save(ctx, core.Project{Kind: core.ProjectStory, Title: "One"})
+	e.stoppedRender(t, holdSpec(p.ID))
+	chunks := e.svc.Longform.ChunkDir()
+	stale := filepath.Join(chunks, "zz-stale.wav") // past longformKeep: a trim takes it
+	os.MkdirAll(chunks, 0o755)
+	os.WriteFile(stale, make([]byte, 100), 0o644)
+	old := time.Now().Add(-longformKeep - time.Hour)
+	os.Chtimes(stale, old, old)
+	e.gate.hold.Store(true)
+	running, err := e.svc.Longform.Start(ctx, holdSpec("other"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-e.gate.held
+	if n, err := e.svc.Longform.DropProject(ctx, p.ID); err != nil || n != 1 {
+		t.Fatalf("dropped %d: %v", n, err)
+	}
+	if _, err := os.Stat(stale); err != nil {
+		t.Error("the chunk cache was trimmed during a render")
+	}
+	e.svc.Longform.Stop(ctx, running.ID)
+	e.wait(t, running.ID)
+	q, _ := e.svc.Projects.Save(ctx, core.Project{Kind: core.ProjectStory, Title: "Two"})
+	e.stoppedRender(t, holdSpec(q.ID))
+	if _, err := e.svc.Longform.DropProject(ctx, q.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Error("no render runs: the stale chunk stayed")
 	}
 }
 

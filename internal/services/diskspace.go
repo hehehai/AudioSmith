@@ -20,11 +20,16 @@ import (
 	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/jobs"
 	"github.com/hehehai/AudioSmith/internal/text"
+	"github.com/hehehai/AudioSmith/internal/volume"
 )
 
 // freeSpace is the space free to the user under dir, -1 when unknown (a
 // variable: tests fake a full disk).
 var freeSpace = diskFree
+
+// downloadDiskSpace is a model download's refusal for want of space
+// (hub.CodeDiskSpace: services do not import the hub).
+const downloadDiskSpace = "disk_space"
 
 // DiskKeepFree is what work keeps free beyond its estimate: the system
 // and the other work under way need room too.
@@ -42,11 +47,43 @@ const (
 // checkFree refuses work (what) that writes about need bytes under dir
 // when that would leave less than DiskKeepFree free there.
 func checkFree(what, dir string, need int64) error {
+	return checkFreeKeep(what, dir, need, DiskKeepFree)
+}
+
+// checkExportFree is checkFree for an export to dir: on a volume of its
+// own (a USB stick, an SD card) the system needs no room there, and it
+// keeps a hundredth of the volume, at most DiskKeepFree (code review 1103
+// L-7: 100 MB to a stick with 800 MB free were refused).
+func checkExportFree(dir string, need int64) error {
+	return checkFreeKeep("the export", dir, need, exportKeep(dir))
+}
+
+// exportKeep is what an export to dir leaves free: DiskKeepFree on the
+// volume of the home folder or of the temporary files (the system's and
+// the app's work), else a hundredth of the volume, at most DiskKeepFree.
+func exportKeep(dir string) int64 {
+	home, err := os.UserHomeDir()
+	system := (err == nil && volume.Same(dir, home)) || volume.Same(dir, os.TempDir())
+	return exportKeepOf(system, diskSize(dir))
+}
+
+// exportKeepOf is exportKeep of a volume of size bytes (0: unknown),
+// system's or not.
+func exportKeepOf(system bool, size int64) int64 {
+	if system || size <= 0 {
+		return DiskKeepFree
+	}
+	return min(DiskKeepFree, size/100)
+}
+
+// checkFreeKeep refuses work (what) that writes about need bytes under
+// dir when that would leave less than keep free there.
+func checkFreeKeep(what, dir string, need, keep int64) error {
 	free := freeSpace(dir)
 	if free < 0 {
 		return nil // unknown: the writes say it if it is full
 	}
-	need = max(need, 0) + DiskKeepFree
+	need = max(need, 0) + keep
 	if need <= free {
 		return nil
 	}
@@ -180,14 +217,16 @@ func exportNeed(src string, o AudioExport) int64 {
 // error whose message says so), else nil. The message is kept; the error
 // is not retryable (the next attempt would fail the same way). The app's
 // scheduler classifies executors' failures with it
-// (jobs.Options.ClassifyError).
+// (jobs.Options.ClassifyError). A model download's refusal keeps its own
+// code (hub.CodeDiskSpace), by which the Models page explains it (code
+// review 1103 L-1).
 func DiskFullJob(err error) *jobs.Error {
 	if err == nil {
 		return nil
 	}
 	var je *jobs.Error
 	if errors.As(err, &je) {
-		if je.Code == core.CodeDiskFull {
+		if je.Code == core.CodeDiskFull || je.Code == downloadDiskSpace {
 			return je
 		}
 		if !core.NoSpaceText(je.Message) {

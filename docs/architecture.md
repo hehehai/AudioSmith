@@ -25,6 +25,7 @@ github.com/hehehai/AudioSmith
 │   ├── settings/        the typed, versioned settings document + Service                (leaf)
 │   ├── notify/          the notification centre (kept in the store's documents)
 │   ├── logs/            log ring + rotated files
+│   ├── volume/          a folder's volume: size, space free to the user (macOS: with APFS purgeable space, purego), same volume (leaf)
 │   ├── i18n/            T / N / X keyed by English source; locales/*.json; dates     (leaf)
 │   ├── audio/           waveform peaks + disk cache, streaming player (UI-facing playback only)
 │   ├── dsp/             pure-Go DSP (M1+; not wired yet): Buffer, gains, fades           (leaf tree)

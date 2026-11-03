@@ -136,6 +136,16 @@ func (s *Dubs) busyWith(ctx context.Context, id string) (bool, error) {
 // It refuses (core.ErrBusy) while a job of the dub runs. The audio and
 // the stems go only while the source is there to make them again.
 func (s *Dubs) FreeWork(ctx context.Context, id string) (int64, error) {
+	return s.freeWork(ctx, id, nil)
+}
+
+// errInUse: freeWork's still found the dub in use (opened, or edited).
+var errInUse = errors.New("dub in use")
+
+// freeWork is FreeWork; idle, when set, says whether the dub is still
+// idle, asked again once no run can start (code review 1103 L-4: the
+// user may open the dub while the sweep goes through the others).
+func (s *Dubs) freeWork(ctx context.Context, id string, idle func(p *dub.Project) bool) (int64, error) {
 	s.runMu.Lock() // no run starts meanwhile
 	defer s.runMu.Unlock()
 	if busy, err := s.busyWith(ctx, id); err != nil || busy {
@@ -144,6 +154,9 @@ func (s *Dubs) FreeWork(ctx context.Context, id string) (int64, error) {
 	p, err := s.Get(ctx, id)
 	if err != nil {
 		return 0, err
+	}
+	if idle != nil && !idle(p) {
+		return 0, errInUse
 	}
 	var freed int64
 	rebuildable := p.Source.Path != "" && fileExists(p.Source.Path)
@@ -157,7 +170,7 @@ func (s *Dubs) FreeWork(ctx context.Context, id string) (int64, error) {
 			freed += removeSized(s.Path(id, dubVocals16k))
 		}
 	}
-	freed += s.pruneStale(p)
+	freed += s.pruneStale(p, true)
 	freed += removeSized(s.Path(id, filepath.Join("renders", "tmp")))
 	freed += s.compactLines(p)
 	var gone []string // the tracks of languages removed
@@ -183,8 +196,9 @@ func (s *Dubs) FreeWork(ctx context.Context, id string) (int64, error) {
 
 // FreeIdle frees the working files of the dubs exported (exported: an
 // export the app recorded, besides Project.Exported) and not touched
-// for after; skip names dubs to leave (the one open). It returns how
-// many dubs it freed and the bytes.
+// for after; skip names dubs to leave (the one open: asked again, with
+// the times, just before a dub's files go). It returns how many dubs it
+// freed and the bytes.
 func (s *Dubs) FreeIdle(ctx context.Context, after time.Duration, exported func(id string) time.Time, skip func(id string) bool) (int, int64) {
 	l, err := s.List(ctx, store.DubQuery{})
 	if err != nil {
@@ -195,23 +209,23 @@ func (s *Dubs) FreeIdle(ctx context.Context, after time.Duration, exported func(
 		if ctx.Err() != nil {
 			break
 		}
-		if skip != nil && skip(r.ID) {
-			continue
+		idle := func(p *dub.Project) bool {
+			if skip != nil && skip(p.ID) {
+				return false
+			}
+			at := p.Exported
+			if exported != nil {
+				if t := exported(p.ID); t.After(at) {
+					at = t
+				}
+			}
+			return !at.IsZero() && s.cfg.Now().Sub(s.lastTouched(p)) >= after
 		}
 		p, err := s.Get(ctx, r.ID)
-		if err != nil {
+		if err != nil || !idle(p) || !s.hasWork(p) {
 			continue
 		}
-		at := p.Exported
-		if exported != nil {
-			if t := exported(r.ID); t.After(at) {
-				at = t
-			}
-		}
-		if at.IsZero() || s.cfg.Now().Sub(s.lastTouched(p)) < after || !s.hasWork(p) {
-			continue
-		}
-		if b, err := s.FreeWork(ctx, r.ID); err == nil && b > 0 {
+		if b, err := s.freeWork(ctx, r.ID, idle); err == nil && b > 0 {
 			n, total = n+1, total+b
 		}
 	}
@@ -236,10 +250,13 @@ func (s *Dubs) hasWork(p *dub.Project) bool {
 	return false
 }
 
-// pruneStale deletes the line renders of lines no longer in p and the
-// renders of languages it no longer speaks, and returns the bytes. Call
-// it with no job of p running (Run, FreeWork).
-func (s *Dubs) pruneStale(p *dub.Project) int64 {
+// pruneStale deletes the renders of languages p no longer speaks and,
+// with lines, the line renders of lines no longer in p, and returns the
+// bytes. Call it with no job of p running (Run, FreeWork). A run leaves
+// the renders of removed lines (code review 1103 L-3): the editor's Undo
+// may bring a line back, and its render with it; they go when the dub
+// is freed.
+func (s *Dubs) pruneStale(p *dub.Project, lines bool) int64 {
 	root := s.Path(p.ID, "renders")
 	dirs, err := os.ReadDir(root)
 	if err != nil {
@@ -276,7 +293,7 @@ func (s *Dubs) pruneStale(p *dub.Project) int64 {
 			if i := strings.IndexAny(id, "-."); i > 0 {
 				id = id[:i]
 			}
-			if !segs[id] || strings.HasSuffix(name, ".raw.wav") {
+			if lines && !segs[id] || strings.HasSuffix(name, ".raw.wav") {
 				freed += removeSized(filepath.Join(dir, name))
 			}
 		}

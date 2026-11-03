@@ -35,10 +35,35 @@ func (a *app) dropCloneWork(paths ...string) {
 	}
 }
 
+// clipsInUse are the clips the clone flow and the Studio hold in memory
+// (code review 1103 L-9: a clip used once in the Studio is named by no
+// take until one is generated), read on the main thread; ok false when
+// it did not answer in time (the sweep then leaves the clips).
+func (a *app) clipsInUse() (paths []string, ok bool) {
+	read := func() []string {
+		out := []string{a.clone.work, a.clone.original, a.refAudio}
+		if a.studioClip != nil {
+			out = append(out, a.studioClip.Path)
+		}
+		return out
+	}
+	if a.win == nil {
+		return read(), true
+	}
+	got := make(chan []string, 1)
+	a.win.Update(func() { got <- read() })
+	select {
+	case paths := <-got:
+		return paths, true
+	case <-time.After(10 * time.Second):
+		return nil, false
+	}
+}
+
 // sweepUnused deletes the files directly in dir older than age that
-// nothing in the library names (sqlitestore.Mentioned); off the main
-// thread.
-func (a *app) sweepUnused(ctx context.Context, dir string, age time.Duration) {
+// nothing in the library names (sqlitestore.Mentioned), nor inUse (paths
+// of files in use); off the main thread.
+func (a *app) sweepUnused(ctx context.Context, dir string, age time.Duration, inUse ...string) {
 	ents, err := os.ReadDir(dir)
 	if err != nil || len(ents) == 0 {
 		return
@@ -47,6 +72,11 @@ func (a *app) sweepUnused(ctx context.Context, dir string, age time.Duration) {
 	if err != nil {
 		log.Printf("sweep: %s: %v", dir, err)
 		return
+	}
+	for _, p := range inUse {
+		if p != "" && filepath.Dir(p) == dir {
+			used[filepath.Base(p)] = true
+		}
 	}
 	var n int
 	var freed int64

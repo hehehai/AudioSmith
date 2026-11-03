@@ -119,7 +119,7 @@ func (s *Dubs) Export(ctx context.Context, req ExportRequest, progress func(floa
 	if err := os.MkdirAll(filepath.Dir(req.Output), 0o755); err != nil {
 		return ExportResult{}, err
 	}
-	if err := checkFree("the export", filepath.Dir(req.Output), dubExportNeed(p, req)); err != nil {
+	if err := checkExportFree(filepath.Dir(req.Output), dubExportNeed(p, req)); err != nil {
 		return ExportResult{}, err
 	}
 	x := &dubExport{s: s, ctx: ctx, p: p, req: req, lang: req.Lang,

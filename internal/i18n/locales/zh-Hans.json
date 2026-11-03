@@ -1257,6 +1257,8 @@
   "Forward %d s (L)": "前进 %d 秒（L）",
   "France": "法国",
   "Freed %s": "已释放 %s",
+  "Freed %s; kept %d file the library uses": "已释放 %s，保留了资料库在用的 %d 个文件",
+  "Freed %s; kept %d files the library uses": "已释放 %s，保留了资料库在用的 %d 个文件",
   "From": "源语言",
   "Full screen": "全屏",
   "Gap between lines": "行间隔",
