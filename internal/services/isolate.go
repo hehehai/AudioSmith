@@ -395,7 +395,7 @@ func (s *Isolations) Executor() jobs.Executor {
 			return nil, &jobs.Error{Code: proto.CodeBadRequest, Message: "isolate.run: bad params"}
 		}
 		iso, err := s.run(ctx, job, p.ID, report)
-		if d := jobs.DiskFull(err); d != nil {
+		if d := DiskFullJob(err); d != nil {
 			err = d
 		}
 		if err != nil {

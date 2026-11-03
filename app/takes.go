@@ -125,6 +125,8 @@ func openLibrary(dataDir, cacheDir string, opts ...libraryOptions) (*library, er
 			Store:   st.Jobs(),
 			Publish: func(u jobs.Updated) { bus.Publish(u) },
 			NewID:   func() string { return core.NewID(time.Now()) },
+			// A full disk is disk_full, not internal (code review 1102 M4).
+			ClassifyError: services.DiskFullJob,
 		})
 	}
 	l.sched.Register(hub.KindDownload, hub.DownloadExecutor(

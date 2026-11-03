@@ -6,9 +6,11 @@ package services
 // disk_full: needed and free bytes), rather than failing hours in with a
 // write error. The estimates are rough upper bounds, from the length of
 // the audio; writes that still hit a full disk are reported with the same
-// code (jobs.DiskFull).
+// code (DiskFullJob).
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -171,4 +173,34 @@ func exportNeed(src string, o AudioExport) int64 {
 		n += 2 * fi.Size()
 	}
 	return n
+}
+
+// DiskFullJob is err as a disk_full job error when it says the disk is
+// full (a pre-check's core.DiskFullError, a write's ENOSPC, an engine
+// error whose message says so), else nil. The message is kept; the error
+// is not retryable (the next attempt would fail the same way). The app's
+// scheduler classifies executors' failures with it
+// (jobs.Options.ClassifyError).
+func DiskFullJob(err error) *jobs.Error {
+	if err == nil {
+		return nil
+	}
+	var je *jobs.Error
+	if errors.As(err, &je) {
+		if je.Code == core.CodeDiskFull {
+			return je
+		}
+		if !core.NoSpaceText(je.Message) {
+			return nil
+		}
+		return &jobs.Error{Code: core.CodeDiskFull, Message: je.Message}
+	}
+	if !core.NoSpace(err) {
+		return nil
+	}
+	out := &jobs.Error{Code: core.CodeDiskFull, Message: err.Error()}
+	if d := core.DiskFullDataOf(err); d != (core.DiskFullData{}) {
+		out.Data, _ = json.Marshal(d)
+	}
+	return out
 }

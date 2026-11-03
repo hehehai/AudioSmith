@@ -69,6 +69,10 @@ type Options struct {
 	// as an engine request being cancelled, may still run.
 	HoldGrace time.Duration
 	Logf      func(format string, args ...any)
+	// ClassifyError, when set, types an executor's failure before the
+	// scheduler does (nil: not one it knows): the app maps a full disk to
+	// disk_full (services.DiskFullJob), however the executor said it.
+	ClassifyError func(error) *Error
 }
 
 // Sched implements Scheduler. Make it with New.

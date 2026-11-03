@@ -81,7 +81,7 @@ func (s *Dubs) export(ctx context.Context, job jobs.Job, report func(jobs.Progre
 	}
 	res, err := s.Export(ctx, req, func(f float64) { report(jobs.Progress{Stage: "exporting", Fraction: f}) })
 	if err != nil {
-		if d := jobs.DiskFull(err); d != nil {
+		if d := DiskFullJob(err); d != nil {
 			return nil, d
 		}
 		var je *jobs.Error

@@ -308,9 +308,10 @@ func (s *Sched) finishRun(e *entry, run int, res json.RawMessage, err, cause err
 		s.finishLocked(e, StateCancelled, cancelledError(e.cancelBy))
 	default:
 		var jerr *Error
-		if d := DiskFull(err); d != nil { // a full disk is said so, never "internal" (code review 1102 M4)
-			jerr = d
-		} else if !errors.As(err, &jerr) {
+		if c := s.opts.ClassifyError; c != nil {
+			jerr = c(err) // a full disk says so, never "internal" (code review 1102 M4)
+		}
+		if jerr == nil && !errors.As(err, &jerr) {
 			jerr = &Error{Code: CodeInternal, Message: err.Error()}
 		}
 		jerr = &Error{Code: jerr.Code, Message: jerr.Message, Data: slices.Clone(jerr.Data), Retryable: jerr.Retryable}

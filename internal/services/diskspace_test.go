@@ -42,7 +42,7 @@ func wantDiskFull(t *testing.T, err error, free int64) *core.DiskFullError {
 	if d.Free != free || d.Need <= free {
 		t.Fatalf("need %d, free %d (faked %d)", d.Need, d.Free, free)
 	}
-	if je := jobs.DiskFull(err); je == nil || je.Code != core.CodeDiskFull || !strings.Contains(string(je.Data), `"need"`) {
+	if je := DiskFullJob(err); je == nil || je.Code != core.CodeDiskFull || !strings.Contains(string(je.Data), `"need"`) {
 		t.Fatalf("as a job error: %+v", je)
 	}
 	return d
@@ -116,16 +116,16 @@ func TestDiskFullDubStageWrite(t *testing.T) {
 		t.Errorf("stage %+v", st)
 	}
 	// Go's ENOSPC, the engine's other words; not other failures.
-	je := jobs.DiskFull(fmt.Errorf("decode: %w", &os.PathError{Op: "write", Path: "a.wav", Err: syscall.ENOSPC}))
+	je := DiskFullJob(fmt.Errorf("decode: %w", &os.PathError{Op: "write", Path: "a.wav", Err: syscall.ENOSPC}))
 	if je == nil || je.Code != core.CodeDiskFull || je.Retryable {
 		t.Fatalf("ENOSPC: %+v", je)
 	}
 	for _, msg := range []string{"未能存储文件，因为没有足够的空间。", "write /x: no space left on device"} {
-		if je := jobs.DiskFull(&jobs.Error{Code: proto.CodeInternal, Message: msg}); je == nil || je.Code != core.CodeDiskFull || je.Message != msg {
+		if je := DiskFullJob(&jobs.Error{Code: proto.CodeInternal, Message: msg}); je == nil || je.Code != core.CodeDiskFull || je.Message != msg {
 			t.Errorf("%q: %+v", msg, je)
 		}
 	}
-	if je := jobs.DiskFull(&jobs.Error{Code: proto.CodeInternal, Message: "model failed"}); je != nil {
+	if je := DiskFullJob(&jobs.Error{Code: proto.CodeInternal, Message: "model failed"}); je != nil {
 		t.Errorf("not a full disk: %+v", je)
 	}
 }

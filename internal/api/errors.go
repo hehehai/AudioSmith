@@ -106,7 +106,7 @@ func errorOf(err error) *Error {
 	}
 	var je *jobs.Error
 	if errors.As(err, &je) {
-		if d := jobs.DiskFull(je); d != nil && je.Code != hubCodeDiskSpace {
+		if d := services.DiskFullJob(je); d != nil && je.Code != hubCodeDiskSpace {
 			je = d
 		}
 		return jobErrorOf(je)
@@ -117,7 +117,7 @@ func errorOf(err error) *Error {
 	}
 	// A full disk (a pre-check's refusal, a write's ENOSPC) says so,
 	// with the bytes needed and free (code review 1102 M4).
-	if d := jobs.DiskFull(err); d != nil {
+	if d := services.DiskFullJob(err); d != nil {
 		return jobErrorOf(d)
 	}
 	switch {

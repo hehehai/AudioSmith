@@ -16,6 +16,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/jobs"
+	"github.com/hehehai/AudioSmith/internal/services"
 )
 
 // failureText says, translated, why a worker failed ("" when it did not).
@@ -78,7 +79,7 @@ func jobErrorText(e *jobs.Error) string {
 	if e == nil {
 		return i18n.T("The job failed")
 	}
-	if d := jobs.DiskFull(e); d != nil {
+	if d := services.DiskFullJob(e); d != nil {
 		return diskFullText(d)
 	}
 	switch e.Code {
@@ -166,7 +167,7 @@ func readableEngineMessage(msg string) string {
 // *jobs.Error from the executors and engine.Probe/Devices/StartCapture),
 // translated where the code is known.
 func engineErrorText(err error) string {
-	if d := jobs.DiskFull(err); d != nil {
+	if d := services.DiskFullJob(err); d != nil {
 		return diskFullText(d)
 	}
 	var je *jobs.Error

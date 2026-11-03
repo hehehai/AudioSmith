@@ -100,7 +100,7 @@ func (s *Dubs) stage(st dub.Stage, fn stageFunc) jobs.Executor {
 			mark(dub.StageState{Status: dub.StatusNone, Code: proto.CodeCancelled})
 			return nil, ctx.Err()
 		}
-		je := jobs.DiskFull(err) // a full disk says so (code review 1102 M4)
+		je := DiskFullJob(err) // a full disk says so (code review 1102 M4)
 		if je == nil && !errors.As(err, &je) {
 			je = &jobs.Error{Code: DubCodeFailed, Message: err.Error()}
 		}
