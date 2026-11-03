@@ -246,9 +246,9 @@ func TestExportFormats(t *testing.T) {
 		t.Fatalf("ffmpeg runs %q", runs)
 	}
 	for i, want := range [][]string{
-		{"-c:a libmp3lame", "-b:a 320k", "-f mp3", "-f ffmetadata", "The last ferry left the harbour.part.mp3"},
-		{"-c:a flac", "-f flac", "The last ferry left the harbour.part.flac"},
-		{"-c:a libopus", "-b:a 64k", "-f ogg", "The last ferry left the harbour.part.opus"},
+		{"-c:a libmp3lame", "-b:a 320k", "-f mp3", "-f ffmetadata", ".The last ferry left the harbour.", ".part.mp3"},
+		{"-c:a flac", "-f flac", ".The last ferry left the harbour.", ".part.flac"},
+		{"-c:a libopus", "-b:a 64k", "-f ogg", ".The last ferry left the harbour.", ".part.opus"},
 	} {
 		for _, w := range want {
 			if !strings.Contains(runs[i], w) {
