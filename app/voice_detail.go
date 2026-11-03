@@ -48,6 +48,10 @@ func tryLine(lang string) string {
 	return "Hello — this is a line in this voice. How does it sound?"
 }
 
+// detailAvatarD is the avatar of a voice's detail: as tall as the name
+// and the line under it.
+const detailAvatarD = 40
+
 // detailHead is a detail's top: the avatar (or the portrait picker:
 // avatar builds it), the name, a line under it, marks, ⋯ (menu), ✕; then the
 // description and the tags.
@@ -185,7 +189,9 @@ func (a *app) archetypeDetail(c *ui.Context, arch gallery.Archetype) {
 			kind = i18n.T("Built-in voice")
 		}
 		detailHead(c, name, kind, arch.Description.In(loc), archetypeTags(arch, loc),
-			func() { ui.Avatar(c, name, nil).Size(px(t, 56), px(t, 56)).Shrink(0) },
+			func() {
+				ui.Avatar(c, name, nil).Size(px(t, detailAvatarD), px(t, detailAvatarD)).Radius(px(t, detailAvatarD/2)).Shrink(0)
+			},
 			func() {
 				fav := g.favs.Has(arch.ID)
 				tip := i18n.T("Add to favorites")

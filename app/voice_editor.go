@@ -193,7 +193,7 @@ func (a *app) voiceEditor(c *ui.Context) {
 		id := v.ID
 		desc := firstOf(v.Style, v.Design)
 		detailHead(c, v.Name, voiceKindLabel(v)+" · "+i18n.DateTime(v.CreatedAt), desc, v.Tags, func() {
-			a.portraitPicker(c, "editor-portrait", v.Name, a.portrait(v), func(p string) { a.setVoicePortrait(id, p) }, func() {
+			a.portraitPicker(c, "editor-portrait", v.Name, detailAvatarD, a.portrait(v), func(p string) { a.setVoicePortrait(id, p) }, func() {
 				cur := *v
 				a.voiceAction(func(ctx context.Context, svc core.VoiceService) (core.Voice, error) {
 					return svc.SaveFiles(ctx, cur, core.VoiceFiles{RemovePortrait: true})

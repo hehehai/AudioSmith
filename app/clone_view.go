@@ -354,7 +354,7 @@ func (a *app) cloneSaveForm(c *ui.Context) {
 		return
 	}
 	ui.Row(c).Gap(px(t, sp4)).AlignItems(ui.Center).Children(func() {
-		a.portraitPicker(c, "clone-portrait", s.name, s.portraitBmp, a.clonePortrait, func() { s.portrait, s.portraitBmp = nil, nil })
+		a.portraitPicker(c, "clone-portrait", s.name, 64, s.portraitBmp, a.clonePortrait, func() { s.portrait, s.portraitBmp = nil, nil })
 		ui.Field(c, i18n.T("Profile name"), func() {
 			ui.TextInput(c.Key("clone-name"), &s.name).Placeholder(i18n.T("e.g. My narrator voice")).Label(i18n.T("Profile name")).AutoFocus()
 		}).Grow(1)
@@ -376,12 +376,14 @@ func (a *app) cloneSaveForm(c *ui.Context) {
 	})
 }
 
-// portraitPicker is an avatar that takes a dropped or chosen image, with
-// Remove when there is one.
-func (a *app) portraitPicker(c *ui.Context, key, name string, bmp *ui.Bitmap, use func(path string), remove func()) {
+// portraitPicker is an avatar d DIPs wide that takes a dropped or chosen
+// image, with Remove when there is one. Without an image the clone flow
+// (d ≥ 56) shows a grey initial; a voice's detail (smaller) the coloured
+// initial its row has.
+func (a *app) portraitPicker(c *ui.Context, key, name string, d float32, bmp *ui.Bitmap, use func(path string), remove func()) {
 	t := c.Theme()
 	ui.Column(c.Key(key)).Gap(px(t, 4)).AlignItems(ui.Center).Children(func() {
-		b := ui.ButtonBase(c.Key(key + "-pick")).Radius(px(t, 32)).Label(i18n.T("Choose a portrait")).
+		b := ui.ButtonBase(c.Key(key + "-pick")).Radius(px(t, d/2)).Label(i18n.T("Choose a portrait")).
 			Tooltip(i18n.T("Click or drop an image: PNG, JPG or WebP up to 5 MB"))
 		if files := b.DroppedFiles(); files != nil {
 			use(files[0])
@@ -396,10 +398,13 @@ func (a *app) portraitPicker(c *ui.Context, key, name string, bmp *ui.Bitmap, us
 			name = "?"
 		}
 		b.Children(func() {
-			if bmp != nil {
-				ui.Image(c, bmp).Size(px(t, 64), px(t, 64)).Fit(ui.Cover).Radius(px(t, 32))
-			} else {
-				ui.Column(c).Size(px(t, 64), px(t, 64)).Radius(px(t, 32)).Background(tok(t).Hover).Center().Children(func() {
+			switch {
+			case bmp != nil:
+				ui.Image(c, bmp).Size(px(t, d), px(t, d)).Fit(ui.Cover).Radius(px(t, d/2))
+			case d < 56:
+				ui.Avatar(c, name, nil).Size(px(t, d), px(t, d)).Radius(px(t, d/2)).Shrink(0)
+			default:
+				ui.Column(c).Size(px(t, d), px(t, d)).Radius(px(t, d/2)).Background(tok(t).Hover).Center().Children(func() {
 					ui.Text(c, initials(name)).FontSize(px(t, fsTitle)).FontWeight(600).TextColor(tok(t).Text2)
 				})
 			}
