@@ -238,7 +238,7 @@ func TestCapture(t *testing.T) {
 	w.until(t, "ready", ready)
 	ctx := context.Background()
 	devs, err := Devices(ctx, s)
-	if err != nil || len(devs) != 3 || !devs[0].Default {
+	if err != nil || len(devs) != 5 || !devs[0].Default {
 		t.Fatalf("devices: %+v %v", devs, err)
 	}
 	dir := t.TempDir()
@@ -318,6 +318,59 @@ func TestCapture(t *testing.T) {
 	w2.until(t, "ready", ready)
 	if _, err := StartCapture(ctx, denied, "", proto.CaptureParams{Output: proto.Output{Path: out2}}, nil); !errors.As(err, &je) || je.Code != proto.CodePermissionDenied {
 		t.Errorf("denied: %v", err)
+	}
+}
+
+// A silent input turns voice processing on by itself (the levels and the
+// result say so); one that brings nothing fails with no_input, its file
+// gone (thread #153).
+func TestCaptureNoSound(t *testing.T) {
+	s, w := newTestSup(t, "level-ms=10", allRoles)
+	w.until(t, "ready", ready)
+	ctx := context.Background()
+	dir := t.TempDir()
+	var mu sync.Mutex
+	var auto []proto.LevelParams
+	rec, err := StartCapture(ctx, s, "", proto.CaptureParams{Device: enginetest.FakeSilentMic, Output: proto.Output{Path: filepath.Join(dir, "a.wav")}},
+		func(l proto.LevelParams) {
+			if l.AECAuto {
+				mu.Lock()
+				auto = append(auto, l)
+				mu.Unlock()
+			}
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(250 * time.Millisecond)
+	res, err := rec.Stop(ctx)
+	mu.Lock()
+	n := len(auto)
+	mu.Unlock()
+	if err != nil || !res.AEC || !res.AECAuto || res.AECReason != proto.CaptureNoSound || n == 0 || auto[0].AECReason != proto.CaptureNoSound {
+		t.Errorf("silent mic: %+v %v (%d auto levels)", res, err, n)
+	}
+	// Asked for, it is on from the start: nothing automatic.
+	rec, err = StartCapture(ctx, s, "", proto.CaptureParams{Device: enginetest.FakeSilentMic, AEC: true, Output: proto.Output{Path: filepath.Join(dir, "b.wav")}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if res, err := rec.Stop(ctx); err != nil || !res.AEC || res.AECAuto {
+		t.Errorf("aec on: %+v %v", res, err)
+	}
+	out := filepath.Join(dir, "c.wav")
+	rec, err = StartCapture(ctx, s, "", proto.CaptureParams{Device: enginetest.FakeDeadMic, Output: proto.Output{Path: out}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var je *jobs.Error
+	var d proto.NoInputData
+	if _, err := rec.Result(); !errors.As(err, &je) || je.Code != proto.CodeNoInput || json.Unmarshal(je.Data, &d) != nil || d.Name != "Fake Dead Mic" || d.Reason != proto.CaptureNoSound {
+		t.Errorf("dead mic: %v %+v", err, d)
+	}
+	if _, err := os.Stat(out); !os.IsNotExist(err) {
+		t.Errorf("dead mic's file: %v", err)
 	}
 }
 

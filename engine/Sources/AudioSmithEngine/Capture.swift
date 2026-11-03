@@ -1,11 +1,13 @@
 import AudioSmithProtocol
+import AudioSmithStream
 import AVFoundation
 import CoreAudio
 import Foundation
 
 // The listen worker's microphone: capture.devices, capture.start (a job
 // that records until capture.stop), with an input meter about 20 times a
-// second.
+// second. CaptureRun.swift keeps the microphone running (configuration
+// changes, voice processing); CaptureSession.swift writes and meters.
 
 // MARK: Devices (Core Audio)
 
@@ -64,7 +66,9 @@ func captureDevices() -> [CaptureDevice] {
     let (ids, def) = inputDeviceIDs()
     var out: [CaptureDevice] = []
     for id in ids {
-        guard let uid = stringProperty(id, kAudioDevicePropertyDeviceUID) else { continue }
+        // Voice processing's private aggregates (another app's, or ours)
+        // are not inputs to choose.
+        guard let uid = stringProperty(id, kAudioDevicePropertyDeviceUID), !isVoiceProcessingAggregate(uid: uid) else { continue }
         let name = stringProperty(id, kAudioObjectPropertyName) ?? uid
         var rate = Float64(0)
         _ = property(id, kAudioDevicePropertyNominalSampleRate, &rate)
@@ -78,11 +82,6 @@ func captureDevices() -> [CaptureDevice] {
 
 private func deviceID(uid: String) -> AudioObjectID? {
     inputDeviceIDs().all.first { stringProperty($0, kAudioDevicePropertyDeviceUID) == uid }
-}
-
-private func isAlive(_ id: AudioObjectID) -> Bool {
-    var alive = UInt32(0)
-    return property(id, kAudioDevicePropertyDeviceIsAlive, &alive) && alive != 0
 }
 
 // MARK: Recording
@@ -141,54 +140,37 @@ final class Recorder: @unchecked Sendable {
             throw EngineError.badRequest("The input has \(deviceChannels) channel(s); there is no channel \(c + 1)")
         }
 
-        let engine = AVAudioEngine()
-        let input = engine.inputNode
-        if let unit = input.audioUnit {
-            var id = device
-            let status = AudioUnitSetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0,
-                                              &id, UInt32(MemoryLayout<AudioObjectID>.size))
-            if status != noErr { throw EngineError.deviceUnavailable(uid) }
-        }
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else { throw EngineError.deviceUnavailable(uid) }
-        let deviceRate = Int(format.sampleRate)
-        let fileRate = (p.sampleRate ?? 0) > 0 ? p.sampleRate! : deviceRate
+        let name = stringProperty(device, kAudioObjectPropertyName) ?? uid
+        let deviceRate: Int = {
+            var rate = Float64(0)
+            _ = property(device, kAudioDevicePropertyNominalSampleRate, &rate)
+            return Int(rate)
+        }()
+        let fileRate = (p.sampleRate ?? 0) > 0 ? p.sampleRate! : (deviceRate > 0 ? deviceRate : 48000)
         let writer = try WAVWriter(url: url, sampleRate: fileRate, channels: fileChannels, bits: bits)
-        let session = CaptureSession(out: out, job: job, writer: writer, picks: picks, fileChannels: fileChannels,
-                                     deviceRate: deviceRate, fileRate: fileRate, maxSeconds: p.maxSeconds ?? 0)
-
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-            session.receive(buffer)
-        }
-        engine.prepare()
+        let session = CaptureSession(out: out, job: job, writer: writer, fileChannels: fileChannels,
+                                     fileRate: fileRate, maxSeconds: p.maxSeconds ?? 0)
+        let run = CaptureRun(session: session, device: device, uid: uid, name: name, picks: picks, aec: p.aec ?? false)
         do {
-            try engine.start()
+            try run.start()
         } catch {
-            input.removeTap(onBus: 0)
+            log("capture \(job): \(name) did not start\(p.aec == true ? " with voice processing" : ""): \(error)")
+            run.finish()
             writer.cancel()
             throw EngineError.deviceUnavailable(uid)
         }
         out.notify(Method.jobProgress, ProgressParams(job: job, stage: "recording"))
 
-        let reason: String = await withTaskCancellationHandler {
+        var reason: String = await withTaskCancellationHandler {
             await withCheckedContinuation { (k: CheckedContinuation<String, Never>) in
                 session.setOnEnd { k.resume(returning: $0) }
                 lock.withLock { stops[job] = { session.end(CaptureStopped) } }
-                // The device going away (unplugged, sleep).
-                let watcher = Thread {
-                    while !session.isEnded {
-                        if !isAlive(device) { session.end(CaptureDeviceLost); break }
-                        Thread.sleep(forTimeInterval: 0.25)
-                    }
-                }
-                watcher.start()
             }
         } onCancel: {
             session.end("cancelled")
         }
         lock.withLock { _ = stops.removeValue(forKey: job) }
-        engine.stop()
-        input.removeTap(onBus: 0)
+        run.finish()
         session.drain()
         if reason == "cancelled" || Task.isCancelled {
             writer.cancel()
@@ -198,188 +180,22 @@ final class Recorder: @unchecked Sendable {
             writer.cancel()
             throw RPCError(Code.internal, "Could not write \(url.path): \(error.localizedDescription)")
         }
+        let state = run.state
+        if reason == CaptureNoInput {
+            // Given up: what came before is kept when it had sound.
+            guard state.everHeard else {
+                writer.cancel()
+                throw EngineError.noInput(device: uid, name: name, reason: (state.failure ?? .noSound).rawValue)
+            }
+            reason = CaptureInputStopped
+        } else if reason != CaptureDeviceLost, run.silentThroughout {
+            writer.cancel()
+            throw EngineError.noInput(device: uid, name: name, reason: CaptureRecovery.Reason.noSound.rawValue)
+        }
         try writer.finish()
         return CaptureResult(output: url.path, sampleRate: fileRate, channels: fileChannels, frames: writer.frames,
                              audioSeconds: Double(writer.frames) / Double(fileRate), device: uid,
-                             peak: session.peakDB, clipped: session.clipped > 0 ? session.clipped : nil, reason: reason)
+                             peak: session.peakDB, clipped: session.clipped > 0 ? session.clipped : nil, reason: reason,
+                             aec: state.aec ? true : nil, aecAuto: state.auto != nil ? true : nil, aecReason: state.auto?.rawValue)
     }
-}
-
-let CaptureStopped = "stopped"
-let CaptureDeviceLost = "deviceLost"
-let CaptureMaxSeconds = "maxSeconds"
-
-/// One recording: converts, writes and meters what the tap delivers, on a
-/// serial queue off the audio thread.
-private final class CaptureSession: @unchecked Sendable {
-    let out: Writer
-    let job: String
-    let writer: WAVWriter
-    let picks: [Int]
-    let fileChannels: Int
-    let deviceRate: Int
-    let fileRate: Int
-    let maxFrames: Int64
-    private let queue = DispatchQueue(label: "audiosmith.capture")
-    private let lock = NSLock()
-    private var converter: AVAudioConverter?
-    private let convertFormat: AVAudioFormat
-    private let fileFormat: AVAudioFormat
-
-    private var onEnd: ((String) -> Void)?
-    private var ended = false
-    private var endReason = ""
-    var writeError: Error?
-    var clipped = 0
-    var peakDB: Double = -120
-    // Meter state, per ~50 ms of audio.
-    private var meterFrames = 0
-    private var meterSum: Double = 0
-    private var meterPeak: Float = 0
-    private var meterClipped = false
-    private var written: Int64 = 0
-
-    init(out: Writer, job: String, writer: WAVWriter, picks: [Int], fileChannels: Int, deviceRate: Int, fileRate: Int, maxSeconds: Double) {
-        self.out = out
-        self.job = job
-        self.writer = writer
-        self.picks = picks
-        self.fileChannels = fileChannels
-        self.deviceRate = deviceRate
-        self.fileRate = fileRate
-        maxFrames = maxSeconds > 0 ? Int64(maxSeconds * Double(fileRate)) : 0
-        convertFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(deviceRate),
-                                      channels: AVAudioChannelCount(fileChannels), interleaved: false)!
-        fileFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(fileRate),
-                                   channels: AVAudioChannelCount(fileChannels), interleaved: false)!
-        if deviceRate != fileRate {
-            converter = AVAudioConverter(from: convertFormat, to: fileFormat)
-        }
-    }
-
-    /// The tap: picks the channels into a buffer of the file's channel
-    /// count at the device rate, then hands it to the queue.
-    func receive(_ buffer: AVAudioPCMBuffer) {
-        guard let data = buffer.floatChannelData else { return }
-        let n = Int(buffer.frameLength)
-        let channels = Int(buffer.format.channelCount)
-        guard n > 0, let picked = AVAudioPCMBuffer(pcmFormat: convertFormat, frameCapacity: AVAudioFrameCount(n)),
-              let dst = picked.floatChannelData else { return }
-        picked.frameLength = AVAudioFrameCount(n)
-        let interleavedSource = buffer.format.isInterleaved
-        func sample(_ ch: Int, _ i: Int) -> Float {
-            let c = min(ch, channels - 1)
-            return interleavedSource ? data[0][i * channels + c] : data[c][i]
-        }
-        if fileChannels == 1 {
-            let scale = 1 / Float(picks.count)
-            for i in 0 ..< n {
-                var v: Float = 0
-                for c in picks { v += sample(c, i) }
-                dst[0][i] = v * scale
-            }
-        } else {
-            let left = picks[0], right = picks.count > 1 ? picks[1] : picks[0]
-            for i in 0 ..< n {
-                dst[0][i] = sample(left, i)
-                dst[1][i] = sample(right, i)
-            }
-        }
-        queue.async { self.process(picked) }
-    }
-
-    private func process(_ buffer: AVAudioPCMBuffer) {
-        if isEnded { return }
-        var outBuffer = buffer
-        if let converter {
-            let capacity = AVAudioFrameCount(Double(buffer.frameLength) * Double(fileRate) / Double(deviceRate) + 32)
-            guard let converted = AVAudioPCMBuffer(pcmFormat: fileFormat, frameCapacity: capacity) else { return }
-            var given = false
-            var error: NSError?
-            converter.convert(to: converted, error: &error) { _, status in
-                if given {
-                    status.pointee = .noDataNow
-                    return nil
-                }
-                given = true
-                status.pointee = .haveData
-                return buffer
-            }
-            outBuffer = converted
-        }
-        guard let ch = outBuffer.floatChannelData else { return }
-        var n = Int(outBuffer.frameLength)
-        if maxFrames > 0 { n = min(n, Int(maxFrames - written)) }
-        if n <= 0 { return }
-        var interleaved = [Float](repeating: 0, count: n * fileChannels)
-        for i in 0 ..< n {
-            for c in 0 ..< fileChannels {
-                let v = ch[c][i]
-                interleaved[i * fileChannels + c] = v
-                let a = abs(v)
-                meterSum += Double(v * v)
-                if a > meterPeak { meterPeak = a }
-                if a >= 0.999 {
-                    clipped += 1
-                    meterClipped = true
-                }
-            }
-        }
-        do {
-            try writer.append(interleaved[...])
-        } catch {
-            writeError = error
-            end(CaptureStopped)
-            return
-        }
-        written += Int64(n)
-        meterFrames += n
-        if meterFrames >= fileRate / 20 {
-            let rms = sqrt(meterSum / Double(meterFrames * fileChannels))
-            let peak = Double(meterPeak)
-            peakDB = max(peakDB, db(peak))
-            out.notify(Method.captureLevel, LevelParams(job: job, seconds: round3(Double(written) / Double(fileRate)),
-                                                        rms: round3(db(rms)), peak: round3(db(peak)),
-                                                        clipped: meterClipped ? true : nil))
-            meterFrames = 0
-            meterSum = 0
-            meterPeak = 0
-            meterClipped = false
-        }
-        if maxFrames > 0, written >= maxFrames { end(CaptureMaxSeconds) }
-    }
-
-    var isEnded: Bool { lock.withLock { ended } }
-
-    /// Sets what runs when the recording ends (at once if it already has).
-    func setOnEnd(_ fn: @escaping (String) -> Void) {
-        let reason: String? = lock.withLock {
-            if ended { return endReason }
-            onEnd = fn
-            return nil
-        }
-        if let reason { fn(reason) }
-    }
-
-    func end(_ reason: String) {
-        let call: ((String) -> Void)? = lock.withLock {
-            if ended { return nil }
-            ended = true
-            endReason = reason
-            let f = onEnd
-            onEnd = nil
-            return f
-        }
-        call?(reason)
-    }
-
-    /// Waits for the buffers already queued.
-    func drain() {
-        queue.sync {}
-        peakDB = max(peakDB, db(Double(meterPeak)))
-    }
-}
-
-private func db(_ x: Double) -> Double {
-    x <= 1e-6 ? -120 : max(-120, 20 * log10(x))
 }

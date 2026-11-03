@@ -303,6 +303,8 @@ public struct CaptureParams: Codable, Sendable {
     public var sampleRate: Int?
     public var output: Output
     public var maxSeconds: Double?
+    /// Voice processing (echo cancellation, noise suppression, AGC).
+    public var aec: Bool?
 }
 
 public struct LevelParams: Codable, Sendable {
@@ -311,13 +313,20 @@ public struct LevelParams: Codable, Sendable {
     public var rms: Double
     public var peak: Double
     public var clipped: Bool?
+    /// The engine turned voice processing on during this recording
+    /// ("noSound" or "deviceChanges"): in every level after it did.
+    public var aecAuto: Bool?
+    public var aecReason: String?
 
-    public init(job: String, seconds: Double, rms: Double, peak: Double, clipped: Bool? = nil) {
+    public init(job: String, seconds: Double, rms: Double, peak: Double, clipped: Bool? = nil,
+                aecAuto: Bool? = nil, aecReason: String? = nil) {
         self.job = job
         self.seconds = seconds
         self.rms = rms
         self.peak = peak
         self.clipped = clipped
+        self.aecAuto = aecAuto
+        self.aecReason = aecReason
     }
 }
 
@@ -330,11 +339,19 @@ public struct CaptureResult: Codable, Sendable {
     public var device: String
     public var peak: Double
     public var clipped: Int?
-    /// "stopped", "maxSeconds" or "deviceLost".
+    /// "stopped", "maxSeconds", "deviceLost" or "inputStopped".
     public var reason: String
+    /// Voice processing was on at the end; the engine turned it on, and why.
+    public var aec: Bool?
+    public var aecAuto: Bool?
+    public var aecReason: String?
 
     public init(output: String, sampleRate: Int, channels: Int, frames: Int64, audioSeconds: Double,
-                device: String, peak: Double, clipped: Int? = nil, reason: String) {
+                device: String, peak: Double, clipped: Int? = nil, reason: String,
+                aec: Bool? = nil, aecAuto: Bool? = nil, aecReason: String? = nil) {
+        self.aec = aec
+        self.aecAuto = aecAuto
+        self.aecReason = aecReason
         self.output = output
         self.sampleRate = sampleRate
         self.channels = channels

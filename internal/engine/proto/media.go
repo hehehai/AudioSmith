@@ -318,6 +318,11 @@ type CaptureParams struct {
 	Output        Output `json:"output"`
 	// MaxSeconds stops the recording by itself; 0 = no limit.
 	MaxSeconds float64 `json:"maxSeconds,omitempty"`
+	// AEC records with macOS voice processing: echo cancellation, with
+	// noise suppression and automatic gain (the voice may sound
+	// processed). Off, the engine still turns it on by itself once when
+	// the input brings no sound or keeps stopping (LevelParams.AECAuto).
+	AEC bool `json:"aec,omitempty"`
 }
 
 // LevelParams is the input meter, about 20 times a second while
@@ -328,6 +333,11 @@ type LevelParams struct {
 	RMS     float64 `json:"rms"`
 	Peak    float64 `json:"peak"`
 	Clipped bool    `json:"clipped,omitempty"` // a sample reached full scale since the last level
+	// AECAuto: the engine turned voice processing on during this
+	// recording, for AECReason (CaptureNoSound, CaptureDeviceChanges);
+	// every level after it says so.
+	AECAuto   bool   `json:"aecAuto,omitempty"`
+	AECReason string `json:"aecReason,omitempty"`
 }
 
 // CaptureResult describes the recording.
@@ -337,9 +347,16 @@ type CaptureResult struct {
 	Peak   float64 `json:"peak"`   // loudest sample, dBFS
 	// Clipped counts samples at full scale.
 	Clipped int `json:"clipped,omitempty"`
-	// Reason is why it ended: "stopped" (capture.stop), "maxSeconds", or
-	// "deviceLost" (unplugged: what was recorded is kept).
+	// Reason is why it ended: "stopped" (capture.stop), "maxSeconds",
+	// "deviceLost" (unplugged: what was recorded is kept) or
+	// "inputStopped" (the input stopped for good after it brought sound:
+	// what was recorded is kept).
 	Reason string `json:"reason"`
+	// AEC: voice processing was on at the end; AECAuto: the engine turned
+	// it on, for AECReason (as in LevelParams).
+	AEC       bool   `json:"aec,omitempty"`
+	AECAuto   bool   `json:"aecAuto,omitempty"`
+	AECReason string `json:"aecReason,omitempty"`
 }
 
 // Capture end reasons.
@@ -347,7 +364,24 @@ const (
 	CaptureStopped    = "stopped"
 	CaptureMaxSeconds = "maxSeconds"
 	CaptureDeviceLost = "deviceLost"
+	// CaptureInputStopped: the input stopped for good (it kept stopping
+	// as the audio devices changed) after it brought sound.
+	CaptureInputStopped = "inputStopped"
 )
+
+// Why the engine turned voice processing on, or a recording failed with
+// CodeNoInput (its data's "reason").
+const (
+	CaptureNoSound       = "noSound"       // no buffers, or only digital silence, from the start
+	CaptureDeviceChanges = "deviceChanges" // it kept stopping as the audio devices changed
+)
+
+// NoInputData is CodeNoInput's data.
+type NoInputData struct {
+	Device string `json:"device"` // the device's ID
+	Name   string `json:"name"`
+	Reason string `json:"reason"` // CaptureNoSound or CaptureDeviceChanges
+}
 
 // CaptureStopParams names the capture.start job to stop.
 type CaptureStopParams struct {
