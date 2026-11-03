@@ -102,15 +102,48 @@ func (f *fakeEngine) load(m proto.Message) {
 	f.result(m.ID, res)
 }
 
+// configure answers engine.config as the engine's ModelStore: a nil field
+// keeps what it had; a budget of 0 is the default (60 % of 16 GB).
+func (f *fakeEngine) configure(m proto.Message) {
+	var p proto.EngineConfigParams
+	if err := m.DecodeParams(&p); err != nil {
+		f.fail(m.ID, proto.CodeBadRequest, "%v", err)
+		return
+	}
+	f.mu.Lock()
+	if p.MemoryBudget != nil {
+		f.config.MemoryBudget = *p.MemoryBudget
+		if f.config.MemoryBudget <= 0 {
+			f.config.MemoryBudget = (16 << 30) * 6 / 10
+		}
+	}
+	if p.Held != nil {
+		f.config.Held = slices.Sorted(slices.Values(*p.Held))
+	}
+	if p.HoldAll != nil {
+		f.config.HoldAll = *p.HoldAll
+	}
+	res := f.config
+	if res.Held == nil {
+		res.Held = []string{}
+	}
+	f.mu.Unlock()
+	f.result(m.ID, res)
+}
+
 // pressure plays a memory-pressure event at level (models.load of
 // "pressure/<level>"): as the engine's MemoryWatch, the idle models go
-// (from "warning" up) and engine.memory says so; at "critical" the load
-// is refused with oom, else it answers without loading anything.
+// (from "warning" up; at "warning" not those the app holds, engine.config)
+// and engine.memory says so; at "critical" the load is refused with oom,
+// else it answers without loading anything.
 func (f *fakeEngine) pressure(id, level string) {
 	unloaded := []string{}
 	if level != proto.PressureNormal {
 		f.mu.Lock()
 		for model := range f.models {
+			if level == proto.PressureWarning && (f.config.HoldAll || slices.Contains(f.config.Held, model)) {
+				continue
+			}
 			delete(f.models, model)
 			unloaded = append(unloaded, model)
 		}

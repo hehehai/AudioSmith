@@ -13,7 +13,9 @@ import Foundation
 /// dialogue model at every segment, and a cap of 3 reloaded one each time
 /// (review #102). The system's memory pressure (MemoryWatch.swift) unloads
 /// idle models at "warning" and refuses loads at "critical" (code review
-/// 1102 M1). Jobs are serialized
+/// 1102 M1). The app tells it its memory budget and the models it holds
+/// (engine.config, code review 1103 F4/F5): makeRoom keeps to that budget,
+/// and a "warning" spares held models. Jobs are serialized
 /// by the Server (gpu concurrency 1): MLX models must not run from two jobs
 /// at once.
 final class ModelStore: @unchecked Sendable {
@@ -32,6 +34,11 @@ final class ModelStore: @unchecked Sendable {
     private let maxResident: Int
     /// The level of the last memory-pressure event (MemoryWatch).
     private var pressureEvent = MemoryPressure.normal
+    /// The app's memory budget (engine.config); 0 = the default.
+    private var appBudget: Int64 = 0
+    /// Models the app holds (engine.config): every model when holdAll.
+    private var held: Set<String> = []
+    private var holdAll = false
 
     /// maxResident overrides AUDIOSMITH_MAX_MODELS (the listen worker keeps one).
     init(out: Writer, maxResident: Int? = nil) {
@@ -82,7 +89,7 @@ final class ModelStore: @unchecked Sendable {
     /// Under critical memory pressure it loads nothing: a retryable oom.
     func acquire<T>(
         _ model: String, task: String, job: String, as type: T.Type,
-        sampleRate: (T) -> Int, estimate: Int64, load: () async throws -> T
+        sampleRate: (T) -> Int, estimate: @autoclosure () -> Int64, load: () async throws -> T
     ) async throws -> (T, Resident) {
         if let r = take(model) {
             guard let m = r.model as? T else {
@@ -98,7 +105,9 @@ final class ModelStore: @unchecked Sendable {
                            data: .object(["reason": .string("memory_pressure"), "level": .string(level.rawValue), "model": .string(model)]))
         }
         out.notify(Method.jobProgress, ProgressParams(job: job, stage: "loading", message: "Loading \(shortName(model))"))
-        if estimate > 0 { makeRoom(for: estimate) }
+        // Only now: a resident model needs no estimate (code review 1103 F10).
+        let bytes = estimate()
+        if bytes > 0 { makeRoom(for: bytes) }
         let started = Date()
         let before = MLX.Memory.activeMemory
         let loaded: T
@@ -120,21 +129,49 @@ final class ModelStore: @unchecked Sendable {
         return (loaded, r)
     }
 
-    /// The bytes resident models may take (AUDIOSMITH_MEMORY_BUDGET, else
-    /// 60 % of the Mac's memory, as the app's supervisor assumes).
-    static var memoryBudget: Int64 {
+    /// The bytes resident models may take when the app has not said
+    /// (AUDIOSMITH_MEMORY_BUDGET, else 60 % of the Mac's memory, as the
+    /// app's supervisor assumes).
+    static var defaultBudget: Int64 {
         if let b = Int64(ProcessInfo.processInfo.environment["AUDIOSMITH_MEMORY_BUDGET"] ?? ""), b > 0 { return b }
         return Int64(ProcessInfo.processInfo.physicalMemory) * 6 / 10
     }
 
+    /// The bytes resident models may take: the app's budget (its memory
+    /// limit setting, engine.config), else defaultBudget.
+    var memoryBudget: Int64 {
+        let b = lock.withLock { appBudget }
+        return b > 0 ? b : Self.defaultBudget
+    }
+
+    /// engine.config: the app's budget (0 = the default) and the models it
+    /// holds now (nil leaves either as it was). Returns what applies.
+    func configure(_ p: EngineConfigParams) -> EngineConfigResult {
+        lock.withLock {
+            if let b = p.memoryBudget { appBudget = max(b, 0) }
+            if let h = p.held { held = Set(h) }
+            if let all = p.holdAll { holdAll = all }
+        }
+        let (h, all) = lock.withLock { (held.sorted(), holdAll) }
+        return EngineConfigResult(memoryBudget: memoryBudget, held: h, holdAll: all ? true : nil)
+    }
+
+    /// Whether the app holds model. Caller holds lock.
+    private func isHeld(_ model: String) -> Bool {
+        holdAll || held.contains(model)
+    }
+
     /// Drops idle models, least recently used first, until bytes more fit
-    /// in the memory budget (or nothing idle is left).
+    /// in the memory budget (or nothing idle is left). Models the app holds
+    /// go last, only when the others are not enough.
     func makeRoom(for bytes: Int64) {
-        let budget = Self.memoryBudget
+        let budget = memoryBudget
         var dropped: [String] = []
         while Int64(MLX.Memory.activeMemory) + bytes > budget {
             let victim: String? = lock.withLock {
-                guard let lru = resident.filter({ $0.value.inUse == 0 }).min(by: { $0.value.lastUsed < $1.value.lastUsed })?.key else { return nil }
+                let idle = resident.filter { $0.value.inUse == 0 }
+                let pick = idle.filter { !isHeld($0.key) }.isEmpty ? idle : idle.filter { !isHeld($0.key) }
+                guard let lru = pick.min(by: { $0.value.lastUsed < $1.value.lastUsed })?.key else { return nil }
                 resident[lru] = nil
                 return lru
             }
@@ -155,8 +192,9 @@ final class ModelStore: @unchecked Sendable {
     }
 
     /// A memory-pressure event: from "warning" up, every model no job
-    /// uses is dropped and MLX's buffer cache cleared. Returns the
-    /// dropped models.
+    /// uses is dropped and MLX's buffer cache cleared; at "warning" the
+    /// models the app holds stay (a live call's, a dictation's: code
+    /// review 1103 F5). Returns the dropped models.
     func relieve(_ level: MemoryPressure) -> [String] {
         lock.lock()
         pressureEvent = level
@@ -164,7 +202,7 @@ final class ModelStore: @unchecked Sendable {
             lock.unlock()
             return []
         }
-        let ids = resident.filter { $0.value.inUse == 0 }.keys.sorted()
+        let ids = resident.filter { $0.value.inUse == 0 && (level == .critical || !isHeld($0.key)) }.keys.sorted()
         for id in ids { resident[id] = nil }
         lock.unlock()
         MLX.Memory.clearCache()
@@ -209,10 +247,34 @@ final class ModelStore: @unchecked Sendable {
 }
 
 /// The bytes of a model's weights on disk (*.safetensors, in its folder
-/// and the folders under it, as DeepFilterNet's v3/): what loading it
-/// adds, about. 0 without a folder.
+/// and the folders under it, two deep: DeepFilterNet's v3/, Qwen3-TTS's
+/// speech_tokenizer/; Kokoro's voices/ add some 27 MB): what loading it
+/// adds, about. 0 without a folder. A folder's size is kept: snapshots do
+/// not change (code review 1103 F10).
 func weightBytes(_ dir: URL?) -> Int64 {
     guard let dir else { return 0 }
+    let key = dir.standardizedFileURL.path
+    if let known = weightBytesCache.withLock({ $0[key] }) { return known }
+    let total = walkWeightBytes(dir)
+    if total > 0 { weightBytesCache.withLock { $0[key] = total } }
+    return total
+}
+
+private let weightBytesCache = LockedValue<[String: Int64]>([:])
+
+/// A value behind a lock.
+final class LockedValue<V>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: V
+    init(_ value: V) { self.value = value }
+    func withLock<R>(_ body: (inout V) -> R) -> R {
+        lock.lock()
+        defer { lock.unlock() }
+        return body(&value)
+    }
+}
+
+private func walkWeightBytes(_ dir: URL) -> Int64 {
     let fm = FileManager.default
     func walk(_ dir: URL, depth: Int) -> Int64 {
         guard let names = try? fm.contentsOfDirectory(atPath: dir.path) else { return 0 }

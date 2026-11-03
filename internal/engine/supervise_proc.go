@@ -120,6 +120,7 @@ func (s *supervisor) handshake(w *worker, p *proc) {
 		return
 	}
 	p.helloDone.Store(true)
+	s.configAtStart(w, p, hello)
 	s.mu.Lock()
 	if w.proc != p {
 		s.mu.Unlock()

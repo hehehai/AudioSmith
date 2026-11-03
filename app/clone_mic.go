@@ -33,7 +33,7 @@ func (a *app) micStart(m *micState, done func(path string)) {
 		return
 	}
 	m.onStop = done
-	a.micCapture(m, proto.CaptureParams{Device: m.device, Channels: m.channels,
+	a.micCapture(m, proto.CaptureParams{Device: m.device, Channels: a.micChannels(m.channels),
 		Output: proto.Output{Path: a.workPath("rec"), Format: "wav"}, MaxSeconds: 600, AEC: a.echoOn()})
 }
 

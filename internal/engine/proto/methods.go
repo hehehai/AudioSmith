@@ -387,6 +387,8 @@ func ParamsFor(method string) any {
 		return new(MemoryParams)
 	case MethodHello:
 		return new(HelloParams)
+	case MethodEngineConfig:
+		return new(EngineConfigParams)
 	case MethodStats, MethodFlush, MethodShutdown, MethodModelsLoaded:
 		return new(Empty)
 	case MethodModelsLoad:
@@ -410,6 +412,8 @@ func ParamsFor(method string) any {
 // ResultFor: see ParamsFor.
 func ResultFor(method string) any {
 	switch method {
+	case MethodEngineConfig:
+		return new(EngineConfigResult)
 	case MethodTTSEncodeVoice:
 		return new(EncodeVoiceResult)
 	case MethodSTTTranscribe:

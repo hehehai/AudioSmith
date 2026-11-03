@@ -510,7 +510,10 @@ func TestReferencesAndSpeakers(t *testing.T) {
 		t.Errorf("%+v", p.Segments)
 	}
 	audio := tone(16000, 1, 15, 0.1)
-	refs := PickReferences(p.Segments, audio)
+	refs, err := PickReferences(p.Segments, BufferAudio{audio})
+	if err != nil {
+		t.Fatal(err)
+	}
 	r, ok := refs["S2"]
 	if !ok || r.Start != 2 || r.End != 12 || r.Score <= 0 {
 		t.Errorf("S2 ref %+v", r)

@@ -171,16 +171,45 @@ type RefCandidate struct {
 	Score      float64
 }
 
+// Audio is audio read a window at a time (a *wav.File; a dsp.Buffer as
+// BufferAudio), so a long recording is never read whole.
+type Audio interface {
+	Seconds() float64
+	// ReadSeconds reads [from, to), clamped to the audio.
+	ReadSeconds(from, to float64) (dsp.Buffer, error)
+}
+
+// BufferAudio is a Buffer as Audio.
+type BufferAudio struct{ dsp.Buffer }
+
+// ReadSeconds slices [from, to), clamped.
+func (b BufferAudio) ReadSeconds(from, to float64) (dsp.Buffer, error) {
+	return b.Slice(dsp.FramesAt(from, b.Rate), dsp.FramesAt(to, b.Rate)), nil
+}
+
 // PickReferences picks each speaker's best clone reference from audio
 // (their voices, separated if possible): runs of their consecutive lines
 // (gaps under 0.8 s, nobody else speaking over them), cut to at most 15 s
 // and preferably 5 s or more, scored by how much of the window is speech,
 // how steady and how loud it is, and how close it is to 10 s. Speakers
-// with under 3 s of speech get none.
-func PickReferences(segs []Segment, audio dsp.Buffer) map[string]RefCandidate {
+// with under 3 s of speech get none. Only the candidate windows are read
+// (code review 1103 F9).
+func PickReferences(segs []Segment, audio Audio) (map[string]RefCandidate, error) {
 	out := map[string]RefCandidate{}
-	if audio.Frames() == 0 {
-		return out
+	if audio.Seconds() <= 0 {
+		return out, nil
+	}
+	var readErr error
+	scoreWindow := func(start, end float64) float64 {
+		if readErr != nil {
+			return 0
+		}
+		w, err := audio.ReadSeconds(start, end)
+		if err != nil {
+			readErr = err
+			return 0
+		}
+		return scoreAudio(w)
 	}
 	bySpeaker := map[string][]int{}
 	for i, s := range segs {
@@ -215,7 +244,7 @@ func PickReferences(segs []Segment, audio dsp.Buffer) map[string]RefCandidate {
 			}
 			c := RefCandidate{Speaker: sp, Start: start, End: end, Text: joinTexts(texts)}
 			if !overlapsOther(segs, sp, start, end) {
-				c.Score = scoreWindow(audio, start, end)
+				c.Score = scoreWindow(start, end)
 				cands = append(cands, c)
 			}
 			k = j
@@ -230,7 +259,7 @@ func PickReferences(segs []Segment, audio dsp.Buffer) map[string]RefCandidate {
 			}
 			s := segs[best]
 			c := RefCandidate{Speaker: sp, Start: s.Start, End: min(s.End, s.Start+RefMax), Text: s.Text}
-			c.Score = scoreWindow(audio, c.Start, c.End) * 0.5
+			c.Score = scoreWindow(c.Start, c.End) * 0.5
 			cands = append(cands, c)
 		}
 		slices.SortStableFunc(cands, func(a, b RefCandidate) int {
@@ -244,7 +273,10 @@ func PickReferences(segs []Segment, audio dsp.Buffer) map[string]RefCandidate {
 		})
 		out[sp] = cands[0]
 	}
-	return out
+	if readErr != nil {
+		return nil, readErr
+	}
+	return out, nil
 }
 
 func joinTexts(ts []string) string {
@@ -265,15 +297,12 @@ func overlapsOther(segs []Segment, speaker string, start, end float64) bool {
 	return false
 }
 
-// scoreWindow rates audio between start and end as a clone reference
+// scoreAudio rates a window of audio as a clone reference
 // (0–1).
-func scoreWindow(audio dsp.Buffer, start, end float64) float64 {
-	from := dsp.FramesAt(start, audio.Rate)
-	to := min(dsp.FramesAt(end, audio.Rate), audio.Frames())
-	if to-from < audio.Rate/2 {
+func scoreAudio(w dsp.Buffer) float64 {
+	if w.Frames() < w.Rate/2 {
 		return 0
 	}
-	w := audio.Slice(from, to)
 	length := w.Seconds()
 	segs := analysis.VAD(w, analysis.VADOptions{})
 	speech := analysis.SpeechSeconds(segs) / length

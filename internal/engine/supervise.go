@@ -85,6 +85,13 @@ type worker struct {
 	holds    int           // Hold calls not released: its models stay
 	// HoldModels calls not released, per model: those models stay.
 	modelHolds map[string]int
+
+	// engine.config (supervise_config.go): one push at a time; what proc
+	// configFor was told, and what it said applies.
+	configMu      sync.Mutex
+	config        engineConfig
+	configFor     *proc
+	configApplied proto.EngineConfigResult
 }
 
 // proc is one engine process.

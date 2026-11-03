@@ -169,6 +169,106 @@ final class CaptureRecoveryTests: XCTestCase {
         XCTAssertFalse(r.silentThroughout(seconds: 2))
     }
 
+    // Code review 1103 F1: a loopback/virtual or aggregate input delivers
+    // exact zeros while nothing plays. That is its signal: no voice
+    // processing, no giving up, the silent take kept.
+    func testVirtualInputZerosAreItsSignal() {
+        var r = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "virtual", pickedChannels: false))
+        XCTAssertNil(run(&r, from: 0, to: 30, silent: true))
+        XCTAssertNil(r.autoAEC)
+        XCTAssertTrue(r.everHeard)
+        XCTAssertFalse(r.silentThroughout(seconds: 30))
+        let agg = CapturePolicy.forInput(transport: "aggregate", pickedChannels: false)
+        XCTAssertFalse(agg.autoAEC)
+        XCTAssertTrue(agg.zerosAreSignal)
+    }
+
+    // ... and only no buffers at all is no sound: then it gives up, without
+    // voice processing, after as long as it would have taken with it.
+    func testVirtualInputWithoutBuffersGivesUp() throws {
+        var r = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "virtual", pickedChannels: false))
+        let (a, t) = try XCTUnwrap(run(&r, from: 0, to: 10, silent: true, buffers: false))
+        XCTAssertEqual(a, .fail(.noSound))
+        XCTAssertEqual(t, r.quiet + r.quietAEC, accuracy: 0.3)
+        XCTAssertNil(r.autoAEC)
+        XCTAssertFalse(r.everHeard)
+        XCTAssertTrue(r.silentThroughout(seconds: 10))
+    }
+
+    // Restarts running out on a virtual input give up without voice
+    // processing; sound came, so the take is kept (inputStopped).
+    func testVirtualInputRestartsRunOutWithoutVoiceProcessing() {
+        var r = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "aggregate", pickedChannels: false))
+        r.buffer(now: 0.1, silent: true)
+        var t = 1.0
+        var actions: [CaptureRecovery.Action] = []
+        for _ in 0 ..< 20 {
+            r.configChanged(now: t)
+            var a = CaptureRecovery.Action.none
+            while a == .none { t += 0.05; a = r.tick(now: t) }
+            actions.append(a)
+            if case .restart = a { r.restarted(now: t) } else { break }
+            r.buffer(now: t + 0.05, silent: true)
+            t += 0.1
+        }
+        XCTAssertEqual(actions.last, .fail(.deviceChanges))
+        XCTAssertEqual(actions.count, r.limit + 1)
+        XCTAssertNil(r.autoAEC)
+        XCTAssertTrue(r.everHeard)
+    }
+
+    // Picked channels: voice processing would give its first channel
+    // only, so the watch never turns it on; digital silence gives up.
+    func testPickedChannelsNeverTurnVoiceProcessingOn() throws {
+        var r = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "usb", pickedChannels: true))
+        let (a, t) = try XCTUnwrap(run(&r, from: 0, to: 10, silent: true))
+        XCTAssertEqual(a, .fail(.noSound))
+        XCTAssertEqual(t, r.quiet + r.quietAEC, accuracy: 0.3)
+        XCTAssertNil(r.autoAEC)
+    }
+
+    // A Bluetooth headset's warm-up (zeros while it switches profile) does
+    // not count: voice processing only after 3 s.
+    func testBluetoothWarmUp() throws {
+        var r = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "bluetooth", pickedChannels: false))
+        XCTAssertNil(run(&r, from: 0, to: 2.5, silent: true))
+        var w = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "bluetooth", pickedChannels: false))
+        let (a, t) = try XCTUnwrap(run(&w, from: 0, to: 6, silent: true))
+        XCTAssertEqual(a, .voiceProcessing(.noSound))
+        XCTAssertEqual(t, 3.0, accuracy: 0.3)
+        var s = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "bluetooth", pickedChannels: false))
+        XCTAssertNil(run(&s, from: 0, to: 2, silent: true))
+        XCTAssertNil(run(&s, from: 2, to: 20, silent: false)) // the microphone came up
+        XCTAssertFalse(s.silentThroughout(seconds: 2.5))
+        let plain = CaptureRecovery(aec: false, now: 0)
+        XCTAssertTrue(plain.silentThroughout(seconds: 2))
+        let bt = CaptureRecovery(aec: false, now: 0, policy: .forInput(transport: "bluetooth", pickedChannels: false))
+        XCTAssertFalse(bt.silentThroughout(seconds: 2))
+    }
+
+    // Code review 1103 F3: voice processing asked for but not starting on
+    // the input: the recording goes on without it, and the watch never
+    // turns it on again.
+    func testVoiceProcessingUnavailable() throws {
+        var r = CaptureRecovery(aec: true, now: 0)
+        r.voiceProcessingUnavailable()
+        XCTAssertFalse(r.aec)
+        let (a, t) = try XCTUnwrap(run(&r, from: 0, to: 10, silent: true))
+        XCTAssertEqual(a, .fail(.noSound))
+        XCTAssertEqual(t, r.quiet + r.quietAEC, accuracy: 0.3)
+        XCTAssertNil(r.autoAEC)
+        var s = CaptureRecovery(aec: true, now: 0)
+        s.voiceProcessingUnavailable()
+        XCTAssertNil(run(&s, from: 0, to: 20, silent: false))
+    }
+
+    func testPolicies() {
+        XCTAssertEqual(CapturePolicy.forInput(transport: "builtin", pickedChannels: false), CapturePolicy())
+        XCTAssertEqual(CapturePolicy.forInput(transport: nil, pickedChannels: false), CapturePolicy())
+        XCTAssertFalse(CapturePolicy.forInput(transport: "builtin", pickedChannels: true).autoAEC)
+        XCTAssertEqual(CapturePolicy.forInput(transport: "bluetooth", pickedChannels: false).warmUp, 1.5)
+    }
+
     func testVoiceProcessingAggregatesHidden() {
         XCTAssertTrue(isVoiceProcessingAggregate(uid: "CADefaultDeviceAggregate-1234-0"))
         XCTAssertFalse(isVoiceProcessingAggregate(uid: "BuiltInMicrophoneDevice"))

@@ -59,6 +59,8 @@ public enum Method {
     public static let llmToken = "llm.token"
     // Code review 1102 M1: the system's memory pressure changed (MemoryParams).
     public static let engineMemory = "engine.memory"
+    // Code review 1103 F4/F5: the app's memory budget and holds (EngineConfigParams).
+    public static let engineConfig = "engine.config"
 
     /// Long-running, cancellable requests that count against concurrency.
     public static func isJob(_ method: String) -> Bool {
@@ -582,6 +584,7 @@ public func paramsType(_ method: String) -> (Decodable & Encodable).Type? {
     case Method.ttsDialogue: DialogueParams.self
     case Method.ttsTurn: TurnParams.self
     case Method.engineMemory: MemoryParams.self
+    case Method.engineConfig: EngineConfigParams.self
     default: nil
     }
 }
@@ -617,6 +620,7 @@ public func resultType(_ method: String) -> (Decodable & Encodable).Type? {
     case Method.captureStart: CaptureResult.self
     case Method.captureStop: CaptureStopResult.self
     case Method.ttsDialogue: DialogueResult.self
+    case Method.engineConfig: EngineConfigResult.self
     default: nil
     }
 }

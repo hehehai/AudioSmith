@@ -139,8 +139,12 @@ func (a *app) micControls(c *ui.Context, m *micState, done func(path string)) {
 				m.device = ids[i]
 			}
 		}
-		ch := m.channels
-		if ui.Segmented(c.Key("mic-channels"), &ch, i18n.T("Auto"), i18n.T("Mono"), i18n.T("Stereo")).Label(i18n.T("Channels")).Disabled(busy).Changed() {
+		ch := a.micChannels(m.channels) // mic_aec.go: one channel with echo cancellation
+		seg := ui.Segmented(c.Key("mic-channels"), &ch, i18n.T("Auto"), i18n.T("Mono"), i18n.T("Stereo")).Label(i18n.T("Channels")).Disabled(busy || a.echoOn())
+		if a.echoOn() {
+			seg.Tooltip(channelsHint())
+		}
+		if seg.Changed() {
 			m.channels = ch
 		}
 		a.echoControl(c, "mic-aec", busy) // mic_aec.go: shared by every recording

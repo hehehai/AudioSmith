@@ -31,10 +31,10 @@ func Open(path string) (*File, error) {
 	wf := &File{f: f, format: d.Format(), frames: d.Frames(), data: d.data}
 	if fi, err := f.Stat(); err == nil && fi.Mode().IsRegular() {
 		// The file's size bounds the frames (and gives them for a header
-		// written as it streamed).
-		have := max(fi.Size()-d.data, 0) / int64(wf.format.FrameBytes())
-		if wf.frames < 0 || wf.frames > have {
-			wf.frames = have
+		// written as it streamed), less any chunk after the samples.
+		fb := int64(wf.format.FrameBytes())
+		if have := max(fi.Size()-d.data, 0) / fb; wf.frames < 0 || wf.frames > have {
+			wf.frames = max(samplesEnd(f, d.data, fi.Size(), fb)-d.data, 0) / fb
 		}
 	}
 	return wf, nil
@@ -129,11 +129,17 @@ func ReadSeconds(path string, from, to float64) (dsp.Buffer, Format, error) {
 		return dsp.Buffer{}, Format{}, err
 	}
 	defer w.Close()
-	r := w.Format().Rate
+	b, err := w.ReadSeconds(from, to)
+	return b, w.Format(), err
+}
+
+// ReadSeconds reads the seconds [from, to) (to < 0: to the end), like
+// ReadFrames.
+func (w *File) ReadSeconds(from, to float64) (dsp.Buffer, error) {
+	r := w.format.Rate
 	end := int64(-1)
 	if to >= 0 {
 		end = int64(dsp.FramesAt(to, r))
 	}
-	b, err := w.ReadFrames(int64(dsp.FramesAt(from, r)), end)
-	return b, w.Format(), err
+	return w.ReadFrames(int64(dsp.FramesAt(from, r)), end)
 }

@@ -58,8 +58,15 @@ func (a *app) echoControl(c *ui.Context, key string, busy bool) {
 
 // noteAutoEcho tells, once a recording (*seen holds its reason), that the
 // engine turned echo cancellation on because the input brought no sound
-// or kept stopping, and offers to keep it on for every recording.
+// or kept stopping, and offers to keep it on for every recording; or that
+// echo cancellation could not be used with this input (code review 1103
+// F2/F3).
 func (a *app) noteAutoEcho(l proto.LevelParams, seen *string) {
+	if l.AECFallback != "" && *seen == "" {
+		*seen = l.AECFallback
+		a.toast(echoFallbackText(l.AECFallback))
+		return
+	}
 	if !l.AECAuto || *seen != "" {
 		return
 	}
@@ -82,22 +89,56 @@ func (a *app) noteAutoEcho(l proto.LevelParams, seen *string) {
 	})
 }
 
+// echoFallbackText says why a recording that asked for echo cancellation
+// runs without it (proto.AECFallback*).
+func echoFallbackText(why string) string {
+	if why == proto.AECFallbackDevice {
+		return i18n.T("Echo cancellation works with the system's default input only: this recording runs without it.")
+	}
+	return i18n.T("Echo cancellation does not work with this input: this recording runs without it.")
+}
+
 // noInputText explains a recording that brought no sound (no_input),
 // with what to try.
 func noInputText(e *jobs.Error) string {
 	var d proto.NoInputData
 	json.Unmarshal(e.Data, &d)
 	name := firstOf(d.Name, i18n.T("the microphone"))
-	what := i18n.T("No sound came from %s, even with echo cancellation.", name)
-	if d.Reason == proto.CaptureDeviceChanges {
+	what := i18n.T("No sound came from %s.", name)
+	switch {
+	case d.Reason == proto.CaptureDeviceChanges && d.AEC:
 		what = i18n.T("%s kept stopping as the audio devices changed, even with echo cancellation.", name)
+	case d.Reason == proto.CaptureDeviceChanges:
+		what = i18n.T("%s kept stopping as the audio devices changed.", name)
+	case d.AEC:
+		what = i18n.T("No sound came from %s, even with echo cancellation.", name)
 	}
 	return i18n.T("%s Try: switch Echo cancellation on or off, choose another input, quit other apps that are recording, and check that AudioSmith may use the microphone (System Settings → Privacy & Security → Microphone).", what)
 }
 
+// micChannels are the file's channels for a recorder's choice (0 auto, 1
+// mono, 2 stereo): one with echo cancellation, which gives one channel
+// (code review 1103 F7).
+func (a *app) micChannels(choice int) int {
+	if a.echoOn() {
+		return 1
+	}
+	return choice
+}
+
+// channelsHint says why the channel choice is off.
+func channelsHint() string {
+	return i18n.T("Echo cancellation records one channel: turn it off to record stereo.")
+}
+
 // noteRecordingEnd tells why a recording kept ended by itself: its
-// device went away, or its input stopped for good.
+// device went away, or its input stopped for good; and when echo
+// cancellation came on in a stereo recording, which then holds one
+// channel twice.
 func (a *app) noteRecordingEnd(res proto.CaptureResult) {
+	if res.AECMono && res.Channels == 2 {
+		a.toast(i18n.T("Echo cancellation came on during this recording, so both of its channels hold the same sound."))
+	}
 	switch res.Reason {
 	case proto.CaptureDeviceLost:
 		a.toast(i18n.T("The microphone went away: what was recorded is kept."))
