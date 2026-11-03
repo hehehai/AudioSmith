@@ -127,6 +127,7 @@ type dictSession struct {
 	out      string
 	started  time.Time
 	level    float64
+	aecAuto  string // why the engine turned echo cancellation on (mic_aec.go)
 	trID     string
 	jobID    string
 	stage    string // what the transcription does, translated

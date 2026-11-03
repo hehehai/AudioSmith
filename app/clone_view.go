@@ -143,6 +143,7 @@ func (a *app) micControls(c *ui.Context, m *micState, done func(path string)) {
 		if ui.Segmented(c.Key("mic-channels"), &ch, i18n.T("Auto"), i18n.T("Mono"), i18n.T("Stereo")).Label(i18n.T("Channels")).Disabled(busy).Changed() {
 			m.channels = ch
 		}
+		a.echoControl(c, "mic-aec", busy) // mic_aec.go: shared by every recording
 	})
 	if m.err != "" {
 		ui.Text(c, m.err).FontSize(px(t, fsCaption)).TextColor(t.Danger).TextAlign(ui.Center)

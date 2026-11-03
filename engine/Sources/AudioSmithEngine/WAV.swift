@@ -63,6 +63,14 @@ final class WAVWriter {
         frames += Int64(samples.count / channels)
     }
 
+    /// Drops the samples written so far (a recording's digital silence
+    /// before voice processing came on).
+    func rewind() throws {
+        try handle.truncate(atOffset: 44)
+        try handle.seekToEnd()
+        frames = 0
+    }
+
     /// Writes the header's sizes and renames the file into place.
     func finish() throws {
         done = true

@@ -317,7 +317,7 @@ func TestCloneRecordAndUseOnce(t *testing.T) {
 	tt := ui.NewTester(a.view, 1200, 1800)
 	a.startClone("")
 	tt.Frame()
-	if len(a.clone.devices) != 3 {
+	if len(a.clone.devices) != 5 {
 		t.Fatalf("devices %+v", a.clone.devices)
 	}
 	a.clone.mic.device = a.clone.devices[1].ID

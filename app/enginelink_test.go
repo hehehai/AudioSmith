@@ -382,7 +382,7 @@ func TestEngineCallSeams(t *testing.T) {
 		devs = d
 	})
 	pump("devices", func() bool { return devs != nil })
-	if len(devs) != 3 || devs[0].ID != enginetest.FakeBuiltInMic {
+	if len(devs) != 5 || devs[0].ID != enginetest.FakeBuiltInMic {
 		t.Fatalf("devices: %+v", devs)
 	}
 

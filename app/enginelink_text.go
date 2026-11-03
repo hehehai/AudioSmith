@@ -107,6 +107,8 @@ func jobErrorText(e *jobs.Error) string {
 		return i18n.T("AudioSmith may not use the microphone. Allow it in System Settings → Privacy & Security → Microphone.")
 	case proto.CodeDeviceUnavailable:
 		return i18n.T("The microphone is not available. Check that it is connected, or choose another input.")
+	case proto.CodeNoInput:
+		return noInputText(e) // mic_aec.go
 	case core.CodeNeedsReference:
 		var d struct{ Model string }
 		json.Unmarshal(e.Data, &d)

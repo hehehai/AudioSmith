@@ -58,6 +58,19 @@ type Settings struct {
 	Updates Updates `json:"updates"`
 	// The ActNow family (family.go; internal/family).
 	Family Family `json:"family,omitzero"`
+	// Every microphone recording (thread #153).
+	Recording Recording `json:"recording,omitzero"`
+}
+
+// Recording: what every microphone recording shares (the clone
+// recorder, the consent statement, Transcribe's Record, dictation).
+type Recording struct {
+	// EchoCancellation records with macOS voice processing: echo
+	// cancellation, with noise suppression and automatic gain. Off by
+	// default (the processing colours a clone's reference); the engine
+	// still turns it on by itself for a recording whose input brings no
+	// sound (proto.CaptureParams.AEC).
+	EchoCancellation bool `json:"echoCancellation,omitempty"`
 }
 
 // Updates: the in-app updater's preferences (updates.go). Up to

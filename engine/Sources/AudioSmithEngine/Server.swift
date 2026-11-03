@@ -57,6 +57,9 @@ enum EngineError: Error, LocalizedError {
     case unsupportedMedia(String, String)
     case permissionDenied(String)
     case deviceUnavailable(String)
+    /// A recording brought no sound: the device's id and name, and why
+    /// (CaptureRecovery.Reason: "noSound", "deviceChanges").
+    case noInput(device: String, name: String, reason: String)
 
     var errorDescription: String? {
         switch self {
@@ -69,6 +72,9 @@ enum EngineError: Error, LocalizedError {
         case .unsupportedMedia(let path, let why): "Cannot read \(path): \(why)"
         case .permissionDenied(let what): "\(what.capitalized) access is denied for AudioSmith"
         case .deviceUnavailable(let device): "The audio input \(device) is not available"
+        case .noInput(_, let name, let reason):
+            reason == "deviceChanges" ? "\(name) kept stopping as the audio devices changed: no sound was recorded"
+                : "No sound from \(name)"
         }
     }
 
@@ -90,6 +96,8 @@ enum EngineError: Error, LocalizedError {
         case .unsupportedMedia(let path, _): RPCError(Code.unsupportedMedia, m, data: .object(["path": .string(path)]))
         case .permissionDenied(let what): RPCError(Code.permissionDenied, m, data: .object(["permission": .string(what)]))
         case .deviceUnavailable(let device): RPCError(Code.deviceUnavailable, m, data: .object(["device": .string(device)]))
+        case .noInput(let device, let name, let reason):
+            RPCError(Code.noInput, m, data: .object(["device": .string(device), "name": .string(name), "reason": .string(reason)]))
         }
     }
 }

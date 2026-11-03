@@ -1886,7 +1886,6 @@
   "Not set up (optional)": "未配置（可选）",
   "Not supported by %s": "%s不支持",
   "Not translated yet: click to write the translation": "尚未翻译：点击填写译文",
-  "Not yet: live text while you speak, and dictating while AudioSmith plays audio (echo cancellation).": "暂不支持：边说边显示文字，以及 AudioSmith 播放音频时听写（回声消除）。",
   "Note": "备注",
   "Note (optional)": "备注（可选）",
   "Nothing changed since the last run: every result is ready.": "自上次运行以来没有变化：所有结果都已就绪。",
@@ -4040,5 +4039,19 @@
   "The working files are being made again: try again in a moment.": "正在重新生成工作文件，请稍后再试。",
   "The working files were freed to save space: decoding the source again.": "为节省空间，工作文件已释放：正在重新解码源文件。",
   "Not enough free disk space: this needs about %s and %s is free. Free up some space (Settings → Storage shows what AudioSmith keeps), then try again.": "磁盘空间不足：这项工作大约需要 %s，目前只剩 %s。请先腾出一些空间（“设置 → 存储”列出了 AudioSmith 占用的空间），然后重试。",
-  "The disk is full. Free up some space (Settings → Storage shows what AudioSmith keeps), then try again.": "磁盘已满。请先腾出一些空间（“设置 → 存储”列出了 AudioSmith 占用的空间），然后重试。"
+  "The disk is full. Free up some space (Settings → Storage shows what AudioSmith keeps), then try again.": "磁盘已满。请先腾出一些空间（“设置 → 存储”列出了 AudioSmith 占用的空间），然后重试。",
+  "Not yet: live text while you speak.": "暂不支持：边说边显示文字。",
+  "Turn on if the microphone records no sound or picks up the speakers; the voice may sound processed.": "麦克风录不到声音、或录进了扬声器的声音时打开；人声可能听起来有处理痕迹。",
+  "Echo cancellation": "回声消除",
+  "The microphone brought no sound: echo cancellation is on for this recording.": "麦克风没有声音：本次录音已自动打开回声消除。",
+  "The microphone kept stopping as the audio devices changed: echo cancellation is on for this recording.": "音频设备反复变动，麦克风一再中断：本次录音已自动打开回声消除。",
+  "Keep it on for every recording? You can change it next to the microphone.": "要让以后的录音都打开吗？也可以在麦克风选择旁边随时切换。",
+  "Keep it on": "保持打开",
+  "Echo cancellation is on for every recording.": "已为所有录音打开回声消除。",
+  "the microphone": "麦克风",
+  "No sound came from %s, even with echo cancellation.": "%s 没有声音，打开回声消除后也一样。",
+  "%s kept stopping as the audio devices changed, even with echo cancellation.": "音频设备反复变动，%s 一再中断，打开回声消除后也一样。",
+  "The microphone stopped as the audio devices changed: what was recorded is kept.": "音频设备变动，麦克风已停止：已录下的部分会保留。",
+  "%s Try: switch Echo cancellation on or off, choose another input, quit other apps that are recording, and check that AudioSmith may use the microphone (System Settings → Privacy & Security → Microphone).": "%s可以试试：打开或关闭“回声消除”，换一个输入设备，退出其他正在录音的 App，并确认 AudioSmith 有麦克风权限（系统设置 → 隐私与安全性 → 麦克风）。",
+  "Turn on if the microphone records no sound or picks up the speakers; the voice may sound processed. Applies to every recording.": "麦克风录不到声音、或录进了扬声器的声音时打开；人声可能听起来有处理痕迹。对所有录音生效。"
 }

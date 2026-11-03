@@ -184,6 +184,10 @@ const (
 	// several of the model; data: {"model":"…","snapshots":["<commit>",…]}.
 	// The app always names one (the executors' ModelPath).
 	CodeModelPathRequired = "model_path_required"
+
+	// Thread #153: a recording brought no sound, even with voice
+	// processing (capture.start); data: NoInputData.
+	CodeNoInput = "no_input"
 )
 
 // ParamAuxPaths is the member any model job may carry beside model and
@@ -201,7 +205,7 @@ var Codes = []string{
 	CodeBadRequest, CodeMethodNotFound, CodeNotInitialized, CodeProtocolMismatch, CodeUnsupported,
 	CodeModelNotDownloaded, CodeModelLoadFailed, CodeLicenceRequired, CodeOOM, CodeBusy, CodeCancelled, CodeInternal,
 	CodeInputTooLong, CodeFileNotFound, CodeUnsupportedMedia, CodePermissionDenied, CodeDeviceUnavailable,
-	CodeContextTooLong, CodeModelPathRequired,
+	CodeContextTooLong, CodeModelPathRequired, CodeNoInput,
 }
 
 // Retryable reports whether a job failing with code may be retried automatically.

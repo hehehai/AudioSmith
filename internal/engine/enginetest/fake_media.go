@@ -27,6 +27,11 @@ package enginetest
 //     real time, sends capture.level every level-ms (default 50 ms), and
 //     ends on capture.stop, maxSeconds, or (FakeFlakyDevice) after 0.2 s
 //     with reason deviceLost. Option deny-mic fails it with permission_denied.
+//     FakeSilentMic sends silence until 0.15 s, then, unless the request
+//     asked for aec, turns voice processing on by itself (levels and the
+//     result with aecAuto, reason noSound) and records the tone;
+//     FakeDeadMic fails with no_input after 0.15 s. The result's aec says
+//     whether voice processing was on.
 
 import (
 	"encoding/json"
@@ -36,9 +41,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
-	"time"
 	"unicode"
 
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
@@ -52,22 +55,6 @@ const FakeMediaSeconds = 10.0
 
 // FakeMediaExts are the non-WAV extensions the fake "decodes".
 var FakeMediaExts = []string{".aif", ".aiff", ".aifc", ".caf", ".mp3", ".m4a", ".m4b", ".aac", ".flac", ".mov", ".mp4", ".m4v"}
-
-// Fake capture devices.
-const (
-	FakeBuiltInMic  = "BuiltInMicrophoneDevice"
-	FakeUSBDevice   = "AppleUSBAudioEngine:Fake:Interface:1"
-	FakeFlakyDevice = "AppleUSBAudioEngine:Fake:Flaky:2" // disconnects 0.2 s into a recording
-)
-
-// FakeDevices are the inputs the fake lists, the default first.
-func FakeDevices() []proto.CaptureDevice {
-	return []proto.CaptureDevice{
-		{ID: FakeBuiltInMic, Name: "MacBook Air Microphone", Channels: 1, SampleRate: 48000, Default: true, Transport: "builtin"},
-		{ID: FakeUSBDevice, Name: "Fake USB Interface", Channels: 2, SampleRate: 48000, Transport: "usb"},
-		{ID: FakeFlakyDevice, Name: "Fake Flaky Headset", Channels: 1, SampleRate: 16000, Transport: "bluetooth"},
-	}
-}
 
 func isVideoExt(ext string) bool { return ext == ".mov" || ext == ".mp4" || ext == ".m4v" }
 
@@ -479,104 +466,4 @@ func (f *fakeEngine) useVoicePrompt(id string, p proto.SynthesizeParams) bool {
 	}
 	f.fail(id, proto.CodeBadRequest, "Voice prompt %s is not usable: %v", p.VoicePrompt, err)
 	return false
-}
-
-// capture records until capture.stop, job.cancel, maxSeconds or the
-// flaky device going away.
-func (f *fakeEngine) capture(m proto.Message) {
-	var p proto.CaptureParams
-	if err := m.DecodeParams(&p); err != nil || p.Output.Path == "" {
-		f.fail(m.ID, proto.CodeBadRequest, "Missing output")
-		return
-	}
-	if _, deny := f.opts["deny-mic"]; deny {
-		f.failData(m.ID, proto.CodePermissionDenied, map[string]string{"permission": "microphone"}, "Microphone access is denied for AudioSmith")
-		return
-	}
-	dev := FakeDevices()[0]
-	if p.Device != "" {
-		i := slices.IndexFunc(FakeDevices(), func(d proto.CaptureDevice) bool { return d.ID == p.Device })
-		if i < 0 {
-			f.failData(m.ID, proto.CodeDeviceUnavailable, map[string]string{"device": p.Device}, "No audio input %s", p.Device)
-			return
-		}
-		dev = FakeDevices()[i]
-	}
-	for _, c := range p.InputChannels {
-		if c < 1 || c > dev.Channels {
-			f.fail(m.ID, proto.CodeBadRequest, "%s has no input channel %d", dev.Name, c)
-			return
-		}
-	}
-	channels := max(p.Channels, 1)
-	rate := p.SampleRate
-	if rate == 0 {
-		rate = dev.SampleRate
-	}
-	every := 50 * time.Millisecond
-	if ms, err := strconv.Atoi(f.opts["level-ms"]); err == nil && ms > 0 {
-		every = time.Duration(ms) * time.Millisecond
-	}
-	stop := make(chan bool)
-	f.mu.Lock()
-	f.stop[m.ID] = stop
-	f.mu.Unlock()
-	f.notify(proto.MethodJobProgress, proto.ProgressParams{Job: m.ID, Stage: "recording"})
-	start := time.Now()
-	tick := time.NewTicker(every)
-	defer tick.Stop()
-	reason := ""
-	for reason == "" {
-		select {
-		case <-stop:
-			reason = proto.CaptureStopped
-		case <-tick.C:
-		}
-		if f.cancelled(m.ID) {
-			os.Remove(p.Output.Path)
-			f.fail(m.ID, proto.CodeCancelled, "Cancelled")
-			return
-		}
-		elapsed := time.Since(start).Seconds()
-		switch {
-		case reason != "":
-		case p.MaxSeconds > 0 && elapsed >= p.MaxSeconds:
-			reason = proto.CaptureMaxSeconds
-		case dev.ID == FakeFlakyDevice && elapsed >= 0.2:
-			reason = proto.CaptureDeviceLost
-		default:
-			rms, peak := levels(Tone(rate, 1, every.Seconds(), 440, 0.25).Samples)
-			f.notify(proto.MethodCaptureLevel, proto.LevelParams{Job: m.ID, Seconds: round3(elapsed), RMS: round3(rms), Peak: round3(peak)})
-		}
-	}
-	seconds := time.Since(start).Seconds()
-	if p.MaxSeconds > 0 {
-		seconds = min(seconds, p.MaxSeconds)
-	}
-	audio := Tone(rate, channels, seconds, 440, 0.25)
-	if !f.write(m.ID, p.Output, audio) {
-		return
-	}
-	_, peak := levels(audio.Samples)
-	f.result(m.ID, proto.CaptureResult{AudioOut: audioOut(p.Output.Path, audio), Device: dev.ID, Peak: round3(peak), Reason: reason})
-}
-
-// captureStop ends a recording; the job answers first.
-func (f *fakeEngine) captureStop(m proto.Message) {
-	var p proto.CaptureStopParams
-	m.DecodeParams(&p)
-	f.mu.Lock()
-	stop, ok := f.stop[p.Job]
-	done := f.finished[p.Job]
-	delete(f.stop, p.Job)
-	f.mu.Unlock()
-	if !ok {
-		f.result(m.ID, proto.CaptureStopResult{Stopped: false})
-		return
-	}
-	close(stop)
-	go func() {
-		<-done
-		f.result(m.ID, proto.CaptureStopResult{Stopped: true})
-	}()
 }

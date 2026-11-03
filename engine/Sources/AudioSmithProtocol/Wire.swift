@@ -100,6 +100,8 @@ public enum Code {
     public static let permissionDenied = "permission_denied"
     public static let deviceUnavailable = "device_unavailable"
     public static let contextTooLong = "context_too_long"
+    // Thread #153: a recording brought no sound (data: device, name, reason).
+    public static let noInput = "no_input"
     // ActNow family spec §7.1: several snapshots of the model are in the
     // cache and the job named none (snapshotChoice).
     public static let modelPathRequired = "model_path_required"
@@ -108,7 +110,7 @@ public enum Code {
         badRequest, methodNotFound, notInitialized, protocolMismatch, unsupported, modelNotDownloaded,
         modelLoadFailed, licenceRequired, oom, busy, cancelled, `internal`,
         inputTooLong, fileNotFound, unsupportedMedia, permissionDenied, deviceUnavailable,
-        contextTooLong, modelPathRequired,
+        contextTooLong, modelPathRequired, noInput,
     ]
 }
 

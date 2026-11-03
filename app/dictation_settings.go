@@ -379,6 +379,10 @@ func (a *app) dictationSettings(c *ui.Context) {
 				a.updateSettings(func(s *settings.Settings) { s.Dictation.Device = id })
 			}
 		})
+		// Shared by every recording, not only dictation (mic_aec.go).
+		settingRow(c, "rec-aec", i18n.T("Echo cancellation"), echoSettingHint(), func() {
+			a.echoSwitch(c, "rec-aec-switch", false)
+		})
 		n := utf8.RuneCountInString(f.vocab)
 		settingRow(c, "dict-vocab", i18n.T("Vocabulary"), i18n.T("Names and terms to expect, separated by commas or lines; clean-up keeps them."), func() {})
 		settingFoot(c, "dict-vocab-foot", func() { a.vocabField(c, n) })
@@ -463,7 +467,7 @@ func (a *app) dictTextSettings(c *ui.Context) {
 			}
 		})
 		settingFoot(c, "dict-not-yet", func() {
-			ui.Text(c, i18n.T("Not yet: live text while you speak, and dictating while AudioSmith plays audio (echo cancellation).")).
+			ui.Text(c, i18n.T("Not yet: live text while you speak.")).
 				FontSize(px(t, fsMicro)).TextColor(t.TextMuted)
 		})
 	})
