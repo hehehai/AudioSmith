@@ -37,6 +37,10 @@ type Options struct {
 	// public routes: health, discovery, the spec), at most once a second;
 	// nil = nobody (the Developers page's 「最近一次请求」).
 	Seen func(at time.Time)
+	// ShareChanged is told (on a request's goroutine) when LAN sharing's
+	// guard counted a wrong PIN or key: Sharing's Locked or Limited may
+	// have changed; nil = nobody.
+	ShareChanged func()
 }
 
 // Server is the Local API. Its handlers are goroutine-safe; Start and
@@ -54,7 +58,6 @@ type Server struct {
 	mcp   atomic.Pointer[http.Handler]
 	key   atomic.Pointer[string]
 	share atomic.Pointer[shareState]
-	fails *failLimiter
 
 	mu   sync.Mutex
 	loop *listener
@@ -76,7 +79,7 @@ func New(o Options) *Server {
 		o.Logf = log.Printf
 	}
 	s := &Server{o: o, b: o.Backend, sched: o.Sched, w: newWatcher(o.Bus), mux: http.NewServeMux(),
-		access: map[string]access{}, fails: newFailLimiter(10, time.Minute)}
+		access: map[string]access{}}
 	s.routes()
 	return s
 }
@@ -228,9 +231,9 @@ func isAddrInUse(err error) bool { return errors.Is(err, syscall.EADDRINUSE) }
 type shareState struct {
 	PIN   string
 	Port  int
-	Hosts []string     // IPs and names the LAN listener answers to
-	URLs  []string     // http://<ip>:<port>
-	fails atomic.Int32 // wrong PINs or keys from any address (maxPINFails)
+	Hosts []string  // IPs and names the LAN listener answers to
+	URLs  []string  // http://<ip>:<port>
+	guard *pinGuard // wrong PINs and keys (pinguard.go)
 }
 
 // Share describes LAN sharing for the UI.
@@ -238,6 +241,30 @@ type Share struct {
 	PIN  string
 	Port int
 	URLs []string
+	// Locked: wrong PINs from several devices stopped the PIN for
+	// everyone until Until (the key still works; RenewPIN ends it).
+	Locked bool
+	Until  time.Time
+	// Limited is how many devices are refused for now after too many
+	// wrong PINs or keys.
+	Limited int
+	// Next is when Locked or Limited change by themselves (zero: no
+	// change pending): when to look again.
+	Next time.Time
+}
+
+// share is st as the UI sees it.
+func (st *shareState) share() Share {
+	sh := Share{PIN: st.PIN, Port: st.Port, URLs: st.URLs}
+	sh.Locked, sh.Until, sh.Limited, sh.Next = st.guard.status()
+	return sh
+}
+
+// newShareState is sharing on port with a new PIN and a new count.
+func (s *Server) newShareState(port int, hosts, urls []string) *shareState {
+	st := &shareState{PIN: newPIN(), Port: port, Hosts: hosts, URLs: urls, guard: newPINGuard()}
+	st.guard.note = s.o.ShareChanged
+	return st
 }
 
 // StartLAN opens the LAN listener on every interface at port with a new
@@ -259,7 +286,7 @@ func (s *Server) StartLAN(port int) (Share, error) {
 		return Share{}, err
 	}
 	port = ln.Addr().(*net.TCPAddr).Port
-	st := &shareState{PIN: newPIN(), Port: port}
+	st := s.newShareState(port, nil, nil)
 	for _, ip := range lanAddresses() {
 		st.Hosts = append(st.Hosts, ip)
 		st.URLs = append(st.URLs, "http://"+net.JoinHostPort(ip, strconv.Itoa(port)))
@@ -272,7 +299,22 @@ func (s *Server) StartLAN(port int) (Share, error) {
 	}
 	s.share.Store(st)
 	s.lan = s.serve(ln, s.guard(true, port))
-	return Share{PIN: st.PIN, Port: port, URLs: st.URLs}, nil
+	return st.share(), nil
+}
+
+// RenewPIN gives LAN sharing a new PIN and forgets the wrong attempts
+// (the lock, the refused devices); the listener stays (ok false: sharing
+// is off).
+func (s *Server) RenewPIN() (Share, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	old := s.share.Load()
+	if old == nil || s.lan == nil {
+		return Share{}, false
+	}
+	st := s.newShareState(old.Port, old.Hosts, old.URLs)
+	s.share.Store(st)
+	return st.share(), true
 }
 
 // StopLAN closes the LAN listener; the PIN is forgotten.
@@ -293,7 +335,7 @@ func (s *Server) Sharing() (Share, bool) {
 	if st == nil {
 		return Share{}, false
 	}
-	return Share{PIN: st.PIN, Port: st.Port, URLs: st.URLs}, true
+	return st.share(), true
 }
 
 // newPIN is a random 8-digit PIN (code review 11-02, L1: 6 digits were

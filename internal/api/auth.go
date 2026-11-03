@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/oplog"
@@ -210,10 +209,14 @@ func (s *Server) authorize(lan bool, r *http.Request, acc access) error {
 		return &Error{Status: http.StatusUnauthorized, Code: CodeUnauthorized,
 			Message: "This AudioSmith asks for its API key: send Authorization: Bearer <key> (Settings → Local API)."}
 	}
+	st := s.share.Load()
+	if st == nil { // sharing just stopped
+		return &Error{Status: http.StatusUnauthorized, Code: CodeUnauthorized, Message: "LAN sharing is off."}
+	}
 	ip := remoteIP(r)
-	if s.fails.blocked(ip) {
-		return &Error{Status: http.StatusTooManyRequests, Code: CodeTooManyAttempts, RetryAfter: 60,
-			Message: "Too many wrong PINs or keys; wait a minute."}
+	if no, wait := st.guard.blocked(ip); no {
+		return &Error{Status: http.StatusTooManyRequests, Code: CodeTooManyAttempts, RetryAfter: seconds(wait),
+			Message: "Too many wrong PINs or keys from this device: wait a few minutes."}
 	}
 	pin := r.Header.Get(HeaderPIN)
 	if pin == "" {
@@ -224,29 +227,31 @@ func (s *Server) authorize(lan bool, r *http.Request, acc access) error {
 			pin = c.Value
 		}
 	}
-	st := s.share.Load()
-	if st != nil && st.fails.Load() >= maxPINFails {
-		// Guessed at from many addresses: the PIN is done with (code
-		// review 11-02, L1). The key still works.
-		return &Error{Status: http.StatusTooManyRequests, Code: CodeTooManyAttempts,
-			Message: "Too many wrong PINs: turn LAN sharing off and on in AudioSmith for a new PIN, or send the API key."}
-	}
-	if pin != "" && st != nil && subtle.ConstantTimeCompare([]byte(pin), []byte(st.PIN)) == 1 {
-		if acc == accessConsume {
-			return nil
+	if pin != "" {
+		if locked, until := st.guard.locked(); locked {
+			// Guessed at from many addresses: the PIN rests (code review
+			// 11-02 L1, 11-03 M1). The key still works.
+			return &Error{Status: http.StatusTooManyRequests, Code: CodeTooManyAttempts, RetryAfter: seconds(time.Until(until)),
+				Message: "Too many wrong PINs from several devices: the PIN works again later, or make a new PIN in AudioSmith (Settings → Local API); the API key still works."}
 		}
-		return &Error{Status: http.StatusForbidden, Code: CodeUnauthorized,
-			Message: "The sharing PIN covers speech, transcription and reading voices; this needs the API key."}
-	}
-	if pin != "" || bearer(r) != "" {
-		s.fails.fail(ip)
-		if st != nil {
-			st.fails.Add(1)
+		if subtle.ConstantTimeCompare([]byte(pin), []byte(st.PIN)) == 1 {
+			if acc == accessConsume {
+				return nil
+			}
+			return &Error{Status: http.StatusForbidden, Code: CodeUnauthorized,
+				Message: "The sharing PIN covers speech, transcription and reading voices; this needs the API key."}
 		}
+		st.guard.fail(ip, true, pin)
+	}
+	if k := bearer(r); k != "" {
+		st.guard.fail(ip, false, k) // counts toward this address's limit, not the PIN's
 	}
 	return &Error{Status: http.StatusUnauthorized, Code: CodeUnauthorized,
 		Message: "Send the sharing PIN (" + HeaderPIN + " header or ?pin=) or the API key (Authorization: Bearer)."}
 }
+
+// seconds is d in whole seconds for Retry-After (at least 1).
+func seconds(d time.Duration) int { return max(1, int((d+time.Second-1)/time.Second)) }
 
 func remoteIP(r *http.Request) string {
 	h, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -254,47 +259,6 @@ func remoteIP(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return h
-}
-
-// maxPINFails is how many wrong PINs or keys, from any address, LAN
-// sharing takes before its PIN stops working: an 8-digit PIN then holds
-// against guessing from many addresses (one in two million).
-const maxPINFails = 50
-
-// failLimiter counts wrong credentials per address in a window.
-type failLimiter struct {
-	mu     sync.Mutex
-	max    int
-	window time.Duration
-	by     map[string][]time.Time
-	now    func() time.Time
-}
-
-func newFailLimiter(max int, window time.Duration) *failLimiter {
-	return &failLimiter{max: max, window: window, by: map[string][]time.Time{}, now: time.Now}
-}
-
-func (f *failLimiter) recent(ip string) []time.Time {
-	cut := f.now().Add(-f.window)
-	ts := slices.DeleteFunc(f.by[ip], func(t time.Time) bool { return t.Before(cut) })
-	if len(ts) == 0 {
-		delete(f.by, ip)
-		return nil
-	}
-	f.by[ip] = ts
-	return ts
-}
-
-func (f *failLimiter) fail(ip string) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.by[ip] = append(f.recent(ip), f.now())
-}
-
-func (f *failLimiter) blocked(ip string) bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return len(f.recent(ip)) >= f.max
 }
 
 // NewKey makes an API key: "as-" and 40 random letters and digits.

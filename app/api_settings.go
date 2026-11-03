@@ -140,8 +140,19 @@ func (a *app) apiShareInfo(c *ui.Context, sh *api.Share) {
 	ui.Column(c.Key("api-share-info")).Gap(px(t, 6)).Padding(px(t, 12)).Radius(8).Background(t.Surface).Children(func() {
 		ui.Row(c).Gap(px(t, 12)).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, i18n.T("PIN")).TextColor(t.TextMuted)
-			ui.Text(c, sh.PIN[:len(sh.PIN)/2]+" "+sh.PIN[len(sh.PIN)/2:]).Font(monoFont).FontSize(px(t, 22)).Bold()
+			ui.Text(c, sh.PIN[:len(sh.PIN)/2]+" "+sh.PIN[len(sh.PIN)/2:]).Font(monoFont).FontSize(px(t, 22)).Bold().Grow(1)
+			// Code review 11-03 M1: a new PIN, which also ends a lock.
+			if ui.Button(c.Key("api-share-renew"), i18n.T("New PIN")).Clicked() {
+				a.renewPIN()
+			}
 		})
+		if sh.Locked {
+			ui.Text(c.Key("api-share-locked"), i18n.T("Too many wrong PINs from several devices: the PIN is paused until %s. Make a new PIN to use sharing now; the API key still works.", sh.Until.Local().Format("15:04"))).
+				FontSize(px(t, 12)).TextColor(t.Danger).Wrap()
+		} else if sh.Limited > 0 {
+			ui.Text(c.Key("api-share-limited"), i18n.N(sh.Limited, "%d device sent too many wrong PINs or keys and is refused for a few minutes.", "%d devices sent too many wrong PINs or keys and are refused for a few minutes.", sh.Limited)).
+				FontSize(px(t, 12)).TextColor(t.TextMuted).Wrap()
+		}
 		if len(sh.URLs) == 0 {
 			muted(i18n.T("This Mac has no address on a local network."))
 		}

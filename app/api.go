@@ -51,6 +51,9 @@ type apiState struct {
 	apiNewKey string
 	apiShare  *api.Share // LAN sharing while on
 	apiShareE string
+	// apiShareT looks at the PIN's lock again when it ends by itself
+	// (main thread).
+	apiShareT *time.Timer
 
 	apiForm     apiForm
 	apiClients  []mcpsrv.Client // agents seen, for the bindings
@@ -88,7 +91,9 @@ func (a *app) startAPI(dataDir string) {
 	b := a.newAPIBackend(dataDir)
 	b.cleanTemp()
 	srv := api.New(api.Options{Backend: b, Sched: a.lib.sched, Bus: a.lib.bus, Version: a.version,
-		Seen: func(time.Time) { a.post(func() {}) }}) // Developers shows it (apiLastRequest)
+		Seen:         func(time.Time) { a.post(func() {}) }, // Developers shows it (apiLastRequest)
+		ShareChanged: func() { a.post(a.refreshShare) },     // the PIN's lock (code review 11-03 M1)
+	})
 	m := mcpsrv.New(mcpsrv.Options{API: srv, Backend: b, Version: a.version})
 	m.OnAgentConnected(func(bool) { a.post(a.updateTray) }) // the menu bar icon's violet dot
 	srv.MountMCP(m.Handler())
@@ -250,7 +255,7 @@ func (a *app) startSharing() {
 		share, err := srv.StartLAN(port)
 		a.post(func() {
 			if err != nil {
-				a.apiShare = nil
+				a.setShare(nil)
 				if errors.Is(err, api.ErrPortInUse) {
 					a.apiShareE = i18n.T("Port %d is used by another program: choose another one.", port)
 				} else {
@@ -258,7 +263,48 @@ func (a *app) startSharing() {
 				}
 				return
 			}
-			a.apiShare = &share
+			a.setShare(&share)
+		})
+	})
+}
+
+// setShare shows sh (nil: not sharing) and looks again when its lock or
+// refused devices end by themselves.
+func (a *app) setShare(sh *api.Share) {
+	a.apiShare = sh
+	if a.apiShareT != nil {
+		a.apiShareT.Stop()
+		a.apiShareT = nil
+	}
+	if sh != nil && !sh.Next.IsZero() {
+		a.apiShareT = time.AfterFunc(max(time.Until(sh.Next), 0)+time.Second, func() { a.post(a.refreshShare) })
+	}
+}
+
+// refreshShare reads LAN sharing's state again (the PIN's lock).
+func (a *app) refreshShare() {
+	srv := a.apiSrv
+	if srv == nil || a.apiShare == nil {
+		return
+	}
+	if sh, ok := srv.Sharing(); ok {
+		a.setShare(&sh)
+	}
+}
+
+// renewPIN gives sharing a new PIN, which ends a lock after wrong PINs.
+func (a *app) renewPIN() {
+	srv := a.apiSrv
+	if srv == nil || a.apiShare == nil {
+		return
+	}
+	a.async(func() {
+		sh, ok := srv.RenewPIN()
+		a.post(func() {
+			if ok && a.apiShare != nil {
+				a.setShare(&sh)
+				a.toast(i18n.T("New PIN: devices need it from now on"))
+			}
 		})
 	})
 }
@@ -266,7 +312,7 @@ func (a *app) startSharing() {
 // stopSharing closes the LAN listener; the PIN stops working.
 func (a *app) stopSharing() {
 	srv := a.apiSrv
-	a.apiShare = nil
+	a.setShare(nil)
 	if srv == nil {
 		return
 	}

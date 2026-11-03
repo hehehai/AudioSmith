@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -488,8 +489,8 @@ func TestLANSharing(t *testing.T) {
 	if c := get("/api/jobs", "Authorization", "Bearer as-k"); c != 200 {
 		t.Fatalf("admin with key: %d", c)
 	}
-	for i := 0; i < 10; i++ {
-		get("/v1/models", HeaderPIN, "000000x")
+	for i := 0; i < 10; i++ { // different wrong PINs (the same one counts once)
+		get("/v1/models", HeaderPIN, "0000000"+strconv.Itoa(i))
 	}
 	if c := get("/v1/models", HeaderPIN, share.PIN); c != 429 {
 		t.Fatalf("after wrong pins: %d", c)

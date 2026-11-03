@@ -67,6 +67,7 @@ func TestLANRateFitRewrite(t *testing.T) {
 
 // TestPINGuessedFromManyAddresses (L1): wrong PINs from many addresses
 // (each under the per-address limit) lock the PIN; the key still works.
+// Code review 11-03 M1: globalMax distinct (address, PIN) pairs.
 func TestPINGuessedFromManyAddresses(t *testing.T) {
 	f := newFake(t)
 	s, _ := f.server()
@@ -85,11 +86,11 @@ func TestPINGuessedFromManyAddresses(t *testing.T) {
 		h.ServeHTTP(w, req)
 		return w.Code
 	}
-	for i := range maxPINFails {
+	for i := range globalMax {
 		get(fmt.Sprintf("10.0.%d.%d", i/5, i%5), HeaderPIN, "00000000")
 	}
 	if c := get("10.9.9.9", HeaderPIN, share.PIN); c != http.StatusTooManyRequests {
-		t.Errorf("right PIN after %d wrong ones: %d", maxPINFails, c)
+		t.Errorf("right PIN after %d wrong ones: %d", globalMax, c)
 	}
 	s.SetKey("as-k")
 	if c := get("10.9.9.9", "Authorization", "Bearer as-k"); c != 200 {
