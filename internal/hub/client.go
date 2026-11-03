@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/catalog"
@@ -54,6 +55,11 @@ type Client struct {
 	winner   string // endpoint that won the last race
 	wonAt    time.Time
 	repoLock map[string]*sync.Mutex
+	// free is the space free on a directory's volume (freeBytes; tests
+	// fake it); inflight are the bytes each download under way still has
+	// to write, with its repo (client_reserve.go).
+	free     func(dir string) int64
+	inflight map[*atomic.Int64]string
 }
 
 var _ Downloader = (*Client)(nil)
@@ -91,13 +97,14 @@ func New(o Options) *Client {
 		o.ChunkSize = 16 << 20
 	}
 	if o.ReserveBytes == 0 {
-		o.ReserveBytes = 2e9
+		o.ReserveBytes = DefaultReserve
 	}
 	hc := o.HTTPClient
 	if hc == nil {
 		hc = NewHTTPClient(o.Proxy, 30*time.Second)
 	}
-	return &Client{opts: o, http: hc, repoLock: map[string]*sync.Mutex{}, progressEvery: 250 * time.Millisecond}
+	return &Client{opts: o, http: hc, repoLock: map[string]*sync.Mutex{}, progressEvery: 250 * time.Millisecond,
+		free: freeBytes, inflight: map[*atomic.Int64]string{}}
 }
 
 // Options returns the options in use, defaults filled in.

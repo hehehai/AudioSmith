@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/jobs"
@@ -274,6 +275,9 @@ func (a *app) isoDetailBody(c *ui.Context, x services.Isolation) {
 		return
 	case x.State != services.IsolateDone:
 		text := orDash(x.Error)
+		if x.ErrorCode == core.CodeDiskFull {
+			text = diskFullText(nil)
+		}
 		if !failed {
 			text = i18n.T("Stopped before it finished.")
 		}

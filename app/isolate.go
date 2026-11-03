@@ -224,7 +224,7 @@ func (a *app) isoStart(path string) {
 			case errors.Is(err, core.ErrNotDownloaded):
 				a.isoErr = i18n.T("%s is not downloaded yet.", modelRef(isoSeparator()))
 			case err != nil:
-				a.isoErr = i18n.T("Could not start: %v", err)
+				a.isoErr = i18n.T("Could not start: %v", engineErrorText(err))
 			}
 		})
 	})

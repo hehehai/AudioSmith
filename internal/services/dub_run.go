@@ -108,6 +108,11 @@ func (s *Dubs) Run(ctx context.Context, id string, req RunRequest) (map[string]s
 	if len(nodes) == 0 {
 		return map[string]string{}, nil
 	}
+	// Refused up front when the disk cannot hold what the stages write
+	// (code review 1102 M4).
+	if err := checkFree("the dub", s.Dir(id), dubRunNeed(p, nodes)); err != nil {
+		return nil, err
+	}
 	// The run is recorded before its jobs start (#101 L12): a run whose
 	// stages all end before a later Update would keep Run set for good,
 	// and look interrupted.

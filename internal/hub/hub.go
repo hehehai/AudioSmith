@@ -16,7 +16,8 @@
 //     and reusing the winner for a day; gated repos go to the official
 //     endpoint only, and only it ever sees the token (token.go: $HF_TOKEN,
 //     the Keychain, huggingface-cli's file). It refuses when the disk
-//     would keep less than ReserveBytes free.
+//     would keep less than ReserveBytes free, counting what the other
+//     downloads under way still write (client_reserve.go).
 //   - Download fetches files Parallel at a time, big ones in ChunkSize
 //     ranges, into blobs/<name>.incomplete (+ .parts recording finished
 //     ranges), resuming what is there (also huggingface_hub's sequential
@@ -115,7 +116,8 @@ type Options struct {
 	// parallel; files under two chunks download whole. 0 = 16 MiB.
 	ChunkSize int64
 	// ReserveBytes is the free space a download must leave on the cache
-	// volume. 0 = 2 GB; negative = no check.
+	// volume, after it and the other downloads under way are written.
+	// 0 = DefaultReserve; negative = no check.
 	ReserveBytes int64
 	// Proxy is "" (automatic: environment, then the macOS system proxy),
 	// "direct", or a proxy URL; see proxy.go.

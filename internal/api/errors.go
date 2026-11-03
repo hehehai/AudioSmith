@@ -51,6 +51,11 @@ const (
 	CodeTranslationNotReady = "translation_unavailable" // no language model for /v1/audio/translations
 	CodePathNotAllowed      = "path_not_allowed"
 	CodeTooLarge            = "too_large"
+	// CodeDiskFull: not enough free disk space for the work (507; data
+	// need and free, bytes, when a pre-check refused it).
+	CodeDiskFull = core.CodeDiskFull
+	// hubCodeDiskSpace is a model download's refusal (hub.CodeDiskSpace).
+	hubCodeDiskSpace = "disk_space"
 	// CodeModelRemoved: the request names a model AudioSmith removed
 	// (thread #43) and its replacement can't do what was asked (a
 	// built-in speaker of the old model, a download). Requests the
@@ -101,11 +106,19 @@ func errorOf(err error) *Error {
 	}
 	var je *jobs.Error
 	if errors.As(err, &je) {
+		if d := jobs.DiskFull(je); d != nil && je.Code != hubCodeDiskSpace {
+			je = d
+		}
 		return jobErrorOf(je)
 	}
 	var pe *proto.Error
 	if errors.As(err, &pe) {
 		return jobErrorOf(&jobs.Error{Code: pe.Code, Message: pe.Message, Data: pe.Data, Retryable: proto.Retryable(pe.Code)})
+	}
+	// A full disk (a pre-check's refusal, a write's ENOSPC) says so,
+	// with the bytes needed and free (code review 1102 M4).
+	if d := jobs.DiskFull(err); d != nil {
+		return jobErrorOf(d)
 	}
 	switch {
 	case errors.Is(err, core.ErrLicenceRequired):
@@ -158,6 +171,8 @@ func jobErrorOf(je *jobs.Error) *Error {
 		e.Status = http.StatusBadRequest
 	case proto.CodeModelLoadFailed:
 		e.Status = http.StatusUnprocessableEntity
+	case core.CodeDiskFull, hubCodeDiskSpace:
+		e.Status = http.StatusInsufficientStorage
 	default:
 		e.Status = http.StatusInternalServerError
 		if je.Retryable {

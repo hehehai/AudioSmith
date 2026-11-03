@@ -78,6 +78,9 @@ func jobErrorText(e *jobs.Error) string {
 	if e == nil {
 		return i18n.T("The job failed")
 	}
+	if d := jobs.DiskFull(e); d != nil {
+		return diskFullText(d)
+	}
 	switch e.Code {
 	case jobs.CodeInterrupted, jobs.CodeShutdown:
 		return i18n.T("The engine stopped while it worked. Try again.")
@@ -163,6 +166,9 @@ func readableEngineMessage(msg string) string {
 // *jobs.Error from the executors and engine.Probe/Devices/StartCapture),
 // translated where the code is known.
 func engineErrorText(err error) string {
+	if d := jobs.DiskFull(err); d != nil {
+		return diskFullText(d)
+	}
 	var je *jobs.Error
 	if errors.As(err, &je) {
 		return jobErrorText(je)

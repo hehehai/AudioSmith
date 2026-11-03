@@ -41,7 +41,12 @@ type plan struct {
 // are e's own; the byte counts include its auxiliary repos.
 func (c *Client) Plan(ctx context.Context, e catalog.Entry) (Plan, error) {
 	_, p, err := c.planAll(ctx, e)
-	return p, err
+	if err != nil {
+		return p, err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return p, c.checkDiskLocked(e.Repo, p)
 }
 
 func (c *Client) plan(ctx context.Context, e catalog.Entry) (*plan, error) {
@@ -96,8 +101,8 @@ func auxEntry(e catalog.Entry, a catalog.Aux) catalog.Entry {
 	return catalog.Entry{ID: e.ID + "+" + a.Repo, Repo: a.Repo, Revision: a.Revision, Files: a.Files}
 }
 
-// planAll plans e's auxiliary repos and e (last), adds them up and checks
-// the disk for all of them.
+// planAll plans e's auxiliary repos and e (last) and adds them up; the
+// disk is checked by the caller (checkDisk, reserve).
 func (c *Client) planAll(ctx context.Context, e catalog.Entry) ([]*plan, Plan, error) {
 	var plans []*plan
 	var sum Plan
@@ -120,11 +125,7 @@ func (c *Client) planAll(ctx context.Context, e catalog.Entry) ([]*plan, Plan, e
 	sum.Revision, sum.Files, sum.Endpoint, sum.Gated = p.Revision, p.Files, p.Endpoint, p.Gated
 	sum.TotalBytes += p.TotalBytes
 	sum.Bytes += p.Bytes
-	sum.FreeBytes = freeBytes(c.opts.CacheDir)
-	if c.opts.ReserveBytes > 0 && sum.FreeBytes >= 0 && sum.Bytes+c.opts.ReserveBytes > sum.FreeBytes {
-		return plans, sum, fmt.Errorf("%s needs %s more and keeps %s free; %s free: %w",
-			e.Repo, catalog.HumanSize(sum.Bytes), catalog.HumanSize(c.opts.ReserveBytes), catalog.HumanSize(sum.FreeBytes), ErrDiskSpace)
-	}
+	sum.FreeBytes = c.free(c.opts.CacheDir)
 	return plans, sum, nil
 }
 

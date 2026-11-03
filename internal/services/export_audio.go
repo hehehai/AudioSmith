@@ -111,6 +111,9 @@ func ProcessAudio(b dsp.Buffer, o AudioExport) (dsp.Buffer, float64, float64) {
 // other than WAV. dst is written whole or not at all. Without a loudness
 // target it streams (export_stream.go); a target needs the whole take.
 func ExportAudio(ctx context.Context, src, dst string, o AudioExport, enc AudioEncoder) (ExportedAudio, error) {
+	if err := checkFree("the export", filepath.Dir(dst), exportNeed(src, o)); err != nil {
+		return ExportedAudio{}, err
+	}
 	if _, ok := ExportLoudness[o.Loudness]; !ok {
 		return exportStreamed(ctx, src, dst, o, enc)
 	}

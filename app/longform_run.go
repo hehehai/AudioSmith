@@ -291,7 +291,7 @@ func (a *app) startLf(p *lfPage, what string) {
 				case errors.Is(err, core.ErrBusy):
 					a.toast(i18n.T("Another book is rendering. Stop it first."))
 				default:
-					a.toastWarn(i18n.T("Could not start: %v", err))
+					a.toastWarn(i18n.T("Could not start: %v", engineErrorText(err)))
 				}
 				return
 			}
@@ -358,7 +358,7 @@ func (a *app) resumeLf(p *lfPage, id string) {
 				if errors.Is(err, core.ErrBusy) {
 					a.toast(i18n.T("Another book is rendering. Stop it first."))
 				} else {
-					a.toastWarn(i18n.T("Could not resume: %v", err))
+					a.toastWarn(i18n.T("Could not resume: %v", engineErrorText(err)))
 				}
 				return
 			}

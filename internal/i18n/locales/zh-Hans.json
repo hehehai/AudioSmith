@@ -4038,5 +4038,7 @@
   "Its working files were freed to save space: they are made again when needed.": "为节省空间，它的工作文件已释放；需要时会重新生成。",
   "The separated stems were freed to save space: generate the dub again to make them.": "为节省空间，分离出的人声和背景已释放：重新生成配音即可恢复。",
   "The working files are being made again: try again in a moment.": "正在重新生成工作文件，请稍后再试。",
-  "The working files were freed to save space: decoding the source again.": "为节省空间，工作文件已释放：正在重新解码源文件。"
+  "The working files were freed to save space: decoding the source again.": "为节省空间，工作文件已释放：正在重新解码源文件。",
+  "Not enough free disk space: this needs about %s and %s is free. Free up some space (Settings → Storage shows what AudioSmith keeps), then try again.": "磁盘空间不足：这项工作大约需要 %s，目前只剩 %s。请先腾出一些空间（“设置 → 存储”列出了 AudioSmith 占用的空间），然后重试。",
+  "The disk is full. Free up some space (Settings → Storage shows what AudioSmith keeps), then try again.": "磁盘已满。请先腾出一些空间（“设置 → 存储”列出了 AudioSmith 占用的空间），然后重试。"
 }

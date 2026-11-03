@@ -49,6 +49,11 @@ func (s *Longform) Start(ctx context.Context, spec LongformSpec) (core.Render, e
 			return core.Render{}, fmt.Errorf("longform: %q is rendering: %w", title, core.ErrBusy)
 		}
 	}
+	// Refused up front when the disk cannot hold the render (code
+	// review 1102 M4).
+	if err := checkFree("the render", filepath.Dir(dir), bookNeed(spec.Chapters, spec.Stems)); err != nil {
+		return core.Render{}, err
+	}
 	s.mu.Lock()
 	if !spec.Audition {
 		for _, l := range s.live {
@@ -298,6 +303,9 @@ func (s *Longform) Resume(ctx context.Context, id string) (core.Render, error) {
 			return core.Render{}, fmt.Errorf("longform: %q is rendering: %w", title, core.ErrBusy)
 		}
 	}
+	if err := checkFree("the render", filepath.Dir(body.Dir), bookNeed(chaptersLeft(body), body.Spec.Stems)); err != nil {
+		return core.Render{}, err
+	}
 	now := s.now()
 	s.mu.Lock()
 	if !rec.Audition {
@@ -335,4 +343,17 @@ func (s *Longform) Resume(ctx context.Context, id string) (core.Render, error) {
 	}
 	out, _ := s.snapshot(id)
 	return out, nil
+}
+
+// chaptersLeft are the chapters of a render Resume renders again: those
+// not done.
+func chaptersLeft(b RenderBody) []ChapterSpec {
+	var out []ChapterSpec
+	for i, ch := range b.Spec.Chapters {
+		if i < len(b.Chapters) && (b.Chapters[i].State == ChapterDone || b.Chapters[i].State == ChapterCached) {
+			continue
+		}
+		out = append(out, ch)
+	}
+	return out
 }

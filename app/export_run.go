@@ -81,7 +81,7 @@ func (a *app) exportTo(f *exportForm, dst string) {
 		}
 		a.post(func() {
 			if err != nil {
-				a.toastWarn(i18n.T("Export failed: %v", err))
+				a.toastWarn(i18n.T("Export failed: %v", engineErrorText(err)))
 			} else {
 				a.toast(i18n.T("Saved %s", filepath.Base(dst)))
 			}

@@ -132,7 +132,7 @@ func (a *app) dubRun(req services.RunRequest) {
 		active := dubUnfinished(sched, ids)
 		a.post(func() {
 			if err != nil {
-				a.dubErr = err.Error()
+				a.dubErr = engineErrorText(err)
 				return
 			}
 			for _, j := range active {
@@ -227,7 +227,7 @@ func (a *app) dubResume() {
 		active := dubUnfinished(a.lib.sched, ids)
 		a.post(func() {
 			if err != nil {
-				a.dubErr = err.Error()
+				a.dubErr = engineErrorText(err)
 				return
 			}
 			for _, j := range active {

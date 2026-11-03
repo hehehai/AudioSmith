@@ -82,6 +82,11 @@ func (c *Client) Download(ctx context.Context, e catalog.Entry, progress func(Pr
 	if err != nil {
 		return err
 	}
+	left, err := c.reserve(e.Repo, sum)
+	if err != nil {
+		return err
+	}
+	defer c.release(left)
 	var base int64
 	for _, p := range plans {
 		unlock := func() {}
@@ -89,6 +94,7 @@ func (c *Client) Download(ctx context.Context, e catalog.Entry, progress func(Pr
 			unlock = c.lockRepo(p.repo)
 		}
 		err := c.fetchPlan(ctx, p, func(pr Progress) {
+			left.Store(min(sum.Bytes, max(sum.TotalBytes-(base+pr.Bytes), 0)))
 			if progress != nil {
 				pr.Repo, pr.Bytes, pr.TotalBytes = e.Repo, base+pr.Bytes, sum.TotalBytes
 				progress(pr)

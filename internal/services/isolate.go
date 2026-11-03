@@ -179,6 +179,11 @@ func (s *Isolations) Start(ctx context.Context, input string) (Isolation, error)
 			return Isolation{}, fmt.Errorf("%s: %w", sep, err)
 		}
 	}
+	// Refused up front when the disk cannot hold the stems (code review
+	// 1102 M4): a WAV's length is known now, other files' once decoded.
+	if err := checkFree("the isolation", s.cfg.Dir, isolateNeed(wavSeconds(input))); err != nil {
+		return Isolation{}, err
+	}
 	now := s.cfg.Now()
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(input), "."))
 	iso := Isolation{ID: core.NewID(now), CreatedAt: now, UpdatedAt: now, Input: input, State: IsolateQueued,
@@ -390,6 +395,9 @@ func (s *Isolations) Executor() jobs.Executor {
 			return nil, &jobs.Error{Code: proto.CodeBadRequest, Message: "isolate.run: bad params"}
 		}
 		iso, err := s.run(ctx, job, p.ID, report)
+		if d := jobs.DiskFull(err); d != nil {
+			err = d
+		}
 		if err != nil {
 			// The decoded input is made again by a retry; kept, it is
 			// as big as the stems (code review 1102 M5).
@@ -425,6 +433,9 @@ func (s *Isolations) run(ctx context.Context, job jobs.Job, id string, report fu
 	report(jobs.Progress{Stage: "decoding", Fraction: -1})
 	seconds, err := s.decode(ctx, job, iso.Input, path(IsolateAudio), report)
 	if err != nil {
+		return iso, err
+	}
+	if err := checkFree("the isolation", s.Dir(id), isolateStemsNeed(seconds)); err != nil {
 		return iso, err
 	}
 	// The voices and the rest.
