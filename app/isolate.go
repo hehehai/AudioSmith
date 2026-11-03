@@ -145,6 +145,7 @@ func (a *app) isoChanged(ev services.IsolationChanged) {
 		}
 		was := a.isoList[i].State
 		a.isoList[i] = x
+		a.paletteStale()
 		if was != services.IsolateDone && x.State == services.IsolateDone {
 			a.notify(core.SeveritySuccess, i18n.T("Voices isolated"), x.Title, "/isolate/"+x.ID)
 		}

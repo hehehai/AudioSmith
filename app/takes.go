@@ -443,6 +443,7 @@ func sortTakes(takes []core.Take) {
 func (a *app) putTake(t core.Take) {
 	if i := slices.IndexFunc(a.takes, func(x core.Take) bool { return x.ID == t.ID }); i >= 0 {
 		a.takes[i] = t
+		a.paletteStale()
 		return
 	}
 	a.takes = append(a.takes, t)

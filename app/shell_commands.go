@@ -125,6 +125,7 @@ func (a *app) paletteItems() []command {
 }
 
 func (a *app) openPalette() {
+	a.paletteStale() // fresh titles and times on each opening (code review 1103 L1)
 	if !a.paletteOpen {
 		a.paletteOpen, a.paletteQuery, a.paletteSel = true, "", 0
 		a.homeReadRecent() // its Recent (palette.go)

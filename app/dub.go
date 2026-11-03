@@ -391,6 +391,7 @@ func (a *app) dubPutRecord(p *dub.Project) {
 	}
 	if i := slices.IndexFunc(a.dubList, func(x store.DubRecord) bool { return x.ID == p.ID }); i >= 0 {
 		a.dubList[i] = r
+		a.paletteStale()
 	} else {
 		a.dubList = append([]store.DubRecord{r}, a.dubList...)
 	}

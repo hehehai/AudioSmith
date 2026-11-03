@@ -186,6 +186,7 @@ func (a *app) transcriptChanged(ev core.TranscriptChanged) {
 		}
 	case i >= 0:
 		a.trList[i] = briefTranscript(t)
+		a.paletteStale()
 	default:
 		a.trList = append(a.trList, briefTranscript(t))
 		sortTranscripts(a.trList)

@@ -211,6 +211,10 @@ func (a *app) paletteFound(q string) (projects, takes []paletteRow) {
 	return m.projects, m.takes
 }
 
+// paletteStale drops paletteMemo: a list changed in place (a rename, a
+// state, a time), which its signature does not see (code review 1103 L1).
+func (a *app) paletteStale() { a.palMemo = paletteMemo{} }
+
 // first is a pointer to s's first element, nil when s is empty: where a
 // slice is, to tell that it was replaced.
 func first[T any](s []T) *T {
