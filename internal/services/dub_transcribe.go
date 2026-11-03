@@ -197,15 +197,19 @@ func glossaryPrompt(g translate.Glossary) string {
 func (s *Dubs) references(ctx context.Context, sc *stageCtx) error {
 	p := sc.p
 	m := s.cfg.Models()
-	scoring, _, err := wav.ReadFile(sc.path(speechFile(p)))
+	scoring, err := wav.Open(sc.path(speechFile(p))) // read a candidate window at a time
 	if err != nil {
 		return err
 	}
+	defer scoring.Close()
 	src := dubAudio
 	if p.Media.Vocals != "" {
 		src = dubVocals
 	}
-	cands := dub.PickReferences(p.Segments, scoring)
+	cands, err := dub.PickReferences(p.Segments, scoring)
+	if err != nil {
+		return err
+	}
 	refs := map[string]dub.Reference{}
 	labels := p.SpeakerLabels()
 	if err := os.MkdirAll(sc.path("refs"), 0o755); err != nil {

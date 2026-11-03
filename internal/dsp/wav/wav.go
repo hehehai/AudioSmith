@@ -2,7 +2,8 @@
 //
 // Reading accepts integer PCM of 8, 16, 24 and 32 bits and IEEE float of 32
 // and 64 bits, WAVE_FORMAT_EXTENSIBLE, unknown chunks (skipped), streamed
-// files whose data size is 0 or 0xFFFFFFFF (read to EOF) and RF64.
+// files whose data size is 0 or 0xFFFFFFFF (read to EOF, or to a chunk
+// after the samples when the file is seekable) and RF64.
 //
 // Writing produces 16- or 24-bit PCM or 32-bit float, with a 44-byte
 // canonical header and no other chunks (unless Options.Large reserves room
@@ -341,14 +342,19 @@ func decodeAll(r io.Reader, size int64) (dsp.Buffer, Format, error) {
 // ReadFile reads a whole WAV file into memory, sized from the file so it
 // allocates the samples once.
 func ReadFile(path string) (dsp.Buffer, Format, error) {
-	f, err := os.Open(path)
+	if fi, err := os.Stat(path); err == nil && !fi.Mode().IsRegular() {
+		f, err := os.Open(path) // a pipe: read to EOF
+		if err != nil {
+			return dsp.Buffer{}, Format{}, err
+		}
+		defer f.Close()
+		return decodeAll(f, -1)
+	}
+	w, err := Open(path) // frames bounded by the file, chunks after the samples left out
 	if err != nil {
 		return dsp.Buffer{}, Format{}, err
 	}
-	defer f.Close()
-	size := int64(-1)
-	if fi, err := f.Stat(); err == nil && fi.Mode().IsRegular() {
-		size = fi.Size()
-	}
-	return decodeAll(f, size)
+	defer w.Close()
+	b, err := w.ReadFrames(0, -1)
+	return b, w.Format(), err
 }
