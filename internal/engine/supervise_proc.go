@@ -55,9 +55,9 @@ func (s *supervisor) startProcess(w *worker, bin string) (*proc, error) {
 	}
 	p := &proc{s: s, w: w, cmd: cmd, stdin: stdin, tail: newLineTail(40), exited: make(chan struct{}),
 		pending: map[string]*call{}, pollNow: make(chan struct{}, 1), writeSem: make(chan struct{}, 1)}
-	var logFile *os.File
+	var logFile *rotatingLog
 	if s.cfg.LogDir != "" {
-		logFile = openLog(filepath.Join(s.cfg.LogDir, "engine-"+string(w.role)+".log"))
+		logFile = openLog(filepath.Join(s.cfg.LogDir, "engine-"+string(w.role)+".log"), 0)
 	}
 	stderrDone := make(chan struct{})
 	go func() {
@@ -68,7 +68,7 @@ func (s *supervisor) startProcess(w *worker, bin string) (*proc, error) {
 			line := sc.Text()
 			p.tail.add(line)
 			if logFile != nil {
-				fmt.Fprintln(logFile, logs.Redact(line)) // #100 L3: the file goes into diagnostic bundles
+				logFile.line(logs.Redact(line)) // #100 L3: the file goes into diagnostic bundles
 			}
 			if strings.TrimSpace(line) != "" {
 				s.emit(core.LogEntry{Time: time.Now(), Level: stderrLevel(line), Source: "engine:" + string(w.role), Message: line})
@@ -85,20 +85,6 @@ func (s *supervisor) startProcess(w *worker, bin string) (*proc, error) {
 		s.exited(p, err)
 	}()
 	return p, nil
-}
-
-// openLog opens the stderr log for appending, keeping one previous file
-// once it passes 10 MB.
-func openLog(path string) *os.File {
-	if st, err := os.Stat(path); err == nil && st.Size() > 10<<20 {
-		os.Rename(path, path+".1")
-	}
-	os.MkdirAll(filepath.Dir(path), 0o755)
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return nil
-	}
-	return f
 }
 
 func (s *supervisor) handshake(w *worker, p *proc) {

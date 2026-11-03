@@ -81,6 +81,12 @@ ON CONFLICT(id) DO UPDATE SET project_id = excluded.project_id, kind = excluded.
 
 const renderColumns = `id, project_id, kind, title, state, audition, audio_seconds, created_at, updated_at, body`
 
+// renderLightBody is the body of RenderQuery.Light: its output only,
+// but the whole body of a render with no project, and of a body that is
+// no JSON object (as stored).
+const renderLightBody = `CASE WHEN project_id IS NOT NULL AND project_id != '' AND json_valid(body) AND json_type(body) = 'object'
+	THEN json_object('output', json(json_extract(body, '$.output'))) ELSE body END`
+
 func scanRender(row []any) core.Render {
 	return core.Render{
 		ID: asString(row[0]), ProjectID: asString(row[1]), Kind: core.ProjectKind(asString(row[2])),
@@ -128,7 +134,11 @@ func (r *renderRepo) List(ctx context.Context, q store.RenderQuery) ([]core.Rend
 	if !q.Auditions {
 		where = append(where, `audition = 0`)
 	}
-	sql := `SELECT ` + renderColumns + ` FROM renders`
+	cols := renderColumns
+	if q.Light {
+		cols = strings.TrimSuffix(cols, `body`) + renderLightBody
+	}
+	sql := `SELECT ` + cols + ` FROM renders`
 	if len(where) > 0 {
 		sql += ` WHERE ` + strings.Join(where, ` AND `)
 	}
