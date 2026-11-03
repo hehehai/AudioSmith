@@ -250,7 +250,9 @@ func (_handle *Context) AddToast(t Toast) string {
 }
 
 // After asks for another frame after d, for something that changes with
-// time, such as a clock.
+// time, such as a clock. While nothing of the window shows (hidden,
+// minimized, covered), the frame waits until some of it shows again, and
+// comes then at once, as animations wait.
 func (_handle *Context) After(d time.Duration) {
 	_ctx := _handle.build()
 	if _ctx == nil {

@@ -389,6 +389,20 @@ func (t *Tester) SetVibrancy(shows bool) {
 	t.Frame()
 }
 
+// SetOccluded hides the window, as when it is minimized, ordered out or
+// covered by other windows, or shows it again: while hidden, animations
+// and the frames of After and Painter.After wait, and showing it builds
+// the view if they did.
+func (t *Tester) SetOccluded(occluded bool) {
+	if t.h.hidden == occluded {
+		return
+	}
+	t.h.hidden = occluded
+	if !occluded {
+		t.send(platform.SurfaceEvent{Kind: platform.SurfaceShown})
+	}
+}
+
 // SetDark switches between the light and the dark appearance.
 func (t *Tester) SetDark(dark bool) {
 	t.h.dark = dark

@@ -9,7 +9,6 @@ package main
 import (
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -145,9 +144,6 @@ func (a *app) projRow(c *ui.Context, it projItem, withType, narrow bool) {
 	if s.renaming == it.key() {
 		a.projRename(c, it)
 		return
-	}
-	if it.running {
-		c.After(500 * time.Millisecond) // the progress moves
 	}
 	spec := listRowSpec{key: "pj-row-" + it.key(), label: it.title, del: func() { s.confirm, s.confirmOpen = it, true },
 		menu: func(m *ui.Menu) { a.projMenuItems(m, it) }, menuTip: i18n.T("Project actions")}

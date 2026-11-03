@@ -147,6 +147,12 @@ func (a *app) composerToolbar(c *ui.Context) {
 }
 
 // formatDuration is "45 s", "3 min 20 s", "1 h 05 min".
+// afterSecond builds the view again when the time elapsed since start
+// next reaches a whole second, for a clock counting in seconds.
+func afterSecond(c *ui.Context, start time.Time) {
+	c.After(time.Second - time.Since(start)%time.Second)
+}
+
 func formatDuration(seconds float64) string {
 	s := int(math.Round(seconds))
 	switch {
@@ -332,6 +338,7 @@ func (a *app) jobProblem(c *ui.Context) {
 func (a *app) jobStatus(c *ui.Context) {
 	t := c.Theme()
 	j := a.job
+	afterSecond(c, j.started) // the elapsed time
 	ui.Column(c).Gap(px(t, 6)).Children(func() {
 		ui.Progress(c, j.fraction).Label(j.status)
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {

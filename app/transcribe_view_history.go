@@ -197,7 +197,7 @@ func (a *app) trJobRow(c *ui.Context, narrow bool) {
 	t := c.Theme()
 	k := tok(t)
 	j := a.trJob
-	c.After(500 * time.Millisecond)
+	afterSecond(c, j.started) // the elapsed time; the stage and bar come with the job's updates
 	listRow(c, listRowSpec{key: "tr-job", label: i18n.T("Transcribing %s", j.title)}, func() {
 		listThumb(c, transcribeIcon, nil)
 		listTitle(c, j.title, j.stage+" · "+formatDuration(time.Since(j.started).Seconds()))

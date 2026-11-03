@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/dub"
@@ -352,9 +351,6 @@ func (a *app) dubListRow(c *ui.Context, r store.DubRecord, narrow bool) {
 	id := r.ID
 	title := firstOf(r.Title, i18n.T("Untitled dub"))
 	j := a.dubRowJob(id)
-	if j.ID != "" {
-		c.After(500 * time.Millisecond) // the progress moves
-	}
 	del := func() { a.dubConfirm, a.dubConfirmOpen = "delete:"+id, true }
 	menu := func(m *ui.Menu) {
 		if m.Item(i18n.T("Open")).Chosen() {

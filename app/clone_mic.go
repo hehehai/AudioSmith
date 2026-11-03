@@ -60,7 +60,30 @@ func (a *app) micCapture(m *micState, p proto.CaptureParams) {
 			return
 		}
 		m.rec, m.phase, m.started = rec, "recording", time.Now()
+		a.watchRecording(m, rec)
 	})
+}
+
+// watchRecording finishes rec as soon as it ends by itself (the device
+// went away, the time limit), as Stop does. The views notice it too when
+// they build (micEnded, trRecEnded), but their timers wait while the
+// window is hidden or covered. Tests (no window) leave it to the views.
+func (a *app) watchRecording(m *micState, rec *engine.Recording) {
+	if a.win == nil {
+		return
+	}
+	go func() {
+		<-rec.Done()
+		a.post(func() {
+			switch {
+			case m.rec != rec:
+			case m == &a.trMic:
+				a.trRecEnded()
+			default:
+				a.micEnded(m)
+			}
+		})
+	}()
 }
 
 // micStop ends the recording and hands the file on.

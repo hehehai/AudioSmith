@@ -118,7 +118,7 @@ func TestPeakCache(t *testing.T) {
 
 func TestPlayerIdle(t *testing.T) {
 	var pl Player
-	if pl.Active() || pl.Playing("x") || pl.Progress("x") != 0 || pl.Current() != "" {
+	if pl.Active() || pl.Playing("x") || pl.Progress("x") != 0 || pl.Current() != "" || pl.Left() != 0 {
 		t.Error("a new player plays nothing")
 	}
 	pl.Seek("x", 0.5)
@@ -145,12 +145,19 @@ func TestPlayerStreams(t *testing.T) {
 	if !pl.Playing("a") || pl.Current() != "a" || pl.Playing("b") {
 		t.Fatal("not playing")
 	}
+	if l := pl.Left(); l != leftMax {
+		t.Errorf("3 s left: look again after %v, want %v", l, leftMax)
+	}
 	pl.Seek("a", 0.5)
 	if p := pl.Progress("a"); p < 0.45 || p > 0.6 {
 		t.Errorf("progress after seek %v", p)
 	}
+	pl.Seek("a", 0.9)
+	if l := pl.Left(); l < 200*time.Millisecond || l > 400*time.Millisecond {
+		t.Errorf("0.3 s left: look again after %v", l)
+	}
 	pl.Toggle("a", path) // pause
-	if pl.Active() {
+	if pl.Active() || pl.Left() != 0 {
 		t.Error("still playing after pause")
 	}
 	// Another take replaces it.

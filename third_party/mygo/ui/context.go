@@ -385,7 +385,9 @@ func (c *context) DisableAnimations() { c.rt.instantFrame = c.rt.frame }
 func (rt *engine) instant() bool { return rt.instantFrame == rt.frame && rt.frame != 0 }
 
 // After asks for another frame after d, for something that changes with
-// time, such as a clock.
+// time, such as a clock. While nothing of the window shows (hidden,
+// minimized, covered), the frame waits until some of it shows again, and
+// comes then at once, as animations wait.
 func (c *context) After(d time.Duration) { c.rt.scheduleAt(c.now.Add(d)) }
 
 // ReadClipboard returns the text on the clipboard, and WriteClipboard
