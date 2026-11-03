@@ -86,6 +86,9 @@ type VoiceService interface {
 	Import(ctx context.Context, path string) (VoiceImport, error)
 	// Export writes a .asvoice package.
 	Export(ctx context.Context, id, dst string, o VoiceExport) error
+	// HasPreview reports whether Export finds a preview by itself (the
+	// voice's sample or reference is a WAV): asked before a save dialog.
+	HasPreview(v Voice) bool
 	// Usage says where the voice was used: takes, project segments.
 	Usage(ctx context.Context, id string) (VoiceUsage, error)
 	// Lock ties the voice's identity to one of its takes: its audio becomes

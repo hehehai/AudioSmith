@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -124,13 +125,31 @@ func licenceChoices() (labels, ids []string) {
 	return labels, ids
 }
 
-// exportVoice asks where to save a voice file and writes it.
+// exportVoice asks where to save a voice file and writes it. A voice
+// with nothing to share as its preview is told so before the save dialog
+// (code review 1103 L3), with a way to its page to lock a take.
 func (a *app) exportVoice(id string, includeRef bool, licence string) {
 	v := a.findVoice(id)
 	if v == nil {
 		return
 	}
-	name := exportVoiceName(v.Name)
+	voice, svc := *v, a.lib.svc.Voices
+	a.background(func() {
+		ok := svc.HasPreview(voice)
+		a.post(func() {
+			if !ok {
+				a.toastAction(ui.Toast{ID: "voice-no-preview", Title: i18n.T("This voice has no sample to share as its preview (its takes stay private): lock a take as its identity on its page first."),
+					Timeout: 10 * time.Second, Action: i18n.T("Open voice"), OnAction: func() { a.openVoiceEditor(id) }})
+				return
+			}
+			a.exportVoiceTo(id, voice.Name, includeRef, licence)
+		})
+	})
+}
+
+// exportVoiceTo asks where to save voice id's file and writes it.
+func (a *app) exportVoiceTo(id, voiceName string, includeRef bool, licence string) {
+	name := exportVoiceName(voiceName)
 	svc, version := a.lib.svc.Voices, a.version
 	o := mygo.SaveDialogOptions{Title: i18n.T("Export voice"), DefaultPath: name, Filters: fileTypes(i18n.T("Voice files"), "asvoice")}
 	a.saveFile(o, func(dst string) {

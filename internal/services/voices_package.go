@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -236,6 +237,32 @@ func (s *Voices) export(ctx context.Context, id, dst string, o core.VoiceExport)
 		}
 	}
 	return persona.WriteFile(dst, b, persona.DefaultLimits)
+}
+
+// HasPreview reports whether Export finds a preview for v by itself: its
+// sample or its reference is a WAV small enough (code review 1103 L3: the
+// app asks before its save dialog). It reads at most a file header each.
+func (s *Voices) HasPreview(v core.Voice) bool {
+	for _, name := range []string{v.Sample, v.RefAudio} {
+		path := s.FilePath(v, name)
+		if path == "" {
+			continue
+		}
+		if st, err := os.Stat(path); err != nil || st.Size() > persona.DefaultLimits.MaxPreview {
+			continue
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			continue
+		}
+		head := make([]byte, 12)
+		n, _ := io.ReadFull(f, head)
+		f.Close()
+		if isWAV(head[:n]) {
+			return true
+		}
+	}
+	return false
 }
 
 // ErrNoPreview: a voice has no WAV to ship as an export's preview (no

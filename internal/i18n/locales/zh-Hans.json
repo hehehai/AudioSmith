@@ -2429,6 +2429,7 @@
   "Select the previous input source": "选择上一个输入法",
   "Self-check": "自检",
   "Send the PIN as the X-AudioSmith-Pin header, or add ?pin=%s to the URL. Anyone on this network with the PIN can make speech with your voices.": "把 PIN 放在 X-AudioSmith-Pin 请求头里，或在网址后加 ?pin=%s。局域网里任何知道 PIN 的人都能用你的音色合成语音。",
+  "Open voice": "打开音色",
   "New PIN": "换 PIN",
   "New PIN: devices need it from now on": "已换新 PIN：其他设备从现在起要用新 PIN",
   "Too many wrong PINs from several devices: the PIN is paused until %s. Make a new PIN to use sharing now; the API key still works.": "多台设备输错 PIN 次数太多，PIN 已暂停到 %s。想现在就用共享，请换一个 PIN；API 密钥不受影响。",
