@@ -29,6 +29,14 @@ func TestMain(m *testing.M) {
 	// The Studio's script before 0.5 F3 (empty since): the tests written
 	// before it count on it; F3's own tests empty it.
 	studioFreshScript = "Hello from AudioSmith. This voice was generated on your Mac with MLX."
+	// One machine for every test, not the host's: the dialogue models
+	// need 16 GB (SoulX) and 24 GB (MOSS-TTSD), and a CI runner's 16 GB
+	// read 15 GB some runs (MemTotal less the kernel), so the dialogue
+	// tests failed there. Tests of other machines stub their own
+	// (stubMachine, a.sys).
+	readSysInfo = func() sysInfo {
+		return sysInfo{OS: "macOS 15.4", Chip: "Apple M4", Memory: 24 << 30, Cores: 10, Arch: "arm64"}
+	}
 	os.Exit(m.Run())
 }
 

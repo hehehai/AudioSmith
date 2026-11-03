@@ -1,6 +1,9 @@
 package filter
 
-import "math"
+import (
+	"math"
+	"slices"
+)
 
 // TruePeakFactor returns the oversampling factor used for true-peak
 // detection at rate: enough to reach ≥ 192 kHz, between 1 and 8
@@ -181,8 +184,10 @@ func Dot(x, h []float32) float32 {
 // interleave appends the staged block (channel-major, n frames) to dst
 // interleaved.
 func (t *TruePeak) interleave(dst []float32, n int) []float32 {
+	// slices.Grow, not append(dst, make(…)...): with -race (or -N) the
+	// compiler does not elide that make, a new slice every block.
 	base := len(dst)
-	dst = append(dst, make([]float32, n*t.ch)...)
+	dst = slices.Grow(dst, n*t.ch)[:base+n*t.ch]
 	for c := range t.ch {
 		for k := range n {
 			dst[base+k*t.ch+c] = t.stage[c*n+k]

@@ -3,8 +3,9 @@ package main
 // Regression tests of the perf review of 11-02 (C1, H2, H3, M1): the long
 // lists build only the rows in view, and a frame of each page stays far
 // under what it cost before, with a library of hundreds of items. The
-// thresholds leave wide margins (the Linux host is shared, its load ~20);
-// the counts of rows built are exact.
+// thresholds leave wide margins (the Linux host is shared, its load ~20)
+// and are not checked under -race (tooSlow); the counts of rows built and
+// the bytes allocated are checked always.
 
 import (
 	"fmt"
@@ -102,6 +103,12 @@ func perfFrame(tt *ui.Tester) (ms float64, bytes uint64) {
 	return ms, bytes
 }
 
+// tooSlow reports a frame of ms over limit ms. Under the race detector
+// (5–10× slower, and GitHub's shared runners vary) wall-clock bounds say
+// nothing: only the deterministic checks (rows built, bytes allocated)
+// hold there.
+func tooSlow(ms, limit float64) bool { return !raceEnabled && ms > limit }
+
 // countTexts is how many texts shown start with prefix.
 func countTexts(tt *ui.Tester, prefix string) int {
 	n := 0
@@ -132,7 +139,7 @@ func TestPerfTranscriptsPage(t *testing.T) {
 	}
 	// 20 transcripts of an hour: 241 ms and 423 MB a frame before (C1).
 	_, tt := perfApp(t, perfLibrary{transcripts: 20}, "/transcripts")
-	if ms, b := perfFrame(tt); ms > 15 || b > 8<<20 {
+	if ms, b := perfFrame(tt); tooSlow(ms, 15) || b > 8<<20 {
 		t.Errorf("20 hour-long transcripts: %.2f ms and %d KB a frame, want < 15 ms and 8 MB (241 ms, 423 MB before)", ms, b>>10)
 	}
 	// 200: the rows in view only.
@@ -140,7 +147,7 @@ func TestPerfTranscriptsPage(t *testing.T) {
 	if n := countTexts(tt, "meeting-"); n == 0 || n > 100 {
 		t.Errorf("200 transcripts: %d rows built, want the ones in view (1–100)", n)
 	}
-	if ms, _ := perfFrame(tt); ms > 15 {
+	if ms, _ := perfFrame(tt); tooSlow(ms, 15) {
 		t.Errorf("200 hour-long transcripts: %.2f ms a frame, want < 15 ms (3.3 s before)", ms)
 	}
 }
@@ -154,7 +161,7 @@ func TestPerfProjectsPage(t *testing.T) {
 	if n := countTexts(tt, "Project "); n == 0 || n > 100 {
 		t.Errorf("list: %d project rows built, want the ones in view (1–100)", n)
 	}
-	if ms, _ := perfFrame(tt); ms > 20 {
+	if ms, _ := perfFrame(tt); tooSlow(ms, 20) {
 		t.Errorf("list of ~920 items: %.2f ms a frame, want < 20 ms (28–43 ms before)", ms)
 	}
 	a, tt = perfApp(t, lib, "/projects")
@@ -163,12 +170,12 @@ func TestPerfProjectsPage(t *testing.T) {
 	if n := countTexts(tt, "Project "); n == 0 || n > 150 {
 		t.Errorf("cards: %d project cards built, want the rows in view (1–150)", n)
 	}
-	if ms, _ := perfFrame(tt); ms > 25 {
+	if ms, _ := perfFrame(tt); tooSlow(ms, 25) {
 		t.Errorf("cards of ~920 items: %.2f ms a frame, want < 25 ms (269 ms before)", ms)
 	}
 	a.projects.query = "zzz" // no hit: every transcript's text searched, once
 	tt.Frame()
-	if ms, _ := perfFrame(tt); ms > 15 {
+	if ms, _ := perfFrame(tt); tooSlow(ms, 15) {
 		t.Errorf("a search without hits: %.2f ms a frame, want < 15 ms", ms)
 	}
 }
@@ -180,7 +187,7 @@ func TestPerfAssetsPage(t *testing.T) {
 	// 2 000 takes (1 450 characters on average): 17–23 ms and 25 MB a
 	// frame before (H3).
 	_, tt := perfApp(t, perfLibrary{takes: 2000, transcripts: 20, dubs: 300, isolations: 100}, "/assets")
-	if ms, b := perfFrame(tt); ms > 12 || b > 6<<20 {
+	if ms, b := perfFrame(tt); tooSlow(ms, 12) || b > 6<<20 {
 		t.Errorf("2 000 takes: %.2f ms and %d KB a frame, want < 12 ms and 6 MB (17–23 ms, 25 MB before)", ms, b>>10)
 	}
 }
@@ -194,7 +201,7 @@ func TestPerfPaletteTyped(t *testing.T) {
 	a, tt := perfApp(t, perfLibrary{takes: 2000, projects: 100, transcripts: 20}, "/home")
 	a.paletteOpen, a.paletteQuery = true, "qqq"
 	tt.Frame()
-	if ms, b := perfFrame(tt); ms > 10 || b > 2<<20 {
+	if ms, b := perfFrame(tt); tooSlow(ms, 10) || b > 2<<20 {
 		t.Errorf("⌘K, no hit: %.2f ms and %d KB a frame, want < 10 ms and 2 MB (21 ms, 6.6 MB before)", ms, b>>10)
 	}
 }
@@ -216,7 +223,7 @@ func TestPerfToolLists(t *testing.T) {
 		if n := countTexts(tt, c.prefix); n == 0 || n > 100 {
 			t.Errorf("%s: %d rows built of 300, want the ones in view (1–100)", c.route, n)
 		}
-		if ms, _ := perfFrame(tt); ms > 10 {
+		if ms, _ := perfFrame(tt); tooSlow(ms, 10) {
 			t.Errorf("%s with 300 items: %.2f ms a frame, want < 10 ms (%s before)", c.route, ms, c.before)
 		}
 	}

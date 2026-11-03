@@ -24,13 +24,18 @@ func countingTester(a *app) (*ui.Tester, *int) {
 // changed meanwhile.
 func TestNoTimedBuildsWhileHidden(t *testing.T) {
 	a, _, _ := newTestApp(t)
-	a.trJob = &trJob{owner: "x", title: "meeting.m4a", stage: "Transcribing", fraction: 0.2, started: time.Now()}
-	a.navigate("/transcripts")
 	tt, builds := countingTester(a)
+	// The clocks count on the Tester's time: Advance alone moves them, so
+	// the builds are exact (on the wall clock, a slow run (-race) crossing
+	// a whole second added a build).
+	a.clock = tt.Now
+	a.trJob = &trJob{owner: "x", title: "meeting.m4a", stage: "Transcribing", fraction: 0.2, started: tt.Now()}
+	a.navigate("/transcripts")
+	tt.Frame()
 	tt.Advance(time.Second)
 	*builds = 0
 	tt.Advance(10 * time.Second)
-	if *builds < 9 || *builds > 11 {
+	if *builds != 10 {
 		t.Fatalf("a transcription's clock: %d builds in 10 s, want one a second", *builds)
 	}
 	tt.SetOccluded(true)
@@ -42,14 +47,14 @@ func TestNoTimedBuildsWhileHidden(t *testing.T) {
 	a.trJob.stage = "Aligning words" // an update while hidden
 	*builds = 0
 	tt.SetOccluded(false)
-	if *builds == 0 || !tt.HasText("Aligning words · "+formatDuration(time.Since(a.trJob.started).Seconds())) {
+	if *builds == 0 || !tt.HasText("Aligning words · "+formatDuration(a.since(a.trJob.started).Seconds())) {
 		t.Fatalf("shown again: %d builds, shows %q", *builds, tt.Texts())
 	}
 
 	// The Studio's job: its seconds count; the rest of the app does not
 	// build for it.
 	a.trJob = nil
-	a.job = &job{owner: studioOwner + "x", kind: "synthesize", started: time.Now(), fraction: 0.3, status: "Generating"}
+	a.job = &job{owner: studioOwner + "x", kind: "synthesize", started: tt.Now(), fraction: 0.3, status: "Generating"}
 	a.navigate("/dub")
 	tt.Frame()
 	*builds = 0
@@ -61,7 +66,7 @@ func TestNoTimedBuildsWhileHidden(t *testing.T) {
 	tt.Frame()
 	*builds = 0
 	tt.Advance(10 * time.Second)
-	if *builds < 9 || *builds > 11 {
+	if *builds != 10 {
 		t.Errorf("engine busy on /studio: %d builds in 10 s, want one a second", *builds)
 	}
 }

@@ -146,13 +146,24 @@ func (a *app) composerToolbar(c *ui.Context) {
 	})
 }
 
-// formatDuration is "45 s", "3 min 20 s", "1 h 05 min".
 // afterSecond builds the view again when the time elapsed since start
 // next reaches a whole second, for a clock counting in seconds.
-func afterSecond(c *ui.Context, start time.Time) {
-	c.After(time.Second - time.Since(start)%time.Second)
+func (a *app) afterSecond(c *ui.Context, start time.Time) {
+	c.After(time.Second - a.since(start)%time.Second)
 }
 
+// now is the time for the jobs' clocks (a.clock, else time.Now).
+func (a *app) now() time.Time {
+	if a.clock != nil {
+		return a.clock()
+	}
+	return time.Now()
+}
+
+// since is the time elapsed since t on a's clock.
+func (a *app) since(t time.Time) time.Duration { return a.now().Sub(t) }
+
+// formatDuration is "45 s", "3 min 20 s", "1 h 05 min".
 func formatDuration(seconds float64) string {
 	s := int(math.Round(seconds))
 	switch {
@@ -338,7 +349,7 @@ func (a *app) jobProblem(c *ui.Context) {
 func (a *app) jobStatus(c *ui.Context) {
 	t := c.Theme()
 	j := a.job
-	afterSecond(c, j.started) // the elapsed time
+	a.afterSecond(c, j.started) // the elapsed time
 	ui.Column(c).Gap(px(t, 6)).Children(func() {
 		ui.Progress(c, j.fraction).Label(j.status)
 		ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
@@ -350,7 +361,7 @@ func (a *app) jobStatus(c *ui.Context) {
 				}
 			}
 			ui.Text(c, status).FontSize(px(t, fsCaption)).Grow(1).MinWidth(0).SingleLine().Ellipsis("…")
-			info := i18n.T("%.0f s", time.Since(j.started).Seconds())
+			info := i18n.T("%.0f s", a.since(j.started).Seconds())
 			if j.audioSeconds > 0 {
 				info = i18n.T("%.1f s of audio · ", j.audioSeconds) + info
 			}

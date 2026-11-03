@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/oplog"
@@ -31,6 +33,10 @@ type app struct {
 	// goroutines (scheduler, supervisor): they pump it on the test's
 	// goroutine. nil: post runs fn at once (other tests).
 	postQueue func(func())
+	// clock is the time the running jobs' clocks count from; nil:
+	// time.Now. Tests set the Tester's (virtual) clock so a clock's
+	// builds follow Advance alone.
+	clock func() time.Time
 
 	shellState
 	studioState
