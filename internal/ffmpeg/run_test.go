@@ -49,3 +49,26 @@ func TestRunPartFile(t *testing.T) {
 		t.Errorf("left behind: %v", ents)
 	}
 }
+
+// TestRunStartFailsLeavesNoPart (code review 1103 L2): an ffmpeg that
+// cannot start (missing, not executable) leaves no empty hidden .part
+// file in the output folder.
+func TestRunStartFailsLeavesNoPart(t *testing.T) {
+	dir := t.TempDir()
+	notExec := filepath.Join(dir, "bin", "ffmpeg")
+	if err := os.MkdirAll(filepath.Dir(notExec), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(notExec, []byte("#!/bin/sh\n"), 0o644); err != nil { // not executable
+		t.Fatal(err)
+	}
+	outDir := filepath.Join(dir, "out")
+	for _, bin := range []string{notExec, filepath.Join(dir, "missing")} {
+		if err := (&Tool{FFmpeg: bin}).run(context.Background(), []string{"-i", "x"}, filepath.Join(outDir, "a.m4a"), 0, nil); err == nil {
+			t.Fatalf("%s: no error", bin)
+		}
+		if es, _ := os.ReadDir(outDir); len(es) != 0 {
+			t.Errorf("%s: left %v", bin, es)
+		}
+	}
+}

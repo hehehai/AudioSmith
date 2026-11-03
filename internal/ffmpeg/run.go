@@ -40,9 +40,11 @@ func (t *Tool) runIn(ctx context.Context, dir string, args []string, out string,
 	cmd.Stderr = &errb
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
+		os.Remove(tmp) // code review 1103 L2: no empty .part left behind
 		return err
 	}
 	if err := cmd.Start(); err != nil {
+		os.Remove(tmp)
 		return &RunError{Err: err}
 	}
 	readProgress(stdout, duration, progress) // until ffmpeg closes it
