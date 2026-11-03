@@ -324,10 +324,15 @@ func (s *Isolations) awaitStopped(ctx context.Context, id string) error {
 	}
 }
 
+// isolateSettled is how long ago an isolation must have ended for Sweep
+// to take its decoded input.
+const isolateSettled = time.Minute
+
 // Sweep removes, once no isolation job runs, the folders without an
 // isolation.json (a Delete that raced a late write, before the wait)
-// and the decoded inputs of isolations that did not finish; it returns
-// how many it removed. Call it at startup.
+// and the decoded inputs of isolations that ended (done or failed,
+// isolateSettled ago); it returns how many it removed. Call it at
+// startup.
 func (s *Isolations) Sweep(ctx context.Context) int {
 	if s.cfg.Scheduler != nil {
 		if l, err := s.cfg.Scheduler.List(ctx, jobs.Filter{Kind: KindIsolate, States: activeStates}); err != nil || len(l) > 0 {
@@ -345,6 +350,12 @@ func (s *Isolations) Sweep(ctx context.Context) int {
 			if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > time.Hour && os.RemoveAll(dir) == nil {
 				n++
 			}
+			continue
+		}
+		// Only an isolation that ended a while ago: one Start made since
+		// the check above may be decoding (code review 1103 L-5).
+		iso, err := s.Get(ctx, e.Name())
+		if err != nil || iso.State != IsolateDone && iso.State != IsolateFailed || s.cfg.Now().Sub(iso.UpdatedAt) < isolateSettled {
 			continue
 		}
 		if os.Remove(filepath.Join(dir, IsolateAudio)) == nil {

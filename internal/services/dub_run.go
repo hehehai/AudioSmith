@@ -101,9 +101,10 @@ func (s *Dubs) Run(ctx context.Context, id string, req RunRequest) (map[string]s
 	if len(active) > 0 {
 		return nil, fmt.Errorf("dub %s: a run is going on: %w", id, core.ErrBusy)
 	}
-	// The renders of lines and languages removed go now (code review
-	// 1102 L4, dub_free.go): no job of the dub runs.
-	s.pruneStale(p)
+	// The renders of languages removed go now (code review 1102 L4,
+	// dub_free.go): no job of the dub runs. Those of lines removed stay
+	// for Undo until the dub is freed (code review 1103 L-3).
+	s.pruneStale(p, false)
 	nodes := s.plan(p, req)
 	if len(nodes) == 0 {
 		return map[string]string{}, nil

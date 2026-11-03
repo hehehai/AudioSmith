@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -24,6 +23,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/oplog"
 	"github.com/hehehai/AudioSmith/internal/settings"
 	"github.com/hehehai/AudioSmith/internal/store/sqlitestore"
+	"github.com/hehehai/AudioSmith/internal/volume"
 )
 
 // storageState is the Storage page's state.
@@ -96,20 +96,10 @@ func (a *app) home() string {
 	return a.dataDir()
 }
 
-// diskFree is the space free for the user on path's disk (a variable:
+// diskFree is the space free for the user on path's disk (with APFS's
+// purgeable space, as Finder shows: code review 1103 M-3; a variable:
 // the snapshot tests pin it, snapshot_env_test.go).
-var diskFree = func(path string) int64 {
-	var st syscall.Statfs_t
-	for p := path; p != "" && p != "/" && p != "."; p = filepath.Dir(p) {
-		if syscall.Statfs(p, &st) == nil {
-			return int64(st.Bavail) * int64(st.Bsize)
-		}
-	}
-	if syscall.Statfs("/", &st) == nil {
-		return int64(st.Bavail) * int64(st.Bsize)
-	}
-	return 0
-}
+var diskFree = func(path string) int64 { return max(volume.Free(path), 0) }
 
 // dataCategories are the data folder's parts, by folder.
 func dataCategories() []storageCat {

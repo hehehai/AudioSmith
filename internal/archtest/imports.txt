@@ -111,6 +111,7 @@ gallery/persona          voicedesign
 hub                      catalog
 hub                      jobs
 hub                      logs
+hub                      volume
 
 licence                  catalog
 licence                  core
@@ -162,6 +163,7 @@ services                 text/markup
 services                 text/plan
 services                 translate
 services                 voicedesign
+services                 volume
 services                 workflow
 
 store                    core
@@ -173,6 +175,7 @@ store/sqlitestore        core
 store/sqlitestore        jobs
 store/sqlitestore        store
 store/sqlitestore        store/historyjson
+store/sqlitestore        volume
 
 telephony                dsp
 telephony                dsp/resample

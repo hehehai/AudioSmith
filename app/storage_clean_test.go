@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,5 +145,66 @@ func TestFreedDubOpens(t *testing.T) {
 	}
 	if !exists(filepath.Join(a.dubSvc.Dir(p.ID), ".opened")) {
 		t.Error("the opening was not noted")
+	}
+}
+
+// Code review 1103 M-1: the sweep and Clear deleted every file in
+// <data>/mcp, also the exports agents made there (recorded in the
+// library) and the source of a dub an agent put there. What the library
+// names stays, in subfolders too; the rest goes.
+func TestAgentFilesKeepWhatTheLibraryNames(t *testing.T) {
+	a, _, _ := newTestApp(t)
+	ctx := context.Background()
+	mcp := filepath.Join(a.dataDir(), "mcp")
+	book := filepath.Join(mcp, "book.m4b")
+	source := filepath.Join(mcp, "inbox", "talk.mp4")
+	stray := filepath.Join(mcp, "inbox", "old.wav")
+	take := filepath.Join(mcp, "take-old.wav")
+	loose := filepath.Join(mcp, "x", "y.wav")
+	for _, p := range []string{book, source, stray, take, loose} {
+		touchOld(t, p, 31*24*time.Hour)
+	}
+	if _, err := a.lib.svc.Library.RecordExport(ctx, core.Export{Kind: "book", Path: book, Format: "m4b"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.dubSvc.Create(ctx, &dub.Project{Title: "Talk", Source: dub.Source{Path: source}}); err != nil {
+		t.Fatal(err)
+	}
+	a.sweepDisk(ctx)
+	for p, want := range map[string]bool{book: true, source: true, stray: false, take: false, loose: false} {
+		if exists(p) != want {
+			t.Errorf("sweep: %s there %v, want %v", filepath.Base(p), exists(p), want)
+		}
+	}
+	young := filepath.Join(mcp, "inbox", "new.wav")
+	touchOld(t, young, time.Hour)
+	a.toasts = nil
+	a.clearAgentFiles()
+	if !exists(book) || !exists(source) || exists(young) {
+		t.Errorf("Clear: book %v, source %v, young %v", exists(book), exists(source), exists(young))
+	}
+	if len(a.toasts) != 1 || !strings.Contains(a.toasts[0], "kept 2 files") {
+		t.Errorf("toasts %q", a.toasts)
+	}
+}
+
+// Code review 1103 L-9: a clip used once in the Studio is named by no
+// take until one is generated: a week on, the sweep deleted it under
+// the Studio. The clips the Studio and the clone flow hold stay.
+func TestSweepKeepsClipsInUse(t *testing.T) {
+	a, _, _ := newTestApp(t)
+	refs := a.referencesDir()
+	studio, work, original, unused := filepath.Join(refs, "ref-01A.wav"), filepath.Join(refs, "clean-01B.wav"),
+		filepath.Join(refs, "clip-01C.wav"), filepath.Join(refs, "rec-01D.wav")
+	for _, p := range []string{studio, work, original, unused} {
+		touchOld(t, p, 8*24*time.Hour)
+	}
+	a.studioClip = &clipRef{Path: studio, Text: "Words.", Name: "clip"}
+	a.clone.work, a.clone.original = work, original
+	a.sweepDisk(context.Background())
+	for p, want := range map[string]bool{studio: true, work: true, original: true, unused: false} {
+		if exists(p) != want {
+			t.Errorf("%s: there %v, want %v", filepath.Base(p), exists(p), want)
+		}
 	}
 }

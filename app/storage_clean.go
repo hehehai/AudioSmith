@@ -34,8 +34,8 @@ const (
 	sweepDelay = 2 * time.Minute
 	sweepEvery = 24 * time.Hour
 	// agentFilesKeep: files AudioSmith wrote for agents in <data>/mcp are
-	// deleted after this long (a folder chosen in the settings is the
-	// user's: nothing there is deleted).
+	// deleted after this long, unless the library names them (a folder
+	// chosen in the settings is the user's: nothing there is deleted).
 	agentFilesKeep = 30 * 24 * time.Hour
 	// unusedClipAge: clone clips and covers nothing in the library names.
 	unusedClipAge  = 7 * 24 * time.Hour
@@ -75,13 +75,69 @@ func (a *app) clearChunks() {
 	})
 }
 
-// clearAgentFiles deletes the files agents were given in <data>/mcp.
+// clearAgentFiles deletes the files agents were given in <data>/mcp,
+// but those the library names (pruneAgentFiles).
 func (a *app) clearAgentFiles() {
 	dir := filepath.Join(a.dataDir(), "mcp")
 	a.background(func() {
-		freed := pruneOld(dir, 0)
-		a.post(func() { a.cleared(freed, nil) })
+		freed, kept, err := a.pruneAgentFiles(context.Background(), dir, 0)
+		a.post(func() {
+			if err == nil && kept > 0 {
+				a.toast(i18n.N(kept, "Freed %s; kept %d file the library uses", "Freed %s; kept %d files the library uses", humanBytes(freed), kept))
+				a.stReport = nil
+				a.loadStorage()
+				return
+			}
+			a.cleared(freed, err)
+		})
 	})
+}
+
+// pruneAgentFiles deletes the files in dir (<data>/mcp) and below older
+// than age, but those the library names (code review 1103 M-1): what
+// agents export without a folder (books, dubs, audio: recorded as
+// exports) is written there, and a dub's source an agent put there is
+// read from there. It returns the bytes freed and how many files the
+// library kept; a failure to ask the library deletes nothing.
+func (a *app) pruneAgentFiles(ctx context.Context, dir string, age time.Duration) (int64, int, error) {
+	return pruneUnmentioned(dir, age, func(d string) (map[string]bool, error) { return a.lib.store.Mentioned(ctx, d) })
+}
+
+// pruneUnmentioned is pruneOld but for the files mentioned names in their
+// folder (sqlitestore.Mentioned: the names directly in a folder, files
+// or folders, the library names a path under). A folder no path names
+// holds nothing named; a named one is looked into the same way.
+func pruneUnmentioned(dir string, age time.Duration, mentioned func(dir string) (map[string]bool, error)) (int64, int, error) {
+	ents, err := os.ReadDir(dir)
+	if err != nil || len(ents) == 0 {
+		return 0, 0, nil
+	}
+	used, err := mentioned(dir)
+	if err != nil {
+		return 0, 0, err
+	}
+	var freed int64
+	kept := 0
+	for _, e := range ents {
+		path := filepath.Join(dir, e.Name())
+		switch {
+		case e.IsDir() && used[e.Name()]:
+			f, k, err := pruneUnmentioned(path, age, mentioned)
+			if err != nil {
+				return freed, kept, err
+			}
+			freed, kept = freed+f, kept+k
+		case e.IsDir():
+			freed += pruneOld(path, age)
+		case used[e.Name()]:
+			kept++
+		default:
+			if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) >= age && os.Remove(path) == nil {
+				freed += fi.Size()
+			}
+		}
+	}
+	return freed, kept, nil
 }
 
 // cleared says what a Clear freed and measures again.
@@ -170,16 +226,19 @@ func (a *app) sweepDisk(ctx context.Context) {
 		log.Printf("sweep: longform: %d (%v)", n, err)
 	}
 	if a.dubSvc != nil {
-		open := lib.settings.Get().Dubbing.Open // the dub open (or last open) stays
-		a.dubSvc.FreeIdle(ctx, services.DubFreeAfter, a.dubExports(ctx), func(id string) bool { return id == open })
+		// The dub open (or last open) stays: asked again just before a
+		// dub's files go (code review 1103 L-4).
+		a.dubSvc.FreeIdle(ctx, services.DubFreeAfter, a.dubExports(ctx), func(id string) bool { return id == lib.settings.Get().Dubbing.Open })
 	}
 	if a.isoSvc != nil {
 		a.isoSvc.Sweep(ctx)
 	}
-	if n := pruneOld(filepath.Join(data, "mcp"), agentFilesKeep); n > 0 {
-		log.Printf("sweep: agent files: freed %s", humanBytes(n))
+	if n, _, err := a.pruneAgentFiles(ctx, filepath.Join(data, "mcp"), agentFilesKeep); err != nil || n > 0 {
+		log.Printf("sweep: agent files: freed %s (%v)", humanBytes(n), err)
 	}
-	a.sweepUnused(ctx, a.referencesDir(), unusedClipAge) // clone_sweep.go
+	if clips, ok := a.clipsInUse(); ok { // clone_sweep.go
+		a.sweepUnused(ctx, a.referencesDir(), unusedClipAge, clips...)
+	}
 	a.sweepUnused(ctx, filepath.Join(data, "covers"), unusedCoverAge)
 	if lib.sched.Idle() { // a long job's temporary files may be over an hour old
 		cleanLeftovers(data, a.cacheDir()) // data_cleanup.go
