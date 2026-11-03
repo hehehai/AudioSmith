@@ -14,7 +14,7 @@ Golden transcripts of the engine protocol: the contract between the Go app and t
 | `stt.jsonl` | `stt.transcribe` (auto language, word timings, translate refused, missing file, speaker labels from MOSS-Transcribe-Diarize), `stt.align` |
 | `analysis.jsonl` | `vad.detect`, `enhance.run`, `unsupported_media` |
 | `media.jsonl` | a `media` worker: hello, `media.probe` (video, WAV, unreadable), `media.decode` of a window, `media.encode` of an M4B (and MP3 refused), `file_not_found`, a gpu method refused |
-| `capture.jsonl` | a `listen` worker: its own speech-to-text model (`models.load`, `stt.transcribe`), `capture.devices`, a recording with its meter stopped by `capture.stop`, refusals (device, permission), cancel, `maxSeconds` |
+| `capture.jsonl` | a `listen` worker: its own speech-to-text model (`models.load`, `stt.transcribe`), `capture.devices`, a recording with its meter stopped by `capture.stop`, refusals (device, permission), cancel, `maxSeconds`, voice processing turned on by the engine (`aecAuto`), unavailable on the input (`aecFallback`) and giving one channel (`aecMono`), `no_input` |
 | `separate.jsonl` | `separate.run`: both stems, one stem only, `file_not_found` |
 | `diarize.jsonl` | `diarize.run` (overlapping turns), more than 4 speakers refused (`unsupported`, `max`) |
 | `mux.jsonl` | `media.mux`: source audio + 2 dubbed tracks + 2 subtitle tracks; an input without video (`unsupported_media`) |

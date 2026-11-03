@@ -12,6 +12,39 @@ import Foundation
 // cancellation) cures both on many Macs, since its aggregate device holds
 // up where the raw device does not.
 
+/// What kind of input a recording watches (code review 1103 F1).
+public struct CapturePolicy: Equatable, Sendable {
+    /// Turning voice processing on by itself is allowed: not for a virtual
+    /// or aggregate input (loopback, BlackHole: voice processing would
+    /// record another input, processed), nor when the user picked
+    /// channels (voice processing gives its first channel only), nor
+    /// when voice processing failed on this input.
+    public var autoAEC: Bool
+    /// Digital silence is the input's signal: a virtual or aggregate input
+    /// delivers exact zeros while nothing plays. Buffers then count as
+    /// sound; only no buffers at all is "no sound", and a silent take is
+    /// kept.
+    public var zerosAreSignal: Bool
+    /// Extra seconds before silence counts (a Bluetooth headset switching
+    /// to its microphone profile delivers zeros for a second or more).
+    public var warmUp: Double
+
+    public init(autoAEC: Bool = true, zerosAreSignal: Bool = false, warmUp: Double = 0) {
+        self.autoAEC = autoAEC
+        self.zerosAreSignal = zerosAreSignal
+        self.warmUp = warmUp
+    }
+
+    /// The policy for an input of transport (Capture.swift's names:
+    /// "builtin", "usb", "bluetooth", "aggregate", "virtual", nil) whose
+    /// channels the user picked or not.
+    public static func forInput(transport: String?, pickedChannels: Bool) -> CapturePolicy {
+        let virtual = transport == "virtual" || transport == "aggregate"
+        return CapturePolicy(autoAEC: !virtual && !pickedChannels, zerosAreSignal: virtual,
+                             warmUp: transport == "bluetooth" ? 1.5 : 0)
+    }
+}
+
 /// One recording's watch over its microphone.
 public struct CaptureRecovery {
     /// Why the microphone was given up on, or voice processing turned on.
@@ -59,6 +92,7 @@ public struct CaptureRecovery {
 
     /// Voice processing is on now.
     public private(set) var aec: Bool
+    public private(set) var policy: CapturePolicy
     /// Why the watch turned voice processing on; nil while it has not.
     public private(set) var autoAEC: Reason?
     /// A sound came since the current mode started; since the recording did.
@@ -76,16 +110,25 @@ public struct CaptureRecovery {
 
     /// A watch over a microphone started at `now` (seconds), with voice
     /// processing or not.
-    public init(aec: Bool, now: Double) {
+    public init(aec: Bool, now: Double, policy: CapturePolicy = CapturePolicy()) {
         self.aec = aec
+        self.policy = policy
         startedAt = now
+    }
+
+    /// Voice processing did not start on this input (or would record
+    /// another one): the recording goes on without, and the watch never
+    /// turns it on.
+    public mutating func voiceProcessingUnavailable() {
+        aec = false
+        policy.autoAEC = false
     }
 
     /// The tap delivered a buffer at `now`; silent when every sample was
     /// below `silence`.
     public mutating func buffer(now: Double, silent: Bool) {
         lastBuffer = now
-        if !silent {
+        if !silent || policy.zerosAreSignal {
             heard = true
             everHeard = true
         }
@@ -112,7 +155,7 @@ public struct CaptureRecovery {
             return attempt(now)
         }
         if !heard {
-            return now - startedAt >= (aec ? quietAEC : quiet) ? noSound() : .none
+            return now - startedAt >= quietLimit ? noSound() : .none
         }
         if now - (lastBuffer ?? startedAt) >= stall { return attempt(now) }
         return .none
@@ -136,14 +179,22 @@ public struct CaptureRecovery {
         recent = []
     }
 
+    /// How long a start may bring no sound: `quiet` (`quietAEC` with voice
+    /// processing), after the warm-up; without voice processing to turn
+    /// on, as long as with it, after it (`quiet + quietAEC`).
+    public var quietLimit: Double {
+        policy.warmUp + (aec ? quietAEC : policy.autoAEC ? quiet : quiet + quietAEC)
+    }
+
     /// Whether a recording that ran `seconds` and stops now is only
-    /// digital silence: an error rather than a silent file.
+    /// digital silence: an error rather than a silent file (never on an
+    /// input whose zeros are its signal).
     public func silentThroughout(seconds: Double) -> Bool {
-        !everHeard && seconds >= quiet
+        !everHeard && seconds >= policy.warmUp + quiet
     }
 
     private mutating func noSound() -> Action {
-        if !aec, autoAEC == nil {
+        if !aec, autoAEC == nil, policy.autoAEC {
             autoAEC = .noSound
             return .voiceProcessing(.noSound)
         }
@@ -158,7 +209,7 @@ public struct CaptureRecovery {
             restarts += 1
             return .restart
         }
-        if !aec, autoAEC == nil {
+        if !aec, autoAEC == nil, policy.autoAEC {
             autoAEC = .deviceChanges
             return .voiceProcessing(.deviceChanges)
         }

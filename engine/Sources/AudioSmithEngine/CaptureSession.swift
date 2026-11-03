@@ -1,4 +1,5 @@
 import AudioSmithProtocol
+import AudioSmithStream
 import AVFoundation
 import Foundation
 
@@ -24,14 +25,13 @@ final class CaptureSession: @unchecked Sendable {
     let maxFrames: Int64
     private let queue = DispatchQueue(label: "audiosmith.capture")
     private let lock = NSLock()
-    private var converter: AVAudioConverter?
-    private var converterRate: Double = 0
-    private let fileFormat: AVAudioFormat
+    private let resampler: CaptureResampler // on the queue
 
     private var onEnd: ((String) -> Void)?
     private var ended = false
     private var endReason = ""
     private var aecReason: String? // under lock: the engine turned voice processing on
+    private var aecFallback: String? // under lock: voice processing was asked for, the input runs without
     var writeError: Error?
     var clipped = 0
     var peakDB: Double = -120
@@ -49,8 +49,8 @@ final class CaptureSession: @unchecked Sendable {
         self.fileChannels = fileChannels
         self.fileRate = fileRate
         maxFrames = maxSeconds > 0 ? Int64(maxSeconds * Double(fileRate)) : 0
-        fileFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(fileRate),
-                                   channels: AVAudioChannelCount(fileChannels), interleaved: false)!
+        resampler = CaptureResampler(format: AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(fileRate),
+                                                           channels: AVAudioChannelCount(fileChannels), interleaved: false)!)
     }
 
     /// The tap: picks the channels (0-based) into a buffer of the file's
@@ -97,6 +97,14 @@ final class CaptureSession: @unchecked Sendable {
         lock.withLock { aecReason = reason }
     }
 
+    /// Voice processing was asked for but the input runs without it
+    /// (why: "failed", "device"): the levels say so.
+    func voiceProcessingFellBack(_ why: String) {
+        lock.withLock { aecFallback = why }
+    }
+
+    var fallback: String? { lock.withLock { aecFallback } }
+
     /// Drops what was written (digital silence) and the converter's state:
     /// the recording starts over in the same file.
     func rewind() {
@@ -110,37 +118,18 @@ final class CaptureSession: @unchecked Sendable {
             meterFrames = 0
             meterSum = 0
             meterPeak = 0
-            converter = nil
+            resampler.reset()
         }
-    }
-
-    private func convert(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-        let rate = buffer.format.sampleRate
-        if Int(rate) == fileRate { return buffer }
-        if converter == nil || converterRate != rate {
-            converter = AVAudioConverter(from: buffer.format, to: fileFormat)
-            converterRate = rate
-        }
-        guard let converter else { return nil }
-        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * Double(fileRate) / rate + 32)
-        guard let converted = AVAudioPCMBuffer(pcmFormat: fileFormat, frameCapacity: capacity) else { return nil }
-        var given = false
-        var error: NSError?
-        converter.convert(to: converted, error: &error) { _, status in
-            if given {
-                status.pointee = .noDataNow
-                return nil
-            }
-            given = true
-            status.pointee = .haveData
-            return buffer
-        }
-        return converted
     }
 
     private func process(_ buffer: AVAudioPCMBuffer) {
         if isEnded { return }
-        guard let outBuffer = convert(buffer), let ch = outBuffer.floatChannelData else { return }
+        for b in resampler.convert(buffer) { write(b) }
+    }
+
+    private func write(_ outBuffer: AVAudioPCMBuffer) {
+        if isEnded { return }
+        guard let ch = outBuffer.floatChannelData else { return }
         var n = Int(outBuffer.frameLength)
         if maxFrames > 0 { n = min(n, Int(maxFrames - written)) }
         if n <= 0 { return }
@@ -171,11 +160,12 @@ final class CaptureSession: @unchecked Sendable {
             let rms = sqrt(meterSum / Double(meterFrames * fileChannels))
             let peak = Double(meterPeak)
             peakDB = max(peakDB, db(peak))
-            let why = lock.withLock { aecReason }
+            let (why, fellBack) = lock.withLock { (aecReason, aecFallback) }
             out.notify(Method.captureLevel, LevelParams(job: job, seconds: round3(Double(written) / Double(fileRate)),
                                                         rms: round3(db(rms)), peak: round3(db(peak)),
                                                         clipped: meterClipped ? true : nil,
-                                                        aecAuto: why != nil ? true : nil, aecReason: why))
+                                                        aecAuto: why != nil ? true : nil, aecReason: why,
+                                                        aecFallback: fellBack))
             meterFrames = 0
             meterSum = 0
             meterPeak = 0

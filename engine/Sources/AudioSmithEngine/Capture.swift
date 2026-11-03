@@ -84,6 +84,25 @@ private func deviceID(uid: String) -> AudioObjectID? {
     inputDeviceIDs().all.first { stringProperty($0, kAudioDevicePropertyDeviceUID) == uid }
 }
 
+func deviceUID(_ id: AudioObjectID) -> String? {
+    stringProperty(id, kAudioDevicePropertyDeviceUID)
+}
+
+/// The UIDs of an aggregate device's sub-devices; nil when id is not an
+/// aggregate (voice processing's CADefaultDeviceAggregate is one).
+func aggregateSubDevices(_ id: AudioObjectID) -> [String]? {
+    var value: Unmanaged<CFArray>?
+    guard property(id, kAudioAggregateDevicePropertyFullSubDeviceList, &value),
+          let list = value?.takeRetainedValue() as? [String] else { return nil }
+    return list
+}
+
+private func transport(_ id: AudioObjectID) -> String? {
+    var t = UInt32(0)
+    _ = property(id, kAudioDevicePropertyTransportType, &t)
+    return transportName(t)
+}
+
 // MARK: Recording
 
 /// Runs the listen worker's recordings (one at a time: concurrency 1).
@@ -150,7 +169,12 @@ final class Recorder: @unchecked Sendable {
         let writer = try WAVWriter(url: url, sampleRate: fileRate, channels: fileChannels, bits: bits)
         let session = CaptureSession(out: out, job: job, writer: writer, fileChannels: fileChannels,
                                      fileRate: fileRate, maxSeconds: p.maxSeconds ?? 0)
-        let run = CaptureRun(session: session, device: device, uid: uid, name: name, picks: picks, aec: p.aec ?? false)
+        // Loopback/virtual and aggregate inputs, picked channels and a
+        // Bluetooth headset's warm-up change what the watch does (code
+        // review 1103 F1).
+        let policy = CapturePolicy.forInput(transport: transport(device), pickedChannels: !(p.inputChannels ?? []).isEmpty)
+        let run = CaptureRun(session: session, device: device, uid: uid, name: name, picks: picks, aec: p.aec ?? false,
+                             policy: policy, isDefaultInput: device == def)
         do {
             try run.start()
         } catch {
@@ -185,17 +209,18 @@ final class Recorder: @unchecked Sendable {
             // Given up: what came before is kept when it had sound.
             guard state.everHeard else {
                 writer.cancel()
-                throw EngineError.noInput(device: uid, name: name, reason: (state.failure ?? .noSound).rawValue)
+                throw EngineError.noInput(device: uid, name: name, reason: (state.failure ?? .noSound).rawValue, aec: state.aec)
             }
             reason = CaptureInputStopped
         } else if reason != CaptureDeviceLost, run.silentThroughout {
             writer.cancel()
-            throw EngineError.noInput(device: uid, name: name, reason: CaptureRecovery.Reason.noSound.rawValue)
+            throw EngineError.noInput(device: uid, name: name, reason: CaptureRecovery.Reason.noSound.rawValue, aec: state.aec)
         }
         try writer.finish()
         return CaptureResult(output: url.path, sampleRate: fileRate, channels: fileChannels, frames: writer.frames,
                              audioSeconds: Double(writer.frames) / Double(fileRate), device: uid,
                              peak: session.peakDB, clipped: session.clipped > 0 ? session.clipped : nil, reason: reason,
-                             aec: state.aec ? true : nil, aecAuto: state.auto != nil ? true : nil, aecReason: state.auto?.rawValue)
+                             aec: state.aec ? true : nil, aecAuto: state.auto != nil ? true : nil, aecReason: state.auto?.rawValue,
+                             aecFallback: session.fallback, aecMono: run.voiceProcessingMono(fileChannels: fileChannels) ? true : nil)
     }
 }

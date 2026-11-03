@@ -58,8 +58,9 @@ enum EngineError: Error, LocalizedError {
     case permissionDenied(String)
     case deviceUnavailable(String)
     /// A recording brought no sound: the device's id and name, and why
-    /// (CaptureRecovery.Reason: "noSound", "deviceChanges").
-    case noInput(device: String, name: String, reason: String)
+    /// (CaptureRecovery.Reason: "noSound", "deviceChanges"); aec: voice
+    /// processing was on.
+    case noInput(device: String, name: String, reason: String, aec: Bool)
 
     var errorDescription: String? {
         switch self {
@@ -72,7 +73,7 @@ enum EngineError: Error, LocalizedError {
         case .unsupportedMedia(let path, let why): "Cannot read \(path): \(why)"
         case .permissionDenied(let what): "\(what.capitalized) access is denied for AudioSmith"
         case .deviceUnavailable(let device): "The audio input \(device) is not available"
-        case .noInput(_, let name, let reason):
+        case .noInput(_, let name, let reason, _):
             reason == "deviceChanges" ? "\(name) kept stopping as the audio devices changed: no sound was recorded"
                 : "No sound from \(name)"
         }
@@ -96,10 +97,17 @@ enum EngineError: Error, LocalizedError {
         case .unsupportedMedia(let path, _): RPCError(Code.unsupportedMedia, m, data: .object(["path": .string(path)]))
         case .permissionDenied(let what): RPCError(Code.permissionDenied, m, data: .object(["permission": .string(what)]))
         case .deviceUnavailable(let device): RPCError(Code.deviceUnavailable, m, data: .object(["device": .string(device)]))
-        case .noInput(let device, let name, let reason):
-            RPCError(Code.noInput, m, data: .object(["device": .string(device), "name": .string(name), "reason": .string(reason)]))
+        case .noInput(let device, let name, let reason, let aec):
+            RPCError(Code.noInput, m, data: noInputData(device: device, name: name, reason: reason, aec: aec))
         }
     }
+}
+
+/// no_input's data (Go proto.NoInputData).
+private func noInputData(device: String, name: String, reason: String, aec: Bool) -> JSONValue {
+    var d: [String: JSONValue] = ["device": .string(device), "name": .string(name), "reason": .string(reason)]
+    if aec { d["aec"] = .bool(true) }
+    return .object(d)
 }
 
 func rpcError(_ error: Error) -> RPCError {

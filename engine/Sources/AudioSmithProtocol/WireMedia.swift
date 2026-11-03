@@ -317,9 +317,13 @@ public struct LevelParams: Codable, Sendable {
     /// ("noSound" or "deviceChanges"): in every level after it did.
     public var aecAuto: Bool?
     public var aecReason: String?
+    /// Voice processing was asked for but the recording runs without it:
+    /// "failed" (it did not start on this input) or "device" (it would
+    /// record another input). In every level.
+    public var aecFallback: String?
 
     public init(job: String, seconds: Double, rms: Double, peak: Double, clipped: Bool? = nil,
-                aecAuto: Bool? = nil, aecReason: String? = nil) {
+                aecAuto: Bool? = nil, aecReason: String? = nil, aecFallback: String? = nil) {
         self.job = job
         self.seconds = seconds
         self.rms = rms
@@ -327,6 +331,7 @@ public struct LevelParams: Codable, Sendable {
         self.clipped = clipped
         self.aecAuto = aecAuto
         self.aecReason = aecReason
+        self.aecFallback = aecFallback
     }
 }
 
@@ -345,13 +350,21 @@ public struct CaptureResult: Codable, Sendable {
     public var aec: Bool?
     public var aecAuto: Bool?
     public var aecReason: String?
+    /// As in LevelParams.
+    public var aecFallback: String?
+    /// Voice processing gives one channel: a stereo file holds it twice,
+    /// and inputChannels did not apply.
+    public var aecMono: Bool?
 
     public init(output: String, sampleRate: Int, channels: Int, frames: Int64, audioSeconds: Double,
                 device: String, peak: Double, clipped: Int? = nil, reason: String,
-                aec: Bool? = nil, aecAuto: Bool? = nil, aecReason: String? = nil) {
+                aec: Bool? = nil, aecAuto: Bool? = nil, aecReason: String? = nil,
+                aecFallback: String? = nil, aecMono: Bool? = nil) {
         self.aec = aec
         self.aecAuto = aecAuto
         self.aecReason = aecReason
+        self.aecFallback = aecFallback
+        self.aecMono = aecMono
         self.output = output
         self.sampleRate = sampleRate
         self.channels = channels

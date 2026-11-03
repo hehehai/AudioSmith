@@ -14,15 +14,19 @@ import Foundation
 final class CaptureMic {
     let device: AudioObjectID
     let aec: Bool
+    /// Whether device is the system's default input (voice processing's
+    /// own device, whatever was chosen).
+    let isDefaultInput: Bool
     private let engine = AVAudioEngine()
     private var observer: NSObjectProtocol?
     private var tapped = false
     private var tap: ((AVAudioPCMBuffer) -> Void)?
     private(set) var formatText = "none"
 
-    init(device: AudioObjectID, aec: Bool) {
+    init(device: AudioObjectID, aec: Bool, isDefaultInput: Bool) {
         self.device = device
         self.aec = aec
+        self.isDefaultInput = isDefaultInput
     }
 
     /// Starts the input: tap gets its buffers (on the audio thread),
@@ -40,6 +44,16 @@ final class CaptureMic {
             try engine.inputNode.setVoiceProcessingEnabled(true)
             engine.inputNode.voiceProcessingOtherAudioDuckingConfiguration =
                 AVAudioVoiceProcessingOtherAudioDuckingConfiguration(enableAdvancedDucking: false, duckingLevel: .min)
+            // Voice processing swaps the I/O unit for its own, which builds
+            // an aggregate of the default devices: choose the input again
+            // and check that it took (code review 1103 F2).
+            if !isDefaultInput {
+                try? selectDevice()
+                if let current = currentDevice(), !voiceProcessingUses(current) {
+                    throw CaptureMicError(message: "voice processing records \(deviceUID(current) ?? "device \(current)"), not the chosen input",
+                                          otherDevice: true)
+                }
+            }
         }
         try installTap()
         observer = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { _ in
@@ -76,12 +90,27 @@ final class CaptureMic {
         tapped = false
     }
 
-    private func selectDevice() throws {
-        guard let unit = engine.inputNode.audioUnit else { return }
+    /// The device the input unit records, nil when it does not say.
+    private func currentDevice() -> AudioObjectID? {
+        guard let unit = engine.inputNode.audioUnit else { return nil }
         var current = AudioObjectID(0)
         var size = UInt32(MemoryLayout<AudioObjectID>.size)
-        if AudioUnitGetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &current, &size) == noErr,
-           current == device { return }
+        guard AudioUnitGetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &current, &size) == noErr,
+              current != 0 else { return nil }
+        return current
+    }
+
+    /// Whether voice processing on current records the chosen device:
+    /// current is it, or an aggregate holding it.
+    private func voiceProcessingUses(_ current: AudioObjectID) -> Bool {
+        if current == device { return true }
+        guard let uid = deviceUID(device), let subs = aggregateSubDevices(current) else { return false }
+        return subs.contains(uid)
+    }
+
+    private func selectDevice() throws {
+        guard let unit = engine.inputNode.audioUnit else { return }
+        if currentDevice() == device { return }
         var id = device
         let status = AudioUnitSetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0,
                                           &id, UInt32(MemoryLayout<AudioObjectID>.size))
@@ -104,6 +133,8 @@ final class CaptureMic {
 
 struct CaptureMicError: Error {
     let message: String
+    /// Voice processing would record another input than the chosen one.
+    var otherDevice = false
 }
 
 /// One recording's microphone and its watch. The control queue starts,
@@ -122,22 +153,38 @@ final class CaptureRun: @unchecked Sendable {
     private var mic: CaptureMic?
     private var timer: DispatchSourceTimer?
     private var failure: CaptureRecovery.Reason?
+    let isDefaultInput: Bool
 
-    init(session: CaptureSession, device: AudioObjectID, uid: String, name: String, picks: [Int], aec: Bool) {
+    init(session: CaptureSession, device: AudioObjectID, uid: String, name: String, picks: [Int], aec: Bool,
+         policy: CapturePolicy, isDefaultInput: Bool) {
         self.session = session
         self.device = device
         self.uid = uid
         self.name = name
         self.picks = picks
-        recovery = CaptureRecovery(aec: aec, now: startedAt)
+        self.isDefaultInput = isDefaultInput
+        recovery = CaptureRecovery(aec: aec, now: startedAt, policy: policy)
     }
 
     private var now: Double { ProcessInfo.processInfo.systemUptime }
 
-    /// Starts the microphone and its watch; throws when the input does not start.
+    /// Starts the microphone and its watch; throws when the input does not
+    /// start. When voice processing was asked for but does not start on
+    /// this input, or would record another one, it records without it
+    /// and says so (code review 1103 F2/F3).
     func start() throws {
-        let m = CaptureMic(device: device, aec: recovery.aec)
-        try startMic(m)
+        var m = CaptureMic(device: device, aec: recovery.aec, isDefaultInput: isDefaultInput)
+        do {
+            try startMic(m)
+        } catch where m.aec {
+            let other = (error as? CaptureMicError)?.otherDevice == true
+            log("capture \(session.job): \(name) did not start with voice processing (\(error)); recording without it")
+            m.stop()
+            lock.withLock { recovery.voiceProcessingUnavailable() }
+            m = CaptureMic(device: device, aec: false, isDefaultInput: isDefaultInput)
+            try startMic(m)
+            session.voiceProcessingFellBack(other ? "device" : "failed")
+        }
         mic = m
         let t = DispatchSource.makeTimerSource(queue: q)
         t.schedule(deadline: .now() + 0.25, repeating: 0.25)
@@ -160,6 +207,12 @@ final class CaptureRun: @unchecked Sendable {
     /// turned it on, why it gave up, whether any sound came.
     var state: (aec: Bool, auto: CaptureRecovery.Reason?, failure: CaptureRecovery.Reason?, everHeard: Bool) {
         lock.withLock { (recovery.aec, recovery.autoAEC, failure, recovery.everHeard) }
+    }
+
+    /// Whether voice processing gave the file its one channel where the
+    /// recording asked for two, or for channels it does not give (F7).
+    func voiceProcessingMono(fileChannels: Int) -> Bool {
+        state.aec && (fileChannels == 2 || picks != [0])
     }
 
     /// Whether a recording stopping now was digital silence throughout.
@@ -221,7 +274,7 @@ final class CaptureRun: @unchecked Sendable {
         let heard = lock.withLock { recovery.everHeard }
         if !heard { session.rewind() } // only silence so far
         lock.withLock { recovery.voiceProcessingStarted(now: now) }
-        let m = CaptureMic(device: device, aec: true)
+        let m = CaptureMic(device: device, aec: true, isDefaultInput: isDefaultInput)
         do {
             try startMic(m)
             mic = m

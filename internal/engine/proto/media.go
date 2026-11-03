@@ -321,9 +321,21 @@ type CaptureParams struct {
 	// AEC records with macOS voice processing: echo cancellation, with
 	// noise suppression and automatic gain (the voice may sound
 	// processed). Off, the engine still turns it on by itself once when
-	// the input brings no sound or keeps stopping (LevelParams.AECAuto).
+	// the input brings no sound or keeps stopping (LevelParams.AECAuto),
+	// except on a virtual or aggregate input (loopback: its silence is
+	// exact zeros), when InputChannels are given, or on a Bluetooth input
+	// before its warm-up (code review 1103 F1). When voice processing does
+	// not start on the input, or would record another input, the engine
+	// records without it (LevelParams.AECFallback).
 	AEC bool `json:"aec,omitempty"`
 }
+
+// Why the engine recorded without voice processing though AEC asked for
+// it (LevelParams.AECFallback, CaptureResult.AECFallback).
+const (
+	AECFallbackFailed = "failed" // voice processing did not start on this input
+	AECFallbackDevice = "device" // voice processing would record another input (the system default)
+)
 
 // LevelParams is the input meter, about 20 times a second while
 // recording, over the recorded channels. Levels are dBFS, at least -120.
@@ -338,6 +350,9 @@ type LevelParams struct {
 	// every level after it says so.
 	AECAuto   bool   `json:"aecAuto,omitempty"`
 	AECReason string `json:"aecReason,omitempty"`
+	// AECFallback: AEC was asked for but the recording runs without voice
+	// processing (AECFallbackFailed, AECFallbackDevice); every level says so.
+	AECFallback string `json:"aecFallback,omitempty"`
 }
 
 // CaptureResult describes the recording.
@@ -357,6 +372,11 @@ type CaptureResult struct {
 	AEC       bool   `json:"aec,omitempty"`
 	AECAuto   bool   `json:"aecAuto,omitempty"`
 	AECReason string `json:"aecReason,omitempty"`
+	// AECFallback as in LevelParams.
+	AECFallback string `json:"aecFallback,omitempty"`
+	// AECMono: voice processing gives one channel, so the stereo file
+	// holds it twice, and InputChannels did not apply.
+	AECMono bool `json:"aecMono,omitempty"`
 }
 
 // Capture end reasons.
@@ -381,6 +401,7 @@ type NoInputData struct {
 	Device string `json:"device"` // the device's ID
 	Name   string `json:"name"`
 	Reason string `json:"reason"` // CaptureNoSound or CaptureDeviceChanges
+	AEC    bool   `json:"aec,omitempty"` // voice processing was on (and did not help)
 }
 
 // CaptureStopParams names the capture.start job to stop.

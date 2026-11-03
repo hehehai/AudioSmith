@@ -96,7 +96,7 @@ func (f *fakeEngine) capture(m proto.Message) {
 			reason = proto.CaptureDeviceLost
 		case dev.ID == FakeDeadMic && elapsed >= 0.15:
 			os.Remove(p.Output.Path)
-			f.failData(m.ID, proto.CodeNoInput, proto.NoInputData{Device: dev.ID, Name: dev.Name, Reason: proto.CaptureNoSound}, "No sound from %s", dev.Name)
+			f.failData(m.ID, proto.CodeNoInput, proto.NoInputData{Device: dev.ID, Name: dev.Name, Reason: proto.CaptureNoSound, AEC: true}, "No sound from %s", dev.Name)
 			return
 		case (dev.ID == FakeSilentMic && !p.AEC && elapsed < 0.15) || dev.ID == FakeDeadMic:
 			f.notify(proto.MethodCaptureLevel, proto.LevelParams{Job: m.ID, Seconds: round3(elapsed), RMS: -120, Peak: -120})
@@ -119,7 +119,8 @@ func (f *fakeEngine) capture(m proto.Message) {
 	}
 	_, peak := levels(audio.Samples)
 	f.result(m.ID, proto.CaptureResult{AudioOut: audioOut(p.Output.Path, audio), Device: dev.ID, Peak: round3(peak), Reason: reason,
-		AEC: p.AEC || aecAuto != "", AECAuto: aecAuto != "", AECReason: aecAuto})
+		AEC: p.AEC || aecAuto != "", AECAuto: aecAuto != "", AECReason: aecAuto,
+		AECMono: (p.AEC || aecAuto != "") && (channels == 2 || len(p.InputChannels) > 0)}) // voice processing gives one channel
 }
 
 // captureStop ends a recording; the job answers first.
