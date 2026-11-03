@@ -40,8 +40,9 @@ type Takes struct {
 	async    func(func())
 
 	rmw     sync.Mutex // serializes read-modify-write of takes
-	mu      sync.Mutex // guards pending and closed; never held during I/O
+	mu      sync.Mutex // guards pending, saving and closed; never held during I/O
 	pending map[string]core.Take
+	saving  map[string]chan struct{} // closed once the take's job ended and its take is saved (or not)
 	closed  bool
 	wg      sync.WaitGroup
 	unsub   func()
@@ -58,7 +59,7 @@ var _ core.TakeService = (*Takes)(nil)
 func newTakes(cfg Config, pron *Pronunciation) *Takes {
 	t := &Takes{
 		store: cfg.Store.Takes(), bus: cfg.Bus, sched: cfg.Scheduler, licences: cfg.Licences,
-		ready: cfg.Ready, now: cfg.Now, logf: cfg.Logf, async: cfg.Async, pending: map[string]core.Take{},
+		ready: cfg.Ready, now: cfg.Now, logf: cfg.Logf, async: cfg.Async, pending: map[string]core.Take{}, saving: map[string]chan struct{}{},
 		models: cfg.Models, replace: cfg.Replace, keepTakes: cfg.KeepTakes, cacheDir: cfg.CacheDir,
 	}
 	t.render = &renderer{
@@ -91,7 +92,40 @@ func (s *Takes) Close() error {
 	s.mu.Unlock()
 	s.unsub()
 	s.wg.Wait()
+	s.mu.Lock()
+	for id := range s.saving {
+		s.saved(id)
+	}
+	s.mu.Unlock()
 	return nil
+}
+
+// Saved waits until the take id that Generate queued is saved, or its
+// job ended without a take; at once for takes not being made. Its job
+// ends before the take is saved (onJob saves it on a goroutine): a
+// caller that reads the history right after the job (the Local API's
+// generate_speech, then list_takes or list_assets) waits here first.
+func (s *Takes) Saved(ctx context.Context, id string) error {
+	s.mu.Lock()
+	done := s.saving[id]
+	s.mu.Unlock()
+	if done == nil {
+		return nil
+	}
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// saved releases Saved's waiters for id; s.mu is held.
+func (s *Takes) saved(id string) {
+	if done := s.saving[id]; done != nil {
+		close(done)
+		delete(s.saving, id)
+	}
 }
 
 func (s *Takes) List(ctx context.Context, q core.TakeQuery) ([]core.Take, error) {
@@ -240,6 +274,9 @@ func (s *Takes) Generate(ctx context.Context, req core.TakeRequest) (string, err
 	}
 	// Registered before Submit: the job may end before Submit returns.
 	s.pending[t.ID] = t
+	if s.saving[t.ID] == nil {
+		s.saving[t.ID] = make(chan struct{})
+	}
 	s.mu.Unlock()
 	id, err := s.sched.Submit(ctx, jobs.Spec{
 		Kind:     KindRender,
@@ -256,6 +293,7 @@ func (s *Takes) Generate(ctx context.Context, req core.TakeRequest) (string, err
 	if err != nil {
 		s.mu.Lock()
 		delete(s.pending, t.ID)
+		s.saved(t.ID)
 		s.mu.Unlock()
 		return "", err
 	}
@@ -277,6 +315,7 @@ func (s *Takes) onJob(u jobs.Updated) {
 	delete(s.pending, id)
 	if s.closed || j.State != jobs.StateSucceeded {
 		// Failures and cancellations reach the UI as the job's own events.
+		s.saved(id)
 		s.mu.Unlock()
 		return
 	}
@@ -287,6 +326,9 @@ func (s *Takes) onJob(u jobs.Updated) {
 		if err := s.complete(j, id, t, known); err != nil {
 			s.logf("take %s from job %s: %v", id, j.ID, err)
 		}
+		s.mu.Lock()
+		s.saved(id)
+		s.mu.Unlock()
 	})
 }
 

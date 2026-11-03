@@ -74,6 +74,9 @@ type Backend interface {
 	Takes(ctx context.Context, q core.TakeQuery) ([]core.Take, error)
 	Take(ctx context.Context, id string) (core.Take, error)
 	TakeAudio(t core.Take) string
+	// TakeSaved waits until the take id that Generate queued is in the
+	// history (its job ends just before), or will never be.
+	TakeSaved(ctx context.Context, id string) error
 	DeleteTake(ctx context.Context, id string) error
 
 	// Transcribe queues a transcription (owner "transcript:<req.ID>",

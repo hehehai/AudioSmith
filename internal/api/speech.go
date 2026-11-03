@@ -233,6 +233,11 @@ func (sp *Speech) Wait(ctx context.Context, onChunk func(proto.ChunkParams) erro
 	if out == "" {
 		out = sp.s.b.TakeAudio(t)
 	}
+	// The take is saved just after its job ends: a caller reading the
+	// history next (list_takes, list_assets) must find it.
+	if err := sp.s.b.TakeSaved(ctx, t.ID); err != nil {
+		return SpeechResult{}, err
+	}
 	return SpeechResult{Take: t, Output: out}, nil
 }
 

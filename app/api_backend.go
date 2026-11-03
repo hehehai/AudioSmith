@@ -269,6 +269,10 @@ func (b *apiBackend) Take(ctx context.Context, id string) (core.Take, error) {
 
 func (b *apiBackend) TakeAudio(t core.Take) string { return b.lib.svc.Takes.AudioPath(t) }
 
+func (b *apiBackend) TakeSaved(ctx context.Context, id string) error {
+	return b.lib.svc.Takes.Saved(ctx, id)
+}
+
 func (b *apiBackend) DeleteTake(ctx context.Context, id string) error {
 	return b.lib.svc.Takes.Delete(ctx, id)
 }

@@ -153,6 +153,7 @@ func (f *fake) Takes(ctx context.Context, q core.TakeQuery) ([]core.Take, error)
 }
 func (f *fake) Take(ctx context.Context, id string) (core.Take, error) { return f.takes[id], nil }
 func (f *fake) TakeAudio(t core.Take) string                           { return filepath.Join(f.dir, "clips", t.ID+".wav") }
+func (f *fake) TakeSaved(context.Context, string) error                { return nil }
 func (f *fake) DeleteTake(ctx context.Context, id string) error        { return nil }
 func (f *fake) Transcribe(ctx context.Context, req services.TranscribeRequest) (string, error) {
 	data, err := os.ReadFile(req.Input)

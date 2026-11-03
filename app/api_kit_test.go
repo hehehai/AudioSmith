@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hehehai/AudioSmith/internal/api"
 	"github.com/hehehai/AudioSmith/internal/dub"
@@ -195,4 +196,30 @@ func TestAPIKitLibrary(t *testing.T) {
 	e.fails(t, "create_dub", map[string]any{"url": "https://www.youtube.com/watch?v=abc"}, dub.CodeNoYtDlp)
 	e.fails(t, "create_dub", map[string]any{"url": "ftp://example.com/v.mp4"}, api.CodeInvalid)
 	e.fails(t, "create_dub", map[string]any{"url": "https://example.com/v", "path": "/x.mp4"}, api.CodeInvalid)
+}
+
+// TestAPISpeechTakeSaved: generate_speech answers once its take is in
+// the history, though the take is saved on a goroutine after its job
+// ends (CI flake #163: list_assets right after it found nothing).
+func TestAPISpeechTakeSaved(t *testing.T) {
+	slow := func(fn func()) {
+		go func() {
+			time.Sleep(200 * time.Millisecond)
+			fn()
+		}()
+	}
+	e := newStudioEnvWith(t, libraryOptions{Async: slow})
+	var sp struct {
+		TakeID string `json:"take_id"`
+	}
+	e.must(t, "generate_speech", map[string]any{"text": "Saved before the answer.", "output": "file"}, &sp)
+	var raw json.RawMessage
+	e.must(t, "list_takes", map[string]any{"take_id": sp.TakeID}, &raw) // fails: not found
+	var assets struct {
+		Count int `json:"count"`
+	}
+	e.must(t, "list_assets", map[string]any{"search": "saved before"}, &assets)
+	if assets.Count != 1 {
+		t.Fatalf("assets %+v", assets)
+	}
 }

@@ -24,6 +24,10 @@ type TakeService interface {
 	// once. The take is saved, and TakeCreated published, when the job
 	// succeeds; progress and failure arrive as jobs.Updated events.
 	Generate(ctx context.Context, req TakeRequest) (jobID string, err error)
+	// Saved waits until the take id that Generate queued is saved, or
+	// its job ended without one (at once for other ids): the job ends
+	// just before its take is saved.
+	Saved(ctx context.Context, id string) error
 	// Delete removes the take and its audio.
 	Delete(ctx context.Context, id string) error
 	// SetStarred stars or unstars a take.

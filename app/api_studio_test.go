@@ -66,6 +66,12 @@ func (g *gatedSynth) Run(ctx context.Context, job jobs.Job, report func(jobs.Pro
 
 func newStudioEnv(t *testing.T) *studioEnv {
 	t.Helper()
+	return newStudioEnvWith(t, libraryOptions{})
+}
+
+// newStudioEnvWith: newStudioEnv over a library opened with o.
+func newStudioEnvWith(t *testing.T, o libraryOptions) *studioEnv {
+	t.Helper()
 	saved := llmSecrets
 	llmSecrets = llm.StaticSecrets{}
 	t.Cleanup(func() { llmSecrets = saved })
@@ -74,7 +80,7 @@ func newStudioEnv(t *testing.T) *studioEnv {
 	t.Cleanup(func() { dubMakeTranslator = savedTr })
 
 	dir := t.TempDir()
-	lib := openTestLibraryWith(t, dir, libraryOptions{})
+	lib := openTestLibraryWith(t, dir, o)
 	useAllModelFiles(t, useLocalModels(t, lib))
 	out := t.TempDir()
 	if err := lib.settings.Update(context.Background(), func(s *settings.Settings) { s.API.MCPDir = out }); err != nil {
