@@ -58,7 +58,7 @@ func (s *Server) httpIsolation(w http.ResponseWriter, r *http.Request) {
 func (s *Server) httpAssets(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	l, err := s.Assets(r.Context(), AssetQuery{Kind: q.Get("kind"), Search: q.Get("search"),
-		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, 1<<30)})
+		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, MaxOffset)})
 	writeList(w, l, err)
 }
 

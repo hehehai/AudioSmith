@@ -59,7 +59,7 @@ func body(w http.ResponseWriter, r *http.Request, v any) error {
 func (s *Server) httpProjects(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	l, err := s.Projects(r.Context(), ProjectQuery{Category: q.Get("category"), Search: q.Get("search"),
-		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, 1<<30)})
+		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, MaxOffset)})
 	writeList(w, l, err)
 }
 

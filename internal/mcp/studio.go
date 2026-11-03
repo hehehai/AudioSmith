@@ -156,7 +156,7 @@ func (s *Server) listTakes(ctx context.Context, req *sdk.CallToolRequest, in lis
 		}
 		ts = []core.Take{t}
 	} else {
-		q := core.TakeQuery{Search: in.Search, VoiceID: in.VoiceID, Starred: in.Starred, Limit: min(max(in.Limit, 0), 200), Offset: max(in.Offset, 0)}
+		q := core.TakeQuery{Search: in.Search, VoiceID: in.VoiceID, Starred: in.Starred, Limit: min(max(in.Limit, 0), 200), Offset: min(max(in.Offset, 0), api.MaxOffset)}
 		if q.Limit == 0 {
 			q.Limit = 20
 		}

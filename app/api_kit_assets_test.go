@@ -13,6 +13,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/store"
+	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // TestAPIAssetsPaging: list_assets reads each source only as far as the
@@ -125,4 +126,46 @@ func TestAPIAssetsPaging(t *testing.T) {
 	}
 	old := time.Since(t0) / 5
 	t.Logf("first page of 50: %v; reading 2000 takes and decoding the whole bodies: %v", page, old)
+}
+
+// TestPoCNewestOverflowLoops (code review 1103 M2): a need near MaxInt
+// (an MCP client's offset) reads the source once instead of for ever
+// (need+1 and the doubling overflowed into fetch(0) = all, again and
+// again); a table shorter than the limit too.
+func TestPoCNewestOverflowLoops(t *testing.T) {
+	for _, need := range []int{int(^uint(0) >> 1), int(^uint(0)>>1) - 500, api.MaxOffset, api.MaxOffset - 1, 3} {
+		calls := 0
+		l, err := newest(need, func(n int) ([]int, error) {
+			if calls++; calls > 40 {
+				t.Fatalf("need %d: still reading after %d reads (limit %d)", need, calls, n)
+			}
+			return []int{1, 2, 3}, nil // the whole table, whatever the limit
+		}, nil, func(int) time.Time { return time.Time{} })
+		if err != nil || len(l) != 3 || calls != 1 {
+			t.Errorf("need %d: %v %v after %d reads", need, l, err, calls)
+		}
+	}
+}
+
+// TestAPIAssetsHugeOffset: list_assets over MCP with an offset past
+// MaxInt/2 answers an empty page (bounded as REST bounds it).
+func TestAPIAssetsHugeOffset(t *testing.T) {
+	e := newStudioEnv(t)
+	e.must(t, "generate_speech", map[string]any{"text": "One asset.", "output": "file"}, nil)
+	for _, off := range []float64{9e18, float64(api.MaxOffset)} {
+		var page struct {
+			Count  int             `json:"count"`
+			Assets []api.AssetJSON `json:"assets"`
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		res, err := e.cs.CallTool(ctx, &sdk.CallToolParams{Name: "list_assets", Arguments: map[string]any{"offset": off, "limit": 500}})
+		cancel()
+		if err != nil || res.IsError {
+			t.Fatalf("offset %g: %v %+v", off, err, res)
+		}
+		e.must(t, "list_assets", map[string]any{"offset": off}, &page)
+		if page.Count != 0 || len(page.Assets) != 0 {
+			t.Errorf("offset %g: %+v", off, page)
+		}
+	}
 }

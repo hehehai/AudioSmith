@@ -23,7 +23,7 @@ func (s *Server) Projects(ctx context.Context, q ProjectQuery) ([]ProjectJSON, e
 	if q.Limit == 0 {
 		q.Limit = 50
 	}
-	q.Offset = max(q.Offset, 0)
+	q.Offset = min(max(q.Offset, 0), MaxOffset)
 	return st.Projects(ctx, q)
 }
 
@@ -308,7 +308,7 @@ func (s *Server) SearchGallery(ctx context.Context, q GalleryQuery) (GalleryPage
 	if q.Limit == 0 {
 		q.Limit = 20
 	}
-	q.Offset = max(q.Offset, 0)
+	q.Offset = min(max(q.Offset, 0), 1<<20) // as REST
 	return st.SearchGallery(ctx, q)
 }
 

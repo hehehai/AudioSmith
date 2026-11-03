@@ -122,7 +122,7 @@ func (s *Server) Assets(ctx context.Context, q AssetQuery) ([]AssetJSON, error) 
 	if q.Limit == 0 {
 		q.Limit = 50
 	}
-	q.Offset = max(q.Offset, 0)
+	q.Offset = min(max(q.Offset, 0), MaxOffset) // as REST (code review 1103 M2)
 	return k.Assets(ctx, q)
 }
 

@@ -140,7 +140,7 @@ func (b *apiBackend) Assets(ctx context.Context, q api.AssetQuery) ([]api.AssetJ
 	}
 	need := 0 // per source; 0 = all (a search looks at every title)
 	if strings.TrimSpace(q.Search) == "" && q.Limit > 0 {
-		need = max(q.Offset, 0) + q.Limit
+		need = min(max(q.Offset, 0), api.MaxOffset) + q.Limit
 	}
 	wants := func(kinds ...string) bool { return q.Kind == "" || slices.Contains(kinds, q.Kind) }
 	if wants("speech") {
@@ -271,12 +271,17 @@ func exportAsset(e core.Export, storyRender map[string]bool) (api.AssetJSON, boo
 // newest reads a source listed newest first (by at): all of it when need
 // is 0, else at least as far as its need newest items that keep accepts
 // (nil: all) and any as new as the last of those, which the page's order
-// may put before it. fetch(0) reads all.
+// may put before it. fetch(0) reads all. Past api.MaxOffset it reads
+// all at once (code review 1103 M2: a need near MaxInt overflowed into
+// fetch(0) for ever).
 func newest[T any](need int, fetch func(limit int) ([]T, error), keep func(T) bool, at func(T) time.Time) ([]T, error) {
-	if need <= 0 {
+	if need <= 0 || need >= api.MaxOffset {
 		return fetch(0)
 	}
 	for limit := need + 1; ; limit *= 2 {
+		if limit > 2*api.MaxOffset {
+			return fetch(0)
+		}
 		l, err := fetch(limit)
 		if err != nil || len(l) < limit {
 			return l, err // all of it

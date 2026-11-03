@@ -88,6 +88,9 @@ func (sp *Speech) addReplaced(out map[string]any) {
 // Detach stops following a speech request without cancelling it.
 func (sp *Speech) Detach() { sp.x.stop() }
 
+// MaxOffset is the largest offset a list takes, over REST and MCP alike.
+const MaxOffset = 1 << 30
+
 // queryInt reads an integer query parameter within [lo, hi].
 func queryInt(r *http.Request, name string, def, lo, hi int) int {
 	v := r.URL.Query().Get(name)
@@ -104,7 +107,7 @@ func queryInt(r *http.Request, name string, def, lo, hi int) int {
 func (s *Server) listTakes(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	tq := core.TakeQuery{Search: q.Get("search"), VoiceID: q.Get("voice_id"), Starred: q.Get("starred") == "true",
-		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, 1<<30)}
+		Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, MaxOffset)}
 	if m := q.Get("model"); m != "" {
 		if e, ok := findEntry(m, catalog.TaskTTS); ok {
 			tq.Model = e.Repo
@@ -178,7 +181,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, path string) {
 // --- transcripts -----------------------------------------------------------
 
 func (s *Server) listTranscripts(w http.ResponseWriter, r *http.Request) {
-	q := core.TranscriptQuery{Search: r.URL.Query().Get("search"), Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, 1<<30)}
+	q := core.TranscriptQuery{Search: r.URL.Query().Get("search"), Limit: queryInt(r, "limit", 50, 1, 500), Offset: queryInt(r, "offset", 0, 0, MaxOffset)}
 	ts, err := s.b.Transcripts(r.Context(), q)
 	if err != nil {
 		writeError(w, err)
