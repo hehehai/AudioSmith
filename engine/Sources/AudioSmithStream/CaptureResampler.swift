@@ -51,7 +51,8 @@ public final class CaptureResampler {
     /// Converts input (nil: flushes the converter's tail, the end of its
     /// stream) to the file's format.
     private func run(_ converter: AVAudioConverter, rate: Double, input: AVAudioPCMBuffer?) -> AVAudioPCMBuffer? {
-        let frames = Double(input?.frameLength ?? 0)
+        // A flush gets room for the filter's whole delay.
+        let frames = Double(input?.frameLength ?? 8192)
         let capacity = AVAudioFrameCount((frames + 256) * format.sampleRate / max(rate, 1) + 32)
         guard let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return nil }
         var given = false

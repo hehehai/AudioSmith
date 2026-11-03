@@ -400,7 +400,7 @@ const (
 type NoInputData struct {
 	Device string `json:"device"` // the device's ID
 	Name   string `json:"name"`
-	Reason string `json:"reason"` // CaptureNoSound or CaptureDeviceChanges
+	Reason string `json:"reason"`        // CaptureNoSound or CaptureDeviceChanges
 	AEC    bool   `json:"aec,omitempty"` // voice processing was on (and did not help)
 }
 

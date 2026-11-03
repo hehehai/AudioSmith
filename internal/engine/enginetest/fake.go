@@ -117,7 +117,7 @@ type fakeEngine struct {
 	cancel   map[string]bool      // jobs asked to stop by job.cancel
 	stop     map[string]chan bool // capture.start jobs: closed by capture.stop
 	finished map[string]chan struct{}
-	models   map[string]time.Time // loaded model → last use
+	models   map[string]time.Time     // loaded model → last use
 	config   proto.EngineConfigResult // engine.config: the app's budget and holds
 }
 
