@@ -736,6 +736,7 @@
   "Cleaning the noise…": "正在清除噪声…",
   "Cleaning up…": "正在清理…",
   "Clear": "清除",
+  "Clear %s": "清除%s",
   "Clear %d line and the text being reviewed? The cast stays. This cannot be undone.": "清除全部 %d 行和待整理的文本？角色会保留。此操作无法撤销。",
   "Clear all %d lines and the text being reviewed? The cast stays. This cannot be undone.": "清除全部 %d 行和待整理的文本？角色会保留。此操作无法撤销。",
   "Clear cache": "清理缓存",

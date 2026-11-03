@@ -228,12 +228,14 @@ func (s fakeSched) Get(_ context.Context, id string) (jobs.Job, error) {
 	return j, nil
 }
 
-// List returns the finished jobs of the filter's kind and states (tests
-// that look at the job history); without states, none (no history).
+// List returns the jobs of the filter's kind, owner (exact, or a "kind:"
+// prefix) and states (tests that look at the job history); without
+// states, none (no history).
 func (s fakeSched) List(_ context.Context, fl jobs.Filter) ([]jobs.Job, error) {
 	var out []jobs.Job
 	for _, j := range s.f.jobs {
-		if len(fl.States) > 0 && slices.Contains(fl.States, j.State) && (fl.Kind == "" || fl.Kind == j.Spec.Kind) {
+		owned := fl.Owner == "" || j.Owner == fl.Owner || strings.HasSuffix(fl.Owner, ":") && strings.HasPrefix(j.Owner, fl.Owner)
+		if len(fl.States) > 0 && slices.Contains(fl.States, j.State) && (fl.Kind == "" || fl.Kind == j.Spec.Kind) && owned {
 			out = append(out, j)
 		}
 	}

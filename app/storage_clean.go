@@ -112,7 +112,7 @@ func (a *app) stClearButton(c *ui.Context, cat storageCat) bool {
 		return false
 	}
 	busy := len(a.activeJobs()) > 0
-	b := ui.Button(c.Key("st-clear-"+cat.id), i18n.T("Clear")).Disabled(busy || cat.bytes == 0)
+	b := ui.Button(c.Key("st-clear-"+cat.id), i18n.T("Clear")).Label(i18n.T("Clear %s", cat.title)).Disabled(busy || cat.bytes == 0)
 	if busy {
 		b.Tooltip(i18n.T("Wait for the jobs in progress"))
 	}

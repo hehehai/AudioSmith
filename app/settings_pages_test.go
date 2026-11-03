@@ -51,7 +51,7 @@ func TestStoragePage(t *testing.T) {
 	if takes < 48000 || caches < 5000 {
 		t.Errorf("takes %d caches %d", takes, caches)
 	}
-	if err := tt.Click("Clear"); err != nil {
+	if err := tt.Click("Clear Caches"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
