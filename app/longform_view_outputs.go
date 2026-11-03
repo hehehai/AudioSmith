@@ -92,6 +92,9 @@ func (a *app) lfOutputs(c *ui.Context, p *lfPage) {
 			})
 		})
 		if a.pl.Current() == id {
+			if a.pl.Playing(id) {
+				c.After(200 * time.Millisecond) // the slider follows
+			}
 			prog := float64(a.pl.Progress(id))
 			if ui.Slider(c.Key("out-seek"), &prog, 0, 1).Label(i18n.T("Position")).Changed() {
 				a.pl.Seek(id, float32(prog))

@@ -263,12 +263,14 @@ type engine struct {
 	// the window, and gen the text system's Generation, as the last frame
 	// was built. The host's repaintTimer asks for a frame at repaintDue,
 	// unless one came or was asked for since. held tells that what moves
-	// waits for the window to show.
+	// waits for the window to show, afterHeld that a frame After asked for
+	// does.
 	animating  bool
 	repainting bool
 	repaintAt  time.Time
 	redraw     bool
 	held       bool
+	afterHeld  bool
 	painted    [3]float32
 	gen        uint64
 	repaintDue time.Time
@@ -786,11 +788,18 @@ func (rt *engine) scheduleAt(t time.Time) {
 }
 
 // armTimer arms the host's timer for the earliest frame After asked for.
+// While nothing of the window shows, the frame waits until some of it
+// does (SurfaceShown), as what moves waits (next): a clock nobody sees
+// builds no view.
 func (rt *engine) armTimer() {
 	rt.wakeMu.Lock()
 	at := rt.wakeAt
 	rt.wakeAt = time.Time{}
 	rt.wakeMu.Unlock()
+	rt.afterHeld = !at.IsZero() && rt.host.occluded()
+	if rt.afterHeld {
+		at = time.Time{}
+	}
 	rt.host.afterTimer(at)
 }
 

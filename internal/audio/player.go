@@ -90,6 +90,27 @@ func (pl *Player) Playing(id string) bool {
 	return pl.p != nil && pl.id == id && pl.p.Playing()
 }
 
+// Left is when to look whether the audio playing ended: soon after the
+// time it has left, within leftMax, or leftStream for a stream still
+// growing; 0 when nothing plays.
+func (pl *Player) Left() time.Duration {
+	if !pl.Active() {
+		return 0
+	}
+	d := pl.p.Duration()
+	if pl.stream != nil || d <= 0 {
+		return leftStream
+	}
+	return min(max(d-pl.p.Position()+leftEnd, leftEnd), leftMax)
+}
+
+// Left's bounds: a margin past the end, the longest wait, a stream's.
+const (
+	leftEnd    = 50 * time.Millisecond
+	leftMax    = 2 * time.Second
+	leftStream = 200 * time.Millisecond
+)
+
 // Progress is where id is, from 0 to 1 (0 when it is not loaded).
 func (pl *Player) Progress(id string) float32 {
 	if pl.p == nil || pl.id != id {

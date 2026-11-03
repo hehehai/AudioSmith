@@ -1,0 +1,202 @@
+ui: After waits while the window is occluded
+
+Context.After asked for a frame built anew after d whether or not any of
+the window showed, while animations and Painter.After already waited for
+SurfaceShown (engine.next). An app whose view keeps a clock or a progress
+current with After went on building its view while hidden, minimized or
+covered, as an app closed to the menu bar: work and wake-ups nobody sees.
+
+armTimer now leaves the host's timer off while the window is occluded and
+records that a frame waits (afterHeld); SurfaceShown asks for the frame at
+once. Changes of the state (Changed, Window.Update) still build frames
+while occluded, as before; a timer armed while the window showed may fire
+once after it hides. Backends without an OccludableSurface (Linux,
+Windows) are unchanged.
+
+Tester.SetOccluded(bool) hides and shows a Tester's window, sending
+SurfaceShown, so apps can test what their views do meanwhile.
+
+Tests: TestAfterWaitsWhileOccluded, TestShownWithoutAfter.
+
+diff --git a/ui/after_occluded_test.go b/ui/after_occluded_test.go
+new file mode 100644
+index 0000000..a354518
+--- /dev/null
++++ b/ui/after_occluded_test.go
+@@ -0,0 +1,64 @@
++package ui
++
++import (
++	"github.com/egoist/mygo/internal/platform"
++	"testing"
++	"time"
++)
++
++// After's frames wait while nothing of the window shows, and the view
++// builds at once when some of it shows again; changes of the state still
++// build frames meanwhile.
++func TestAfterWaitsWhileOccluded(t *testing.T) {
++	builds, count := 0, 0
++	tt := coreNewTester(func(c *context) {
++		builds++
++		coreTextf(c, "%d", count)
++		c.After(100 * time.Millisecond)
++	}, 100, 100)
++	builds = 0
++	tt.Advance(time.Second)
++	if builds < 9 || builds > 11 {
++		t.Fatalf("shown: %d builds in a second, want 10", builds)
++	}
++	tt.SetOccluded(true)
++	builds = 0
++	tt.Advance(5 * time.Second)
++	// The timer armed while it showed may still fire once.
++	if builds > 1 {
++		t.Fatalf("hidden: %d builds in 5 s", builds)
++	}
++	if tt.h.afterAt != (time.Time{}) || !tt.rt.afterHeld {
++		t.Fatalf("hidden: timer at %v, held %v", tt.h.afterAt, tt.rt.afterHeld)
++	}
++	count++
++	tt.rt.changed()
++	builds = 0
++	tt.Advance(10 * time.Millisecond)
++	if builds != 1 || !tt.HasText("1") {
++		t.Fatalf("a change while hidden: %d builds, shows %q", builds, tt.Texts())
++	}
++	builds = 0
++	tt.SetOccluded(false)
++	if builds != 1 {
++		t.Fatalf("shown again: %d builds at once, want 1", builds)
++	}
++	builds = 0
++	tt.Advance(time.Second)
++	if builds < 9 || builds > 11 {
++		t.Fatalf("shown again: %d builds in a second, want 10", builds)
++	}
++}
++
++// A window shown again asks for no frame when no After waited.
++func TestShownWithoutAfter(t *testing.T) {
++	tt := coreNewTester(func(c *context) { coreTextf(c, "x") }, 100, 100)
++	tt.h.hidden = true
++	tt.Frame()
++	tt.h.hidden = false
++	tt.h.requested.Store(false)
++	tt.rt.event(platform.SurfaceEvent{Kind: platform.SurfaceShown})
++	if tt.h.requested.Load() || tt.rt.afterHeld {
++		t.Fatal("shown again with nothing waiting, it asked for a frame")
++	}
++}
+diff --git a/ui/api_gen.go b/ui/api_gen.go
+index b90736d..88c32d3 100644
+--- a/ui/api_gen.go
++++ b/ui/api_gen.go
+@@ -250,7 +250,9 @@ func (_handle *Context) AddToast(t Toast) string {
+ }
+ 
+ // After asks for another frame after d, for something that changes with
+-// time, such as a clock.
++// time, such as a clock. While nothing of the window shows (hidden,
++// minimized, covered), the frame waits until some of it shows again, and
++// comes then at once, as animations wait.
+ func (_handle *Context) After(d time.Duration) {
+ 	_ctx := _handle.build()
+ 	if _ctx == nil {
+diff --git a/ui/context.go b/ui/context.go
+index c4ec23e..b9cb0f0 100644
+--- a/ui/context.go
++++ b/ui/context.go
+@@ -385,7 +385,9 @@ func (c *context) DisableAnimations() { c.rt.instantFrame = c.rt.frame }
+ func (rt *engine) instant() bool { return rt.instantFrame == rt.frame && rt.frame != 0 }
+ 
+ // After asks for another frame after d, for something that changes with
+-// time, such as a clock.
++// time, such as a clock. While nothing of the window shows (hidden,
++// minimized, covered), the frame waits until some of it shows again, and
++// comes then at once, as animations wait.
+ func (c *context) After(d time.Duration) { c.rt.scheduleAt(c.now.Add(d)) }
+ 
+ // ReadClipboard returns the text on the clipboard, and WriteClipboard
+diff --git a/ui/headless.go b/ui/headless.go
+index 30534e8..5fdad91 100644
+--- a/ui/headless.go
++++ b/ui/headless.go
+@@ -389,6 +389,20 @@ func (t *Tester) SetVibrancy(shows bool) {
+ 	t.Frame()
+ }
+ 
++// SetOccluded hides the window, as when it is minimized, ordered out or
++// covered by other windows, or shows it again: while hidden, animations
++// and the frames of After and Painter.After wait, and showing it builds
++// the view if they did.
++func (t *Tester) SetOccluded(occluded bool) {
++	if t.h.hidden == occluded {
++		return
++	}
++	t.h.hidden = occluded
++	if !occluded {
++		t.send(platform.SurfaceEvent{Kind: platform.SurfaceShown})
++	}
++}
++
+ // SetDark switches between the light and the dark appearance.
+ func (t *Tester) SetDark(dark bool) {
+ 	t.h.dark = dark
+diff --git a/ui/input.go b/ui/input.go
+index f44a1f3..da72f18 100644
+--- a/ui/input.go
++++ b/ui/input.go
+@@ -33,9 +33,10 @@ func (rt *engine) event(ev platform.SurfaceEvent) (taken bool) {
+ 	case platform.SurfaceResize:
+ 		rt.requestFrame()
+ 	case platform.SurfaceShown:
+-		if rt.held {
+-			// What moves goes on from where the time puts it.
+-			rt.held = false
++		if rt.held || rt.afterHeld {
++			// What moves goes on from where the time puts it; what
++			// After waited for builds now.
++			rt.held, rt.afterHeld = false, false
+ 			rt.requestFrame()
+ 		}
+ 	case platform.PointerMove:
+diff --git a/ui/runtime.go b/ui/runtime.go
+index ca0803d..edcb5b0 100644
+--- a/ui/runtime.go
++++ b/ui/runtime.go
+@@ -263,12 +263,14 @@ type engine struct {
+ 	// the window, and gen the text system's Generation, as the last frame
+ 	// was built. The host's repaintTimer asks for a frame at repaintDue,
+ 	// unless one came or was asked for since. held tells that what moves
+-	// waits for the window to show.
++	// waits for the window to show, afterHeld that a frame After asked for
++	// does.
+ 	animating  bool
+ 	repainting bool
+ 	repaintAt  time.Time
+ 	redraw     bool
+ 	held       bool
++	afterHeld  bool
+ 	painted    [3]float32
+ 	gen        uint64
+ 	repaintDue time.Time
+@@ -786,11 +788,18 @@ func (rt *engine) scheduleAt(t time.Time) {
+ }
+ 
+ // armTimer arms the host's timer for the earliest frame After asked for.
++// While nothing of the window shows, the frame waits until some of it
++// does (SurfaceShown), as what moves waits (next): a clock nobody sees
++// builds no view.
+ func (rt *engine) armTimer() {
+ 	rt.wakeMu.Lock()
+ 	at := rt.wakeAt
+ 	rt.wakeAt = time.Time{}
+ 	rt.wakeMu.Unlock()
++	rt.afterHeld = !at.IsZero() && rt.host.occluded()
++	if rt.afterHeld {
++		at = time.Time{}
++	}
+ 	rt.host.afterTimer(at)
+ }
+ 

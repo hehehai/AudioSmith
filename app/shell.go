@@ -309,14 +309,14 @@ func (a *app) view(c *ui.Context) {
 	}
 	a.actionToasts = nil
 	a.shortcuts(c)
-	if a.engineSummary().Busy {
-		// Keep the elapsed time current.
-		c.After(500 * time.Millisecond)
-	}
+	// The Studio's job keeps its elapsed time current itself (jobStatus);
+	// progress comes with the engine's updates, which build the view.
 	a.buildActivity() // shell_activity.go: the cards of this frame
 	if a.pl.Active() {
-		// Notice the end of playback, so Pause turns back into Play.
-		c.After(200 * time.Millisecond)
+		// Notice the end of playback, so Pause turns back into Play. Views
+		// that show where it plays ask for their own frames (a slider, the
+		// word playing) or repaint (a waveform).
+		c.After(a.pl.Left())
 	}
 	a.syncNav()
 	// The headers' ‹ › (ui_page_header.go): the window's history.

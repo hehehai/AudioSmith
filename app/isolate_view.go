@@ -151,9 +151,6 @@ func (a *app) isoRow(c *ui.Context, x services.Isolation, narrow bool) {
 	k := tok(c.Theme())
 	id := x.ID
 	status, running, frac, failed := a.isoStatus(x)
-	if running {
-		c.After(500 * time.Millisecond)
-	}
 	ic := icons.Soundwave
 	if x.Video {
 		ic = dubIcon
@@ -262,7 +259,6 @@ func (a *app) isoDetailBody(c *ui.Context, x services.Isolation) {
 	status, running, frac, failed := a.isoStatus(x)
 	switch {
 	case running:
-		c.After(500 * time.Millisecond)
 		fillCard(c.Key("iso-run")).Gap(px(t, sp2)).Children(func() {
 			ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)

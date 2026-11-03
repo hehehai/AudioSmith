@@ -33,9 +33,10 @@ func (rt *engine) event(ev platform.SurfaceEvent) (taken bool) {
 	case platform.SurfaceResize:
 		rt.requestFrame()
 	case platform.SurfaceShown:
-		if rt.held {
-			// What moves goes on from where the time puts it.
-			rt.held = false
+		if rt.held || rt.afterHeld {
+			// What moves goes on from where the time puts it; what
+			// After waited for builds now.
+			rt.held, rt.afterHeld = false, false
 			rt.requestFrame()
 		}
 	case platform.PointerMove:
