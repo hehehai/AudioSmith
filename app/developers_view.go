@@ -112,16 +112,17 @@ func (a *app) devConnectCard(c *ui.Context) {
 		})
 		caption(c, how).Wrap()
 		_, h := c.Size()
-		ui.Row(c.Key("dev-code")).AlignItems(ui.Start).Gap(px(t, sp1)).Radius(px(t, radiusControl)).Background(k.Subtle).Children(func() {
-			ui.Scroll(c.Key("dev-code-scroll")).Grow(1).MinWidth(0).MaxHeight(max(px(t, 96), min(px(t, 220), h*0.3))).Children(func() {
-				ui.Text(c, code).Font(monoFont).FontSize(px(t, fsCaption)).Wrap().Selectable().Padding(px(t, sp3))
+		// The code fills the box; Copy floats in its top right corner
+		// (the text keeps clear of it).
+		ui.Box(c.Key("dev-code")).Radius(px(t, radiusControl)).Background(k.Subtle).Children(func() {
+			ui.Scroll(c.Key("dev-code-scroll")).MaxHeight(max(px(t, 96), min(px(t, 220), h*0.3))).Children(func() {
+				ui.Text(c, code).Font(monoFont).FontSize(px(t, fsCaption)).Wrap().Selectable().
+					Padding(px(t, sp3), iconSide(t)+px(t, sp3), px(t, sp3), px(t, sp3))
 			})
-			ui.Box(c).Padding(px(t, 6)).Shrink(0).Children(func() {
-				if secondaryIconButton(c.Key("dev-copy"), icons.Copy, i18n.T("Copy")).Label(i18n.T("Copy")).Clicked() {
-					c.Services().WriteClipboard(code)
-					a.toast(i18n.T("Copied"))
-				}
-			})
+			if floatIconButton(c.Key("dev-copy"), icons.Copy, i18n.T("Copy")).Absolute().Top(px(t, 6)).Right(px(t, 6)).Clicked() {
+				c.Services().WriteClipboard(code)
+				a.toast(i18n.T("Copied"))
+			}
 		})
 		a.devStatusLine(c)
 	})

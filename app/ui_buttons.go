@@ -190,6 +190,25 @@ func iconButton(c *ui.Context, ic icons.Icon, tip string) ui.Element {
 	return b
 }
 
+// floatIconButton is an icon-only button with a face of its own (the
+// surface, a hairline), to float over content such as a code box's
+// corner; tip names it.
+func floatIconButton(c *ui.Context, ic icons.Icon, tip string) ui.Element {
+	t := c.Theme()
+	k := tok(t)
+	b := ui.ButtonBase(c).Size(iconSide(t), iconSide(t)).Center().Radius(px(t, radiusControl)).
+		Background(k.Bg).Border(1, k.Line).Label(tip).Tooltip(tip)
+	b.Children(func() {
+		col := k.Text2
+		if b.Hovered() {
+			col = k.Text
+			b.Background(k.Hover)
+		}
+		ui.Icon(c, ic.Linear).Size(px(t, 16), px(t, 16)).TextColor(col)
+	})
+	return b
+}
+
 // iconToggle is an icon button for something on or off (Star, the
 // inspector): Bold and in the pressed face while on.
 func iconToggle(c *ui.Context, ic icons.Icon, on bool, tip string) ui.Element {
