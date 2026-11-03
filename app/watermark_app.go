@@ -200,7 +200,7 @@ func (a *app) watermarkSettings(c *ui.Context) { // M7a: a section of Settings â
 		m.known = true // read once
 		a.refreshModel(e)
 	}
-	desc := i18n.T("Every take, chapter, dub and API output gets a mark you cannot hear, so it can be recognised as AudioSmith's. It survives compression and volume changes.")
+	desc := i18n.T("Takes, chapters, dubs and finished API output get a mark you cannot hear, so they can be recognised as likely AudioSmith's (streamed API audio and calls are not marked). It survives compression and volume changes; it can be removed or imitated, so it is a hint, not proof.")
 	settingRow(c, "privacy-watermark", i18n.T("Add an invisible watermark to generated audio"), desc, func() {
 		if ui.Switch(c.Key("privacy-watermark-switch"), &a.wmOn).Label(i18n.T("Add an invisible watermark to generated audio")).Changed() {
 			on := a.wmOn
@@ -235,7 +235,7 @@ func (a *app) watermarkSettings(c *ui.Context) { // M7a: a section of Settings â
 func (a *app) watermarkTool(c *ui.Context) {
 	t := c.Theme()
 	w := &a.wmCheck
-	toolIntro(c, i18n.T("Is a file watermarked? Drop it here or choose it: the watermark model finds its mark, and whether AudioSmith made it."))
+	toolIntro(c, i18n.T("Is a file watermarked? Drop it here or choose it: the watermark model finds a mark, and whether it is in AudioSmith's format."))
 	zone := ui.Column(c.Key("wm-drop")).Padding(px(t, 12)).Gap(px(t, 6)).Radius(8).Border(1, t.Border)
 	if files := zone.DroppedFiles(); len(files) > 0 && !w.busy {
 		a.checkWatermark(files[0])
@@ -275,11 +275,11 @@ func (a *app) watermarkTool(c *ui.Context) {
 func watermarkVerdict(r proto.WatermarkDetectResult) []string {
 	pct := int(r.Probability*100 + 0.5)
 	if !r.Detected {
-		return []string{i18n.T("No watermark found (%d%% of the audio looks marked).", pct)}
+		return []string{i18n.T("No watermark found (%d%% of the audio looks marked). Audio without the mark may still be generated.", pct)}
 	}
 	out := []string{i18n.T("Watermarked: %d%% of the audio carries the mark.", pct)}
 	if ours, id := watermark.Decode(r.Message); ours && r.Confidence >= 0.2 {
-		out = append(out, i18n.T("Made with AudioSmith (install %d).", id))
+		out = append(out, i18n.T("The mark is in AudioSmith's format (install number %d): the audio likely came from an AudioSmith. A mark can be imitated or removed, so this is not proof.", id))
 	} else {
 		out = append(out, i18n.T("The message (%04X) is not AudioSmith's: another app's watermark, or a damaged mark.", r.Message))
 	}

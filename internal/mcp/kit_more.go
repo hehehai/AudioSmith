@@ -262,7 +262,12 @@ func (s *Server) directPerformance(ctx context.Context, req *sdk.CallToolRequest
 }
 
 func (s *Server) checkLineFit(ctx context.Context, req *sdk.CallToolRequest, in api.FitRequest) (*sdk.CallToolResult, any, error) {
-	s.caller(req)
+	// The rewrite asks the writing help, which may be a cloud model on the
+	// user's account: not for LAN clients with the PIN only (code review
+	// 11-02, N3). The prediction stays open to them.
+	if c := s.caller(req); in.Rewrite && !c.trusted() {
+		return nil, nil, errors.New(api.CodeUnauthorized + ": rewrite uses the user's writing help: call it on the Mac, or with the API key (without rewrite the fit is predicted)")
+	}
 	f, err := s.o.API.Fit(ctx, in)
 	if err != nil {
 		return nil, nil, toolError(err)
@@ -331,13 +336,13 @@ func (s *Server) addMoreTools() {
 	sdk.AddTool(s.srv, add("download_model", "Download a model",
 		"Download a model of list_models (needs confirm: true after the user agreed). Returns a job_id for get_job. Licences are accepted by the user in AudioSmith → Models."), s.downloadModel)
 	sdk.AddTool(s.srv, add("detect_watermark", "Check for the watermark",
-		"Check an audio file for AudioSmith's invisible watermark (whether this Mac's AudioSmith made it)."), s.detectWatermark)
+		"Check an audio file for a watermark in AudioSmith's format. A detection means the audio likely came from some AudioSmith (the install number is not unique to a Mac); the mark can be forged or removed, and audio without it may still be AI-made, so it is not proof either way."), s.detectWatermark)
 	sdk.AddTool(s.srv, add("probe_media", "Probe a media file",
 		"What an audio or video file holds: duration, streams, codecs, sample rate, channels."), s.probeMedia)
 	sdk.AddTool(s.srv, add("direct_performance", "Read a performance note",
 		"Direction: turn a performance note (\"whispered, getting angry\") into emotions, an instruction for instruct models, and rate, pitch and energy hints."), s.directPerformance)
 	sdk.AddTool(s.srv, add("check_line_fit", "Will a line fit its time?",
-		"Rate fit: predict how long a line takes to say against a slot in seconds (ok, tight, overflow), and optionally get a shorter version from the writing help."), s.checkLineFit)
+		"Rate fit: predict how long a line takes to say against a slot in seconds (ok, tight, overflow), and optionally get a shorter version from the writing help (rewrite: on the Mac or with the API key; the writing help may be a cloud model)."), s.checkLineFit)
 	sdk.AddTool(s.srv, add("get_settings", "Read AudioSmith's defaults",
 		"The defaults that shape your calls (read only): default speech and transcription models, dubbing targets and whether link import is on, the output mode, the agents' folder, your own voice, the watermark."), s.getSettings)
 }

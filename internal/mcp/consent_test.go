@@ -50,7 +50,7 @@ func TestConsentElicit(t *testing.T) {
 	succeeds(t, cs, "download_model", map[string]any{"model": "kokoro-82m-bf16", "confirm": true}, nil)
 	mu.Lock()
 	defer mu.Unlock()
-	if len(k.isos) != 0 || len(asked) != 4 || !strings.Contains(asked[0], x.ID) || !strings.Contains(asked[1], "download") {
+	if len(k.isos) != 0 || len(asked) != 4 || !strings.Contains(asked[0], x.ID) || !strings.Contains(asked[0], "“"+x.Title+"”") || !strings.Contains(asked[1], "download") {
 		t.Fatalf("isolations %d, asked %q", len(k.isos), asked)
 	}
 }

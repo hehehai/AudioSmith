@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -385,28 +386,20 @@ func languageTitle(tag string) string {
 	return tag
 }
 
+// writeAtomic writes data to path through a temporary file of a random
+// name beside it, created exclusively (code review 11-02, N2: a
+// predictable "<path>.tmp" in a shared folder could be a symlink planted
+// to overwrite another file).
 func writeAtomic(path string, data []byte) error {
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		os.Remove(tmp)
+	return wav.WriteFileAtomic(path, 0o644, func(f *os.File) error {
+		_, err := f.Write(data)
 		return err
-	}
-	return os.Rename(tmp, path)
+	})
 }
 
+// writeZip writes the ZIP of entries to path, like writeAtomic.
 func writeZip(path string, entries []dub.ZipEntry) error {
-	tmp := path + ".tmp"
-	f, err := os.Create(tmp)
-	if err != nil {
-		return err
-	}
-	err = dub.WriteZip(f, entries)
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return os.Rename(tmp, path)
+	return wav.WriteFileAtomic(path, 0o644, func(f *os.File) error {
+		return dub.WriteZip(f, entries)
+	})
 }

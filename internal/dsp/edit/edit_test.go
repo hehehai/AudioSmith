@@ -185,3 +185,25 @@ func BenchmarkJoiner(b *testing.B) {
 		j.Close()
 	}
 }
+
+// TestTrimScannerChunks: fed in uneven chunks, the scanner finds the
+// range TrimRange finds whole (thread #150 streams exports with it).
+func TestTrimScannerChunks(t *testing.T) {
+	b := dsp.Buffer{Rate: 16000, Channels: 2, Samples: make([]float32, 2*16000)}
+	for i := 2 * 3000; i < 2*11007; i++ {
+		b.Samples[i] = 0.3
+	}
+	ws, we := TrimRange(b, TrimOptions{})
+	sc := NewTrimScanner(b.Rate, b.Channels, TrimOptions{})
+	for i := 0; i < len(b.Samples); {
+		n := min(2*(37+i%101), len(b.Samples)-i)
+		sc.Write(b.Samples[i : i+n])
+		i += n
+	}
+	if s, e := sc.Range(); s != ws || e != we || ws == 0 {
+		t.Errorf("chunked %d–%d, whole %d–%d", s, e, ws, we)
+	}
+	if sc.FadeFrames() != 80 {
+		t.Errorf("fade %d frames", sc.FadeFrames())
+	}
+}

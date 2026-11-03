@@ -20,6 +20,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
+	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/dub"
 	"github.com/hehehai/AudioSmith/internal/engine"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -290,21 +291,12 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	defer in.Close()
-	tmp := dst + ".part"
-	out, err := os.Create(tmp)
-	if err != nil {
+	// A temporary file of a random name, created exclusively: the folder
+	// may be shared (code review 11-02, N2).
+	return wav.WriteFileAtomic(dst, 0o644, func(f *os.File) error {
+		_, err := io.Copy(f, in)
 		return err
-	}
-	if _, err := io.Copy(out, in); err != nil {
-		out.Close()
-		os.Remove(tmp)
-		return err
-	}
-	if err := out.Close(); err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return os.Rename(tmp, dst)
+	})
 }
 
 // isoToTranscribe transcribes x's voices (denoised when there are).

@@ -187,19 +187,16 @@ func (s *Voices) export(ctx context.Context, id, dst string, o core.VoiceExport)
 	}
 	b := &persona.Bundle{Manifest: m}
 
-	// The preview: what the caller chose, else the voice's sample, its
-	// newest take or its reference, whichever is a WAV small enough.
+	// The preview: what the caller chose, else the voice's sample or its
+	// reference, whichever is a WAV small enough. Never the voice's takes:
+	// the newest one is whatever the user last said with it, text and all
+	// (code review 11-02, N4).
 	var candidates []previewSource
 	if o.Preview != "" {
 		candidates = append(candidates, previewSource{o.Preview, ""})
 	}
 	if v.Sample != "" {
 		candidates = append(candidates, previewSource{s.FilePath(v, v.Sample), v.SampleText})
-	}
-	if u, err := s.store.Usage(ctx, id); err == nil && u.LatestTake != "" {
-		if t, err := s.takes.Get(ctx, u.LatestTake); err == nil {
-			candidates = append(candidates, previewSource{s.takes.AudioPath(t), t.Text})
-		}
 	}
 	if v.RefAudio != "" {
 		candidates = append(candidates, previewSource{s.FilePath(v, v.RefAudio), v.RefText})
@@ -242,7 +239,8 @@ func (s *Voices) export(ctx context.Context, id, dst string, o core.VoiceExport)
 }
 
 // ErrNoPreview: a voice has no WAV to ship as an export's preview (no
-// sample, take or WAV reference): generate a take with it first.
+// sample, no WAV reference; its takes are not used): lock a take as its
+// identity (its sample) first.
 var ErrNoPreview = errors.New("the voice has no audio to build a preview from")
 
 type previewSource struct{ path, text string }

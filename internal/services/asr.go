@@ -21,7 +21,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/hehehai/AudioSmith/internal/dsp"
 	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 )
@@ -165,11 +164,13 @@ func alignWindows(segs []proto.Segment, seconds float64) []alignWindow {
 // the audio and its words shifted to the window's start.
 func alignWords(ctx context.Context, call func(p *proto.AlignParams, out *proto.AlignResult) error, base proto.AlignParams, segs []proto.Segment, seconds float64) ([]proto.Word, error) {
 	wins := alignWindows(segs, seconds)
-	var audio dsp.Buffer
+	var audio *wav.File // read window by window, never whole (thread #150)
 	if len(wins) > 0 {
 		var err error
-		if audio, _, err = wav.ReadFile(base.Audio); err != nil {
+		if audio, err = wav.Open(base.Audio); err != nil {
 			wins = nil // not a WAV Go reads: in one call
+		} else {
+			defer audio.Close()
 		}
 	}
 	if len(wins) == 0 {
@@ -185,15 +186,20 @@ func alignWords(ctx context.Context, call func(p *proto.AlignParams, out *proto.
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		from, to := int(math.Round(w.start*float64(audio.Rate))), int(math.Round(w.end*float64(audio.Rate)))
+		rate := float64(audio.Format().Rate)
+		from, to := int(math.Round(w.start*rate)), int(math.Round(w.end*rate))
+		piece, err := readSpan(audio, from, to)
+		if err != nil {
+			return nil, err
+		}
 		path := fmt.Sprintf("%s.align%d.wav", strings.TrimSuffix(base.Audio, ".wav"), i)
-		if err := wav.WriteFile(path, audio.Slice(from, to), wav.PCM16, wav.Options{}); err != nil {
+		if err := wav.WriteFile(path, piece, wav.PCM16, wav.Options{}); err != nil {
 			return nil, err
 		}
 		p := base
 		p.Audio, p.Text = path, w.text
 		var res proto.AlignResult
-		err := call(&p, &res)
+		err = call(&p, &res)
 		os.Remove(path)
 		if err != nil {
 			return nil, err

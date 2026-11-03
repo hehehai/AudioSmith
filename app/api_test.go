@@ -394,11 +394,11 @@ func TestAPISettingsPage(t *testing.T) {
 	a.updateSettings(func(s *settings.Settings) { s.API.SharePort = freePort(t) })
 	a.startSharing()
 	waitUntil(t, func() bool { return a.apiShare != nil || a.apiShareE != "" })
-	if a.apiShare == nil || len(a.apiShare.PIN) != 6 {
+	if a.apiShare == nil || len(a.apiShare.PIN) != 8 {
 		t.Fatalf("sharing: %q", a.apiShareE)
 	}
 	tt.Frame()
-	if !tt.HasText(a.apiShare.PIN[:3] + " " + a.apiShare.PIN[3:]) {
+	if !tt.HasText(a.apiShare.PIN[:4] + " " + a.apiShare.PIN[4:]) {
 		t.Fatal("PIN not shown")
 	}
 	a.stopSharing()

@@ -455,7 +455,7 @@ func TestLANSharing(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.StopLAN()
-	if len(share.PIN) != 6 || share.Port == 0 {
+	if len(share.PIN) != 8 || share.Port == 0 {
 		t.Fatalf("share %+v", share)
 	}
 	lan := httptest.NewServer(s.LANHandler(share.Port))

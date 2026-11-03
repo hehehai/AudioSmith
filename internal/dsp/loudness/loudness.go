@@ -357,8 +357,19 @@ func Measure(b dsp.Buffer) Stats { return MeasureWith(b, Options{}) }
 // MeasureWith is Measure with meter options.
 func MeasureWith(b dsp.Buffer, o Options) Stats {
 	m := NewMeter(b.Rate, b.Channels, o)
-	m.Write(b.Samples)
+	writeChunked(m, b)
 	return m.Stats()
+}
+
+// writeChunked feeds b to m a chunk at a time: the meter's scratch and
+// oversampling buffers stay small instead of growing to the whole
+// buffer (code review 11-02: measuring 10 min of stereo allocated 4 GB).
+func writeChunked(m *Meter, b dsp.Buffer) {
+	const chunk = 16384
+	step := chunk * max(b.Channels, 1)
+	for i := 0; i < len(b.Samples); i += step {
+		m.Write(b.Samples[i:min(i+step, len(b.Samples))])
+	}
 }
 
 // Integrated returns the integrated loudness of a buffer (no true peak work).
@@ -368,6 +379,6 @@ func Integrated(b dsp.Buffer) float64 { return IntegratedWith(b, Options{}) }
 func IntegratedWith(b dsp.Buffer, o Options) float64 {
 	o.SkipTruePeak = true
 	m := NewMeter(b.Rate, b.Channels, o)
-	m.Write(b.Samples)
+	writeChunked(m, b)
 	return m.Integrated()
 }

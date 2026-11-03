@@ -9,7 +9,6 @@
 
 api                      catalog
 api                      core
-api                      dsp
 api                      dsp/resample
 api                      dsp/wav
 api                      engine/proto
@@ -65,6 +64,7 @@ dsp/refcheck             dsp/loudness
 
 dsp/resample             dsp
 dsp/resample             dsp/filter
+dsp/resample             dsp/wav
 
 dsp/stretch              dsp
 

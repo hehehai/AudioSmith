@@ -140,7 +140,7 @@ func (a *app) apiShareInfo(c *ui.Context, sh *api.Share) {
 	ui.Column(c.Key("api-share-info")).Gap(px(t, 6)).Padding(px(t, 12)).Radius(8).Background(t.Surface).Children(func() {
 		ui.Row(c).Gap(px(t, 12)).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, i18n.T("PIN")).TextColor(t.TextMuted)
-			ui.Text(c, sh.PIN[:3]+" "+sh.PIN[3:]).Font(monoFont).FontSize(px(t, 22)).Bold()
+			ui.Text(c, sh.PIN[:len(sh.PIN)/2]+" "+sh.PIN[len(sh.PIN)/2:]).Font(monoFont).FontSize(px(t, 22)).Bold()
 		})
 		if len(sh.URLs) == 0 {
 			muted(i18n.T("This Mac has no address on a local network."))

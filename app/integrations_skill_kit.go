@@ -43,7 +43,7 @@ func kitSkillTools() []skillTool {
 			arg(i18n.T("true also packs the reference recording, so that the file clones the voice elsewhere (only with the speaker's consent); default: the preview only."), "include_reference"),
 			arg(i18n.T("An SPDX licence id for the file (CC-BY-4.0…); empty: personal use."), "licence"),
 			arg(i18n.T("An absolute folder (made if missing); empty: the agents' folder. The file's name; empty: the voice's name."), "directory", "filename"),
-		}, After: i18n.T("Returns files: the path written. A voice without any audio yet answers not_ready: generate a take with it first.")},
+		}, After: i18n.T("Returns files: the path written. A voice without a sample or reference answers not_ready (its takes are never packed: they are private).")},
 		{Name: "import_voice", Lead: i18n.T("add a voice from an .asvoice (or VoiceStudio .ovsvoice) file to My voices."), Args: []skillArg{
 			must(i18n.T("Absolute path of the voice file."), "path"),
 		}, After: i18n.T("Returns the voice and warnings; its reference is checked and cleaned in the background, as in the app.")},

@@ -188,9 +188,12 @@ func (s *Server) caller(req *sdk.CallToolRequest) caller {
 	return c
 }
 
-// trusted callers may name files anywhere on this Mac.
+// trusted callers may name files anywhere on this Mac. The API's guard
+// sets HeaderVia on every request it passes on (clients cannot), so a
+// caller without it did not come through the guard and is not trusted
+// (code review 11-02).
 func (c caller) trusted() bool {
-	return c.via == api.ViaLoopback || c.via == api.ViaLANKey || c.via == ""
+	return c.via == api.ViaLoopback || c.via == api.ViaLANKey
 }
 
 // sandbox is the folder tools write audio to.
@@ -219,21 +222,35 @@ func (s *Server) readable(c caller, path string) (string, error) {
 	if !filepath.IsAbs(path) {
 		return "", fmt.Errorf("invalid_request: the path must be absolute (%s)", path)
 	}
-	real, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		return "", fmt.Errorf("invalid_request: cannot read %s: %v", path, err)
-	}
 	if c.trusted() {
+		real, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return "", fmt.Errorf("invalid_request: cannot read %s: %v", path, err)
+		}
 		return real, nil
 	}
+	// A LAN client learns nothing about files outside the sandbox, not
+	// even whether they exist (code review 11-02, L2): the same answer
+	// for every path that is not a file in it.
+	notAllowed := fmt.Errorf("%s: LAN clients may only read files in AudioSmith's MCP folder; send the audio as base64", api.CodePathNotAllowed)
 	box, err := filepath.EvalSymlinks(s.sandbox())
 	if err != nil {
-		return "", fmt.Errorf("%s: LAN clients may only read files in AudioSmith's MCP folder; send the audio as base64", api.CodePathNotAllowed)
+		return "", notAllowed
 	}
-	if rel, err := filepath.Rel(box, real); err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
-		return "", fmt.Errorf("%s: LAN clients may only read files in AudioSmith's MCP folder; send the audio as base64", api.CodePathNotAllowed)
+	if !inside(box, filepath.Clean(path)) && !inside(s.sandbox(), filepath.Clean(path)) {
+		return "", notAllowed
+	}
+	real, err := filepath.EvalSymlinks(path)
+	if err != nil || !inside(box, real) {
+		return "", notAllowed
 	}
 	return real, nil
+}
+
+// inside reports whether path is in dir (or is dir).
+func inside(dir, path string) bool {
+	rel, err := filepath.Rel(dir, path)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // inputFile is a tool's audio input: a path, or base64 written to a
@@ -328,6 +345,12 @@ func (s *Server) addResources() {
 	s.srv.AddResource(&sdk.Resource{Name: "history", Title: "Recent takes", URI: "history://recent",
 		Description: "The 20 most recent takes of the History (JSON).", MIMEType: "application/json"},
 		func(ctx context.Context, req *sdk.ReadResourceRequest) (*sdk.ReadResourceResult, error) {
+			// The History is admin on REST (GET /api/takes): LAN clients
+			// with the PIN only do not read it here either (code review
+			// 11-02, N1).
+			if !resourceCaller(req).trusted() {
+				return nil, errors.New(api.CodeUnauthorized + ": the History is readable on the Mac, or with the API key")
+			}
 			ts, err := s.o.Backend.Takes(ctx, core.TakeQuery{Limit: 20})
 			if err != nil {
 				return nil, err
@@ -340,6 +363,15 @@ func (s *Server) addResources() {
 			data, _ := json.MarshalIndent(map[string]any{"takes": out}, "", "  ")
 			return &sdk.ReadResourceResult{Contents: []*sdk.ResourceContents{{URI: req.Params.URI, MIMEType: "application/json", Text: string(data)}}}, nil
 		})
+}
+
+// resourceCaller is who reads a resource.
+func resourceCaller(req *sdk.ReadResourceRequest) caller {
+	var c caller
+	if req != nil && req.Extra != nil {
+		c.via = req.Extra.Header.Get(api.HeaderVia)
+	}
+	return c
 }
 
 func round2(f float64) float64 { return float64(int64(f*100+0.5)) / 100 }

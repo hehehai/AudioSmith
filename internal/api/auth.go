@@ -49,6 +49,11 @@ var loopbackHosts = []string{"127.0.0.1", "localhost", "::1"}
 // header. lan is the LAN listener (on port).
 func (s *Server) guard(lan bool, port int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Code review 11-02: no type sniffing (/api/agent-skill's
+		// markdown), no framing of any page.
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w = bodyDeadline(w, r)
 		host := hostname(r.Host)
 		if !s.hostAllowed(lan, host) {
 			writeError(w, &Error{Status: http.StatusForbidden, Code: CodeForbiddenHost,
@@ -68,7 +73,7 @@ func (s *Server) guard(lan bool, port int) http.Handler {
 			h.Set("Access-Control-Allow-Credentials", "true")
 			h.Set("Access-Control-Expose-Headers", "X-AudioSmith-Take-Id, X-AudioSmith-Model, X-AudioSmith-Voice, X-AudioSmith-Seed, X-AudioSmith-Job-Id, Retry-After")
 			if r.Method == http.MethodOptions {
-				h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 				h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, "+HeaderCSRF+", "+HeaderPIN+", "+HeaderClient+", Mcp-Session-Id, Mcp-Protocol-Version")
 				h.Set("Access-Control-Max-Age", "600")
 				w.WriteHeader(http.StatusNoContent)
@@ -220,6 +225,12 @@ func (s *Server) authorize(lan bool, r *http.Request, acc access) error {
 		}
 	}
 	st := s.share.Load()
+	if st != nil && st.fails.Load() >= maxPINFails {
+		// Guessed at from many addresses: the PIN is done with (code
+		// review 11-02, L1). The key still works.
+		return &Error{Status: http.StatusTooManyRequests, Code: CodeTooManyAttempts,
+			Message: "Too many wrong PINs: turn LAN sharing off and on in AudioSmith for a new PIN, or send the API key."}
+	}
 	if pin != "" && st != nil && subtle.ConstantTimeCompare([]byte(pin), []byte(st.PIN)) == 1 {
 		if acc == accessConsume {
 			return nil
@@ -229,6 +240,9 @@ func (s *Server) authorize(lan bool, r *http.Request, acc access) error {
 	}
 	if pin != "" || bearer(r) != "" {
 		s.fails.fail(ip)
+		if st != nil {
+			st.fails.Add(1)
+		}
 	}
 	return &Error{Status: http.StatusUnauthorized, Code: CodeUnauthorized,
 		Message: "Send the sharing PIN (" + HeaderPIN + " header or ?pin=) or the API key (Authorization: Bearer)."}
@@ -241,6 +255,11 @@ func remoteIP(r *http.Request) string {
 	}
 	return h
 }
+
+// maxPINFails is how many wrong PINs or keys, from any address, LAN
+// sharing takes before its PIN stops working: an 8-digit PIN then holds
+// against guessing from many addresses (one in two million).
+const maxPINFails = 50
 
 // failLimiter counts wrong credentials per address in a window.
 type failLimiter struct {

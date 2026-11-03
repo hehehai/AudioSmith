@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-only",
       "identifier": "AGPL-3.0-only"
     },
-    "description": "AudioSmith's local API: OpenAI's audio API under /v1 (point an OpenAI SDK's base_url at http://127.0.0.1:3901/v1, any api_key), AudioSmith's own under /api, streaming speech over a WebSocket, job events as Server-Sent Events, and an MCP server at /mcp.\n\n**Security.** The server listens on 127.0.0.1 only and needs no key there unless Settings → Local API → Require an API key is on (then send Authorization: Bearer <key>). Host and Origin are checked: browsers may call it only from its own origin or the origins listed in the settings. Requests to /api that change something need the header X-AudioSmith-Request: 1 (or the key). With LAN sharing on, other devices reach a second port with the 6-digit PIN (X-AudioSmith-Pin header, or ?pin=) for speech, transcription and reading voices, or with the key for everything.\n\n**Work.** Every request runs in the app's job queue at interactive priority, as the Studio's do. A request waiting longer than the queue limit (120 s) answers 503 queue_timeout; while the engine is down, 503 engine_unavailable with Retry-After. Models whose licence is not accepted answer 403 licence_required; models not downloaded 409 model_not_downloaded.\n\n**Source.** AudioSmith is free software under the GNU Affero General Public License, version 3 (AGPL-3.0): its source code is at https://github.com/hehehai/AudioSmith. /, /health and the capabilities document say so in source_url and license."
+    "description": "AudioSmith's local API: OpenAI's audio API under /v1 (point an OpenAI SDK's base_url at http://127.0.0.1:3901/v1, any api_key), AudioSmith's own under /api, streaming speech over a WebSocket, job events as Server-Sent Events, and an MCP server at /mcp.\n\n**Security.** The server listens on 127.0.0.1 only and needs no key there unless Settings → Local API → Require an API key is on (then send Authorization: Bearer <key>). Host and Origin are checked: browsers may call it only from its own origin or the origins listed in the settings. Requests to /api that change something need the header X-AudioSmith-Request: 1 (or the key). With LAN sharing on, other devices reach a second port with the 8-digit PIN (X-AudioSmith-Pin header, or ?pin=) for speech, transcription and reading voices, or with the key for everything.\n\n**Work.** Every request runs in the app's job queue at interactive priority, as the Studio's do. A request waiting longer than the queue limit (120 s) answers 503 queue_timeout; while the engine is down, 503 engine_unavailable with Retry-After. Models whose licence is not accepted answer 403 licence_required; models not downloaded 409 model_not_downloaded.\n\n**Source.** AudioSmith is free software under the GNU Affero General Public License, version 3 (AGPL-3.0): its source code is at https://github.com/hehehai/AudioSmith. /, /health and the capabilities document say so in source_url and license."
   },
   "servers": [
     {
@@ -7554,7 +7554,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-AudioSmith-Pin",
-        "description": "LAN sharing's 6-digit PIN."
+        "description": "LAN sharing's 8-digit PIN."
       }
     }
   }

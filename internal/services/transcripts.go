@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
-	"github.com/hehehai/AudioSmith/internal/dsp"
 	"github.com/hehehai/AudioSmith/internal/dsp/resample"
 	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
@@ -424,13 +423,10 @@ func segmentWords(segs []proto.Segment) []proto.Word {
 // length: in Go for WAV files, else with the engine's media.decode.
 func (s *Transcripts) decode(ctx context.Context, job jobs.Job, in, out string, report func(jobs.Progress)) (float64, error) {
 	if strings.EqualFold(filepath.Ext(in), ".wav") {
-		b, _, err := wav.ReadFile(in)
+		// Streamed: a long WAV is never held whole (thread #150).
+		secs, err := resample.ConvertFile(in, out, TranscriptRate, 1, resample.Good, wav.PCM16, wav.Options{})
 		if err == nil {
-			b = resample.Convert(b, TranscriptRate, 1, resample.Good)
-			if err := writeWAVAtomic(out, b); err != nil {
-				return 0, err
-			}
-			return b.Seconds(), nil
+			return secs, nil
 		}
 		if os.IsNotExist(err) {
 			data, _ := json.Marshal(map[string]string{"path": in})
@@ -447,16 +443,6 @@ func (s *Transcripts) decode(ctx context.Context, job jobs.Job, in, out string, 
 		return 0, err
 	}
 	return dr.AudioSeconds, nil
-}
-
-// writeWAVAtomic writes b as 16-bit PCM through a temporary file.
-func writeWAVAtomic(out string, b dsp.Buffer) error {
-	tmp := out + ".tmp"
-	if err := wav.WriteFile(tmp, b, wav.PCM16, wav.Options{}); err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return os.Rename(tmp, out)
 }
 
 // call runs one engine method inside the job (see engineCaller.call).
