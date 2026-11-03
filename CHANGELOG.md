@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.5.0-beta.2 — 2026-11-03
+
+A release of fixes: two code reviews (11-02 and 11-03) went through speed, disk, memory, the microphone and the Local API. Nothing moved: pages, files and the Local API and MCP stay as they were.
+
+### Microphone
+- New **Echo cancellation** (macOS voice processing) for every recording: under 「麦克风」 in Settings → Dictation, beside the clone recorder's input, and at the foot of Speech to text's input menu — one setting, off by default (it smooths the voice, which clone references don't want).
+- A recording that brings no sound: after about 1.5 s it starts again with echo cancellation and says so, with 「保持打开」. A microphone that macOS reconfigures mid-take (headphones plugged in, another app) carries on instead of going silent. When nothing comes at all, AudioSmith says what to try instead of keeping a silent file; a take that had sound is always kept.
+- Not for loopback and virtual inputs (BlackHole, Loopback), chosen channels or the first moments of a Bluetooth headset. When echo cancellation can't run on the chosen input, the take is recorded without it and you are told. With echo cancellation on, clone recordings are mono.
+
+### Faster
+- Speech to text with long transcripts, Projects (list and cards), Dub, Voice isolator, My voices, Assets and ⌘K stay smooth with hundreds of items: from tens or hundreds of milliseconds a frame down to 1–4 ms.
+- Home reads its recent work when something changes instead of every few seconds; a hidden or covered window no longer redraws on timers, and a busy engine no longer redraws whole pages twice a second.
+- Long WAV files are read in pieces: transcribing or exporting a 10-minute file takes about 1 MB instead of 2 GB; noise removal on a 45-minute track takes 0.2 GB instead of 2 GB. Results are the same.
+
+### Disk
+- Deleting a story or a book also deletes its unfinished renders; a finished book takes its project's earlier failed attempts. The audiobook chunk cache keeps 14 days and at most 5 % of the disk (24 GB at most).
+- **Dubs free their working files** (decoded audio, stems, the 16 kHz copy) 7 days after an export when you haven't opened or edited them; the project, transcript, translations, voices, mixed tracks and exports stay, line renders are kept at 16 bits, and the working files are made again when needed.
+- Settings → Storage: 「清除缓存」 frees what it shows; new rows for the audiobook chunk cache and agent files, each with Clear. Leftovers of failed work, unused clone clips and covers, agent copies older than 30 days and old watermark model conversions are cleaned up daily — never a file the library still names.
+- Before a dub, a book render, an isolation or an export starts, AudioSmith checks the free space (purgeable space included, as Finder counts it) and says how much is needed. A full disk is said so, not shown as an internal error. Model downloads keep 6 GB free.
+- The database prunes old finished jobs and gives free space back while idle; engine logs roll over at 10 MB.
+
+### Memory
+- Every model load makes room first, and the engine follows the memory limit in Settings. When macOS is short of memory, idle models are unloaded; when it is critically short, new loads wait with 「这台 Mac 现在内存紧张…」. Dictation keeps only its own models, so others can still be freed.
+
+### Local API and agents
+- LAN sharing: the PIN has 8 digits. Wrong tries count per device and fade with time; wrong API keys and a device retrying an old PIN no longer lock everyone out. Settings → Local API shows a lock and has 「换 PIN」.
+- MCP: devices on the PIN can't read your recent takes; made-up session ids no longer pile up; delete confirmations name the item. Exports write through private temporary files; a voice exported without its reference never carries one of your takes; a voice without a sample is told so before the save dialog. `list_assets` pages through everything (no silent cut at 2000) and huge offsets return an empty page.
+
+### Lists and details
+- Home's recent rows have ⋯ (Open, Delete) and Delete asks first; drafts are named after their first words. Right-click (or Control-click) on any row, card or editor line opens the same menu as its ⋯.
+- Project and sample cards share one width in fixed columns.
+- A voice's details show a smaller round avatar; Developers' Copy is an icon in the code box's corner. Stories and Audiobook: 「删除项目」/「丢弃草稿」 in the editor's ⋯, Clear keeps the title.
+
 ## 0.5.0-beta.1 — 2026-11-01
 
 0.5 changes how you work in AudioSmith, not how it looks: colours, type and buttons are the same. You start from one box on Home; every tool starts its work at the top of its own page and lists what it made below; results hand off to the next tool; everything you make is in Assets and every long piece of work in Projects.
