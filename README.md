@@ -14,6 +14,7 @@
   <img alt="macOS 15 or later" src="https://img.shields.io/badge/macOS-15%2B-0d9384">
   <img alt="Apple silicon" src="https://img.shields.io/badge/Apple%20silicon-M1%20or%20later-0d9384">
   <a href="LICENSE"><img alt="AGPL-3.0" src="https://img.shields.io/badge/licence-AGPL--3.0-0d9384"></a>
+  <a href="https://awesomemygo.dev/apps/audiosmith"><img alt="Listed on Awesome MyGo" src="https://awesomemygo.dev/badge.svg"></a>
 </p>
 
 <p align="center"><a href="https://actnow.dev/audiosmith">Website</a> · <a href="https://actnow.dev/download/audiosmith">Download</a> · <a href="https://actnow.dev/audiosmith/changelog">Changelog</a></p>

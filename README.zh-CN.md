@@ -14,6 +14,7 @@
   <img alt="macOS 15 及以上" src="https://img.shields.io/badge/macOS-15%2B-0d9384">
   <img alt="Apple 芯片" src="https://img.shields.io/badge/Apple%20%E8%8A%AF%E7%89%87-M1%20%E5%8F%8A%E4%BB%A5%E4%B8%8A-0d9384">
   <a href="LICENSE"><img alt="AGPL-3.0" src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-AGPL--3.0-0d9384"></a>
+  <a href="https://awesomemygo.dev/apps/audiosmith"><img alt="收录于 Awesome MyGo" src="https://awesomemygo.dev/badge.svg"></a>
 </p>
 
 <p align="center"><a href="https://actnow.dev/audiosmith">官网</a> · <a href="https://actnow.dev/download/audiosmith">下载</a> · <a href="https://actnow.dev/audiosmith/changelog">更新日志</a></p>
