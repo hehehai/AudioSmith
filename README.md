@@ -43,7 +43,7 @@ AudioSmith turns text into speech, clones and designs voices, gives a story a ca
 <img src="docs/images/tts-generate.webp" alt="Generating a take in Text to speech" width="100%">
 
 - **Write or import** a script (TXT, MD, DOCX, EPUB, SRT, VTT), or start from an example. Markup adds pauses (`[pause 400ms]`), pace (`[slow]`, `[fast]`), emphasis, spelling and one-off pronunciations (`[[word|say]]`).
-- **Pick a model by what it is for:** Standard voices, Fast clone, High-fidelity clone, Voice design, Fast English voices, English clone or Multilingual all-rounder. The technical name is one click away.
+- **Pick a model by what it is for:** Standard voices, Fast clone, High-fidelity clone, Voice design, Fast English voices, English clone, Multilingual all-rounder or Expressive clone · 48 kHz. The technical name is one click away.
 - **Few controls:** the voice, the model and the speed in the Settings panel. Everything else is under Advanced, filled with settings measured for each model. The History panel keeps the page's takes: export, reuse their settings, try another voice, or save one as a project.
 - **Long scripts** render in chunks and play while they render. Text you did not change comes from a cache.
 - **Export audio:** WAV or M4A, and MP3, FLAC or Opus with ffmpeg. Even out the loudness to −16, −18 or −23 LUFS, trim the silence, add tags, save the script and subtitles beside it.
@@ -197,11 +197,14 @@ AudioSmith names models for what they do. Their technical names, sizes and licen
 | **Fast English voices** | Kokoro 82M | natural English voices; light | Apache-2.0 |
 | **English clone** | Chatterbox Turbo | fast English cloning | MIT |
 | **Multilingual all-rounder** | OmniVoice | 600+ languages, cloning, design, exact durations | **CC BY-NC 4.0: non-commercial**; asks you to accept it first |
+| **Expressive clone · 48 kHz** | VoxCPM2 2B | clones you can direct ("a little faster, cheerful"), voice design, 30 languages and Chinese dialects, 48 kHz; optional | Apache-2.0 |
+| **English · Realtime** | VibeVoice Realtime 0.5B | 7 preset English voices, streamed; 1.2 GB; optional | MIT |
 | **Chinese & English transcription** | Qwen3-ASR 0.6B | transcription and dictation, 30 languages | Apache-2.0 |
 | **Multilingual transcription** | Whisper large-v3 turbo | other languages; speech into English | MIT |
 | **Transcription with speakers** | MOSS-Transcribe-Diarize 0.9B | who says what, in one pass | Apache-2.0 |
 | **Dialogue · Light** | SoulX-Podcast 1.7B | conversations recorded together, up to 4 speakers; 2.4 GB, 16 GB memory | Apache-2.0 |
 | **Dialogue · One take** | MOSS-TTSD v1.0 | a scene as one recording, up to 5 speakers; 10.9 GB, 24 GB memory | Apache-2.0 |
+| **Dialogue · Long-form** | VibeVoice 1.5B (Microsoft) | a scene as one recording, up to 4 speakers cloned from clips alone; 5.4 GB, 16 GB memory; optional | MIT (Microsoft asks for research use and no impersonation) |
 | **Writing assistant** | Qwen3 4B Instruct 2507 | translation, clean-up, the AI director | Apache-2.0 |
 | Word timing · Speech detection · Noise removal | Qwen3-ForcedAligner 0.6B · Silero VAD · DeepFilterNet 3 | | Apache-2.0 · MIT · MIT/Apache-2.0 |
 | Fast voice separation · Speaker turns | HTDemucs · Sortformer (fallback, ≤ 4 speakers) | | MIT · NVIDIA Open Model License |
@@ -215,7 +218,9 @@ Measured on a MacBook Air M4 with 24 GB:
 | High-fidelity clone | about real time: 940 Chinese characters → 3.5 min of audio in about 3¼ min |
 | Standard voices | about 1.7× real time |
 | Transcription with speakers | a 10-minute recording in about 4 minutes |
-| Dialogue · Light / One take | about 0.7× / 0.8× real time |
+| Dialogue · Light / One take / Long-form | about 0.7× / 0.8× / 0.5× real time |
+| Expressive clone · 48 kHz | about real time (0.8–1.0×); 6–8.5 GB of memory |
+| English · Realtime | about 1.4× real time; 1.8 GB of memory |
 | Writing assistant | 36–40 tokens/s |
 
 ## Privacy
