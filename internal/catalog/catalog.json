@@ -370,6 +370,7 @@
       "capabilities": ["dialogue", "clone", "cloneAudioOnly", "seed", "steps", "guidance"],
       "sampleRate": 24000,
       "maxChars": 400,
+      "rtf": 0.5,
       "size": 5419834350,
       "files": [
         {"path": "config.json", "size": 2762},
@@ -427,6 +428,7 @@
       "capabilities": ["stream", "seed", "steps", "guidance"],
       "sampleRate": 24000,
       "maxChars": 600,
+      "rtf": 1.4,
       "size": 1154041368,
       "files": [
         {"path": "config.json", "size": 2655},

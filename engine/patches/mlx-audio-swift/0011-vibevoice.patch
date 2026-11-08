@@ -694,7 +694,7 @@ index 0000000..c59a52e
 +}
 diff --git a/Sources/MLXAudioTTS/Models/VibeVoice/VibeVoiceRealtimeModel.swift b/Sources/MLXAudioTTS/Models/VibeVoice/VibeVoiceRealtimeModel.swift
 new file mode 100644
-index 0000000..db06bcb
+index 0000000..cf34ac9
 --- /dev/null
 +++ b/Sources/MLXAudioTTS/Models/VibeVoice/VibeVoiceRealtimeModel.swift
 @@ -0,0 +1,473 @@
@@ -858,7 +858,7 @@ index 0000000..db06bcb
 +    @ModuleInfo(key: "tts_eos_classifier") var eosClassifier: VibeVoiceBinaryClassifier
 +    @ParameterInfo(key: "speech_scaling_factor") var speechScalingFactor: MLXArray
 +    @ParameterInfo(key: "speech_bias_factor") var speechBiasFactor: MLXArray
-+    var tokenizer: Tokenizer?
++    var tokenizer: Tokenizers.Tokenizer?
 +    var modelDirectory: URL?
 +    public var sampleRate: Int { config.sampleRate }
 +    public var defaultGenerationParameters: GenerateParameters {
@@ -1261,7 +1261,7 @@ index 0000000..7a9964f
 +}
 diff --git a/Sources/MLXAudioTTS/Models/VibeVoiceTTS/VibeVoiceTTS.swift b/Sources/MLXAudioTTS/Models/VibeVoiceTTS/VibeVoiceTTS.swift
 new file mode 100644
-index 0000000..ab9dae7
+index 0000000..c0f78ff
 --- /dev/null
 +++ b/Sources/MLXAudioTTS/Models/VibeVoiceTTS/VibeVoiceTTS.swift
 @@ -0,0 +1,223 @@
@@ -1301,7 +1301,7 @@ index 0000000..ab9dae7
 +    @ModuleInfo(key: "prediction_head") var predictionHead: VibeVoiceDiffusionHead
 +    @ParameterInfo(key: "speech_scaling_factor") var speechScalingFactor: MLXArray
 +    @ParameterInfo(key: "speech_bias_factor") var speechBiasFactor: MLXArray
-+    var tokenizer: (any Tokenizer)?
++    var tokenizer: (any Tokenizers.Tokenizer)?
 +    /// AudioSmith: called after each speech frame (7.5 a second) with the frames so far and the frame budget.
 +    public var onFrame: ((Int, Int) -> Void)?
 +
