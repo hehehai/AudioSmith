@@ -42,6 +42,10 @@ type Traits struct {
 	// Instruct: takes a delivery instruction in its voice field
 	// (TakesInstruct): stories send their scene, personas and directions.
 	Instruct bool `json:"instruct,omitempty"`
+	// CloneInstruct: its clones take the instruction too (VoxCPM2,
+	// thread #165: capabilities instruct and clone); other models' clones
+	// follow the reference alone.
+	CloneInstruct bool `json:"cloneInstruct,omitempty"`
 	// Exaggeration: takes an emotion exaggeration (Chatterbox, capability
 	// "exaggeration"): stories send their lines' emotion intensities.
 	Exaggeration bool `json:"exaggeration,omitempty"`
@@ -72,6 +76,16 @@ const (
 	StepsQuality  = 48
 )
 
+// StepTiers are the Fast, Balanced and Quality steps of a model whose
+// recommended steps are def (0: StepsBalanced): half, def itself, and
+// one and a half times (OmniVoice: 16, 32, 48; VoxCPM2: 5, 10, 15).
+func StepTiers(def int) [3]int {
+	if def <= 0 {
+		def = StepsBalanced
+	}
+	return [3]int{max(def/2, 1), def, def + def/2}
+}
+
 // TraitsFor returns the traits of a model of family with capabilities caps.
 func TraitsFor(family string, caps []string) Traits {
 	t := Traits{
@@ -81,8 +95,9 @@ func TraitsFor(family string, caps []string) Traits {
 		Steps:     slices.Contains(caps, "steps"),
 		NonVerbal: slices.Contains(caps, "nonVerbal"),
 		MaxChars:  400, MaxCharsCJK: 200,
-		Instruct:     TakesInstruct(caps),
-		Exaggeration: slices.Contains(caps, "exaggeration"),
+		Instruct:      TakesInstruct(caps),
+		CloneInstruct: CloneTakesInstruct(caps),
+		Exaggeration:  slices.Contains(caps, "exaggeration"),
 	}
 	switch family {
 	case "kokoro":

@@ -54,10 +54,11 @@ func TestBuiltin(t *testing.T) {
 			t.Errorf("ByID(%s)", e.ID)
 		}
 	}
-	// The curated seven, then the optional VibeVoice Realtime (thread
-	// #166; VibeVoice 1.5B is a dialogue model, hidden as SoulX's).
-	if got := c.ForTask(TaskTTS); len(got) != 8 {
-		t.Errorf("%d speech models offered, want 8", len(got))
+	// 7 since the curation (#41–#46), VoxCPM2 (thread #165) and the
+	// optional VibeVoice Realtime (#166; VibeVoice 1.5B is a dialogue
+	// model, hidden as SoulX's).
+	if got := c.ForTask(TaskTTS); len(got) != 9 {
+		t.Errorf("%d speech models offered, want 9", len(got))
 	}
 	if k, _ := c.ByLabel("Kokoro 82M"); len(k.Voices) != 25 || k.VoiceIDs()[0] != "af_heart" || len(k.Aux) != 2 {
 		t.Errorf("kokoro voices %d aux %v", len(k.Voices), k.Aux)
@@ -100,6 +101,53 @@ func TestOmniVoice(t *testing.T) {
 	}
 	if slices.Contains(h.Labels(TaskTTS), e.Label) || slices.ContainsFunc(h.ForTask(TaskTTS), func(x Entry) bool { return x.ID == e.ID }) {
 		t.Error("a hidden entry is offered")
+	}
+}
+
+// TestVoxCPM2: an optional model (thread #165): Apache, 48 kHz, offered
+// but no workflow's default, after the Qwen3 and OmniVoice models (a dub
+// without its default model falls back to the first clone model on disk).
+func TestVoxCPM2(t *testing.T) {
+	c := Builtin()
+	e, ok := c.ByID("voxcpm2-8bit")
+	if !ok || e.Hidden || e.Family != "voxcpm2" || e.SampleRate != 48000 || !e.Licence.Commercial || e.Licence.RequiresAcceptance {
+		t.Fatalf("%+v", e)
+	}
+	for _, cp := range []Capability{CapClone, CapCloneAudioOnly, CapDesign, CapInstruct, CapVoiceStyle, CapSteps, CapGuidance, CapSeed} {
+		if !e.Has(cp) {
+			t.Errorf("no %s", cp)
+		}
+	}
+	if e.Has(CapLanguage) || e.Has(CapVoicePrompt) || len(e.Voices) > 0 {
+		t.Errorf("capabilities %v", e.Capabilities)
+	}
+	for _, l := range []string{"zh", "en", "vi", "th", "id", "ar", "yue"} {
+		if !e.Knows(l) {
+			t.Errorf("does not know %s", l)
+		}
+	}
+	if len(e.Languages) != 31 {
+		t.Errorf("%d languages", len(e.Languages))
+	}
+	var sum int64
+	for _, f := range e.Files {
+		sum += f.Size
+	}
+	if sum != e.Size || slices.ContainsFunc(e.Files, func(f File) bool { return strings.HasSuffix(f.Path, ".wav") }) {
+		t.Errorf("files %v (sum %d, size %d)", e.Files, sum, e.Size)
+	}
+	tts := c.ForTask(TaskTTS)
+	if i := slices.IndexFunc(tts, func(x Entry) bool { return x.ID == e.ID }); i != len(tts)-1 {
+		t.Errorf("at %d of %d speech models: keep it last", i, len(tts))
+	}
+	for _, w := range []Workflow{WorkflowStudio, WorkflowStory, WorkflowAudiobook, WorkflowDub, WorkflowDesign} {
+		for _, l := range []string{"zh", "en", "ja", "vi"} {
+			for _, voice := range []bool{false, true} {
+				if d, ok := c.DefaultModel(w, l, voice); ok && d.ID == e.ID {
+					t.Errorf("default for %s/%s", w, l)
+				}
+			}
+		}
 	}
 }
 

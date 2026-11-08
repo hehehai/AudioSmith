@@ -344,6 +344,8 @@ func TestDeliveryPerModel(t *testing.T) {
 	kokoro := ModelInfo{Traits: TraitsFor("kokoro", []string{"speed"})}
 	// An entry that only says voiceStyle (an older catalogue) still takes it.
 	styleOnly := ModelInfo{Traits: TraitsFor("qwen3_tts", []string{"voiceStyle"})}
+	// VoxCPM2 (thread #165): its clones take the instruction too.
+	vox := ModelInfo{Traits: TraitsFor("voxcpm2", []string{"clone", "cloneAudioOnly", "design", "voiceStyle", "instruct", "steps", "guidance", "seed"})}
 	const ins = "这一句：撒娇。"
 	for _, c := range []struct {
 		name  string
@@ -363,6 +365,9 @@ func TestDeliveryPerModel(t *testing.T) {
 		{"omnivoice", omni, core.Take{Voice: "female, child"}, "female, child", ContinuityLines},
 		{"chatterbox turbo", turbo, core.Take{RefAudio: "/r.wav"}, "", ContinuityLines},
 		{"kokoro", kokoro, core.Take{Voice: "af_heart"}, "af_heart", ContinuityLines},
+		{"voxcpm2 clone", vox, core.Take{RefAudio: "/r.wav"}, ins, ContinuityInstruct},
+		{"voxcpm2 styled clone", vox, core.Take{RefAudio: "/r.wav", Voice: "温柔"}, "温柔, " + ins, ContinuityInstruct},
+		{"voxcpm2 design", vox, core.Take{Voice: "温柔的年轻女声"}, "温柔的年轻女声, " + ins, ContinuityInstruct},
 	} {
 		tk := c.in
 		withDelivery(&tk, c.info, ins)
@@ -375,6 +380,15 @@ func TestDeliveryPerModel(t *testing.T) {
 	}
 	if !TakesInstruct([]string{"instruct"}) || TakesInstruct([]string{"voiceStyle", "clone"}) || TakesInstruct(nil) {
 		t.Error("TakesInstruct")
+	}
+	if !CloneTakesInstruct([]string{"clone", "instruct"}) || CloneTakesInstruct([]string{"instruct"}) || CloneTakesInstruct([]string{"clone", "voiceStyle"}) {
+		t.Error("CloneTakesInstruct")
+	}
+	if got := StepTiers(10); got != [3]int{5, 10, 15} {
+		t.Errorf("tiers %v", got)
+	}
+	if got := StepTiers(0); got != [3]int{StepsFast, StepsBalanced, StepsQuality} {
+		t.Errorf("default tiers %v", got)
 	}
 }
 

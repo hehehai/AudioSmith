@@ -36,10 +36,11 @@ func (a *app) lfProduction(c *ui.Context, p *lfPage, locked bool) {
 				cur = float64(*rec.Steps)
 			}
 		}
-		tier := slices.Index(tierSteps, cur)
+		tiers := tierSteps(rec)
+		tier := slices.Index(tiers, cur)
 		fieldInfo(c, i18n.T("Voice refinement"), i18n.T("More steps sound cleaner and take longer."), func() {
 			if segmentedFit(c.Key("lf-steps"), &tier, i18n.T("Fast"), i18n.T("Balanced"), i18n.T("Quality")).Label(i18n.T("Voice refinement")).Disabled(locked).Changed() && tier >= 0 {
-				pr.Steps = int(tierSteps[tier])
+				pr.Steps = int(tiers[tier])
 			}
 		})
 	}

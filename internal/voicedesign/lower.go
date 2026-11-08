@@ -2,8 +2,8 @@ package voicedesign
 
 // Lowering a recipe for an engine: targets, options, the engine registry
 // and Lower. Files: lower.go, one per target: lower_freeform.go (Qwen3-TTS
-// VoiceDesign), lower_omnivoice.go (OmniVoice), lower_customvoice.go
-// (Qwen3-TTS CustomVoice).
+// VoiceDesign and VoxCPM2), lower_omnivoice.go (OmniVoice),
+// lower_customvoice.go (Qwen3-TTS CustomVoice).
 
 import (
 	"fmt"
@@ -25,6 +25,9 @@ const (
 	// TargetQwen3CustomVoice: Qwen3-TTS CustomVoice takes "Speaker,
 	// instruction": a named speaker plus a style/emotion instruction.
 	TargetQwen3CustomVoice Target = "qwen3-customvoice"
+	// TargetVoxCPM: VoxCPM2 takes a free-form description too, which the
+	// engine puts in parentheses before the text (thread #165).
+	TargetVoxCPM Target = "voxcpm2"
 )
 
 // Vocabulary is how an engine reads the voice field.
@@ -101,6 +104,11 @@ var (
 				return f == "qwen3_tts" && strings.Contains(strings.ToLower(repo), "customvoice")
 			},
 			Lower: lowerCustomVoice,
+		},
+		{
+			Target: TargetVoxCPM, Label: "VoxCPM2", Vocabulary: VocabFreeform,
+			Match: func(f, _ string) bool { return f == "voxcpm2" },
+			Lower: lowerFreeform,
 		},
 	}
 )

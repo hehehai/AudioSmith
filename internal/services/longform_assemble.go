@@ -137,15 +137,21 @@ func (a assembler) Run(ctx context.Context, job jobs.Job, report func(jobs.Progr
 		if err != nil {
 			return nil, &jobs.Error{Code: CodeRenderFailed, Message: fmt.Sprintf("chapter %d is missing: %v", i+1, err), Retryable: false}
 		}
-		if i > 0 && (r.SampleRate != chs[0].SampleRate || r.Channels != chs[0].Channels) {
-			return nil, &jobs.Error{Code: CodeRenderFailed, Message: fmt.Sprintf("chapter %d is %d Hz × %d, the first %d Hz × %d", i+1,
-				r.SampleRate, r.Channels, chs[0].SampleRate, chs[0].Channels)}
-		}
 		chs[i] = r
-		total += r.Frames
 	}
 	if len(chs) == 0 {
 		return nil, &jobs.Error{Code: CodeNothingToSay, Message: "The book has no chapters."}
+	}
+	// Chapters of other rates (a 48 kHz model's narration beside a 24 kHz
+	// dialogue model's chapter, thread #165) join at the highest.
+	if err := matchChapterFormats(ctx, chs); err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, &jobs.Error{Code: CodeRenderFailed, Message: err.Error()}
+	}
+	for _, r := range chs {
+		total += r.Frames
 	}
 	rate, channels := chs[0].SampleRate, chs[0].Channels
 	res := AssembleResult{Book: filepath.Join(body.Dir, "book.wav"), Cues: filepath.Join(body.Dir, "cues.txt"),

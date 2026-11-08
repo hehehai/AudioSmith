@@ -1,0 +1,117 @@
+diff --git a/Sources/MLXAudioTTS/Models/VoxCPM2/MiniCPM.swift b/Sources/MLXAudioTTS/Models/VoxCPM2/MiniCPM.swift
+index 77e0ce6..22de6c1 100644
+--- a/Sources/MLXAudioTTS/Models/VoxCPM2/MiniCPM.swift
++++ b/Sources/MLXAudioTTS/Models/VoxCPM2/MiniCPM.swift
+@@ -98,7 +98,7 @@ private func applyRotaryPosEmb(
+ 
+     let qEmb = (q * cosE) + (rotateHalf(q) * sinE)
+     let kEmb = (k * cosE) + (rotateHalf(k) * sinE)
+-    return (qEmb, kEmb)
++    return (qEmb.asType(q.dtype), kEmb.asType(k.dtype))
+ }
+ 
+ // MARK: - Attention
+@@ -299,7 +299,7 @@ class VoxMiniCPMModel: Module {
+         if attnMask == nil && isCausal && L > 1 {
+             let ones = MLXArray.ones([L, L])
+             let causalMask = triu(ones, k: 1) * Float(-1e9)
+-            attnMask = causalMask.expandedDimensions(axes: [0, 1])
++            attnMask = causalMask.expandedDimensions(axes: [0, 1]).asType(h.dtype)
+         }
+ 
+         var newCaches: [(MLXArray, MLXArray)] = []
+diff --git a/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPM2Model.swift b/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPM2Model.swift
+index e0808fc..a1655ab 100644
+--- a/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPM2Model.swift
++++ b/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPM2Model.swift
+@@ -330,16 +330,18 @@ public final class VoxCPM2Model: Module, SpeechGenerationModel, @unchecked Senda
+         // Add batch dimension
+         let bTextToken = textToken.expandedDimensions(axis: 0)
+         let bAudioFeat = audioFeat.expandedDimensions(axis: 0)
+-        let bTextMask = textMask.expandedDimensions(axis: 0)
+-        let bAudioMask = audioMask.expandedDimensions(axis: 0)
+-
+-        // Encode audio features
+-        var featEmbed = featEncoder(bAudioFeat)
+-        featEmbed = encToLmProj(featEmbed)
+ 
+         // Text embedding with scale
+         let textEmbed = baseLM.embedTokens!(bTextToken) * scaleEmb
+ 
++        let dtype = textEmbed.dtype
++        let bTextMask = textMask.expandedDimensions(axis: 0).asType(dtype)
++        let bAudioMask = audioMask.expandedDimensions(axis: 0).asType(dtype)
++
++        // Encode audio features
++        var featEmbed = featEncoder(bAudioFeat.asType(dtype))
++        featEmbed = encToLmProj(featEmbed)
++
+         // Combine text and audio embeddings
+         let combinedEmbed = bTextMask[0..., 0..., .newAxis] * textEmbed
+             + bAudioMask[0..., 0..., .newAxis] * featEmbed
+@@ -388,7 +390,7 @@ public final class VoxCPM2Model: Module, SpeechGenerationModel, @unchecked Senda
+ 
+             predFeatSeq.append(predFeat[0..., .newAxis, 0..., 0...]) // (B, 1, P, D)
+ 
+-            let currEmbed = featEncoder(predFeat[0..., .newAxis, 0..., 0...])
++            let currEmbed = featEncoder(predFeat[0..., .newAxis, 0..., 0...].asType(dtype))
+             let currEmbedProj = encToLmProj(currEmbed)
+ 
+             // Stop prediction
+diff --git a/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPMDiT.swift b/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPMDiT.swift
+index bcf7f70..12a2b9e 100644
+--- a/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPMDiT.swift
++++ b/Sources/MLXAudioTTS/Models/VoxCPM2/VoxCPMDiT.swift
+@@ -108,8 +108,8 @@ class VoxCPMLocDiTV2: Module {
+         let condProjVal = condProj(condT)
+         let prefix = condT.dim(1)
+ 
+-        let tEmb = timeMlp(timeEmbeddings(t))
+-        let dtEmb = deltaTimeMlp(timeEmbeddings(dt))
++        let tEmb = timeMlp(timeEmbeddings(t).asType(xProj.dtype))
++        let dtEmb = deltaTimeMlp(timeEmbeddings(dt).asType(xProj.dtype))
+         let tComb = tEmb + dtEmb // (N, H)
+ 
+         // V2: mu is (N, 2*H) → reshape to (N, numMuTokens, H)
+@@ -191,7 +191,7 @@ class VoxUnifiedCFM: Module {
+                     dtValIn = MLXArray.zeros([n])
+                 }
+ 
+-                let condIn = MLX.concatenated([cond, cond], axis: 0)
++                let condIn = MLX.concatenated([cond, cond], axis: 0).asType(currentX.dtype)
+ 
+                 let out = estimator(xIn, mu: muIn, t: tVal, cond: condIn, dt: dtValIn)
+ 
+@@ -205,19 +205,19 @@ class VoxUnifiedCFM: Module {
+                     let negFlat = cfgOut.reshaped(chunkSize, -1)
+ 
+                     let dotProd = MLX.sum(posFlatOrig * negFlat, axis: 1, keepDims: true)
+-                    let sqNorm = MLX.sum(negFlat * negFlat, axis: 1, keepDims: true) + MLXArray(Float(1e-8))
++                    let sqNorm = MLX.sum(negFlat * negFlat, axis: 1, keepDims: true) + 1e-8
+                     var stStar = dotProd / sqNorm
+                     stStar = stStar.reshaped(chunkSize, 1, 1)
+ 
+-                    guided = cfgOut * stStar + MLXArray(cfgValue) * (posOut - cfgOut * stStar)
++                    guided = cfgOut * stStar + cfgValue * (posOut - cfgOut * stStar)
+                 } else {
+-                    guided = cfgOut + MLXArray(cfgValue) * (posOut - cfgOut)
++                    guided = cfgOut + cfgValue * (posOut - cfgOut)
+                 }
+ 
+                 dphiDt = guided
+             }
+ 
+-            currentX = currentX - MLXArray(dt) * dphiDt
++            currentX = currentX - dt * dphiDt
+             t = t - dt
+ 
+             if step < nSteps - 1 {
+@@ -239,7 +239,7 @@ class VoxUnifiedCFM: Module {
+         let B = mu.dim(0)
+         let T = patchSize
+ 
+-        let z = MLXRandom.normal([B, inChannels, T]) * MLXArray(temperature)
++        let z = MLXRandom.normal([B, inChannels, T]).asType(mu.dtype) * temperature
+ 
+         var tSpan = MLX.linspace(Float(1), Float(0), count: nTimesteps + 1)
+         // Sway scheduling: t + cos(pi/2 * t) - 1 + t = 2t + cos(pi/2 * t) - 1

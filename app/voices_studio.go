@@ -10,6 +10,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
+	"github.com/hehehai/AudioSmith/internal/services"
 	vd "github.com/hehehai/AudioSmith/internal/voicedesign"
 )
 
@@ -185,7 +186,7 @@ func (a *app) fillVoice(t *core.Take, v *core.Voice, e catalog.Entry) {
 	switch {
 	case v.Kind == core.VoiceBuiltin:
 		t.Voice = v.Speaker
-	case v.Kind == core.VoiceDesigned && canDesign(e) && !(v.Locked && v.Sample != "" && e.Has(catalog.CapClone)):
+	case v.Kind == core.VoiceDesigned && canDesign(e) && !(v.Locked && v.Sample != "" && e.Has(catalog.CapClone)) && !clonesOwnTake(e, v):
 		r := voiceRecipe(v)
 		low, err := vd.Lower(designTarget(e), r, vd.Options{Lang: designTextLang(firstOf(r.Attrs.Language(), v.Language))})
 		if err == nil {
@@ -250,6 +251,29 @@ func styleFor(e catalog.Entry, style string) string {
 		return "" // CustomVoice speaks only its own speakers: no clones
 	}
 	return style
+}
+
+// cloneDelivery is the voice field of recipe t for model e once the
+// voice is filled in: on a model whose clones take a delivery instruction
+// (VoxCPM2, thread #165), the instruction typed in the Studio follows
+// the voice's own style; elsewhere the field stays as the voice set it.
+func cloneDelivery(t core.Take, e catalog.Entry, typed string) string {
+	typed = strings.TrimSpace(typed)
+	if typed == "" || t.Voice == typed || !services.CloneTakesInstruct(capNames(e)) || !services.HasReference(t) {
+		return t.Voice
+	}
+	if t.Voice == "" {
+		return typed
+	}
+	return t.Voice + ", " + typed
+}
+
+// clonesOwnTake reports whether model e speaks designed voice v by cloning
+// its reference (else its sample) although e designs: VoxCPM2 designs a
+// voice differently each take (thread #165), so a voice with a clip
+// keeps sounding like that clip; OmniVoice designs it anew each take.
+func clonesOwnTake(e catalog.Entry, v *core.Voice) bool {
+	return e.Family == "voxcpm2" && e.Has(catalog.CapClone) && voiceHasReference(v)
 }
 
 func firstOf(xs ...string) string {

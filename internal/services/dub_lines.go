@@ -146,7 +146,7 @@ func LineTake(p *dub.Project, seg dub.Segment, l string, v dub.VoiceSpec, caps D
 		t.Speed = speed
 	}
 	instruct := strings.Trim(strings.Join(slices.DeleteFunc([]string{v.Instruct, st.Instruct, seg.Direction}, func(s string) bool { return strings.TrimSpace(s) == "" }), ", "), ", ")
-	if caps.Instruct && instruct != "" && t.RefAudio == "" {
+	if caps.Instruct && instruct != "" && (t.RefAudio == "" || caps.CloneInstruct) {
 		if t.Voice != "" {
 			t.Voice += ", " + instruct
 		} else {

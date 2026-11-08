@@ -16,6 +16,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
+	"github.com/hehehai/AudioSmith/internal/services"
 )
 
 // studioInspectorState is the inspector's view state.
@@ -169,7 +170,13 @@ func (a *app) studioVoiceField(c *ui.Context, e catalog.Entry) {
 func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 	t := c.Theme()
 	saved := a.studioUsesSavedVoice(p)
-	if p.Has(catalog.CapVoiceStyle) && !studioNeedsDescription(p) && !saved {
+	if services.CloneTakesInstruct(capNames(p)) && (saved || strings.TrimSpace(a.refAudio) != "") {
+		// VoxCPM2 (thread #165): the clone keeps its voice and takes how to
+		// say this take; cloneDelivery adds it after the voice's own style.
+		fieldInfo(c, i18n.T("Delivery"), i18n.T("How the cloned voice says this take, in a few words: “a little faster, cheerful”, “whispering”."), func() {
+			ui.TextInput(c.Key("clone-delivery"), &a.voice).Placeholder(i18n.T("e.g. a little faster, cheerful")).Label(i18n.T("Delivery"))
+		})
+	} else if p.Has(catalog.CapVoiceStyle) && !studioNeedsDescription(p) && !saved {
 		if ids := p.AllVoiceIDs(); len(ids) > 0 {
 			speaker, style := splitVoice(a.voice, ids)
 			fieldInfo(c, i18n.T("Style"), i18n.T("How the speaker sounds, in a few words: “calm and warm”, “excited”."), func() {
@@ -199,10 +206,11 @@ func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 		})
 	}
 	if a.traits().Steps {
-		tier := slices.Index(tierSteps, a.shownSteps())
+		tiers := tierSteps(a.recommended())
+		tier := slices.Index(tiers, a.shownSteps())
 		fieldInfo(c, i18n.T("Voice refinement"), i18n.T("More steps sound cleaner and take longer."), func() {
 			if segmentedFit(c.Key("tier"), &tier, i18n.T("Fast"), i18n.T("Balanced"), i18n.T("Quality")).Label(i18n.T("Voice refinement")).Changed() && tier >= 0 {
-				a.steps = tierSteps[tier]
+				a.steps = tiers[tier]
 			}
 		})
 	}
