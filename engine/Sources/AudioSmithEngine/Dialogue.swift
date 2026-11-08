@@ -6,28 +6,32 @@ import Foundation
 // tts.dialogue (docs/protocol-v2.md §5.6): a conversation in one job on a
 // dialogue model. SoulX-Podcast writes the turns one by one, each hearing
 // the ones before it, and each turn is its own file (tts.turn as it is
-// written). MOSS-TTSD speaks them all in one track (MossDialogue.swift).
+// written). MOSS-TTSD speaks them all in one track (MossDialogue.swift),
+// and so does VibeVoice 1.5B (VibeVoice.swift).
 // Turns that carry codes from an earlier result are context only: the app
 // redoes a single turn by sending the turns before it with their codes and
 // the turn itself without.
 
 extension Synthesizer {
     /// Model families of dialogue models (catalog.Entry.Family).
+    /// (VibeVoice, a TTS family too, is in Synthesizer.families.)
     static let dialogueFamilies = ["soulx_podcast", "moss_ttsd"]
 
     func dialogue(_ p: DialogueParams, job: String, offline: Bool, auxPaths: [String: String]?) async throws -> DialogueResult {
         guard !p.model.isEmpty else { throw EngineError.badRequest("Missing model") }
         guard p.outputDir.hasPrefix("/") else { throw EngineError.badRequest("outputDir must be an absolute path") }
         guard !p.speakers.isEmpty else { throw EngineError.badRequest("No speakers") }
-        let moss = try isMossDialogue(p.model, path: p.modelPath, offline: offline)
-        let maxSpeakers = moss ? MossTTSDTokens.maxSpeakers : SoulXPrompt.maxSpeakers
+        // VibeVoice clones from the clip alone (VibeVoice.swift).
+        let vibe = try isVibeVoiceDialogue(p.model, path: p.modelPath, offline: offline)
+        let moss = try !vibe && isMossDialogue(p.model, path: p.modelPath, offline: offline)
+        let maxSpeakers = vibe ? VibeVoiceScript.maxSpeakers : moss ? MossTTSDTokens.maxSpeakers : SoulXPrompt.maxSpeakers
         guard p.speakers.count <= maxSpeakers else {
             throw EngineError.unsupported("\(shortName(p.model)) takes at most \(maxSpeakers) speakers", capability: "speakers")
         }
         var index: [String: Int] = [:]
         for (i, s) in p.speakers.enumerated() {
             guard !s.id.isEmpty, index[s.id] == nil else { throw EngineError.badRequest("Speaker ids must be unique and not empty") }
-            guard nonEmpty(s.refText) != nil else {
+            guard vibe || nonEmpty(s.refText) != nil else {
                 throw EngineError.badRequest("Speaker \(s.id) needs the reference's transcript (refText)")
             }
             index[s.id] = i
@@ -40,6 +44,9 @@ extension Synthesizer {
         guard p.turns.contains(where: { $0.codes == nil }) else { throw EngineError.badRequest("Every turn has codes: nothing to generate") }
         let bits = p.bits ?? 16
         guard [16, 24, 32].contains(bits) else { throw EngineError.badRequest("bits must be 16, 24 or 32") }
+        if vibe {
+            return try await vibeVoiceDialogue(p, index: index, bits: bits, job: job, offline: offline)
+        }
         if moss {
             return try await mossDialogue(p, index: index, bits: bits, job: job, offline: offline)
         }
@@ -145,6 +152,14 @@ extension Synthesizer {
     /// models.load with task "dialogue".
     func loadDialogue(_ p: LoadParams, job: String, offline: Bool, auxPaths: [String: String]?) async throws -> LoadResult {
         let started = Date()
+        if try isVibeVoiceDialogue(p.model, path: p.path, offline: offline) {
+            let m = try await acquire(p.model, path: p.path, job: job, offline: offline)
+            defer { store.release(p.model) }
+            let bytes = store.loaded().first { $0.model == p.model }?.bytes
+            return LoadResult(model: p.model, task: "dialogue", sampleRate: m.sampleRate,
+                              seconds: Date().timeIntervalSince(started), bytes: (bytes ?? 0) > 0 ? bytes : nil,
+                              capabilities: ["dialogue", "clone", "seed", "steps"])
+        }
         if try isMossDialogue(p.model, path: p.path, offline: offline) {
             _ = try await acquireMoss(p.model, path: p.path, job: job, offline: offline)
             defer { store.release(p.model) }

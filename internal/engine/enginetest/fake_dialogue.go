@@ -17,6 +17,9 @@ import (
 // another seed passes). A model with "one-track" or "moss" in its name
 // (MOSS-TTSD: up to 5 speakers) writes the whole dialogue to dialogue.wav
 // instead and returns the turns' texts and codec frames (16 codes each).
+// One with "vibevoice" in its name (VibeVoice 1.5B, thread #166) does too,
+// with up to 4 speakers who need no transcript, and without codes: turns
+// with codes (a continuation) are refused.
 
 // FakeGarbleMark makes the fake dialogue garble a turn on even seeds.
 const FakeGarbleMark = "〔含糊〕"
@@ -28,13 +31,14 @@ func (f *fakeEngine) dialogue(m proto.Message) {
 		return
 	}
 	lower := strings.ToLower(p.Model)
-	oneTrack := strings.Contains(lower, "one-track") || strings.Contains(lower, "moss")
+	vibe := strings.Contains(lower, "vibevoice")
+	oneTrack := strings.Contains(lower, "one-track") || strings.Contains(lower, "moss") || vibe
 	if !strings.Contains(lower, "soulx") && !strings.Contains(lower, "dialogue") && !oneTrack {
 		f.failData(m.ID, proto.CodeUnsupported, map[string]string{"capability": "dialogue"}, "%s cannot speak dialogues", p.Model)
 		return
 	}
 	maxSpeakers := 4
-	if oneTrack {
+	if oneTrack && !vibe {
 		maxSpeakers = 5
 	}
 	if len(p.Speakers) > maxSpeakers {
@@ -43,7 +47,7 @@ func (f *fakeEngine) dialogue(m proto.Message) {
 	}
 	pitch := map[string]float64{}
 	for i, s := range p.Speakers {
-		if s.RefText == "" {
+		if s.RefText == "" && !vibe {
 			f.fail(m.ID, proto.CodeBadRequest, "Speaker %s needs the reference's transcript (refText)", s.ID)
 			return
 		}
@@ -55,6 +59,10 @@ func (f *fakeEngine) dialogue(m proto.Message) {
 	for i, t := range p.Turns {
 		if _, ok := pitch[t.Speaker]; !ok {
 			f.fail(m.ID, proto.CodeBadRequest, "Turn %d names an unknown speaker %s", i, t.Speaker)
+			return
+		}
+		if vibe && len(t.Codes) > 0 {
+			f.failData(m.ID, proto.CodeUnsupported, map[string]string{"capability": "continuation"}, "%s cannot go on from earlier turns", p.Model)
 			return
 		}
 	}
@@ -90,6 +98,9 @@ func (f *fakeEngine) dialogue(m proto.Message) {
 			codes[k] = (k*37 + int(seed)) % 1024
 		}
 		res.Mixed = &proto.DialogueMixed{Output: out, Frames: int64(all.Frames()), AudioSeconds: all.Seconds(), Codes: codes, Codebooks: 16}
+		if vibe {
+			res.Mixed.Codes, res.Mixed.Codebooks = nil, 0
+		}
 		res.AudioSeconds = all.Seconds()
 		res.RTF = res.AudioSeconds / res.Seconds
 		f.touch(p.Model)

@@ -401,7 +401,7 @@ func (f *fakeEngine) handleHello(m proto.Message) {
 		families = []string{"whisper", "qwen3_asr", "parakeet"}
 	}
 	if role == proto.RoleGPU {
-		families = []string{"kokoro", "qwen3_tts", "omnivoice", "chatterbox", "whisper", "qwen3_asr", "qwen3_forced_aligner", "silero_vad", "deepfilternet", "htdemucs", "mel_roformer", "sortformer", "qwen3", "gemma4", "soulx_podcast"}
+		families = []string{"kokoro", "qwen3_tts", "omnivoice", "chatterbox", "whisper", "qwen3_asr", "qwen3_forced_aligner", "silero_vad", "deepfilternet", "htdemucs", "mel_roformer", "sortformer", "qwen3", "gemma4", "soulx_podcast", "vibevoice", "vibevoice_streaming"}
 	}
 	if role == proto.RoleMedia {
 		families = []string{"audioseal"}

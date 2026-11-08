@@ -54,8 +54,10 @@ func TestBuiltin(t *testing.T) {
 			t.Errorf("ByID(%s)", e.ID)
 		}
 	}
-	if got := c.ForTask(TaskTTS); len(got) != 7 {
-		t.Errorf("%d speech models offered, want 7", len(got))
+	// The curated seven, then the optional VibeVoice Realtime (thread
+	// #166; VibeVoice 1.5B is a dialogue model, hidden as SoulX's).
+	if got := c.ForTask(TaskTTS); len(got) != 8 {
+		t.Errorf("%d speech models offered, want 8", len(got))
 	}
 	if k, _ := c.ByLabel("Kokoro 82M"); len(k.Voices) != 25 || k.VoiceIDs()[0] != "af_heart" || len(k.Aux) != 2 {
 		t.Errorf("kokoro voices %d aux %v", len(k.Voices), k.Aux)
@@ -211,8 +213,9 @@ func TestM1Entries(t *testing.T) {
 // TestNeedsReference: every speech model kept speaks without a
 // reference: its own voices (Kokoro, CustomVoice), a default voice
 // (Qwen3-TTS Base, Chatterbox Turbo's conds.safetensors), or a design
-// (OmniVoice, VoiceDesign). The flag stays for models that only clone
-// (MOSS-TTS-Nano was one); it needs the clone capability.
+// (OmniVoice, VoiceDesign), except VibeVoice 1.5B, which only clones
+// (thread #166; MOSS-TTS-Nano was another); the flag needs the clone
+// capability.
 func TestNeedsReference(t *testing.T) {
 	var got []string
 	for _, e := range Builtin().Entries {
@@ -220,7 +223,7 @@ func TestNeedsReference(t *testing.T) {
 			got = append(got, e.ID)
 		}
 	}
-	if len(got) != 0 {
+	if !slices.Equal(got, []string{"vibevoice-1.5b"}) {
 		t.Errorf("needsReference: %q", got)
 	}
 	c := Catalog{Version: 1, Entries: []Entry{{ID: "x", Label: "X", Name: "Xx", Family: "x", Repo: "o/x", Tasks: []Task{TaskTTS},

@@ -12,7 +12,7 @@ final class Synthesizer: @unchecked Sendable {
     static let families = [
         "kokoro", "kitten", "qwen3_tts", "qwen3", "marvis", "soprano", "omnivoice", "chatterbox", "pocket_tts",
         "llama_tts", "fish_speech", "echo_tts", "irodori_tts", "moss_tts", "moss_tts_nano", "indextts", "spark", "breeze",
-        "voxcpm2", "dia",
+        "voxcpm2", "dia", "vibevoice", "vibevoice_streaming",
     ]
 
     let out: Writer
@@ -24,7 +24,7 @@ final class Synthesizer: @unchecked Sendable {
     }
 
     /// Returns the TTS model, loading it (stage "loading") when it is not resident.
-    private func acquire(_ model: String, path: String?, job: String, offline: Bool) async throws -> SpeechGenerationModel {
+    func acquire(_ model: String, path: String?, job: String, offline: Bool) async throws -> SpeechGenerationModel {
         if offline && (path ?? "").isEmpty, let missing = missingFromCache(model) {
             throw EngineError.notDownloaded(model: model, missing: missing)
         }
@@ -33,9 +33,11 @@ final class Synthesizer: @unchecked Sendable {
         let (m, _) = try await store.acquire(model, task: "tts", job: job, as: SpeechGenerationModel.self,
                                              sampleRate: { $0.sampleRate },
                                              estimate: weightBytes(weightsDirectory(model, path: path))) {
-            if let path, !path.isEmpty {
+            // VibeVoice loads from a folder with its tokenizer (VibeVoice.swift).
+            let loadPath = try vibeVoiceFolder(model, path: path, offline: offline) ?? path
+            if let loadPath, !loadPath.isEmpty {
                 do {
-                    let m = try await TTS.loadModel(modelRepo: path, hfToken: token)
+                    let m = try await TTS.loadModel(modelRepo: loadPath, hfToken: token)
                     dropEngineCopy(model)
                     return m
                 } catch TTSModelError.unsupportedModelType(let type) where (type ?? "").hasSuffix("from local directory") {
@@ -84,6 +86,10 @@ final class Synthesizer: @unchecked Sendable {
             if l.contains("customvoice") { caps += ["voiceStyle", "instruct"] }
         case is ChatterboxModel:
             caps += ["stream", "sampling", "clone", "guidance", "exaggeration"]
+        case is VibeVoiceTTSModel:
+            caps += ["clone", "cloneAudioOnly", "steps", "guidance", "dialogue"]
+        case is VibeVoiceRealtimeModel:
+            caps += ["stream", "steps", "guidance"]
         default:
             caps += ["stream", "sampling"]
         }
@@ -120,6 +126,13 @@ final class Synthesizer: @unchecked Sendable {
                 throw EngineError.unsupported("\(shortName(p.model)) cannot clone voices", capability: "clone")
             }
             kokoro.speed = Float(p.speed ?? 1.0)
+        }
+        if model is VibeVoiceRealtimeModel, refPath != nil {
+            throw EngineError.unsupported("\(shortName(p.model)) cannot clone voices", capability: "clone")
+        }
+        if let rt = model as? VibeVoiceRealtimeModel {
+            rt.options = VibeVoiceRealtimeOptions(guidanceScale: p.guidance.map { Float($0) }.flatMap { $0 > 0 ? $0 : nil } ?? 1.5,
+                                                  diffusionSteps: p.steps.flatMap { $0 > 0 ? min($0, 100) : nil })
         }
         if let qwen = model as? Qwen3TTSModel, refPath != nil, !p.model.lowercased().contains("base") {
             _ = qwen
@@ -225,6 +238,10 @@ final class Synthesizer: @unchecked Sendable {
                     language: nonEmpty(p.language), ovParameters: ov)
                 try Task.checkCancellation()
                 try audio(chunk)
+            } else if let vv = model as? VibeVoiceTTSModel {
+                // One speaker; the whole take in the job's task (its
+                // generateStream yields only at the end).
+                try audio(try await vibeVoiceTake(vv, text: text, refAudio: refAudio, params: params, p: p, progress: progress))
             } else if model is KokoroModel || model is KittenTTSModel {
                 // These make the whole take in one call; their generateStream
                 // only runs it in a Task of its own, which a cancelled job

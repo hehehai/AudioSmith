@@ -4,7 +4,8 @@ package proto
 // speaks a whole conversation in one job, each turn hearing the ones before
 // it. Per-turn models (SoulX-Podcast) write each turn to its own file and
 // send tts.turn as each one is written; one-track models (MOSS-TTSD, thread
-// #82) write the whole dialogue to one file, which the app cuts at the turns.
+// #82; VibeVoice 1.5B, #166) write the whole dialogue to one file, which the
+// app cuts at the turns.
 // The Swift mirror is engine/Sources/AudioSmithProtocol/WireDialogue.swift.
 
 const (
@@ -70,7 +71,8 @@ type DialogueTurnOut struct {
 	Seconds      float64 `json:"seconds,omitempty"` // generation time of the turn
 }
 
-// DialogueMixed is a one-track model's file. MOSS-TTSD adds its codec
+// DialogueMixed is a one-track model's file (VibeVoice's without codes:
+// its turns cannot be redone by continuation). MOSS-TTSD adds its codec
 // frames (Codebooks codes each, flattened, 12.5 frames a second): the first
 // comes just before the audio, frame k+1 lies under samples
 // [k·1920, (k+1)·1920); a redo sends the frames before the turn it redoes

@@ -40,8 +40,8 @@ func applyDubDialogue(s *dub.Settings, mode, model string) error {
 	}
 	if model != "" {
 		e, ok := dialogueByName(model)
-		if !ok || e.Family == services.FamilyMossTTSD {
-			return errBadRequest("dialogue_model", "dialogue_model is soulx: MOSS-TTSD does not dub yet.")
+		if !ok || services.OneTrackDialogue(e.Family) {
+			return errBadRequest("dialogue_model", "dialogue_model is soulx: MOSS-TTSD and VibeVoice do not dub yet.")
 		}
 		s.DialogueModel = e.Repo
 	}

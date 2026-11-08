@@ -232,7 +232,7 @@ func (s *Dubs) dubDialogue(ctx context.Context, sc *stageCtx, voices map[string]
 	dd.dr = s.dialogueRunner(sc, recognizer, m.Align)
 	takes := p.Track(l).DialogueTakes
 	for si, st := range sts {
-		j := &dialogueJob{model: d.Repo, modelPath: modelPath, oneTrack: d.Family == FamilyMossTTSD, lang: baseLang(l),
+		j := &dialogueJob{model: d.Repo, modelPath: modelPath, oneTrack: OneTrackDialogue(d.Family), lang: baseLang(l),
 			seed: dub.DialogueSeed(st.IDs[0], takes[st.IDs[0]])}
 		h := sha256.New()
 		fmt.Fprintf(h, "%s\x00%s\x00%s\x00%d\x00%s\x00", dubDialogueVersion, d.Repo, d.Revision, j.seed, l)

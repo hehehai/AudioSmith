@@ -43,7 +43,7 @@ func (f *fakeTrack) executor(method string) jobs.Executor {
 			var p proto.DialogueParams
 			json.Unmarshal(job.Params, &p)
 			f.calls = append(f.calls, p)
-			if p.Model != "m/moss" {
+			if p.Model != "m/moss" && p.Model != "m/vibevoice" {
 				return nil, &jobs.Error{Code: proto.CodeBadRequest, Message: "model " + p.Model}
 			}
 			call := len(f.calls)
@@ -91,6 +91,9 @@ func (f *fakeTrack) executor(method string) jobs.Executor {
 				codes[i] = (i*7 + call) % 1024
 			}
 			res.Mixed = &proto.DialogueMixed{Output: out, Frames: int64(buf.Frames()), AudioSeconds: buf.Seconds(), Codes: codes, Codebooks: 16}
+			if p.Model == "m/vibevoice" { // VibeVoice: no codes
+				res.Mixed.Codes, res.Mixed.Codebooks = nil, 0
+			}
 			return json.Marshal(res)
 		case proto.MethodSTTAlign:
 			var p proto.AlignParams
@@ -210,6 +213,58 @@ func TestDialogueOneTrack(t *testing.T) {
 	said := "|" + strings.Join(e.synth.texts(), "|") + "|"
 	if res.DialogueFailed != 4 || res.Dialogues != 0 || len(ft.calls) != 2 || !strings.Contains(said, "|养猫要花很多时间照顾它。|") {
 		t.Errorf("failed track: %+v, %d calls, synth %q", res, len(ft.calls), e.synth.texts())
+	}
+}
+
+// VibeVoice (thread #166) speaks the segment as one track too, but
+// without codes: a line heard wrong cannot be made again after the lines
+// before it, so it goes to the story's model; the others stay.
+func TestDialogueOneTrackWithoutCodes(t *testing.T) {
+	e := newLongformEnv(t, t.TempDir(), false)
+	defer e.close()
+	ft := &fakeTrack{heard: map[int]string{}, tracks: map[string][]proto.Word{}}
+	r := e.svc.Longform.render
+	r.engine, r.recognizer, r.aligner = ft.executor, "m/asr", "m/aligner"
+	r.models = func(repo string) ModelInfo {
+		if repo == "m/vibevoice" {
+			return ModelInfo{Traits: TraitsFor(FamilyVibeVoice, []string{"dialogue"}), Revision: "rv"}
+		}
+		return kokoroInfo(repo)
+	}
+	line := func(id, who, text string) LineSpec {
+		return LineSpec{ID: id, Character: who, Emotion: EmotionSteady, Spans: []SpanSpec{{Voice: strings.ToLower(who), Character: who, Text: text}}}
+	}
+	prod := DefaultStoryProduction()
+	prod.Dialogue, prod.DialogueModel, prod.DialogueTags = true, "m/vibevoice", true
+	spec := LongformSpec{Kind: core.ProjectStory, Title: "小猫", Model: "m/kokoro", Lang: "zh", Seed: 7,
+		Voices: map[string]core.Take{"kid": {Voice: "zf_xiaobei"}, "mom": {Voice: "zf_xiaoni"}},
+		Chapters: []ChapterSpec{{Lines: []LineSpec{
+			line("a", "Kid", "妈妈，我想领养一只小猫，可以吗？"), line("b", "Mom", "养猫要花很多时间照顾它。"),
+			line("c", "Kid", "我能！我每天喂它。"), line("d", "Mom", "那我们先去救助站看看吧。"),
+		}}},
+		Production: prod, Audition: true}
+	ft.garble = func(call int, text string) bool { return strings.HasPrefix(text, "我能") }
+	rr, err := e.svc.Longform.Start(ctx, spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, body := e.wait(t, rr.ID)
+	if st := body.Chapters[0].State; st != "done" {
+		t.Fatalf("chapter %+v", body.Chapters[0])
+	}
+	res, err := ReadChapter(body.Chapters[0].File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ft.calls) != 1 || res.Dialogues != 1 || res.DialogueLines != 3 || res.DialogueRedone != 0 || res.DialogueFailed != 1 {
+		t.Fatalf("calls %d, result %+v", len(ft.calls), res)
+	}
+	// No SoulX tags in a one-track model's text.
+	if strings.Contains(ft.calls[0].Turns[0].Text, "<|") {
+		t.Errorf("turns %+v", ft.calls[0].Turns)
+	}
+	if said := strings.Join(e.synth.texts(), "|"); !strings.Contains(said, "我能！我每天喂它。") {
+		t.Errorf("story's model said %q", said)
 	}
 }
 

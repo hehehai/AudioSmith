@@ -1,6 +1,7 @@
 package services
 
-// One-track dialogue (MOSS-TTSD, thread #82): the model speaks a
+// One-track dialogue (MOSS-TTSD, thread #82; VibeVoice, #166, whose track
+// has no codes: its failing lines are left to the caller): the model speaks a
 // segment's lines as one track (proto.DialogueResult.Mixed), which is cut
 // back into the lines as character tracks are (story_track.go): the forced
 // aligner times the segment's text, each line must be the text's words at

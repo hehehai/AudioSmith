@@ -312,11 +312,11 @@ func TestDialogueChoice(t *testing.T) {
 		}
 		return strings.Join(out, ",")
 	}
-	if e, ok, why := dialogueChoice(16, &d); why != "" || name(ok) != "soulx" || dialogueModelName(e) != "soulx" {
+	if e, ok, why := dialogueChoice(16, &d); why != "" || name(ok) != "soulx,vibevoice" || dialogueModelName(e) != "soulx" {
 		t.Errorf("16 GB: %s %s %q", e.ID, name(ok), why)
 	}
 	d.Production.DialogueModel = "actnowai/MOSS-TTSD-v1.0-MLX-8bit"
-	if e, ok, why := dialogueChoice(24, &d); why != "" || name(ok) != "soulx,moss" || dialogueModelName(e) != "moss" {
+	if e, ok, why := dialogueChoice(24, &d); why != "" || name(ok) != "soulx,moss,vibevoice" || dialogueModelName(e) != "moss" {
 		t.Errorf("24 GB: %s %s %q", e.ID, name(ok), why)
 	}
 	if e, _, _ := dialogueChoice(16, &d); dialogueModelName(e) != "soulx" {
@@ -326,6 +326,14 @@ func TestDialogueChoice(t *testing.T) {
 		t.Errorf("8 GB: %v %q", name(ok), why)
 	}
 	if e, ok := dialogueByName("MOSS"); !ok || e.Family != services.FamilyMossTTSD {
+		t.Errorf("by name: %+v", e)
+	}
+	// VibeVoice (thread #166): optional, 16 GB, never the default.
+	d.Production.DialogueModel = "microsoft/VibeVoice-1.5B"
+	if e, _, why := dialogueChoice(16, &d); why != "" || dialogueModelName(e) != "vibevoice" {
+		t.Errorf("16 GB with vibevoice chosen: %s %q", e.ID, why)
+	}
+	if e, ok := dialogueByName("vibevoice"); !ok || e.Family != services.FamilyVibeVoice {
 		t.Errorf("by name: %+v", e)
 	}
 }

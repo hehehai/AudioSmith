@@ -1,5 +1,5 @@
 // Package dialogue groups lines into the segments a dialogue model
-// (SoulX-Podcast, MOSS-TTSD; threads #80, #82) speaks in one job, each
+// (SoulX-Podcast, MOSS-TTSD, VibeVoice; threads #80, #82, #166) speaks in one job, each
 // line hearing the lines before it: a story's character lines, a dub's
 // conversation, an audiobook's dialogue blocks
 // (plan/dialogue-dub-audiobook-plan.md §4.1). It is pure: the callers say
@@ -22,6 +22,17 @@ import "github.com/hehehai/AudioSmith/internal/text"
 // model (the whole segment as one track, cut at the lines).
 const FamilyMossTTSD = "moss_ttsd"
 
+// FamilyVibeVoice is VibeVoice 1.5B's catalogue family (thread #166): a
+// one-track dialogue model too, of up to four voices, without codes (a
+// line cannot be made again after the lines before it).
+const FamilyVibeVoice = "vibevoice"
+
+// OneTrack reports whether a dialogue model family speaks a segment as
+// one track, which the app cuts at the lines (MOSS-TTSD, VibeVoice).
+func OneTrack(family string) bool {
+	return family == FamilyMossTTSD || family == FamilyVibeVoice
+}
+
 // Limits bound a segment: voices, lines, unspaced characters (CJK) and
 // other text (Chars, 6 a word).
 type Limits struct{ Speakers, Turns, CJK, Chars int }
@@ -29,10 +40,13 @@ type Limits struct{ Speakers, Turns, CJK, Chars int }
 // LimitsFor are a dialogue model family's segment limits: SoulX-Podcast 4
 // voices, 16 lines, about 90 s; MOSS-TTSD speaks a segment in one call,
 // about 60 s at most (a longer call risks the GPU watchdog and a harder
-// cut), up to its five voices.
+// cut), up to its five voices; VibeVoice the same, up to its four.
 func LimitsFor(family string) Limits {
-	if family == FamilyMossTTSD {
+	switch family {
+	case FamilyMossTTSD:
 		return Limits{Speakers: 5, Turns: 24, CJK: 240, Chars: 720}
+	case FamilyVibeVoice:
+		return Limits{Speakers: 4, Turns: 24, CJK: 240, Chars: 720}
 	}
 	return Limits{Speakers: 4, Turns: 16, CJK: 400, Chars: 1200}
 }

@@ -3085,7 +3085,7 @@
   "Trim silence": "裁掉首尾静音",
   "Trim the silences and even out the loudness": "去掉多余的静音，统一响度",
   "Trimmed %.1fs": "截掉 %.1f 秒",
-  "True speaks the characters' lines (a story's, or an audiobook's dialogue blocks: on by default once it has some) with a dialogue model (Chinese and English) a scene at a time, each line hearing the lines before it; narration stays on the project's model, and a block is read line by line without it. dialogue_model picks it: soulx (%s, the default; 16 GB of memory) or moss (%s; 24 GB, up to five voices, a scene as one recording).": "true 时，角色台词（故事的台词，或有声书的对话段：有对话段后默认打开）由对话模型（中文、英文）按场景整段说出，每句都听得到前面的台词；旁白仍用项目的模型，不用对话模型时对话段按逐句读。dialogue_model 选择模型：soulx（%s，默认；需 16 GB 内存）或 moss（%s；需 24 GB，最多五个声音，一场戏一次录成）。",
+  "True speaks the characters' lines (a story's, or an audiobook's dialogue blocks: on by default once it has some) with a dialogue model (Chinese and English) a scene at a time, each line hearing the lines before it; narration stays on the project's model, and a block is read line by line without it. dialogue_model picks it: soulx (%s, the default; 16 GB of memory), moss (%s; 24 GB, up to five voices, a scene as one recording) or vibevoice (%s; 16 GB, up to four voices, a scene as one recording).": "true 时，角色台词（故事的台词，或有声书的对话段：有对话段后默认打开）由对话模型（中文、英文）按场景整段说出，每句都听得到前面的台词；旁白仍用项目的模型，不用对话模型时对话段按逐句读。dialogue_model 选择模型：soulx（%s，默认；需 16 GB 内存）、moss（%s；需 24 GB，最多五个声音，一场戏一次录成）或 vibevoice（%s；需 16 GB，最多四个声音，一场戏一次录成）。",
   "Try again": "重试",
   "Try it": "试一试",
   "Try the error sound": "试听出错提示音",
@@ -4068,5 +4068,11 @@
   "The microphone stopped as the audio devices changed: what was recorded is kept.": "音频设备变动，麦克风已停止：已录下的部分会保留。",
   "%s Try: switch Echo cancellation on or off, choose another input, quit other apps that are recording, and check that AudioSmith may use the microphone (System Settings → Privacy & Security → Microphone).": "%s可以试试：打开或关闭“回声消除”，换一个输入设备，退出其他正在录音的 App，并确认 AudioSmith 有麦克风权限（系统设置 → 隐私与安全性 → 麦克风）。",
   "Turn on if the microphone records no sound or picks up the speakers; the voice may sound processed. Applies to every recording.": "麦克风录不到声音、或录进了扬声器的声音时打开；人声可能听起来有处理痕迹。对所有录音生效。",
-  "The Mac is short of memory right now, so the model was not loaded. Close other apps, then try again.": "这台 Mac 现在内存紧张，模型没有加载。请退出其他 App 后再试。"
+  "The Mac is short of memory right now, so the model was not loaded. Close other apps, then try again.": "这台 Mac 现在内存紧张，模型没有加载。请退出其他 App 后再试。",
+  "model name\u0004Dialogue · Long-form": "多人对话 · 长篇",
+  "Seven preset English voices that start speaking almost at once; light on memory. Cannot clone.": "七个预设英文声音，几乎即刻开口；占用内存少。不能克隆。",
+  "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft releases it for research and advises testing before commercial use.": "微软的小型实时英文模型，使用预设声音，边生成边播放。只支持英文，不能克隆声音。微软发布它仅供研究，并建议商用前先充分测试。",
+  "model name\u0004English · Realtime": "英语 · 实时",
+  "Microsoft's long-form conversational speech model: up to four speakers, each cloned from a reference clip without its transcript, speak a whole scene in one go, and AudioSmith cuts the recording into the lines. Used by Stories' whole-dialogue mode and audiobooks' dialogue passages; narration stays on the project's model. Chinese can be less steady than English, and it may add background music on its own. Microsoft releases it for research and advises testing before commercial use.": "微软的长篇对话语音模型：最多四个说话人，各自用一段参考片段克隆（不需要片段的文字稿），一次说完整场戏，再由 AudioSmith 把录音切回各句。用于故事的「整段对话」和有声书的对话段；旁白仍用项目的模型。中文不如英文稳定，偶尔会自行加上背景音乐。微软发布它仅供研究，并建议商用前先充分测试。",
+  "Speaks a scene of up to four voices as one recording, each cloned from a short clip alone (no transcript needed). Chinese and English.": "整场戏一次录成，最多四个声音，每个声音只需一段短片段就能克隆（不需要文字稿）。中文和英文。"
 }

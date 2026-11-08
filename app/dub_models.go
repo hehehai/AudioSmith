@@ -77,7 +77,8 @@ func dubModels(lib *library) services.DubModels {
 
 // dubDialogueModels are the dialogue models a dub can speak its
 // conversations with on a Mac of gb GB (0: unknown): SoulX-Podcast (P2;
-// MOSS-TTSD comes later, plan §2, P3), blocked where it lacks memory.
+// the one-track models MOSS-TTSD and VibeVoice come later, plan §2, P3),
+// blocked where it lacks memory.
 func dubDialogueModels(gb int) []services.DubDialogueModel {
 	var out []services.DubDialogueModel
 	for _, e := range dubDialogueEntries() {
@@ -98,7 +99,7 @@ func dubDialogueModels(gb int) []services.DubDialogueModel {
 func dubDialogueEntries() []catalog.Entry {
 	var out []catalog.Entry
 	for _, e := range dialogueEntries() {
-		if e.Family != services.FamilyMossTTSD { // P3
+		if !services.OneTrackDialogue(e.Family) { // P3
 			out = append(out, e)
 		}
 	}

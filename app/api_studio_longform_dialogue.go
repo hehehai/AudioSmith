@@ -26,7 +26,7 @@ func setDialogue(d *services.LongformDoc, req api.LongformUpdate) error {
 	if req.DialogueModel != "" {
 		e, ok := dialogueByName(req.DialogueModel)
 		if !ok {
-			return errBadRequest("dialogue_model", "dialogue_model is soulx or moss.")
+			return errBadRequest("dialogue_model", "dialogue_model is soulx, moss or vibevoice.")
 		}
 		if why := dialogueBlockedOn(readSysInfo().MemoryGB(), d, e); why != "" {
 			return errBadRequest("dialogue_model", "%s", why)

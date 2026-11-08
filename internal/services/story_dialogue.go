@@ -2,16 +2,16 @@ package services
 
 // Whole dialogue (Production.Dialogue, thread #80): a story's character
 // lines are spoken by a dialogue model (catalogue capability "dialogue":
-// SoulX-Podcast, or MOSS-TTSD, thread #82) a scene at a time, every line
+// SoulX-Podcast, MOSS-TTSD, thread #82, or VibeVoice, #166) a scene at a time, every line
 // hearing the lines before it, instead of line by line or per character
 // stretch; narration stays on the story's model. One tts.dialogue job
 // speaks a segment: consecutive character lines of a chapter (a short
 // narration line between them does not end it; a long one does), within
 // the model's limits (internal/dialogue: SoulX-Podcast 4 voices, 16
-// lines, about 90 s; MOSS-TTSD 5 voices, 24 lines, about 60 s), made by
+// lines, about 90 s; MOSS-TTSD 5 voices, VibeVoice 4, 24 lines, about 60 s), made by
 // the shared runner (dialogue_run.go). SoulX-Podcast writes each line to
-// its own file, so nothing is cut; MOSS-TTSD speaks the segment as one
-// track, cut at the lines with the forced aligner (dialogue_run_mixed.go).
+// its own file, so nothing is cut; MOSS-TTSD and VibeVoice speak the segment
+// as one track, cut at the lines with the forced aligner (dialogue_run_mixed.go).
 // The lines go back into the chapter with the pacing's gaps (and the
 // emotion's, E).
 //
@@ -141,7 +141,7 @@ func (cr chapterRenderer) dialogues(p *ChapterParams,
 	out := map[int]*dialogueStep{}
 	r := cr.r
 	refs := map[string]int{} // voice key → index in a segment's refs
-	oneTrack := dialogueInfo.Family == FamilyMossTTSD
+	oneTrack := OneTrackDialogue(dialogueInfo.Family)
 	lim := dialogue.LimitsFor(dialogueInfo.Family)
 	groups, seeds := dialogueGroups(p.Lines, lim), []int64(nil)
 	if p.book() {

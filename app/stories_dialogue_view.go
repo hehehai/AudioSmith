@@ -44,14 +44,16 @@ func dialogueEntries() []catalog.Entry {
 	return out
 }
 
-// dialogueModelName is a dialogue model's short name in the API: soulx or
-// moss (its catalogue id otherwise).
+// dialogueModelName is a dialogue model's short name in the API: soulx,
+// moss or vibevoice (its catalogue id otherwise).
 func dialogueModelName(e catalog.Entry) string {
 	switch e.Family {
 	case "soulx_podcast":
 		return "soulx"
 	case services.FamilyMossTTSD:
 		return "moss"
+	case services.FamilyVibeVoice:
+		return "vibevoice"
 	}
 	return e.ID
 }

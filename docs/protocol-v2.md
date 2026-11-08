@@ -478,7 +478,7 @@ The port matches the PyTorch reference: on the same 16 kHz input and message, th
 
 ## 5.6 Dialogue models
 
-Types: [`dialogue.go`](../internal/engine/proto/dialogue.go) (Go), [`WireDialogue.swift`](../engine/Sources/AudioSmithProtocol/WireDialogue.swift). Fixture: `dialogue.jsonl`. Threads #80 (SoulX-Podcast), #82 (MOSS-TTSD).
+Types: [`dialogue.go`](../internal/engine/proto/dialogue.go) (Go), [`WireDialogue.swift`](../engine/Sources/AudioSmithProtocol/WireDialogue.swift). Fixture: `dialogue.jsonl`. Threads #80 (SoulX-Podcast), #82 (MOSS-TTSD), #166 (VibeVoice).
 
 ### `tts.dialogue` (job, gpu) → `tts.turn` …
 
@@ -497,7 +497,7 @@ A whole conversation in one job: each turn is spoken hearing the turns before it
 
 | Param | Meaning |
 |---|---|
-| `speakers` | Up to the model's limit (SoulX-Podcast: 4, MOSS-TTSD: 5; more fails with `unsupported`, `data.capability:"speakers"`). Each has a unique `id`, a reference clip (any format AVFoundation reads; 1–30 s) and its **exact transcript** (`refText`, required). |
+| `speakers` | Up to the model's limit (SoulX-Podcast: 4, MOSS-TTSD: 5, VibeVoice: 4; more fails with `unsupported`, `data.capability:"speakers"`). Each has a unique `id`, a reference clip (any format AVFoundation reads; 1–30 s) and its **exact transcript** (`refText`, required; VibeVoice clones from the clip alone and ignores it). |
 | `turns` | In order; `speaker` names a speaker id. A turn with `codes` (from an earlier result of the same model and speakers) is **context only**: heard, not spoken again, no file. |
 | `outputDir` | Absolute; the app owns it. Per-turn files are `turn-<index, 3 digits>.wav`; a one-track model writes `dialogue.wav`. |
 | `bits` | 16 (default), 24, or 32 (float). |
@@ -514,6 +514,8 @@ Errors: a model that is not a dialogue model fails with `unsupported`, `data.cap
 **SoulX-Podcast in the engine** ([`SoulX.swift`](../engine/Sources/AudioSmithEngine/SoulX.swift), [`Dialogue.swift`](../engine/Sources/AudioSmithEngine/Dialogue.swift), [`AudioSmithDialogue`](../engine/Sources/AudioSmithDialogue)): the Qwen3-1.7B language model (8-bit, mlx-swift-lm) writes a turn's speech tokens after the reference blocks and the earlier turns, keeping its KV cache across turns and rebuilding the context as upstream does (more than 10 blocks or 6,192 tokens: the references, the texts of two earlier turns, the last two turns with their speech); CosyVoice2's flow matching (fresh noise per turn) and HiFT (mlx-audio-swift's S3Gen types, patch 0006) make the turn's waveform from its tokens and the speaker's reference tokens, mel and CAM++ x-vector. The S3 tokenizer is the auxiliary repo `mlx-community/S3TokenizerV2`. Checked against the official PyTorch code stage by stage (`audiosmith-engine --soulx-check`, scripts/soulx/parity.sh). M4 (24 GB): 0.7× real time, 39 speech tokens a second, 4.3 GB MLX peak.
 
 **MOSS-TTSD in the engine** ([`MossTTSD.swift`](../engine/Sources/AudioSmithEngine/MossTTSD.swift), [`MossCodec.swift`](../engine/Sources/AudioSmithEngine/MossCodec.swift), [`MossDialogue.swift`](../engine/Sources/AudioSmithEngine/MossDialogue.swift), `AudioSmithDialogue`'s `MossTTSD*`): the TTSD Space's voice-clone-and-continuation mode. Each speaker's clip (loudness-normalized as the official processor does) is encoded alone into the user message's `Reference(s)`, all clips back to back once more as the start of the assistant's audio; the text is every transcript as `[Sn]` then the turns, through the Space's `normalize_text`. A Qwen3-8B backbone (8-bit, own code on MLX) writes rows of a text token and 16 codebooks with the delay pattern; MOSS-Audio-Tokenizer (8-bit, own code) decodes the new frames in 8-second streamed chunks with the prompt's frames as left context, trimmed as the official processor trims. Checked against the official PyTorch code (`audiosmith-engine --moss-check codec|tiny|lm`, scripts/mossttsd/parity.sh): prompt rows identical, the generation loop identical on a tiny random model, logits KL 6·10⁻¹¹ with the same weights, codec codes identical. M4 (24 GB): 0.8× real time, 11 frames a second, 12.2 GB MLX peak.
+
+**VibeVoice in the engine** ([`VibeVoice.swift`](../engine/Sources/AudioSmithEngine/VibeVoice.swift), `AudioSmithDialogue`'s `VibeVoiceScript`; thread #166): VibeVoice 1.5B (family `vibevoice`, `microsoft/VibeVoice-1.5B` as published) on upstream mlx-audio-swift's port (engine patch 0011). One-track, like MOSS-TTSD, but without `codes`: the turns become one `Speaker N: text` line each (N by first appearance; Chinese punctuation made English, as the model card advises), each speaker's clip (in that order) is encoded by the model's acoustic tokenizer, and the model speaks the script in one go (7.5 frames a second, at most twice the text's estimated length plus 10 s, never over 3,000 frames). Turns with `codes` fail with `unsupported` (`data.capability:"continuation"`); the app leaves a line that fails its checks to the project's model. `steps` sets the diffusion steps (default 20). The repo has no tokenizer: the engine loads from a folder of links to the snapshot and the Qwen2.5 tokenizer files of the auxiliary repo `Qwen/Qwen2.5-1.5B`.
 
 ## 6. Notifications (engine → app)
 

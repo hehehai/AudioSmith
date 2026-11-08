@@ -10,7 +10,7 @@ package services
 //     making the ones that must be said first (a story's portable line);
 //   - speaks the segment in one tts.dialogue: a per-turn model
 //     (SoulX-Podcast) writes each line to its own file, a one-track model
-//     (MOSS-TTSD) the segment as one track, which is cut at the lines with
+//     (MOSS-TTSD, VibeVoice) the segment as one track, which is cut at the lines with
 //     the forced aligner (dialogue_run_mixed.go);
 //   - checks each line (a plausible length for its text, the recognizer
 //     hears it) and makes a line that fails once more by continuation: the
@@ -45,6 +45,13 @@ import (
 
 // FamilyMossTTSD is MOSS-TTSD's catalogue family: a one-track dialogue model.
 const FamilyMossTTSD = dialogue.FamilyMossTTSD
+
+// OneTrackDialogue reports whether a dialogue model family speaks a
+// segment as one track (MOSS-TTSD, VibeVoice: dialogue.OneTrack).
+func OneTrackDialogue(family string) bool { return dialogue.OneTrack(family) }
+
+// FamilyVibeVoice is VibeVoice 1.5B's catalogue family (thread #166).
+const FamilyVibeVoice = dialogue.FamilyVibeVoice
 
 // A line lasts within dialogueMinRatio–dialogueMaxRatio of text.Estimate.
 const (
@@ -94,7 +101,7 @@ type dialogueRef struct {
 // dialogueJob is a segment to make.
 type dialogueJob struct {
 	model, modelPath string
-	oneTrack         bool // the model speaks the segment as one track (MOSS-TTSD)
+	oneTrack         bool // the model speaks the segment as one track (MOSS-TTSD, VibeVoice)
 	refs             []dialogueRef
 	speakers         []int    // per line: index in refs
 	texts            []string // per line: what it says (checked against)

@@ -352,6 +352,117 @@
       }
     },
     {
+      "id": "vibevoice-1.5b",
+      "label": "VibeVoice 1.5B",
+      "name": "Dialogue · Long-form",
+      "summary": "Speaks a scene of up to four voices as one recording, each cloned from a short clip alone (no transcript needed). Chinese and English.",
+      "tags": ["chinese", "english", "clone"],
+      "family": "vibevoice",
+      "repo": "microsoft/VibeVoice-1.5B",
+      "revision": "c00898d257e6b46004e3e2866a47534085fb685a",
+      "tasks": ["tts"],
+      "about": "Microsoft's long-form conversational speech model: up to four speakers, each cloned from a reference clip without its transcript, speak a whole scene in one go, and AudioSmith cuts the recording into the lines. Used by Stories' whole-dialogue mode and audiobooks' dialogue passages; narration stays on the project's model. Chinese can be less steady than English, and it may add background music on its own. Microsoft releases it for research and advises testing before commercial use.",
+      "languages": [
+        {"code": "zh"},
+        {"code": "en"}
+      ],
+      "needsReference": true,
+      "capabilities": ["dialogue", "clone", "cloneAudioOnly", "seed", "steps", "guidance"],
+      "sampleRate": 24000,
+      "maxChars": 400,
+      "size": 5419834350,
+      "files": [
+        {"path": "config.json", "size": 2762},
+        {"path": "model-00001-of-00003.safetensors", "size": 1975317828, "sha256": "c5f0a61ddeaeb028e3af540ba4dee7933ad30f9f30b6e1320dd9c875a2daa033"},
+        {"path": "model-00002-of-00003.safetensors", "size": 1983051688, "sha256": "81c3891f7b2493eb48a9eb6f5be0df48d4f1a4bfd952d84e21683ca6d0bf7969"},
+        {"path": "model-00003-of-00003.safetensors", "size": 1449832938, "sha256": "cb6e7e5e86b4a41fffbe1f3aaf445d0d50b5e21ed47574101b777f77d75fa196"},
+        {"path": "model.safetensors.index.json", "size": 122616},
+        {"path": "preprocessor_config.json", "size": 351},
+        {"path": "README.md", "size": 7279}
+      ],
+      "minMemoryGB": 16,
+      "quantization": "bf16",
+      "hidden": true,
+      "licence": {
+        "id": "mit",
+        "name": "MIT",
+        "url": "https://huggingface.co/microsoft/VibeVoice-1.5B",
+        "commercial": true,
+        "verified": true,
+        "note": "microsoft/VibeVoice-1.5B's model card (revision c00898d, checked 2026-11-08) and microsoft/VibeVoice's LICENSE: MIT for code and weights. The card limits the intended use to research, does not recommend commercial or real-world use without further testing, and excludes voice impersonation without recorded consent, disinformation, real-time voice conversion and unsupported languages. Microsoft removed the TTS inference code from its repository in 2025-09 over misuse; the weights stay published. AudioSmith runs upstream mlx-audio-swift's MIT port (engine patch 0011) on the published weights; the tokenizer is Qwen2.5's (Apache-2.0)."
+      },
+      "aux": [
+        {"repo": "Qwen/Qwen2.5-1.5B", "revision": "8faed761d45a263340a0528343f099c05c9a4323", "licence": "apache-2.0", "files": [
+          {"path": "merges.txt", "size": 1671839},
+          {"path": "tokenizer.json", "size": 7031645},
+          {"path": "tokenizer_config.json", "size": 7228},
+          {"path": "vocab.json", "size": 2776833},
+          {"path": "LICENSE", "size": 11343}
+        ]}
+      ]
+    },
+    {
+      "id": "vibevoice-realtime-0.5b-8bit",
+      "label": "VibeVoice Realtime 0.5B",
+      "name": "English · Realtime",
+      "summary": "Seven preset English voices that start speaking almost at once; light on memory. Cannot clone.",
+      "tags": ["english", "voices", "fast", "light"],
+      "family": "vibevoice_streaming",
+      "repo": "mlx-community/VibeVoice-Realtime-0.5B-8bit",
+      "revision": "ae6a233e1b2d6d5e2315e7030581323cc8191bb3",
+      "tasks": ["tts"],
+      "about": "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft releases it for research and advises testing before commercial use.",
+      "languages": [
+        {"code": "en"}
+      ],
+      "voices": [
+        {"id": "en-Carter_man", "language": "en", "gender": "male"},
+        {"id": "en-Emma_woman", "language": "en", "gender": "female"},
+        {"id": "en-Davis_man", "language": "en", "gender": "male"},
+        {"id": "en-Grace_woman", "language": "en", "gender": "female"},
+        {"id": "en-Frank_man", "language": "en", "gender": "male"},
+        {"id": "en-Mike_man", "language": "en", "gender": "male"},
+        {"id": "in-Samuel_man", "language": "en", "gender": "male"}
+      ],
+      "capabilities": ["stream", "seed", "steps", "guidance"],
+      "sampleRate": 24000,
+      "maxChars": 600,
+      "size": 1154041368,
+      "files": [
+        {"path": "config.json", "size": 2655},
+        {"path": "model.safetensors", "size": 1120555546, "sha256": "cf6fef128bade2f818ca2cff8168749407297a02d0d2fa9e2905181df42fa22b"},
+        {"path": "model.safetensors.index.json", "size": 91821},
+        {"path": "preprocessor_config.json", "size": 360},
+        {"path": "README.md", "size": 778},
+        {"path": "voices/en-Carter_man.safetensors", "size": 4241352, "sha256": "1b3efb89bc26bc14d86095da9b26b0aaf5989e8ed75e39efa958088bf301160c"},
+        {"path": "voices/en-Davis_man.safetensors", "size": 2456752, "sha256": "6d689ac3f6f630fd1617814a15ab165544772a208ce305d3779feb08f033f1e0"},
+        {"path": "voices/en-Emma_woman.safetensors", "size": 3328696, "sha256": "8572620ccf3384529c8fce7b211871482cfa1fc8e3068f80576b7ea15257e819"},
+        {"path": "voices/en-Frank_man.safetensors", "size": 3345080, "sha256": "869af2fd5e83b3f70cdc23b28fdc1ef82c11e7122c387adb8bc56902b323efb2"},
+        {"path": "voices/en-Grace_woman.safetensors", "size": 2758064, "sha256": "7b0cb4438eb8a2cc0d45eb8c4d724d27fb459f999a8ea0bf9ab221e67cb92ba6"},
+        {"path": "voices/en-Mike_man.safetensors", "size": 1993376, "sha256": "10524823aa1f90cd4cec05828f16d20d090d83ac3eb682646aa43e45c1f9dc0a"},
+        {"path": "voices/in-Samuel_man.safetensors", "size": 3768000, "sha256": "3a22a118b02f1d2dbafe02284152bd83413dad344c7c65a66dc83ae2b528bc64"}
+      ],
+      "minMemoryGB": 4,
+      "quantization": "8bit",
+      "licence": {
+        "id": "mit",
+        "name": "MIT",
+        "url": "https://huggingface.co/microsoft/VibeVoice-Realtime-0.5B",
+        "commercial": true,
+        "verified": true,
+        "note": "microsoft/VibeVoice-Realtime-0.5B's model card (revision 6bce5f0, checked 2026-11-08): MIT; mlx-community's 8-bit conversion keeps it. The card limits the intended use to research, does not recommend commercial use without further testing, and forbids circumventing its safeguards: the model only speaks in its published preset voices, and AudioSmith offers no cloning with it. The tokenizer is Qwen2.5's (Apache-2.0)."
+      },
+      "aux": [
+        {"repo": "Qwen/Qwen2.5-1.5B", "revision": "8faed761d45a263340a0528343f099c05c9a4323", "licence": "apache-2.0", "files": [
+          {"path": "merges.txt", "size": 1671839},
+          {"path": "tokenizer.json", "size": 7031645},
+          {"path": "tokenizer_config.json", "size": 7228},
+          {"path": "vocab.json", "size": 2776833},
+          {"path": "LICENSE", "size": 11343}
+        ]}
+      ]
+    },
+    {
       "id": "qwen3-asr-0.6b-4bit",
       "label": "Qwen3-ASR 0.6B",
       "name": "Chinese & English transcription",
