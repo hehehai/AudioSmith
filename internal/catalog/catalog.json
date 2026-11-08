@@ -361,7 +361,7 @@
       "repo": "microsoft/VibeVoice-1.5B",
       "revision": "c00898d257e6b46004e3e2866a47534085fb685a",
       "tasks": ["tts"],
-      "about": "Microsoft's long-form conversational speech model: up to four speakers, each cloned from a reference clip without its transcript, speak a whole scene in one go, and AudioSmith cuts the recording into the lines. Used by Stories' whole-dialogue mode and audiobooks' dialogue passages; narration stays on the project's model. Chinese can be less steady than English, and it may add background music on its own. Microsoft releases it for research and advises testing before commercial use.",
+      "about": "Microsoft's long-form conversational speech model: up to four speakers, each cloned from a reference clip without its transcript, speak a whole scene in one go, and AudioSmith cuts the recording into the lines. Used by Stories' whole-dialogue mode and audiobooks' dialogue passages; narration stays on the project's model. Chinese can be less steady than English, and it may add background music on its own. Microsoft's terms: for research and testing; no voice impersonation without the person's consent, no disinformation or deepfakes. AudioSmith's watermark stays on its audio.",
       "languages": [
         {"code": "zh"},
         {"code": "en"}
@@ -389,7 +389,7 @@
         "url": "https://huggingface.co/microsoft/VibeVoice-1.5B",
         "commercial": true,
         "verified": true,
-        "note": "microsoft/VibeVoice-1.5B's model card (revision c00898d, checked 2026-11-08) and microsoft/VibeVoice's LICENSE: MIT for code and weights. The card limits the intended use to research, does not recommend commercial or real-world use without further testing, and excludes voice impersonation without recorded consent, disinformation, real-time voice conversion and unsupported languages. Microsoft removed the TTS inference code from its repository in 2025-09 over misuse; the weights stay published. AudioSmith runs upstream mlx-audio-swift's MIT port (engine patch 0011) on the published weights; the tokenizer is Qwen2.5's (Apache-2.0)."
+        "note": "microsoft/VibeVoice-1.5B's model card (revision c00898d, checked 2026-11-08) and microsoft/VibeVoice's LICENSE: MIT for code and weights. The card limits the intended use to research, does not recommend commercial or real-world use without further testing, and excludes voice impersonation without recorded consent, disinformation, real-time voice conversion and unsupported languages. Microsoft removed the TTS inference code from its repository in 2025-09 over misuse; the weights stay published. AudioSmith runs upstream mlx-audio-swift's MIT port (engine patch 0011) on the published weights; the tokenizer is Qwen2.5's (Apache-2.0). Its takes, stories and books are watermarked (AudioSeal) as every model's are; the About text states Microsoft's terms."
       },
       "aux": [
         {"repo": "Qwen/Qwen2.5-1.5B", "revision": "8faed761d45a263340a0528343f099c05c9a4323", "licence": "apache-2.0", "files": [
@@ -411,7 +411,7 @@
       "repo": "mlx-community/VibeVoice-Realtime-0.5B-8bit",
       "revision": "ae6a233e1b2d6d5e2315e7030581323cc8191bb3",
       "tasks": ["tts"],
-      "about": "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft releases it for research and advises testing before commercial use.",
+      "about": "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft's terms: for research and testing; no voice impersonation without the person's consent, no disinformation or deepfakes. AudioSmith's watermark stays on its audio.",
       "languages": [
         {"code": "en"}
       ],
@@ -450,7 +450,7 @@
         "url": "https://huggingface.co/microsoft/VibeVoice-Realtime-0.5B",
         "commercial": true,
         "verified": true,
-        "note": "microsoft/VibeVoice-Realtime-0.5B's model card (revision 6bce5f0, checked 2026-11-08): MIT; mlx-community's 8-bit conversion keeps it. The card limits the intended use to research, does not recommend commercial use without further testing, and forbids circumventing its safeguards: the model only speaks in its published preset voices, and AudioSmith offers no cloning with it. The tokenizer is Qwen2.5's (Apache-2.0)."
+        "note": "microsoft/VibeVoice-Realtime-0.5B's model card (revision 6bce5f0, checked 2026-11-08): MIT; mlx-community's 8-bit conversion keeps it. The card limits the intended use to research, does not recommend commercial use without further testing, and forbids circumventing its safeguards: the model only speaks in its published preset voices, and AudioSmith offers no cloning with it. The tokenizer is Qwen2.5's (Apache-2.0). Its takes are watermarked (AudioSeal) as every model's are; the About text states Microsoft's terms."
       },
       "aux": [
         {"repo": "Qwen/Qwen2.5-1.5B", "revision": "8faed761d45a263340a0528343f099c05c9a4323", "licence": "apache-2.0", "files": [

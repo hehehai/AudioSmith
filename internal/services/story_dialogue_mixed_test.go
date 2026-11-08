@@ -244,6 +244,11 @@ func TestDialogueOneTrackWithoutCodes(t *testing.T) {
 		}}},
 		Production: prod, Audition: true}
 	ft.garble = func(call int, text string) bool { return strings.HasPrefix(text, "我能") }
+	var marked []string // the chapter is watermarked as any model's (#166: VibeVoice too)
+	r.watermark = func(_ context.Context, path string, _ int) (bool, error) {
+		marked = append(marked, path)
+		return true, nil
+	}
 	rr, err := e.svc.Longform.Start(ctx, spec)
 	if err != nil {
 		t.Fatal(err)
@@ -262,6 +267,9 @@ func TestDialogueOneTrackWithoutCodes(t *testing.T) {
 	// No SoulX tags in a one-track model's text.
 	if strings.Contains(ft.calls[0].Turns[0].Text, "<|") {
 		t.Errorf("turns %+v", ft.calls[0].Turns)
+	}
+	if len(marked) == 0 || !strings.HasSuffix(marked[len(marked)-1], ".wav") {
+		t.Errorf("watermarked %q", marked)
 	}
 	if said := strings.Join(e.synth.texts(), "|"); !strings.Contains(said, "我能！我每天喂它。") {
 		t.Errorf("story's model said %q", said)

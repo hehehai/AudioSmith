@@ -88,8 +88,9 @@ func TestStoryPerformanceUI(t *testing.T) {
 	}
 	a.sys = &sysInfo{Memory: 16 << 30}
 	tt.Frame()
-	if tt.HasText("Dialogue model") {
-		t.Error("MOSS-TTSD offered on a 16 GB Mac")
+	// 16 GB: SoulX-Podcast and VibeVoice (thread #166), not MOSS-TTSD.
+	if !tt.HasText("Dialogue model") || tt.HasText("Dialogue · One take") || !tt.HasText("Dialogue · Long-form") {
+		t.Errorf("16 GB dialogue menu: %q", tt.Texts())
 	}
 	p.doc.Production.Dialogue, p.doc.Production.DialogueModel = false, ""
 	tt.Frame()
