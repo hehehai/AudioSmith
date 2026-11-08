@@ -58,7 +58,7 @@ func (st *wfStep) recipe(ctx context.Context, txt, lang string) (core.Take, erro
 		if v.Language != "" {
 			t.Language = v.Language
 		}
-		if v.Instruct != "" && caps.Instruct && t.RefAudio == "" {
+		if v.Instruct != "" && caps.Instruct && (t.RefAudio == "" || caps.CloneInstruct) {
 			t.Voice = strings.Trim(t.Voice+", "+v.Instruct, ", ")
 		}
 		if v.Seed != 0 {

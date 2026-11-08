@@ -178,6 +178,8 @@ Qwen3-TTS (VoiceDesign, CustomVoice, Base) stops a take after `max(75, text toke
 
 OmniVoice takes its own parameters through the same fields: `steps` (diffusion steps, default 32), `duration` (target seconds; the take comes out that long), `speed`, `seed`; `voice` is a design description ("female, young adult, british accent"), and `refAudio`/`refText` clone. It runs in the job's task and stops at the next diffusion step when cancelled.
 
+VoxCPM2 (thread #165; 48 kHz, so `sampleRate` is 48000) takes `steps` (LocDiT steps, default 10, at most 64), `guidance` (CFG, default 2.0), `seed` and `maxTokens` (patches, 6.25 a second); `voice` and `instruct`, joined, lead the text in parentheses (`(稍快，开心)今天…`): a voice description without a reference (design), a delivery instruction with one (a restyled clone). `refAudio` alone clones the reference in isolation; with `refText` the reference is also continued from its transcript ("ultimate cloning", the closest; not with an instruction, which the continued prompt would read aloud: then `refText` is ignored), so the app leaves `refText` out where a line is in another language than the clip [`cloneAudioOnly`]. A take is capped at text tokens × 6 + 10 patches; one that reaches the cap without the model ending it is made again with the next seed, up to 3 takes, then kept with a `log` warning (engine patch 0011). It runs in the job's task and stops at the next patch when cancelled.
+
 What `voice`, `instruct` and the clone fields mean, by model (catalogue capabilities in brackets):
 
 | Field | Meaning |

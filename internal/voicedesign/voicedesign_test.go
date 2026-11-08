@@ -340,6 +340,7 @@ func TestEngineFor(t *testing.T) {
 		"omnivoice-bf16":                  TargetOmniVoice,
 		"qwen3-tts-0.6b-customvoice-8bit": TargetQwen3CustomVoice,
 		"qwen3-tts-1.7b-voicedesign-4bit": TargetQwen3Design, // catalogue entry added by the M1 engine thread
+		"voxcpm2-8bit":                    TargetVoxCPM,
 	}
 	for _, e := range cat.Entries {
 		got, ok := EngineFor(e.Family, e.Repo)
@@ -449,7 +450,7 @@ func FuzzParse(f *testing.F) {
 		if cs := r.Attrs.Conflicts(); len(cs) > 0 {
 			t.Fatalf("%q: conflicts %+v", s, cs)
 		}
-		for _, tg := range []Target{TargetQwen3Design, TargetOmniVoice, TargetQwen3CustomVoice} {
+		for _, tg := range []Target{TargetQwen3Design, TargetOmniVoice, TargetQwen3CustomVoice, TargetVoxCPM} {
 			if _, err := Lower(tg, Recipe{Description: s, Attrs: r.Attrs}, Options{}); err != nil {
 				t.Fatal(err)
 			}

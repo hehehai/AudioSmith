@@ -315,6 +315,29 @@
       },
       "notes": "Hidden under 全部模型 (CC BY-NC). zh CER 0.4%, UTMOS 3.55 (best zh), clone similarity 0.78–0.83. guidance 1.5 beats the default 2.0 (UTMOS 3.13→3.28, seed similarity 0.90→0.95); 16 steps is 2× faster, UTMOS −0.2. 0.3–0.5× real time, ~6 GB. Designed voices drift line to line (0.39–0.71); whisper archetypes fail. In the real dub with lip-sync durations it changed words (CER 17%): use timing smart."
     },
+    "voxcpm2-8bit": {
+      "recommend": [],
+      "rank": {},
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "speed": 1,
+      "quality": 3,
+      "defaults": {
+        "temperature": null,
+        "topP": null,
+        "voice": null,
+        "language": "auto",
+        "steps": 10,
+        "guidance": 2.0,
+        "speed": 1.0
+      },
+      "dub": {
+        "timing": "smart"
+      },
+      "notes": "Thread #165: optional, no workflow's default. Upstream defaults (10 steps, cfg 2.0). mac-air: 0.80–1.03× real time (5 steps 1.33×), MLX peak 6.2–7.0 GB for 10 s takes, 8.5 GB for a 150-character chunk; Qwen3-ASR read back every zh/en/Sichuanese/Cantonese/Vietnamese sample whole. An instruction with refText was read aloud: the engine then clones without the transcript. Long chunks may end with a filler (\"嗯\")."
+    },
     "qwen3-tts-1.7b-voicedesign-4bit": {
       "recommend": [
         "design"

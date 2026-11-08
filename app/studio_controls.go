@@ -309,5 +309,13 @@ func (a *app) languagePicker(c *ui.Context) {
 	})
 }
 
-// tierSteps are the performance tiers' steps, in the Segmented's order.
-var tierSteps = []float64{services.StepsFast, services.StepsBalanced, services.StepsQuality}
+// tierSteps are the performance tiers' steps of a model recommending rec,
+// in the Segmented's order (services.StepTiers).
+func tierSteps(rec catalog.Params) []float64 {
+	def := 0
+	if rec.Steps != nil {
+		def = *rec.Steps
+	}
+	t := services.StepTiers(def)
+	return []float64{float64(t[0]), float64(t[1]), float64(t[2])}
+}

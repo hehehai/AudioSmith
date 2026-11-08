@@ -91,9 +91,10 @@ func StoryInstruct(lineText, scene, persona, direction string, intensity int) st
 // into the voice field of models that take one (after the speaker of
 // Qwen3 CustomVoice, after the description of a designed voice: the
 // engine's own instruct field is dropped when a voice is set). A clone
-// (reference clip or voice prompt) takes no instruction.
+// (reference clip or voice prompt) takes no instruction, except on models
+// whose clones do (CloneInstruct: VoxCPM2).
 func withDelivery(t *core.Take, info ModelInfo, instruct string) {
-	if !info.Instruct || instruct == "" || t.RefAudio != "" || t.VoicePrompt != "" {
+	if !info.Instruct || instruct == "" || (t.RefAudio != "" || t.VoicePrompt != "") && !info.CloneInstruct {
 		return
 	}
 	switch {
@@ -133,6 +134,14 @@ func ContinuityOf(info Traits) string {
 // voice field is a closed list of design attributes, not a delivery.
 func TakesInstruct(caps []string) bool {
 	return slices.Contains(caps, "instruct") || slices.Contains(caps, "voiceStyle") && !slices.Contains(caps, "clone")
+}
+
+// CloneTakesInstruct reports whether a model's clones take a delivery
+// instruction as well: one that both clones and takes "instruct"
+// (VoxCPM2's "(instruction)" before the text, thread #165). Qwen3-TTS's
+// instruct models don't clone, and its Base models take no instruction.
+func CloneTakesInstruct(caps []string) bool {
+	return slices.Contains(caps, "instruct") && slices.Contains(caps, "clone")
 }
 
 // cjkShare is the share of a text's letters in CJK scripts.

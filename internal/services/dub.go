@@ -164,6 +164,9 @@ func pickOther(langs []string, other, lang string) bool {
 // DubModelCaps are what a TTS model can do, as the pipeline needs it.
 type DubModelCaps struct {
 	Clone, Duration, Instruct, Speed, Steps, Guidance bool
+	// CloneInstruct: its clones take the instruction too (VoxCPM2;
+	// CloneTakesInstruct).
+	CloneInstruct bool
 	// NeedsReference: the model only clones: lines cast
 	// with a voice that carries no reference (the default voice, a
 	// design) clone their speaker instead.

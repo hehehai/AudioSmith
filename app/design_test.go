@@ -194,14 +194,15 @@ func TestDesignPage(t *testing.T) {
 }
 
 func TestDesignModels(t *testing.T) {
-	if ms := designModels(); len(ms) != 2 || ms[0].Repo != omni { // OmniVoice, and Qwen3 VoiceDesign since the M1 smoke
+	// OmniVoice, Qwen3 VoiceDesign since the M1 smoke, VoxCPM2 since #165.
+	if ms := designModels(); len(ms) != 3 || ms[0].Repo != omni || ms[2].ID != "voxcpm2-8bit" {
 		t.Fatalf("built-in design models %v", ms)
 	}
 	vdm := withDesignCatalog(t)
 	a, _ := newVoiceTestApp(t)
 	tt := ui.NewTester(a.view, 1200, 1800)
 	d := &a.design
-	if ms := designModels(); len(ms) != 2 || ms[1].Repo != vdm.Repo {
+	if ms := designModels(); len(ms) != 3 || ms[1].Repo != vdm.Repo {
 		t.Fatalf("design models %v", ms)
 	}
 	// Not downloaded here.

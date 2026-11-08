@@ -333,6 +333,8 @@ func (a *app) studioVoiceTake(e catalog.Entry) core.Take {
 // reference clip, unless the picker supplies the voice; then the
 // picker's voice (applyStudioVoice) and its encoded prompt.
 func (a *app) setStudioVoice(t *core.Take, e catalog.Entry) {
+	typed := t.Voice
+	defer func() { t.Voice = cloneDelivery(*t, e, typed) }()
 	if e.Has(catalog.CapClone) && strings.TrimSpace(a.refAudio) != "" && !a.studioUsesSavedVoice(e) {
 		t.RefAudio, t.RefText = strings.TrimSpace(a.refAudio), strings.TrimSpace(a.refText)
 	}

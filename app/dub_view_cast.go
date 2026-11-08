@@ -5,6 +5,7 @@ package main
 // dub_view.go.
 
 import (
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -127,6 +128,7 @@ func (a *app) dubGeneratePanel(c *ui.Context) {
 		}, pickerOpts{Locked: locked, Dialogue: a.dubDialoguePick(dl)})
 	})
 	a.dubDialogueGenerateNote(c, dl)
+	a.dubLanguageNote(c, cur, p.Targets, locked)
 	caps := dubCaps(p.Settings.Model)
 	if caps.NeedsReference {
 		caption(c.Key("gen-needs-ref"), i18n.T("%s only clones voices: each line speaks in its speaker's own voice or a saved cloned voice.", modelRef(entryFor(p.Settings.Model)))).TextColor(tok(t).Text3)
@@ -181,15 +183,19 @@ func (a *app) dubVoiceControls(c *ui.Context, caps services.DubModelCaps, locked
 	pre, _ := catalog.PresetFor(entryFor(p.Settings.Model).ID)
 	rec := pre.ParamsFor(catalog.WorkflowDub)
 	if caps.Steps {
+		// The range around the model's recommendation: a quarter to twice
+		// it (OmniVoice: 8–64 around 32; VoxCPM2: 2–20 around 10).
+		def := float64(services.StepsBalanced)
+		if rec.Steps != nil {
+			def = float64(*rec.Steps)
+		}
 		steps := float64(p.Settings.Steps)
 		if steps == 0 {
-			steps = 32
-			if rec.Steps != nil {
-				steps = float64(*rec.Steps)
-			}
+			steps = def
 		}
+		lo := max(math.Floor(def/4), 2)
 		ui.Field(c, i18n.T("Steps: %d", int(steps)), func() {
-			if ui.StepSlider(c.Key("gen-steps"), &steps, 8, 64, 1).Label(i18n.T("Steps")).Disabled(locked).Changed() {
+			if ui.StepSlider(c.Key("gen-steps"), &steps, lo, 2*def, 1).Label(i18n.T("Steps")).Disabled(locked).Changed() {
 				v := int(steps)
 				a.dubSettings(func(s *dub.Settings) { s.Steps = v })
 			}

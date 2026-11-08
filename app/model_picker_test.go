@@ -19,7 +19,7 @@ func TestModelPicker(t *testing.T) {
 	a.pickerOpen = map[string]bool{"model": true}
 	tt.Frame()
 	texts := strings.Join(tt.Texts(), "|")
-	for _, want := range []string{"Recommended", "Fast English voices", "The fastest, most natural built-in English voices; light on memory.", "Built-in voices", "Speed ●●● · Quality ●●●", "English clone", "Show all models (4)"} {
+	for _, want := range []string{"Recommended", "Fast English voices", "The fastest, most natural built-in English voices; light on memory.", "Built-in voices", "Speed ●●● · Quality ●●●", "English clone", "Show all models (5)"} {
 		if !strings.Contains(texts, want) {
 			t.Errorf("picker lacks %q: %s", want, texts)
 		}
@@ -27,7 +27,7 @@ func TestModelPicker(t *testing.T) {
 	if strings.Contains(texts, "Marvis TTS 250M") {
 		t.Error("the others show before Show all models")
 	}
-	tt.Click("Show all models (4)")
+	tt.Click("Show all models (5)")
 	tt.Frame()
 	texts = strings.Join(tt.Texts(), "|")
 	for _, l := range []string{"Standard voices", "Multilingual all-rounder", "Non-commercial", "Custom Hugging Face repo"} {

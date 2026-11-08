@@ -1,4 +1,5 @@
 import AudioSmithProtocol
+import AudioSmithText
 import Foundation
 @preconcurrency import MLX
 import MLXAudioCore
@@ -84,6 +85,11 @@ final class Synthesizer: @unchecked Sendable {
             if l.contains("customvoice") { caps += ["voiceStyle", "instruct"] }
         case is ChatterboxModel:
             caps += ["stream", "sampling", "clone", "guidance", "exaggeration"]
+        case is VoxCPM2Model:
+            // VoxCPM2 (thread #165): clones with or without the transcript,
+            // designs from a "(description)" and restyles a clone with a
+            // "(instruction)" (voxCPMPrompt); 48 kHz.
+            caps += ["clone", "cloneAudioOnly", "design", "voiceStyle", "instruct", "steps", "guidance"]
         default:
             caps += ["stream", "sampling"]
         }
@@ -225,6 +231,25 @@ final class Synthesizer: @unchecked Sendable {
                     language: nonEmpty(p.language), ovParameters: ov)
                 try Task.checkCancellation()
                 try audio(chunk)
+            } else if let vox = model as? VoxCPM2Model {
+                // VoxCPM2 takes its diffusion steps, guidance and length cap
+                // per request, retries a take that never stops (upstream's
+                // retry_badcase) and runs in the job's task, checking for
+                // cancellation at each patch. A description or instruction
+                // leads the text in parentheses; with one, the reference is
+                // cloned in isolation, not continued from its transcript
+                // (the continued prompt would read the instruction aloud).
+                let instruction = voxCPMInstruction(voice: p.voice, instruct: p.instruct)
+                let chunk = try vox.generate(text: voxCPMPrompt(text: text, instruction: instruction), refAudio: refAudio,
+                                             refText: instruction == nil ? refText : nil,
+                                             parameters: voxCPMParameters(p, seed: seed))
+                if vox.lastHitCap {
+                    out.logLine("warning", "VoxCPM2 never ended the take: cut at its length cap after \(vox.lastAttempts) tries", job: job)
+                } else if vox.lastAttempts > 1 {
+                    log("VoxCPM2: take \(vox.lastAttempts) ended normally (earlier ones ran to the cap)")
+                }
+                try Task.checkCancellation()
+                try audio(chunk)
             } else if model is KokoroModel || model is KittenTTSModel {
                 // These make the whole take in one call; their generateStream
                 // only runs it in a Task of its own, which a cancelled job
@@ -339,6 +364,16 @@ final class Synthesizer: @unchecked Sendable {
             speakerEmbedding: arrays["speakerEmbedding"], referenceSpeechCodes: codes, referenceTextTokenIDs: ids,
             resolvedLanguage: meta["resolvedLanguage"] ?? "auto", codecLanguageID: meta["codecLanguageID"].flatMap { Int($0) })
     }
+}
+
+/// VoxCPM2's per-request settings from a tts.synthesize request.
+func voxCPMParameters(_ p: SynthesizeParams, seed: Int64) -> VoxCPM2Model.VoxGenerateParameters {
+    var v = VoxCPM2Model.VoxGenerateParameters()
+    if let steps = p.steps, steps > 0 { v.inferenceTimesteps = min(steps, 64) }
+    if let g = p.guidance, g > 0 { v.cfgValue = Float(g) }
+    if let maxTokens = p.maxTokens, maxTokens > 0 { v.maxPatches = maxTokens }
+    v.seed = UInt64(bitPattern: seed)
+    return v
 }
 
 /// Recognises Kokoro's "Input too long: 731 tokens exceeds max 510".

@@ -33,12 +33,12 @@ const kittenEmotions = `{"scene":"傍晚的家里，孩子想领养小猫，妈�
 {"n":3,"emotion":"worried","intensity":1,"turn":false,"note":"犹豫但温和"},{"n":4,"emotion":"excited","intensity":3,"turn":false,"note":"急切地保证"}]}`
 
 // The catalogue says what the engine reports: Qwen3-TTS CustomVoice and
-// VoiceDesign take instructions; the stories' and dubs' logic read it
-// through one predicate.
+// VoiceDesign take instructions, and VoxCPM2 (thread #165, its clones
+// too); the stories' and dubs' logic read it through one predicate.
 func TestInstructCapability(t *testing.T) {
 	for _, e := range catalog.Builtin().ForTask(catalog.TaskTTS) {
 		repo := strings.ToLower(e.Repo)
-		want := e.Family == "qwen3_tts" && (strings.Contains(repo, "customvoice") || strings.Contains(repo, "voicedesign"))
+		want := e.Family == "qwen3_tts" && (strings.Contains(repo, "customvoice") || strings.Contains(repo, "voicedesign")) || e.Family == "voxcpm2"
 		if e.Has(catalog.CapInstruct) != want {
 			t.Errorf("%s: instruct %v in the catalogue, the engine says %v", e.ID, e.Has(catalog.CapInstruct), want)
 		}
