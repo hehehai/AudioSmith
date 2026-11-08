@@ -137,8 +137,10 @@ func TestVoxCPM2(t *testing.T) {
 		t.Errorf("files %v (sum %d, size %d)", e.Files, sum, e.Size)
 	}
 	tts := c.ForTask(TaskTTS)
-	if i := slices.IndexFunc(tts, func(x Entry) bool { return x.ID == e.ID }); i != len(tts)-1 {
-		t.Errorf("at %d of %d speech models: keep it last", i, len(tts))
+	// After the curated seven (with the other optional models, VibeVoice
+	// Realtime #166, after it).
+	if i := slices.IndexFunc(tts, func(x Entry) bool { return x.ID == e.ID }); i != 7 {
+		t.Errorf("at %d of %d speech models: keep it after the curated seven", i, len(tts))
 	}
 	for _, w := range []Workflow{WorkflowStudio, WorkflowStory, WorkflowAudiobook, WorkflowDub, WorkflowDesign} {
 		for _, l := range []string{"zh", "en", "ja", "vi"} {
