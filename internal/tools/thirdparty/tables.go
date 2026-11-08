@@ -67,7 +67,7 @@ var swiftLicences = map[string]string{
 // swiftNotes says more about some packages.
 var swiftNotes = map[string][]string{
 	"mlx":             {"MLX includes code from PocketFFT, ThreadPool, V8, NVIDIA CCCL (Thrust) and Norbert Juffa: their licence comments follow its licence."},
-	"mlx-audio-swift": {"AudioSmith builds it with patches of its own (engine/patches/mlx-audio-swift, applied by scripts/fetch-engine-deps.sh). Patch 0011 backports upstream's VibeVoice ports from revision fe2c182 (MIT, Copyright (c) 2025 Prince Canuma and contributors, after Blaizzy/mlx-audio, MIT), with its Qwen2 backbone."},
+	"mlx-audio-swift": {"AudioSmith builds it with patches of its own (engine/patches/mlx-audio-swift, applied by scripts/fetch-engine-deps.sh). Patch 0012 backports upstream's VibeVoice ports from revision fe2c182 (MIT, Copyright (c) 2025 Prince Canuma and contributors, after Blaizzy/mlx-audio, MIT), with its Qwen2 backbone."},
 	"mlx-swift":       {"It carries fmt, nlohmann/json and metal-cpp (Source/Cmlx), whose licences follow its own."},
 	"mlx-swift-lm":    {"It carries xgrammar (Libraries/MLXCXGrammar/xgrammar, Apache-2.0, with its NOTICE) and xgrammar's copy of picojson."},
 	"swift-crypto":    {"On macOS it uses Apple's CryptoKit: the BoringSSL and XKCP code in its source is built only on other systems."},

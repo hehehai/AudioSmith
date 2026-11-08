@@ -7,7 +7,7 @@ import MLXAudioTTS
 import MLXLMCommon
 
 // Microsoft's VibeVoice (thread #166; upstream mlx-audio-swift's ports,
-// backported by engine patch 0011):
+// backported by engine patch 0012):
 //
 //   - VibeVoice 1.5B (model_type "vibevoice", microsoft/VibeVoice-1.5B as
 //     published): clones each speaker from a reference clip alone and
