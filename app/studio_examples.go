@@ -151,13 +151,37 @@ func (a *app) studioScriptLang() string {
 	return catalog.BaseLanguage(i18n.Locale())
 }
 
+// scriptLangs are scripts that name a language well enough to steer
+// recommendations (thread #167: Thai or Arabic text gets the models that
+// speak it).
+var scriptLangs = []struct {
+	table *unicode.RangeTable
+	lang  string
+}{
+	{unicode.Thai, "th"}, {unicode.Arabic, "ar"}, {unicode.Devanagari, "hi"}, {unicode.Hebrew, "he"},
+	{unicode.Greek, "el"}, {unicode.Cyrillic, "ru"}, {unicode.Khmer, "km"}, {unicode.Lao, "lo"},
+	{unicode.Myanmar, "my"}, {unicode.Bengali, "bn"}, {unicode.Tamil, "ta"},
+}
+
+// vietnameseLetter: a letter only Vietnamese uses among Latin scripts
+// (đ ơ ư ă, and the vowels with a tone mark below or a hook).
+func vietnameseLetter(r rune) bool {
+	return r >= 0x1EA0 && r <= 0x1EF9 || strings.ContainsRune("đĐơƠưƯăĂ", r)
+}
+
 // textLang guesses a text's language from its letters: kana → ja, hangul
-// → ko, Han → zh, Latin → en (Latin text is taken as English: the rule
-// only steers recommendations); "" for no letters.
+// → ko, Han → zh, Thai, Arabic, Devanagari… → th, ar, hi…, Latin with
+// Vietnamese letters → vi, other Latin → en (Latin text is taken as
+// English: the rule only steers recommendations); "" for no letters.
 func textLang(s string) string {
-	var han, kana, hangul, latin int
+	var han, kana, hangul, latin, vi int
+	other := make([]int, len(scriptLangs))
 	for _, r := range s {
 		switch {
+		case r < 0x80:
+			if unicode.IsLetter(r) {
+				latin++
+			}
 		case unicode.In(r, unicode.Hiragana, unicode.Katakana):
 			kana++
 		case unicode.Is(unicode.Hangul, r):
@@ -166,7 +190,26 @@ func textLang(s string) string {
 			han++
 		case unicode.Is(unicode.Latin, r):
 			latin++
+			if vietnameseLetter(r) {
+				vi++
+			}
+		default:
+			for i, sl := range scriptLangs {
+				if unicode.Is(sl.table, r) {
+					other[i]++
+					break
+				}
+			}
 		}
+	}
+	best := 0
+	for i, n := range other {
+		if n > other[best] {
+			best = i
+		}
+	}
+	if n := other[best]; n > 0 && n >= han+kana+hangul && n*3 >= latin {
+		return scriptLangs[best].lang
 	}
 	switch {
 	case kana > 0 && kana*5 >= han:
@@ -175,6 +218,8 @@ func textLang(s string) string {
 		return "ko"
 	case han > 0 && han*2 >= latin/3:
 		return "zh"
+	case vi >= 2 && vi*12 >= latin:
+		return "vi"
 	case latin > 0:
 		return "en"
 	}

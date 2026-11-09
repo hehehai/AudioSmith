@@ -147,7 +147,7 @@ func (a *app) recommendVoices(e catalog.Entry, opts []voiceOption) []voiceOption
 	}
 	// The model recommended for the language, when it is another: last,
 	// or alone when this model has no voice in the language.
-	if m, ok := recommendedModel(l); ok && m.ID != e.ID && !catalog.Builtin().IsRecommended(catalog.WorkflowStudio, l, e.ID) {
+	if m, ok := recommendedModel(l, e); ok && m.ID != e.ID && !catalog.Builtin().IsRecommended(catalog.WorkflowStudio, l, e.ID) {
 		why := i18n.T("Recommended for %s", langPlain(l))
 		if len(out) == 0 || !speaks {
 			why = i18n.T("It speaks %s; this model has no voice in it", langPlain(l))
@@ -158,11 +158,21 @@ func (a *app) recommendVoices(e catalog.Entry, opts []voiceOption) []voiceOption
 	return out
 }
 
-// recommendedModel is the Studio model recommended for language l.
-func recommendedModel(l string) (catalog.Entry, bool) {
+// recommendedModel is the Studio model recommended for language l in
+// place of e: the first recommended; but when e clones and l is one the
+// usual models don't speak, the first one recommended for other
+// languages (VoxCPM2 for Vietnamese or Hindi, thread #167).
+func recommendedModel(l string, e catalog.Entry) (catalog.Entry, bool) {
 	recs := catalog.Builtin().Recommended(catalog.WorkflowStudio, l)
 	if len(recs) == 0 {
 		return catalog.Entry{}, false
+	}
+	if e.Has(catalog.CapClone) {
+		for _, r := range catalog.Builtin().ForUse(catalog.UseOtherLanguages, catalog.WorkflowStudio) {
+			if r.Has(catalog.CapClone) && slices.ContainsFunc(recs, func(x catalog.Entry) bool { return x.ID == r.ID }) {
+				return r, true
+			}
+		}
 	}
 	return recs[0], true
 }

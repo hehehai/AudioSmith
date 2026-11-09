@@ -109,7 +109,7 @@ func (a *app) lfSetup(c *ui.Context, p *lfPage, locked bool) {
 	ui.Field(c, i18n.T("Model"), func() {
 		a.modelPicker(c, "lf-model", lfWorkflow(p), e, func(ne catalog.Entry) {
 			d.Model, p.auto = ne.Repo, false
-		}, pickerOpts{Locked: locked, Dialogue: a.storyDialoguePick(p)})
+		}, pickerOpts{Locked: locked, Dialogue: a.storyDialoguePick(p), Langs: []string{lfContentLang(d)}, Uses: lfUses(p)})
 	})
 	if m := a.model(e); e.ID != "custom" && m.known && m.local.State != hub.Downloaded {
 		ui.Row(c.Key("lf-download")).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {

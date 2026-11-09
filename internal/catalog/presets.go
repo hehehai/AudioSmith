@@ -112,7 +112,12 @@ type Presets struct {
 	// RecommendByLanguage lists each workflow's recommended models, best
 	// first, per content language ("en" serves the languages not listed).
 	RecommendByLanguage map[string]map[string][]string `json:"recommendByLanguage"`
-	Models              map[string]Preset              `json:"models"`
+	// RecommendByUse lists, per use (presets_use.go: other languages, a
+	// directed clone, a Chinese dialect) and workflow, models recommended
+	// on top of the language's when the content calls for that use. They
+	// are recommendations only: no default comes from them.
+	RecommendByUse map[string]map[string][]string `json:"recommendByUse"`
+	Models         map[string]Preset              `json:"models"`
 }
 
 //go:embed presets.json
@@ -158,11 +163,22 @@ func (p *Presets) byLanguage(lang string) (rec map[string][]string, defs map[str
 }
 
 // Recommended are workflow w's recommended models for content language
-// lang, best first (hidden ones left out).
+// lang, best first (hidden ones left out). A language presets don't list
+// gets the "en" list, or, when no model there clones or designs in it,
+// the models recommended for other languages (presets_use.go).
 func (c *Catalog) Recommended(w Workflow, lang string) []Entry {
 	rec, _ := builtinPresets.byLanguage(lang)
+	out := c.entries(rec[string(w)])
+	if _, listed := builtinPresets.RecommendByLanguage[BaseLanguage(lang)]; !listed {
+		out = c.coverLanguages(w, out, []string{lang})
+	}
+	return out
+}
+
+// entries are the visible entries of ids, in order.
+func (c *Catalog) entries(ids []string) []Entry {
 	var out []Entry
-	for _, id := range rec[string(w)] {
+	for _, id := range ids {
 		if e, ok := c.ByID(id); ok && !e.Hidden {
 			out = append(out, e)
 		}
@@ -179,7 +195,7 @@ func (c *Catalog) IsRecommended(w Workflow, lang, id string) bool {
 // language lang; haveVoice says whether they have saved voices (models
 // that need one fall back to one that does not).
 func (c *Catalog) DefaultModel(w Workflow, lang string, haveVoice bool) (Entry, bool) {
-	_, defs := builtinPresets.byLanguage(lang)
+	rec, defs := builtinPresets.byLanguage(lang)
 	id := defs[string(w)]
 	if haveVoice {
 		if v := defs[string(w)+"WithVoice"]; v != "" {
@@ -193,7 +209,9 @@ func (c *Catalog) DefaultModel(w Workflow, lang string, haveVoice bool) (Entry, 
 	if e, ok := c.ByID(id); ok {
 		return e, true
 	}
-	if l := c.Recommended(w, lang); len(l) > 0 {
+	// The language's own list: models recommended by use (VoxCPM2 for
+	// other languages) are never a default (thread #167).
+	if l := c.entries(rec[string(w)]); len(l) > 0 {
 		return l[0], true
 	}
 	return Entry{}, false
@@ -233,6 +251,18 @@ func (p *Presets) Validate(c *Catalog) error {
 				}
 				if _, ok := p.Models[id]; !ok {
 					return fmt.Errorf("presets: %s %s: %s has no preset", lang, w, id)
+				}
+			}
+		}
+	}
+	for use, ws := range p.RecommendByUse {
+		for w, ids := range ws {
+			if len(ids) == 0 || len(ids) > 3 {
+				return fmt.Errorf("presets: use %s %s: 1–3 recommended models", use, w)
+			}
+			for _, id := range ids {
+				if err := tts(id); err != nil {
+					return fmt.Errorf("presets: use %s %s: %w", use, w, err)
 				}
 			}
 		}

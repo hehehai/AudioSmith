@@ -125,7 +125,7 @@ func (a *app) dubGeneratePanel(c *ui.Context) {
 		a.modelPicker(c, "gen-model", catalog.WorkflowDub, cur, func(e catalog.Entry) {
 			repo := e.Repo
 			a.dubSettings(func(s *dub.Settings) { s.Model = repo })
-		}, pickerOpts{Locked: locked, Dialogue: a.dubDialoguePick(dl)})
+		}, pickerOpts{Locked: locked, Dialogue: a.dubDialoguePick(dl), Langs: p.Targets})
 	})
 	a.dubDialogueGenerateNote(c, dl)
 	a.dubLanguageNote(c, cur, p.Targets, locked)

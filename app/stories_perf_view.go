@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/services"
@@ -54,7 +55,29 @@ func continuityTip(level string) string {
 	case services.ContinuityIntensity:
 		return i18n.T("This model hears how strong each line's emotion is (its exaggeration), not the emotion itself.")
 	}
+	if rec, ok := useModel(catalog.UseDirectedClone, catalog.WorkflowStory); ok {
+		return i18n.T("This model says each line as written: scene, personas and directions are kept but not heard. Pacing and merged turns still apply. For directed delivery, use %s (it keeps cloned voices), %s or %s.", modelRef(rec), modelRefID(idCustomVoice), modelRefID(idVoiceDesign))
+	}
 	return i18n.T("This model says each line as written: scene, personas and directions are kept but not heard. Pacing and merged turns still apply. For directed delivery, use %s or %s.", modelRefID(idCustomVoice), modelRefID(idVoiceDesign))
+}
+
+// storyDirectedAdvice, under a model that doesn't hear a directed
+// story: the models that do, the one recommended for cloned voices
+// (presets: VoxCPM2, thread #167) first, with a link that picks it. The
+// story's model changes only when the user follows it.
+func (a *app) storyDirectedAdvice(c *ui.Context, p *lfPage, locked bool) {
+	k := tok(c.Theme())
+	rec, ok := useModel(catalog.UseDirectedClone, catalog.WorkflowStory)
+	if !ok {
+		caption(c.Key("perf-advice"), i18n.T("Switch to %s or %s (Setup) to hear the directions.", modelRefID(idCustomVoice), modelRefID(idVoiceDesign))).TextColor(k.Text3)
+		return
+	}
+	ui.Column(c.Key("perf-advice")).Gap(px(c.Theme(), 2)).Children(func() {
+		caption(c, i18n.T("To hear the directions, switch to %s (recommended: it keeps cloned voices), or to %s or %s.", modelRef(rec), modelRefID(idCustomVoice), modelRefID(idVoiceDesign))).TextColor(k.Text3)
+		if !locked && linkButton(c.Key("perf-advice-use"), i18n.T("Use %s", rec.DisplayName())).AlignSelf(ui.Start).Clicked() {
+			p.doc.Model, p.auto = rec.Repo, false
+		}
+	})
 }
 
 // storyPerformance is the Performance section.
@@ -73,7 +96,7 @@ func (a *app) storyPerformance(c *ui.Context, p *lfPage, locked bool) {
 		infoTip(c.Key("perf-level-tip"), continuityTip(level))
 	})
 	if level == services.ContinuityLines && storyDirected(d) {
-		caption(c.Key("perf-advice"), i18n.T("Switch to %s or %s (Setup) to hear the directions.", modelRefID(idCustomVoice), modelRefID(idVoiceDesign))).TextColor(k.Text3)
+		a.storyDirectedAdvice(c, p, locked)
 	}
 
 	// Pacing.

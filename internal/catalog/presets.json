@@ -71,6 +71,40 @@
       ]
     }
   },
+  "recommendByUse": {
+    "otherLanguages": {
+      "studio": [
+        "voxcpm2-8bit",
+        "omnivoice-bf16"
+      ],
+      "story": [
+        "voxcpm2-8bit",
+        "omnivoice-bf16"
+      ],
+      "audiobook": [
+        "voxcpm2-8bit",
+        "omnivoice-bf16"
+      ],
+      "dub": [
+        "voxcpm2-8bit",
+        "omnivoice-bf16"
+      ],
+      "design": [
+        "voxcpm2-8bit",
+        "omnivoice-bf16"
+      ]
+    },
+    "directedClone": {
+      "story": [
+        "voxcpm2-8bit"
+      ]
+    },
+    "dialect": {
+      "design": [
+        "voxcpm2-8bit"
+      ]
+    }
+  },
   "models": {
     "qwen3-tts-0.6b-customvoice-8bit": {
       "recommend": [

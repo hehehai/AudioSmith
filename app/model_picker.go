@@ -40,6 +40,11 @@ type pickerOpts struct {
 	Dialogue *pickerDialogue
 	// Row draws it as a selector row, with › (Text to speech, 0.5 F3).
 	Row bool
+	// Langs are the content's languages ("" unknown) and Uses what it
+	// calls for: the recommended models then speak them, and the uses'
+	// models lead (catalog.RecommendedFor, thread #167).
+	Langs []string
+	Uses  []catalog.Use
 }
 
 // whyNotFor says why model e cannot do workflow w ("" = it can).
@@ -127,7 +132,7 @@ func (a *app) modelPicker(c *ui.Context, key string, w catalog.Workflow, cur cat
 		a.pickerOpen, a.pickerAll, a.pickerFind = map[string]bool{}, map[string]bool{}, map[string]string{}
 	}
 	lang := i18n.Locale()
-	recs := catalog.Builtin().Recommended(w, lang)
+	recs := catalog.Builtin().RecommendedFor(w, lang, o.Langs, o.Uses...)
 	if o.Only != nil {
 		recs = slices.DeleteFunc(recs, func(e catalog.Entry) bool {
 			return !slices.ContainsFunc(o.Only, func(x catalog.Entry) bool { return x.ID == e.ID })

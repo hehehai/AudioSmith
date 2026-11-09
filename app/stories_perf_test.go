@@ -170,12 +170,25 @@ func TestStoryPerformanceUI(t *testing.T) {
 		t.Errorf("v1 line options: %q", tt.Texts())
 	}
 
-	// A model that takes no instructions: line by line, with the advice.
+	// A model that takes no instructions: line by line, with the advice,
+	// which recommends VoxCPM2 for cloned voices (thread #167) and picks
+	// it only when followed.
 	d.Model = kokoro
 	tt.Frame()
-	if !tt.HasText("Line by line") || !tt.HasText("Switch to “Standard voices” or “Voice design” (Setup) to hear the directions.") {
+	if !tt.HasText("Line by line") || !tt.HasText("To hear the directions, switch to “Expressive clone · 48 kHz” (recommended: it keeps cloned voices), or to “Standard voices” or “Voice design”.") {
 		t.Errorf("kokoro: %q", tt.Texts())
 	}
+	if d.Model != kokoro {
+		t.Fatalf("the advice switched the model: %s", d.Model)
+	}
+	if err := tt.Click("Use Expressive clone · 48 kHz"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if vox, _ := catalog.Builtin().ByID("voxcpm2-8bit"); d.Model != vox.Repo || p.auto || !tt.HasText("Directed delivery") {
+		t.Errorf("use VoxCPM2: model %s auto %v", d.Model, p.auto)
+	}
+	d.Model = kokoro
 
 	// Production (Advanced): gaps follow the pacing; the fixed gap brings its slider back.
 	p.open["scene"] = false

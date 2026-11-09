@@ -55,7 +55,7 @@ func (a *app) inspector(c *ui.Context) {
 				a.modelLabel = e.Label
 			}
 			a.modelChanged()
-		}, pickerOpts{Custom: true, Row: true})
+		}, pickerOpts{Custom: true, Row: true, Langs: []string{a.studioScriptLang()}})
 		if custom {
 			ui.TextInput(c.Key("repo"), &a.customRepo).Placeholder("owner/model-name").Label(i18n.T("Repo"))
 		}

@@ -3507,7 +3507,7 @@
   "How the cloned voice says this take, in a few words: “a little faster, cheerful”, “whispering”.": "克隆的声音这一条怎么说，几个词即可：“稍快，开心”“耳语”。",
   "e.g. a little faster, cheerful": "如：稍快，开心",
   "%s doesn't speak %s: those tracks may sound wrong.": "%s 不会说%s：这些音轨可能不对。",
-  "%s doesn't speak %s; %s does.": "%s 不会说%s，%s 会。",
+  "%s doesn't speak %s; %s does and is recommended for it.": "%s 不会说%s，推荐改用会说的 %s。",
   "Use %s": "改用%s",
   "model name\u0004Expressive clone · 48 kHz": "表现力克隆 · 48 kHz",
   "48 kHz clones you can direct (\"a little faster, cheerful\"), voices from a description, 30 languages and Chinese dialects.": "48 kHz 克隆，可以用一句话指挥语气（如“稍快，开心”）；也能按描述设计音色；30 种语言和多种汉语方言。",
@@ -4082,5 +4082,8 @@
   "model name\u0004English · Realtime": "英语 · 实时",
   "Speaks a scene of up to four voices as one recording, each cloned from a short clip alone (no transcript needed). Chinese and English.": "整场戏一次录成，最多四个声音，每个声音只需一段短片段就能克隆（不需要文字稿）。中文和英文。",
   "Microsoft's long-form conversational speech model: up to four speakers, each cloned from a reference clip without its transcript, speak a whole scene in one go, and AudioSmith cuts the recording into the lines. Used by Stories' whole-dialogue mode and audiobooks' dialogue passages; narration stays on the project's model. Chinese can be less steady than English, and it may add background music on its own. Microsoft's terms: for research and testing; no voice impersonation without the person's consent, no disinformation or deepfakes. AudioSmith's watermark stays on its audio.": "微软的长篇对话语音模型：最多四个说话人，各自用一段参考片段克隆（不需要片段的文字稿），一次说完整场戏，再由 AudioSmith 把录音切回各句。用于故事的「整段对话」和有声书的对话段；旁白仍用项目的模型。中文不如英文稳定，偶尔会自行加上背景音乐。微软的使用条款：面向研究和测试；未经本人同意不得冒充其声音，不得用于虚假信息或深度伪造。它生成的音频照常带 AudioSmith 的水印。",
-  "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft's terms: for research and testing; no voice impersonation without the person's consent, no disinformation or deepfakes. AudioSmith's watermark stays on its audio.": "微软的小型实时英文模型，使用预设声音，边生成边播放。只支持英文，不能克隆声音。微软的使用条款：面向研究和测试；未经本人同意不得冒充其声音，不得用于虚假信息或深度伪造。它生成的音频照常带 AudioSmith 的水印。"
+  "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft's terms: for research and testing; no voice impersonation without the person's consent, no disinformation or deepfakes. AudioSmith's watermark stays on its audio.": "微软的小型实时英文模型，使用预设声音，边生成边播放。只支持英文，不能克隆声音。微软的使用条款：面向研究和测试；未经本人同意不得冒充其声音，不得用于虚假信息或深度伪造。它生成的音频照常带 AudioSmith 的水印。",
+  "This model says each line as written: scene, personas and directions are kept but not heard. Pacing and merged turns still apply. For directed delivery, use %s (it keeps cloned voices), %s or %s.": "当前模型逐句照读：场景、性格和演绎会保留，但模型听不到。节奏和合并同角色仍然生效。想要指令演绎，请换用%s（可保留克隆音色）、%s或%s。",
+  "To hear the directions, switch to %s (recommended: it keeps cloned voices), or to %s or %s.": "想听到演绎效果，推荐换用%s（可保留克隆音色），也可换用%s或%s。",
+  "For Chinese dialects, %s is recommended.": "中文方言推荐使用%s。"
 }
