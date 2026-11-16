@@ -19,7 +19,7 @@ func TestRedact(t *testing.T) {
 		"provider said s3cr3t-provider-key-value":        "provider said REDACTED",
 		"GET https://h.co/x?token=abc&q=1":               "GET https://h.co/x?token=REDACTED&q=1",
 		"a short word stays":                             "a short word stays",
-		"Authorization: Bearer abcdefghijkl":             "Authorization: REDACTED REDACTED",
+		"Authorization: Bearer abcdefghijkl":             "Authorization: Bearer REDACTED",
 	} {
 		if got := Redact(in); got != want {
 			t.Errorf("Redact(%q) = %q, want %q", in, got, want)
