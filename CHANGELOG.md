@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-beta.3 — 2026-11-16
+
+### Fixed
+- Fixed a crash when logs contained malformed links: a link AudioSmith could not read (such as one with a broken `%` escape) in what it writes to its log could make it quit. Such links are now logged safely, with any password or key in them still hidden.
+
 ## 0.5.0-beta.2 — 2026-11-03
 
 A release of fixes: two code reviews (11-02 and 11-03) went through speed, disk, memory, the microphone and the Local API. Nothing moved: pages, files and the Local API and MCP stay as they were.
