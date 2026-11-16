@@ -123,6 +123,7 @@ type shellState struct {
 	storageState    // settings_storage.go (M7a)
 	networkState    // settings_network.go (M7a)
 	aboutState      // settings_about.go (M7a)
+	feedbackState   // feedback_page.go (thread #84): Settings → Feedback
 	onboardingState // onboarding.go (M7a): the first-run wizard
 	settingsForm
 	licenceDialog

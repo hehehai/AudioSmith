@@ -226,7 +226,7 @@ Measured on a MacBook Air M4 with 24 GB:
 ## Privacy
 
 - **Speech is made and recognised on your Mac.** The engine never connects to the network; it loads the models the app downloaded.
-- **AudioSmith connects only for:** model downloads (Hugging Face or its mirror), ffmpeg and yt-dlp when you download them, videos (and their covers) from links you paste, a cloud writing or translation provider only if you set one up, and the daily update check (nothing about you is sent).
+- **AudioSmith connects only for:** model downloads (Hugging Face or its mirror), ffmpeg and yt-dlp when you download them, videos (and their covers) from links you paste, a cloud writing or translation provider only if you set one up, the daily update check (nothing about you is sent), and feedback, sent to actnow.dev only when you send it from **Settings → Feedback** ([privacy policy](https://actnow.dev/legal/privacy)); you can see its diagnostics before sending, and they never hold your text, voices or files. Bugs can also be reported as public issues on GitHub.
 - **No analytics:** no usage data, crash reports or identifiers, and no setting to turn them on. The app's log stays on this Mac, masks keys and tokens, and never holds your scripts, transcripts or prompts.
 - **The Local API listens on 127.0.0.1** unless you share it on your network (with a PIN).
 - **Keep text on this Mac:** one switch limits writing help and translation to local models.

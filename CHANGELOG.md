@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Settings → Feedback**: send a problem, a suggestion or a question to actnow.dev from the app, with screenshots or a screen recording and, if you want, diagnostics you can look at before sending (versions, the engine, settings and recent log lines, without your text, voices, files, keys, names or addresses). Replies show in the app and by email. Feedback written offline is sent once you are online. **Help → Send Feedback** and the command palette open it; GitHub issues still work.
+
 ## 0.5.0-beta.3 — 2026-11-16
 
 ### Fixed

@@ -72,6 +72,7 @@ func settingsSections() []settingsSection {
 		{"logs", i18n.T("Logs"), "Logs log lines diagnostics"},
 		{"privacy", i18n.T("Privacy"), "Privacy history analytics"},
 		{"advanced", i18n.T("Advanced"), "Advanced storage disk data folder reset usage statistics diagnostics self-check"},
+		{"feedback", i18n.T("Feedback"), "Feedback bug report support contact"}, // thread #84: feedback*.go
 		{"about", i18n.T("About"), "About version updates licence"},
 	}
 }

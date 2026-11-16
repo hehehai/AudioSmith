@@ -65,7 +65,8 @@ func main() {
 	a.registerDubMedia()                       // M4: dub_pages.go (the video preview's scheme)
 
 	mygo.App.WhenReady(func() {
-		a.openWindow() // shell.go
+		a.openWindow()      // shell.go
+		a.connectFeedback() // feedback.go: Settings → Feedback, the outbox sent
 		a.startEngine()
 		a.startDubs()          // M4: dub.go (the watch folder)
 		a.startAPI(dataDir)    // M5: api.go — the Local API and MCP (thread #20)

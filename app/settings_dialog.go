@@ -56,8 +56,15 @@ func settingsSectionIcon(id string) icons.Icon {
 		return icons.Database
 	case "usage":
 		return icons.Chart2
+	case "feedback":
+		return icons.ChatRoundDots
 	}
 	return icons.InfoCircle
+}
+
+// settingsDot: a section has news (Feedback: a reply not read).
+func (a *app) settingsDot(id string) bool {
+	return id == "feedback" && a.fbUnread() > 0
 }
 
 // openSettings shows the settings dialog at a section's path ("/models").
@@ -196,6 +203,9 @@ func (a *app) settingsDialog(c *ui.Context) {
 								} else {
 									txt.TextColor(k.G[8])
 								}
+								if a.settingsDot(s.id) {
+									statusDot(c, k.Accent).Tooltip(i18n.T("New reply"))
+								}
 							})
 							if b.Clicked() {
 								a.navigate("/settings/" + s.id)
@@ -275,6 +285,7 @@ func (a *app) settingsSection(c *ui.Context, r *ui.Route) {
 	case section("logs", a.logsSettings): // shell_logs.go (0.5 F1: the Logs page)
 	case section("privacy", a.privacySettings):
 	case section("advanced", a.storageSettings, a.usageSettings, a.diagnosticsSettings):
+	case section("feedback", a.feedbackSection): // feedback_view.go (thread #84)
 	case section("about", a.aboutSettings):
 	default:
 		ui.Text(c, i18n.T("There is no page at %s.", a.shownPath())).TextColor(t.TextMuted)
