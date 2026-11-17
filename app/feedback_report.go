@@ -37,10 +37,28 @@ const (
 // rest is its context.
 type failure struct {
 	key, title, code, kind, where, message string
+	// atError: the report is captured when the failure first shows, with
+	// the log lines of that moment (a single failure whose lines a flood
+	// of others would soon push out: the helper's or the engine's
+	// crash); otherwise when the link is clicked (lists, many at once).
+	atError bool
 }
 
-// fbReport is the failure's report: captured off the main thread the
-// first time the failure shows (Capture reads the log and writes the
+// captureReport is f's report, now (off the main thread); nil when it fails.
+func captureReport(m *feedback.Manager, f failure) *feedback.Report {
+	var err error
+	if f.message != "" {
+		err = errors.New(f.message)
+	}
+	rep, cerr := m.Capture(feedback.ErrorContext{Title: f.title, Code: f.code, Kind: f.kind, Where: f.where, Err: err})
+	if rep == nil || cerr != nil && rep.ID == "" {
+		return nil
+	}
+	return rep
+}
+
+// fbReport is the report of a failure captured when it shows (atError):
+// captured off the main thread the first time the failure shows (Capture reads the log and writes the
 // report: the build pass does no I/O), nil until it is ready and without
 // the feedback.
 func (a *app) fbReport(f failure) *feedback.Report {
@@ -62,12 +80,8 @@ func (a *app) fbReport(f failure) *feedback.Report {
 		return rep
 	}
 	a.async(func() {
-		var err error
-		if f.message != "" {
-			err = errors.New(f.message)
-		}
-		rep, cerr := m.Capture(feedback.ErrorContext{Title: f.title, Code: f.code, Kind: f.kind, Where: f.where, Err: err})
-		if rep == nil || cerr != nil && rep.ID == "" {
+		rep := captureReport(m, f)
+		if rep == nil {
 			return // no link for this failure
 		}
 		a.post(func() {
@@ -84,16 +98,23 @@ func (a *app) fbReport(f failure) *feedback.Report {
 }
 
 // reportLink draws "Report this problem" for f: a click opens the
-// feedback window with its report. Nothing without the feedback.
+// feedback window with its report, captured then (or when the failure
+// first showed, f.atError). Nothing without the feedback.
 func (a *app) reportLink(c *ui.Context, f failure) {
-	if a.fbWin == nil {
+	m := a.fbMgr
+	if a.fbWin == nil || m == nil {
+		return
+	}
+	key := c.Key("report:" + f.code + ":" + f.key)
+	if !f.atError {
+		fbui.ReportLinkFunc(key, a.fbWin, func() *feedback.Report { return captureReport(m, f) })
 		return
 	}
 	rep := a.fbReport(f)
 	if rep == nil {
 		return
 	}
-	fbui.ReportLink(c.Key("report:"+f.code+":"+f.key), a.fbWin, rep)
+	fbui.ReportLink(key, a.fbWin, rep)
 }
 
 // step records a user's action (its name only: "try_transcribe") for the
