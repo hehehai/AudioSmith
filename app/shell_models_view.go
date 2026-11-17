@@ -165,6 +165,8 @@ func (a *app) modelCard(c *ui.Context, e catalog.Entry) {
 			ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Start).Children(func() {
 				ui.Icon(c, icons.DangerCircle.Linear).Size(px(t, 14), px(t, 14)).TextColor(t.Danger).Shrink(0)
 				ui.Text(c, m.err).FontSize(px(t, fsCaption)).TextColor(t.Danger).Selectable().Grow(1).MinWidth(0)
+				a.reportLink(c, failure{key: e.ID, title: i18n.T("The download failed"), code: codeModel, kind: kindModelDownload,
+					where: "Models › Model card", message: m.err})
 			})
 		}
 	})

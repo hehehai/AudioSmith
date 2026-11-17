@@ -73,6 +73,7 @@ func (a *app) queueTranscription(req services.TranscribeRequest, retry bool) {
 		req.ID = core.NewID(time.Now())
 	}
 	a.trErr, a.trRetry, a.trNeed, a.trWarn = "", nil, nil, ""
+	a.step("transcribe")
 	title := req.Title
 	if title == "" {
 		title = i18n.T("Recording")

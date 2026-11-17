@@ -7,9 +7,10 @@ package main
 // logs, the settings without secrets or the user's words and the lines
 // of Settings → Advanced's diagnostics. AudioSmith has no licence of its
 // own: the site never knows who writes, so the email is always asked
-// for, and no device ID is sent. Settings → Feedback (feedback_page.go,
-// feedback_view.go) draws it; the GitHub issue (Settings → Advanced →
-// Report a bug) stays.
+// for, and no device ID is sent. The feedback window (actnowkit's
+// feedbackui, feedback_window.go) draws it, Settings → Feedback
+// (feedback_view.go) lists this Mac's feedback; the GitHub issue
+// (Settings → Advanced → Report a bug) stays.
 
 import (
 	"context"
@@ -53,7 +54,7 @@ type feedbackOptions struct {
 	Client  *http.Client // nil: through the proxy setting
 }
 
-// newFeedback makes the Manager and hands it to Settings → Feedback.
+// newFeedback makes the Manager and the feedback window over it.
 func (a *app) newFeedback(o feedbackOptions) (*feedback.Manager, error) {
 	base := o.Base
 	if base == "" && feedbackDevBuild() {
@@ -128,14 +129,14 @@ func (a *app) connectFeedback() {
 	go m.Resume(ctx)
 }
 
-// closeFeedback stops sending (the app quits; the outbox stays).
+// closeFeedback stops sending and closes the window (the app quits; the
+// outbox stays).
 func (a *app) closeFeedback() {
 	if a.fbStop != nil {
 		a.fbStop()
 	}
-	if a.fbUnsub != nil {
-		a.fbUnsub()
-		a.fbUnsub = nil
+	if a.fbWin != nil {
+		a.fbWin.Stop()
 	}
 }
 
@@ -239,7 +240,3 @@ func feedbackExtra(text string) map[string]string {
 	}
 	return out
 }
-
-// sendFeedback opens Settings → Feedback (the Help menu's and the
-// palette's Send Feedback).
-func (a *app) sendFeedback() { a.navigate("/settings/feedback") }

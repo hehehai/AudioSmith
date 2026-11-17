@@ -12,6 +12,8 @@ github.com/google/jsonschema-go v0.4.3 h1:/DBOLZTfDow7pe2GmaJNhltueGTtDKICi8V8p+
 github.com/google/jsonschema-go v0.4.3/go.mod h1:r5quNTdLOYEz95Ru18zA0ydNbBuYoo9tgaYcxEYhJVE=
 github.com/hehehai/actnowkit v0.22.0 h1:avRx15zFdQ2GNrpzSX9wGI5xaFnaZI/mg0B3YqfgJwo=
 github.com/hehehai/actnowkit v0.22.0/go.mod h1:ifUdyrbLMzvXGYNIE/MRBSWMLQ4WxR89UmE3IXMkZQI=
+github.com/hehehai/actnowkit/feedbackui v0.22.0 h1:09d65QBlMCecLOfKdF0laf+OKfMfipr4z7z048baltA=
+github.com/hehehai/actnowkit/feedbackui v0.22.0/go.mod h1:EJ/j4OecWToqfeLTUChlT4dfO0XgW13u6YJ27htxmgM=
 github.com/jfreymuth/oggvorbis v1.0.5 h1:u+Ck+R0eLSRhgq8WTmffYnrVtSztJcYrl588DM4e3kQ=
 github.com/jfreymuth/oggvorbis v1.0.5/go.mod h1:1U4pqWmghcoVsCJJ4fRBKv9peUJMBHixthRlBeD6uII=
 github.com/jfreymuth/vorbis v1.0.2 h1:m1xH6+ZI4thH927pgKD8JOH4eaGRm18rEE9/0WKjvNE=

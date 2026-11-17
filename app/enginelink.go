@@ -316,6 +316,7 @@ func (a *app) flushEngine() {
 
 // restartEngine starts the gpu worker, or replaces it.
 func (a *app) restartEngine() {
+	a.step("restart_engine")
 	a.loaded, a.loadedModel = nil, ""
 	a.engState, a.engError, a.engTail = engineStarting, "", ""
 	sup, post := a.eng.sup, a.enginePost

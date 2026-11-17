@@ -142,7 +142,11 @@ func (a *app) transcriptStatus(c *ui.Context) {
 			}
 		})
 		caption(c, a.trErr).TextColor(tok(t).Text).Selectable()
-		ui.Row(c).Gap(px(t, sp2)).Wrap().Children(func() {
+		ui.Row(c).Gap(px(t, sp2)).Wrap().AlignItems(ui.Center).Children(func() {
+			if a.trNeed == nil {
+				a.reportLink(c, failure{key: "transcription", title: i18n.T("Transcription failed"), code: codeTranscribe, kind: kindTranscribe,
+					where: "Speech to text", message: a.trErr})
+			}
 			if e := a.trNeed; e != nil {
 				m := a.model(*e)
 				label := i18n.T("Download %s", modelRef(*e))

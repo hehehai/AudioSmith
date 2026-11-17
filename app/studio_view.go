@@ -325,6 +325,8 @@ func (a *app) jobProblem(c *ui.Context) {
 		ui.Text(c, a.jobError).TextColor(t.Danger).FontSize(px(t, fsCaption)).Selectable().Grow(1).MinWidth(0)
 		e := a.needDownload
 		if e == nil {
+			a.reportLink(c, failure{key: "studio", title: i18n.T("The take failed"), code: codeSpeech, kind: kindSpeech,
+				where: "Text to speech › Generate", message: a.jobError})
 			return
 		}
 		m := a.model(*e)

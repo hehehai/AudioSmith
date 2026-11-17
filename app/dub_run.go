@@ -90,6 +90,7 @@ func (a *app) dubRun(req services.RunRequest) {
 		return
 	}
 	a.dubErr, a.dubErrCode, a.dubNeed = "", "", nil
+	a.step("run_dub")
 	if req.Through == dub.StageMix || req.Through == dub.StageSynthesize {
 		e := entryFor(p.Settings.Model)
 		if ready, known := a.modelOnDisk(e); known && !ready {

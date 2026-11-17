@@ -8,6 +8,7 @@ require (
 	github.com/ebitengine/purego v0.11.1
 	github.com/egoist/mygo v0.5.5
 	github.com/hehehai/actnowkit v0.22.0
+	github.com/hehehai/actnowkit/feedbackui v0.22.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	golang.org/x/image v0.47.0
 	golang.org/x/text v0.43.0

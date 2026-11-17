@@ -438,6 +438,17 @@ func dubSourceLabel(src string) string {
 // writing help, Settings → Dubbing).
 func (a *app) dubErrorNotice(c *ui.Context) {
 	notice(c, "b-error", noticeError, a.dubErr, "", func() {
+		if a.dubNeed == nil && a.dubErrCode != services.DubCodeNoTranslator {
+			kind := kindDub
+			if a.dubErrCode != "" {
+				kind = "dub_" + a.dubErrCode
+			}
+			id := ""
+			if a.dub != nil {
+				id = a.dub.ID
+			}
+			a.reportLink(c, failure{key: id, title: i18n.T("The dub failed"), code: codeDub, kind: kind, where: "Dub", message: a.dubErr})
+		}
 		if a.dubNeed != nil {
 			e := *a.dubNeed
 			if secondaryIconButton(c.Key("b-download"), icons.DownloadMinimalistic, i18n.T("Download")).Label(i18n.T("Download")).Clicked() {

@@ -1,16 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/hehehai/actnowkit/feedback"
+	"github.com/hehehai/actnowkit/feedback/feedbacktest"
+	fbui "github.com/hehehai/actnowkit/feedbackui"
+
+	"github.com/hehehai/AudioSmith/internal/core"
+	"github.com/hehehai/AudioSmith/internal/engine"
+	"github.com/hehehai/AudioSmith/internal/engine/proto"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/settings"
-	"github.com/hehehai/actnowkit/family"
-	"github.com/hehehai/actnowkit/feedback"
 )
 
 // The words of the user the diagnostics must never carry: the text to
@@ -39,12 +45,45 @@ func hasPrefix(tt *ui.Tester, s string) bool {
 	return false
 }
 
-// newFeedbackTest is the app with Settings → Feedback over a fake site,
-// logs with the user's words in them, on a tall window.
-func newFeedbackTest(t *testing.T) (*app, *fakeFeedbackSite, *ui.Tester) {
+// fbClick clicks a label and lets the frames after it run.
+func fbClick(t *testing.T, tt *ui.Tester, label string) {
 	t.Helper()
-	site := newFakeFeedbackSite(t)
-	a, _, _ := newTestApp(t)
+	settle(tt)
+	if err := tt.Click(label); err != nil {
+		t.Fatalf("click %q: %v in %q", label, err, tt.Texts())
+	}
+	settle(tt)
+}
+
+// fbTest is the app with its feedback over a fake actnow.dev: the app's
+// window in tt, the feedback window (headless) in wt.
+type fbTest struct {
+	a    *app
+	eng  *fakeEngine
+	site *feedbacktest.Site
+	tt   *ui.Tester
+	wt   *ui.Tester
+}
+
+func (f *fbTest) frames() { settle(f.tt); settle(f.wt) }
+
+// connectTestFeedback connects a's feedback to site, the window headless.
+func connectTestFeedback(t *testing.T, a *app, site *feedbacktest.Site, logDir string) {
+	t.Helper()
+	a.fbOptions = fbui.Options{Headless: true}
+	if _, err := a.newFeedback(feedbackOptions{Base: site.URL, Dir: filepath.Join(t.TempDir(), "feedback"), LogDir: logDir,
+		Version: "0.5.0-beta.4", Client: site.Client()}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// newFeedbackTest is the app with the feedback over a fake site, logs
+// and settings with the user's words in them, on a tall window.
+func newFeedbackTest(t *testing.T) *fbTest {
+	t.Helper()
+	site := feedbacktest.New()
+	t.Cleanup(site.Close)
+	a, eng, _ := newTestApp(t)
 	logDir := t.TempDir()
 	os.WriteFile(filepath.Join(logDir, "audiosmith.log"), []byte(strings.Join([]string{
 		`2026-11-16 10:00:00.000 INFO app: AudioSmith 0.5.0-beta.3 started`,
@@ -61,98 +100,85 @@ func newFeedbackTest(t *testing.T) (*app, *fakeFeedbackSite, *ui.Tester) {
 		s.LLM.Providers = []settings.LLMProvider{{ID: "ollama", Name: "My Ollama", BaseURL: "http://127.0.0.1:11434/v1", Headers: map[string]string{"X-Token": "tok-secret"}}}
 		s.Models.Proxy = "http://river:proxysecret@127.0.0.1:7897"
 	})
-	if _, err := a.newFeedback(feedbackOptions{Base: site.srv.URL, Dir: filepath.Join(t.TempDir(), "feedback"), LogDir: logDir,
-		Version: "0.5.0-beta.4", Client: site.srv.Client()}); err != nil {
-		t.Fatal(err)
-	}
-	tt := ui.NewTester(a.view, 1100, 2400)
-	a.navigate("/settings/feedback")
-	frames(tt)
-	return a, site, tt
+	connectTestFeedback(t, a, site, logDir)
+	return &fbTest{a: a, eng: eng, site: site, tt: ui.NewTester(a.view, 1100, 1400), wt: ui.NewTester(a.fbWin.View, fbui.WindowWidth, fbui.WindowHeight)}
 }
 
-func TestFeedbackSendAsksForTheEmail(t *testing.T) {
-	a, site, tt := newFeedbackTest(t)
-	for _, s := range []string{"New feedback", "Your feedback", "Send feedback on the web", "Or open an issue on GitHub"} {
-		if !has(tt, s) {
-			t.Fatalf("no %q: %q", s, tt.Texts())
+func TestFeedbackSettingsPanelOpensWindow(t *testing.T) {
+	f := newFeedbackTest(t)
+	f.a.navigate("/settings/feedback")
+	f.frames()
+	for _, s := range []string{"Your feedback", "Feedback you send from this Mac appears here.", "Open the feedback window",
+		"Send feedback on the web", "Or open an issue on GitHub"} {
+		if !has(f.tt, s) {
+			t.Fatalf("no %q in %q", s, f.tt.Texts())
 		}
 	}
-	a.fbForm.body = "The overlay stays after a recording."
-	a.fbSend()
-	frames(tt)
-	if !has(tt, "Enter an email so we can reply.") || len(site.created()) != 0 {
-		t.Fatalf("sent without an email, or no problem shown: %q", tt.Texts())
+	if f.a.fbWin.IsOpen() {
+		t.Fatal("open before asked")
 	}
-	a.fbForm.email = "not an email"
-	a.fbSend()
-	if !has(tt, "This email doesn't look right.") {
-		t.Fatalf("no problem shown for a bad email: %q", tt.Texts())
+	fbClick(t, f.tt, "Open the feedback window")
+	f.frames()
+	if !f.a.fbWin.IsOpen() || !has(f.wt, "Send Feedback") || !has(f.wt, "to the AudioSmith team · actnow.dev") {
+		t.Fatalf("window: open %v, %q", f.a.fbWin.IsOpen(), f.wt.Texts())
 	}
-	a.fbForm.email = "ann@example.com"
-	a.fbSend()
-	frames(tt)
-	if a.fbSt.Phase != feedback.Sent {
-		t.Fatalf("phase %s err %v", a.fbSt.Phase, a.fbSt.Err)
-	}
-	if !has(tt, "Thanks! Your feedback FB-1001 was sent. We'll reply by email and here.") {
-		t.Fatalf("no number shown: %q", tt.Texts())
-	}
-	reqs := site.created()
-	if len(reqs) != 1 || reqs[0].Email != "ann@example.com" || reqs[0].App != "audiosmith" || reqs[0].Channel != "beta" ||
-		reqs[0].LicenceToken != "" || reqs[0].DeviceID != "" {
-		t.Fatalf("create %+v", reqs)
-	}
-	if len(reqs[0].Attachments) != 1 || reqs[0].Attachments[0].Role != feedback.RoleDiagnostics || len(site.puts) != 1 {
-		t.Fatalf("the diagnostics not attached: %+v puts %v", reqs[0].Attachments, site.puts)
-	}
-	if a.fbForm.body != "" || a.fbForm.email != "" || !a.fbForm.diagnostics {
-		t.Errorf("the form not cleared after sending: %+v", a.fbForm)
-	}
-	if len(a.fbHistory) != 1 || a.fbHistory[0].Number != "FB-1001" || !has(tt, "The overlay stays after a recording.") {
-		t.Errorf("history %+v", a.fbHistory)
+	fbClick(t, f.wt, "Close")
+	if f.a.fbWin.IsOpen() {
+		t.Fatal("still open")
 	}
 }
 
-func TestFeedbackHistoryUnreadAndReply(t *testing.T) {
-	a, site, tt := newFeedbackTest(t)
-	a.fbForm.body = "AudioSmith stops after an hour of rendering."
-	a.fbForm.email = "ann@example.com"
-	a.fbForm.diagnostics = false
-	a.fbSend()
-	frames(tt)
-	if len(a.fbHistory) != 1 || len(site.created()[0].Attachments) != 0 {
-		t.Fatalf("history %+v (phase %s err %v)", a.fbHistory, a.fbSt.Phase, a.fbSt.Err)
+func TestFeedbackWindowInChinese(t *testing.T) {
+	f := newFeedbackTest(t)
+	i18n.SetLocale("zh-Hans")
+	f.a.sendFeedback()
+	f.frames()
+	for _, s := range []string{"发送反馈", "发给 AudioSmith 团队 · actnow.dev", "提问", "提交"} {
+		if !has(f.wt, s) {
+			t.Fatalf("no %q in %q", s, f.wt.Texts())
+		}
 	}
-	if a.fbUnread() != 0 || a.settingsDot("feedback") {
-		t.Fatal("unread before any reply")
+}
+
+// AudioSmith has no licence: the email is always asked for, and the
+// diagnostics go with the feedback; sent, Settings → Feedback lists it
+// and a reply shows a dot.
+func TestFeedbackSendAsksForTheEmail(t *testing.T) {
+	f := newFeedbackTest(t)
+	w := f.a.fbWin
+	f.a.sendFeedback()
+	w.SetForm(feedback.KindBug, "The overlay stays after a recording.", "", true, false)
+	w.Send()
+	f.frames()
+	if !has(f.wt, "Enter an email so we can reply.") || f.site.Count("POST /api/feedback/v1/create") != 0 {
+		t.Fatalf("sent without an email, or no problem shown: %q", f.wt.Texts())
 	}
-	site.supportReplies("fb_1", "Thanks, which macOS version is this?")
-	a.fbRefresh() // a click: the history is below the dialog's fold
-	frames(tt)
-	if a.fbUnread() != 1 || !a.settingsDot("feedback") || !hasPrefix(tt, "New reply · FB-1001 · Waiting for you · Problem") {
-		t.Fatalf("unread %d texts %q", a.fbUnread(), tt.Texts())
+	w.SetForm("", "", "ann@example.com", true, false)
+	w.Send()
+	f.frames()
+	if s := w.Snapshot(); s.Sent != "FB-1042" && s.Phase != feedback.Sent {
+		t.Fatalf("not sent: %+v", s)
 	}
-	a.fbOpenThread("fb_1")
-	if a.fbThread == nil || !has(tt, "Thanks, which macOS version is this?") {
-		t.Fatalf("thread %+v err %q texts %q", a.fbThread, a.fbThreadErr, tt.Texts())
+	it := f.site.Items()["fb_1"]
+	if it == nil || !it.Completed || it.Request.Email != "ann@example.com" || it.Request.App != "audiosmith" || it.Request.Channel != "beta" ||
+		it.Request.LicenceToken != "" || it.Request.DeviceID != "" || it.Request.Context != nil {
+		t.Fatalf("site %+v", it)
 	}
-	if a.fbUnread() != 0 || a.settingsDot("feedback") {
-		t.Fatal("still unread once read")
+	if len(it.Files) != 1 {
+		t.Fatalf("the diagnostics not attached: %+v", it.Files)
 	}
-	a.fbReplyText = "macOS 15.4 on an M3."
-	frames(tt)
-	if err := tt.Click("Reply"); err != nil {
-		t.Fatal(err)
+	f.a.navigate("/settings/feedback")
+	if !has(f.tt, "The overlay stays after a recording.") || !has(f.tt, "Your feedback (1)") {
+		t.Fatalf("panel %q", f.tt.Texts())
 	}
-	frames(tt)
-	if a.fbThread == nil || len(a.fbThread.Messages) != 2 || a.fbThread.Messages[1].Body != "macOS 15.4 on an M3." {
-		t.Fatalf("thread after the reply %+v", a.fbThread)
+	if f.a.fbUnread() != 0 || f.a.settingsDot("feedback") {
+		t.Fatal("unread before a reply")
 	}
-	a.fbThreadOpen = false
-	a.fbRefresh()
-	if a.fbUnread() != 0 {
-		t.Errorf("the user's reply counts as unread")
+	f.site.SupportReplies("fb_1", "Thanks, which macOS version is this?")
+	w.Refresh()
+	f.frames()
+	if f.a.fbUnread() != 1 || !f.a.settingsDot("feedback") {
+		t.Fatalf("unread %d", f.a.fbUnread())
 	}
 }
 
@@ -160,14 +186,13 @@ func TestFeedbackHistoryUnreadAndReply(t *testing.T) {
 // the logs, the settings and the helper's lines, and nothing the user
 // said, wrote or named.
 func TestFeedbackDiagnosticsHaveNoUserText(t *testing.T) {
-	a, _, tt := newFeedbackTest(t)
-	if !has(tt, "See what is sent") {
-		t.Fatalf("no preview button: %q", tt.Texts())
-	}
-	a.fbOpenPreview()
-	p := a.fbPreview
-	if !a.fbPreviewOpen || !strings.Contains(p, `"id": "audiosmith"`) || !strings.Contains(p, "audiosmith.log") {
-		t.Fatalf("preview %v %s", a.fbPreviewOpen, p)
+	f := newFeedbackTest(t)
+	f.a.sendFeedback()
+	f.a.fbWin.SetForm("", "", "ann@example.com", true, false)
+	f.a.fbWin.ShowWhatIsSent(false)
+	p := f.a.fbWin.Snapshot().Sheet
+	if !strings.Contains(p, `"id": "audiosmith"`) || !strings.Contains(p, "audiosmith.log") {
+		t.Fatalf("preview %s", p)
 	}
 	for _, w := range []string{`"Engine"`, `"settings"`, `"calls"`, "127.0.0.1:7897", "disk full", "render", "engine-listen.log", "did not start with voice processing"} {
 		if !strings.Contains(p, w) {
@@ -188,108 +213,192 @@ func TestFeedbackExtra(t *testing.T) {
 	}
 }
 
+// The palette's Send Feedback opens the window (Help → Send Feedback and
+// the menu bar's item call the same sendFeedback); without the feedback
+// connected it goes to Settings → Feedback.
 func TestSendFeedbackCommand(t *testing.T) {
-	a, _, tt := newTestApp(t)
+	f := newFeedbackTest(t)
+	for _, c := range f.a.commands() {
+		if c.id == "send-feedback" {
+			if !c.enabled {
+				t.Fatal("disabled")
+			}
+			c.run()
+		}
+	}
+	if !f.a.fbWin.IsOpen() {
+		t.Fatal("the palette's command did not open the window")
+	}
+
+	a, _, tt := newTestApp(t) // no Manager
 	var opened []string
 	old := openExternal
 	openExternal = func(u string) { opened = append(opened, u) }
 	t.Cleanup(func() { openExternal = old })
-	var cmd *command
-	for _, c := range a.commands() {
-		if c.id == "send-feedback" {
-			cmd = &c
-		}
+	a.sendFeedback()
+	if !a.settingsOpen || !has(tt, "Send feedback on the web") || !has(tt, "Open GitHub") {
+		t.Fatalf("texts %q", tt.Texts())
 	}
-	if cmd == nil || !cmd.enabled {
-		t.Fatal("no Send Feedback in the palette")
-	}
-	cmd.run()
-	if !a.settingsOpen || a.shownPath() != "/settings/feedback" || !has(tt, "Send feedback on the web") {
-		t.Fatalf("path %s texts %q", a.shownPath(), tt.Texts())
-	}
-	if !has(tt, "Open GitHub") {
-		t.Fatal("no GitHub issue")
-	}
-	openExternal(issuesURL) // the button is below the dialog's fold
+	openExternal(issuesURL) // the button may be below the dialog's fold
 	if len(opened) != 1 || opened[0] != issuesURL {
 		t.Errorf("opened %v", opened)
 	}
 }
 
-// kitMessage is a reference text of actnowkit as AudioSmith's catalogue
-// keys it: {app} is AudioSmith, {site} actnow.dev, {number} {email}
-// {size} %s, {max} %d.
-func kitMessage(s string) string {
-	return strings.NewReplacer("{app}", "AudioSmith", "{site}", "actnow.dev", "{number}", "%s", "{email}", "%s", "{size}", "%s", "{max}", "%d").Replace(s)
+// fbFailure is a failure point of AudioSmith: how to show it, and its
+// report's code, kind and place.
+type fbFailure struct {
+	name, code, kind, where string
+	show                    func(t *testing.T, f *fbTest)
 }
 
-// TestFeedbackTextsMatchKit: the section says, in English and in
-// Chinese, what actnowkit's reference texts say (the family's apps word
-// them alike), the labels without their "…".
-func TestFeedbackTextsMatchKit(t *testing.T) {
-	defer i18n.SetLocale("en")
-	texts := []family.Text{
-		feedback.TextNew, feedback.TextHistory, feedback.TextOnTheWeb,
-		feedback.TextViewOnWeb, feedback.TextKind, feedback.TextKindBug, feedback.TextKindIdea, feedback.TextBodyPlaceholder,
-		feedback.TextEmail, feedback.TextEmailPlaceholder, feedback.TextAttachments, feedback.TextAddImages,
-		feedback.TextAddVideo, feedback.TextAttachHint, feedback.TextDiagnostics, feedback.TextPreview,
-		feedback.TextPrivacyLink, feedback.TextPreparing, feedback.TextSending, feedback.TextSent,
-		feedback.TextFailed, feedback.TextRetry, feedback.TextNoHistory, feedback.TextReply, feedback.TextYou, feedback.TextNewReply,
-		feedback.TextStatusTriaged, feedback.TextStatusWaitingUser, feedback.TextProblemBodyShort, feedback.TextProblemBodyLong,
-		feedback.TextProblemEmailRequired, feedback.TextProblemEmailInvalid, feedback.TextProblemTooManyImages,
-		feedback.TextProblemImage, feedback.TextProblemVideo, feedback.TextProblemVideoTooLarge, feedback.TextRateLimited,
+var fbFailures = []fbFailure{
+	{"speech", codeSpeech, kindSpeech, "Text to speech › Generate", func(t *testing.T, f *fbTest) {
+		f.a.navigate("/studio")
+		f.a.jobError = "the engine exited: signal: abort trap"
+	}},
+	{"engine", codeEngine, "engine_crashed", "Engine › gpu", func(t *testing.T, f *fbTest) {
+		f.eng.status(engine.WorkerStatus{Role: proto.RoleGPU, State: engine.WorkerFailed, Reason: engine.FailCrashed, Err: "the engine exited: signal: abort trap"})
+		f.a.showPage("engine")
+	}},
+	{"model", codeModel, kindModelDownload, "Models › Model card", func(t *testing.T, f *fbTest) {
+		useFakeHub(t, f.a)
+		f.a.updateSettings(func(s *settings.Settings) { s.Models.Endpoints = []string{"http://127.0.0.1:1"} })
+		f.a.resetHub()
+		openModels(f.a)
+		f.frames()
+		f.a.download(entry(t, "chatterbox-turbo-8bit"))
+		f.tt.SetSize(1100, 6000)
+	}},
+	{"transcription", codeTranscribe, kindTranscribe, "Speech to text", func(t *testing.T, f *fbTest) {
+		f.a.navigate("/transcripts")
+		f.a.trErr = "The engine stopped while it listened."
+	}},
+	{"audiobook", codeAudiobook, kindRender, "Audiobook › Render", func(t *testing.T, f *fbTest) {
+		f.a.navigate("/audiobook")
+		fbClick(t, f.tt, "Load sample")
+		p := f.a.lfBook
+		p.render = "r1"
+		f.a.lfRenders["r1"] = &lfRender{rec: core.Render{ID: "r1", Kind: core.ProjectAudiobook, State: core.RenderFailed}}
+	}},
+	{"dub", codeDub, kindDub, "Dub", func(t *testing.T, f *fbTest) {
+		f.a.navigate("/dub")
+		f.a.dubErr = "The mix could not be written: disk full"
+	}},
+}
+
+// Every failure point shows "Report this problem"; a click opens the
+// window filled with its report, without the user's words.
+func TestFailuresShowReportLink(t *testing.T) {
+	for _, fl := range fbFailures {
+		t.Run(fl.name, func(t *testing.T) {
+			f := newFeedbackTest(t)
+			f.a.step("generate")
+			fl.show(t, f)
+			f.frames()
+			fbClick(t, f.tt, "Report this problem")
+			if !f.a.fbWin.IsOpen() {
+				t.Fatal("the window did not open")
+			}
+			f.frames()
+			all := strings.Join(f.wt.Texts(), "\n")
+			want := []string{"Report this problem", fl.code, "log lines)", "Include this error report", fl.kind, fl.where, "Generate speech"}
+			if fl.name == "model" {
+				want = append(want, "Download a model")
+			}
+			for _, s := range want {
+				if !strings.Contains(all, s) {
+					t.Errorf("no %q in the window: %q", s, f.wt.Texts())
+				}
+			}
+			for _, w := range feedbackPrivateWords {
+				if strings.Contains(all, w) {
+					t.Errorf("the user's words in the report: %q", w)
+				}
+			}
+			if s := f.a.fbWin.Snapshot(); !strings.HasPrefix(s.Report, "ER-") || !s.Include || s.Kind != feedback.KindBug {
+				t.Errorf("prefill %+v", s)
+			}
+		})
 	}
-	// AudioSmith's labels have no trailing "…" (AGENTS.md), actnowkit's
-	// buttons do: compared without it.
-	labels := map[string]bool{feedback.TextAddImages.EN: true, feedback.TextAddVideo.EN: true, feedback.TextPreview.EN: true}
-	for _, tx := range texts {
-		if labels[tx.EN] {
-			tx.EN, tx.ZH = strings.TrimSuffix(tx.EN, "…"), strings.TrimSuffix(tx.ZH, "…")
-		}
-		en := kitMessage(tx.EN)
-		i18n.SetLocale("zh-Hans")
-		zh := i18n.T(en)
-		i18n.SetLocale("en")
-		if zh == en {
-			t.Errorf("%q is not in the catalogue", en)
-			continue
-		}
-		if want := kitMessage(tx.ZH); zh != want {
-			t.Errorf("%q: AudioSmith says %q, actnowkit %q", en, zh, want)
+}
+
+// Sent from a report's link: the request has the context, the
+// diagnostics the report, and neither holds the user's words.
+func TestFeedbackWithReportUploaded(t *testing.T) {
+	f := newFeedbackTest(t)
+	f.a.step("generate")
+	fbFailures[0].show(t, f)
+	f.frames()
+	fbClick(t, f.tt, "Report this problem")
+	f.a.fbWin.SetForm("", "The take fails at once.", "ann@example.com", true, true)
+	f.a.fbWin.Send()
+	f.frames()
+	if !has(f.wt, "FB-1042") && f.a.fbWin.Snapshot().Phase != feedback.Sent {
+		t.Fatalf("not sent: %+v %q", f.a.fbWin.Snapshot(), f.wt.Texts())
+	}
+	it := f.site.Items()["fb_1"]
+	if it == nil || !it.Completed {
+		t.Fatalf("site %+v", it)
+	}
+	ctx := it.Request.Context
+	if ctx == nil || ctx.Code != codeSpeech || ctx.Kind != kindSpeech || ctx.Where != "Text to speech › Generate" ||
+		!strings.HasPrefix(ctx.ReportID, "ER-") || it.Request.Kind != feedback.KindBug || len(ctx.Steps) == 0 || ctx.Steps[0] != "generate" {
+		t.Fatalf("context %+v kind %s", ctx, it.Request.Kind)
+	}
+	var diag struct {
+		Report *feedback.Report `json:"report"`
+	}
+	for _, file := range it.Files {
+		if file.Meta.Role == feedback.RoleDiagnostics {
+			if err := json.Unmarshal(file.Data, &diag); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
-	i18n.SetLocale("zh-Hans")
-	for _, c := range []struct {
-		got  string
-		want family.Text
-	}{
-		{feedbackKindText(feedback.KindQuestion), feedback.TextKindQuestion}, {feedbackKindText(feedback.KindOther), feedback.TextKindOther},
-		{feedbackStatusText(feedback.StatusNew), feedback.TextStatusNew}, {feedbackStatusText(feedback.StatusInProgress), feedback.TextStatusInProgress},
-		{feedbackStatusText(feedback.StatusResolved), feedback.TextStatusResolved}, {feedbackStatusText(feedback.StatusClosed), feedback.TextStatusClosed},
-		{i18n.X("feedback", "Description"), feedback.TextBody}, {i18n.X("feedback", "Send"), feedback.TextSend},
-		{i18n.X("feedback", "Discard"), feedback.TextDiscard}, {i18n.X("feedback author", "Support"), feedback.TextSupport},
-	} {
-		if c.got != c.want.ZH {
-			t.Errorf("%q: AudioSmith says %q, actnowkit %q", c.want.EN, c.got, c.want.ZH)
+	if diag.Report == nil || diag.Report.ID != ctx.ReportID || len(diag.Report.Logs) == 0 || !strings.Contains(diag.Report.Error, "abort trap") {
+		t.Fatalf("diagnostics report %+v", diag.Report)
+	}
+	data, _ := json.Marshal(it.Request)
+	rep, _ := json.Marshal(diag.Report)
+	for _, w := range feedbackPrivateWords {
+		if strings.Contains(string(data), w) || strings.Contains(string(rep), w) {
+			t.Errorf("the user's words %q are sent", w)
 		}
+	}
+}
+
+// The window follows Settings → Appearance, not only the system's.
+func TestFeedbackWindowFollowsAppearance(t *testing.T) {
+	f := newFeedbackTest(t)
+	f.a.sendFeedback()
+	f.a.updateSettings(func(s *settings.Settings) { s.Appearance.Theme = "dark" })
+	f.frames()
+	if c := f.wt.Image().RGBAAt(5, 300); c.R > 40 {
+		t.Fatalf("not dark: %v", c)
+	}
+	f.a.updateSettings(func(s *settings.Settings) { s.Appearance.Theme = "light" })
+	f.wt.SetDark(true)
+	f.frames()
+	if c := f.wt.Image().RGBAAt(5, 300); c.R < 200 {
+		t.Fatalf("not light: %v", c)
 	}
 }
 
 // connectFeedbackShots gives the snapshots' Settings → Feedback a fake
-// site with one feedback answered, and a form being written.
+// site with one feedback answered.
 func connectFeedbackShots(t *testing.T, a *app) {
 	t.Helper()
-	site := newFakeFeedbackSite(t)
-	if _, err := a.newFeedback(feedbackOptions{Base: site.srv.URL, Dir: filepath.Join(t.TempDir(), "feedback"), LogDir: t.TempDir(),
-		Version: "0.5.0", Client: site.srv.Client()}); err != nil {
-		t.Fatal(err)
-	}
-	a.fbForm = feedbackForm{body: "Rewrite answers in English when I speak Chinese.", email: "ann@example.com"}
-	a.fbSend()
-	site.supportReplies("fb_1", "Thanks! Which language model is set for Rewrite?")
-	a.fbRefresh()
-	a.fbMgr.Reset()
-	a.fbForm = feedbackForm{kind: 0, body: "The overlay stays on screen after a recording ends.", diagnostics: true}
+	site := feedbacktest.New()
+	t.Cleanup(site.Close)
+	connectTestFeedback(t, a, site, t.TempDir())
+	w := a.fbWin
+	w.Open(feedback.Prefill{})
+	w.SetForm(feedback.KindBug, "Rewrite answers in English when I speak Chinese.", "ann@example.com", true, false)
+	w.Send()
+	site.SupportReplies("fb_1", "Thanks! Which language model is set for Rewrite?")
+	w.Refresh()
+	w.Close()
 }
 
 // TestFeedbackSiteOverride: AUDIOSMITH_FEEDBACK_SERVER points a development

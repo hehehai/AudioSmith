@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -131,6 +132,8 @@ func (a *app) workerCard(c *ui.Context, w engine.WorkerStatus) {
 			ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Start).Children(func() {
 				ui.Icon(c, icons.DangerCircle.Linear).Size(px(t, 14), px(t, 14)).TextColor(t.Danger).Shrink(0)
 				ui.Text(c, msg).FontSize(px(t, fsCaption)).TextColor(t.Danger).Selectable().Grow(1).MinWidth(0)
+				a.reportLink(c, failure{key: string(w.Role) + "@" + w.Since.UTC().Format(time.RFC3339Nano), title: i18n.T("The engine stopped"),
+					code: codeEngine, kind: "engine_" + string(w.Reason), where: "Engine › " + string(w.Role), message: w.Err})
 			})
 		}
 		if w.StderrTail != "" && w.State == engine.WorkerFailed {

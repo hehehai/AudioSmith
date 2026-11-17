@@ -243,6 +243,11 @@ func (a *app) startLf(p *lfPage, what string) {
 			return
 		}
 	}
+	if p.kind == core.ProjectAudiobook {
+		a.step("render_audiobook")
+	} else {
+		a.step("render_story")
+	}
 	spec := p.spec
 	spec.Project = p.project
 	if spec.Title == "" { // a draft's: its first words (render_titles.go)
@@ -350,6 +355,7 @@ func (a *app) stopLf(p *lfPage) {
 
 // resumeLf renders what a stopped or failed render lacks.
 func (a *app) resumeLf(p *lfPage, id string) {
+	a.step("resume_render")
 	svc := a.lib.svc.Longform
 	a.background(func() {
 		r, err := svc.Resume(context.Background(), id)

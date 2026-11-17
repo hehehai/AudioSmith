@@ -134,6 +134,7 @@ func (a *app) download(e catalog.Entry) {
 	if m.downloading {
 		return
 	}
+	a.step("download_model")
 	if licence.Required(e) != nil && !licence.Covers(a.accepted, e) {
 		a.askLicence(e, func() { a.download(e) })
 		return

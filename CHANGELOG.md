@@ -3,7 +3,8 @@
 ## Unreleased
 
 ### Added
-- **Settings → Feedback**: send a problem, a suggestion or a question to actnow.dev from the app, with screenshots or a screen recording and, if you want, diagnostics you can look at before sending (versions, the engine, settings and recent log lines, without your text, voices, files, keys, names or addresses). Replies show in the app and by email. Feedback written offline is sent once you are online. **Help → Send Feedback** and the command palette open it; GitHub issues still work.
+- **Send Feedback**: a window of its own to send a problem, a suggestion or a question to actnow.dev from the app, with screenshots or a screen recording (previewed in the window) and, if you want, diagnostics you can look at before sending (versions, the engine, settings and recent log lines, without your text, voices, files, keys, names or addresses). Replies show in the app and by email; **Settings → Feedback** lists what you sent. Feedback written offline is sent once you are online. **Help → Send Feedback**, the menu bar and the command palette open it; GitHub issues still work.
+- **Report this problem** beside a failed take (Text to speech), a stopped engine, a model whose download failed, a failed transcription, an audiobook's or a story's failed render and a failed dub: the feedback window opens with an error report (the error, where it happened, your last few actions by name and the log lines of that moment, without your text, voices or files), which you can leave out.
 
 ## 0.5.0-beta.3 — 2026-11-16
 
