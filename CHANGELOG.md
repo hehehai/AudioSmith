@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Settings → Models & network: models other ActNow apps use too say “Shared across ActNow” instead of naming the apps; so do the shared API keys and the storage page.
+
 ## 0.5.0-beta.4 — 2026-11-17
 
 ### Added

@@ -382,7 +382,7 @@ func (a *app) removedShows(kind int) bool {
 
 // removedOnDisk are the removed models with files to clean up, and the
 // bytes of each (its auxiliary repos count as its own); kept are those
-// with files another ActNow app uses, with why ("Kept: used by Dicta"),
+// with files another ActNow app uses, with why ("Kept: shared across ActNow"),
 // when the app can be named.
 func (a *app) removedOnDisk() (names []string, bytes []int64, kept []string) {
 	for _, r := range catalog.Builtin().Removed {
@@ -408,7 +408,7 @@ func (a *app) removedOnDisk() (names []string, bytes []int64, kept []string) {
 			names, bytes = append(names, r.Label), append(bytes, n)
 		}
 		if len(users) > 0 {
-			kept = append(kept, r.Label+" · "+i18n.T("Kept: used by %s", listJoin(users)))
+			kept = append(kept, r.Label+" · "+i18n.T("Kept: shared across ActNow"))
 		}
 	}
 	return names, bytes, kept

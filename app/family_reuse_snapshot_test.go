@@ -17,8 +17,8 @@ import (
 
 // TestSnapshotsFamilyReuse renders the reuse of Dicta's models (Dicta, a
 // release build, installed): the first run's reuse card, the Models
-// page's family lines ("Shared with Dicta · Also loaded in Dicta",
-// "Installed · from Dicta" with Use), the licence dialog of a licence
+// page's family lines ("Shared across ActNow · In use by another app",
+// "Installed · Shared across ActNow" with Use), the licence dialog of a licence
 // accepted in Dicta; English and Chinese at 1100×720 (the storage page's
 // folder row is in TestSnapshotsFamily's f05):
 //

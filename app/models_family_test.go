@@ -57,7 +57,7 @@ func TestRemovedKeptListed(t *testing.T) {
 	if len(names) != 1 || bytes[0] != 300 || !strings.Contains(names[0], "Parakeet") {
 		t.Errorf("to clean %v %v", names, bytes)
 	}
-	if !slices.Equal(kept, []string{"Gemma 4 E4B · Kept: used by Dicta"}) {
+	if !slices.Equal(kept, []string{"Gemma 4 E4B · Kept: shared across ActNow"}) {
 		t.Errorf("kept %q", kept)
 	}
 	i18n.SetLocale("zh-Hans")

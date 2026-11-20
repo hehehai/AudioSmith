@@ -2,8 +2,9 @@ package main
 
 // Reusing what other ActNow apps put in the model folder (family spec
 // §7.3, §7.9, §7.10.1, §7.10.2; internal/family reuse.go, licences.go):
-// the first run's reuse card, the Models page's "Shared with Dicta",
-// "Installed · from Dicta" with [Use] and "Also loaded in Dicta", the
+// the first run's reuse card, the Models page's "Shared across ActNow",
+// "Installed · Shared across ActNow" with [Use] and "In use by another
+// app" (no app names: actnowkit v0.22.1), the
 // claim of a model AudioSmith loads without claiming it, and licences
 // accepted in another app. Other apps are named only when a release
 // build of one is installed (famOthers, spec §7.10); the claims are
@@ -105,7 +106,8 @@ func (a *app) modelShare(e catalog.Entry) (family.Share, []string) {
 }
 
 // installedBy names the app that installed e when AudioSmith does not
-// claim it ("Installed · from Dicta" with [Use]); "" otherwise.
+// claim it (the page says "Installed · Shared across ActNow" with
+// [Use]); "" otherwise.
 func (a *app) installedBy(e catalog.Entry, m *modelState) string {
 	sh, _ := a.modelShare(e)
 	if m == nil || sh.Mine || len(sh.With) == 0 || m.downloading || m.local.State != hub.Downloaded {
@@ -115,15 +117,17 @@ func (a *app) installedBy(e catalog.Entry, m *modelState) string {
 }
 
 // familyLine is the Models page's line under a model's facts: "Shared
-// with Dicta", "Also loaded in Dicta"; "" when there is nothing to say.
+// across ActNow", "In use by another app"; "" when there is nothing to
+// say. It names no app (actnowkit v0.22.1): the list grows with the
+// family.
 func (a *app) familyLine(e catalog.Entry, m *modelState) string {
 	sh, loaded := a.modelShare(e)
 	var parts []string
 	if sh.Mine && len(sh.With) > 0 && m.local.State == hub.Downloaded {
-		parts = append(parts, i18n.T("Shared with %s", listJoin(sh.With)))
+		parts = append(parts, i18n.T("Shared across ActNow"))
 	}
 	if len(loaded) > 0 {
-		parts = append(parts, i18n.T("Also loaded in %s", listJoin(loaded)))
+		parts = append(parts, i18n.T("In use by another app"))
 	}
 	return strings.Join(parts, " · ")
 }
@@ -261,8 +265,9 @@ func (a *app) reuseCard(c *ui.Context) {
 				n := len(s.Models)
 				ui.Text(c, i18n.N(n, "%d model is already on this Mac", "%d models are already on this Mac", n)).FontWeight(600)
 				by := i18n.T("Already on this Mac · %s · no download needed", humanBytes(s.Bytes))
-				if name := s.By(); name != "" {
-					by = i18n.T("Installed by %s · %s · no download needed", name, humanBytes(s.Bytes))
+				if s.By() != "" {
+					// Not the app's name (actnowkit v0.22.1).
+					by = i18n.T("Shared across ActNow · %s · no download needed", humanBytes(s.Bytes))
 				}
 				ui.Text(c, by).FontSize(px(t, fsCaption)).TextColor(k.Text2)
 				var names []string

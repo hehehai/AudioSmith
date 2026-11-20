@@ -352,8 +352,8 @@ func (a *app) modelStateText(e catalog.Entry, m *modelState) string {
 	case !m.known:
 		return i18n.T("Checking…")
 	case m.local.State == hub.Downloaded:
-		if by := a.installedBy(e, m); by != "" {
-			return i18n.T("Installed · from %s", by) // family_reuse.go
+		if a.installedBy(e, m) != "" {
+			return i18n.T("Installed · Shared across ActNow") // family_reuse.go
 		}
 		return i18n.T("Downloaded · %s", mb(m.local.Bytes))
 	case m.local.State == hub.Partial:

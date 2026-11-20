@@ -40,7 +40,7 @@ func downloadsSent(eng *fakeEngine) []string {
 
 // A first run with Dicta's models on disk (spec §16.1 scenario 1): nothing
 // is migrated; the models step shows the card for the fast pack ("3
-// models are already on this Mac · Installed by Dicta"); "Use them"
+// models are already on this Mac · Shared across ActNow"); "Use them"
 // claims them (origin reused, Dicta's claims stay), and finishing
 // downloads only what is missing.
 func TestReuseCard(t *testing.T) {
@@ -69,7 +69,7 @@ func TestReuseCard(t *testing.T) {
 			t.Errorf("the card lacks %q: %q", s, tt.Texts())
 		}
 	}
-	if !slices.ContainsFunc(tt.Texts(), func(x string) bool { return strings.HasPrefix(x, "Installed by Dicta · ") }) {
+	if !slices.ContainsFunc(tt.Texts(), func(x string) bool { return strings.HasPrefix(x, "Shared across ActNow · ") }) {
 		t.Errorf("not named: %q", tt.Texts())
 	}
 	if err := tt.Click("Use them"); err != nil {
@@ -133,7 +133,7 @@ func TestReuseCardUnnamed(t *testing.T) {
 }
 
 // "Choose models": nothing is claimed; the setup ends on the Models
-// page (no welcome line, which would leave it for the Studio), where Dicta's models say "Installed · from Dicta" with [Use];
+// page (no welcome line, which would leave it for the Studio), where Dicta's models say "Installed · Shared across ActNow" with [Use];
 // [Use] claims one, which is then "Shared with Dicta".
 func TestReuseChooseModels(t *testing.T) {
 	i18n.SetLocale("en")
@@ -165,7 +165,7 @@ func TestReuseChooseModels(t *testing.T) {
 	a.refreshFamily()
 	a.modelsFind = asr.DisplayName()
 	tt.Frame()
-	if !tt.HasText("Installed · from Dicta") || !tt.HasText("Use") {
+	if !tt.HasText("Installed · Shared across ActNow") || !tt.HasText("Use") {
 		t.Fatalf("models page %q", tt.Texts())
 	}
 	if err := tt.Click("Use"); err != nil {
@@ -175,15 +175,15 @@ func TestReuseChooseModels(t *testing.T) {
 	if c, ok := tf.Claims(family.ReleaseBundleID).Find(refOf(asr)); !ok || c.Origin != models.OriginReused {
 		t.Errorf("Use: %+v %v", c, ok)
 	}
-	if !tt.HasText("Shared with Dicta") || tt.HasText("Installed · from Dicta") {
+	if !tt.HasText("Shared across ActNow") || tt.HasText("Installed · Shared across ActNow") {
 		t.Errorf("after Use %q", tt.Texts())
 	}
 }
 
 // After "Remove from AudioSmith" (Dicta keeps the files) the model says
-// "Installed · from Dicta" with [Use]; the engine loading it claims it
-// again (claimInUse), and the Models page says "Shared with Dicta",
-// "Also loaded in Dicta" while Dicta holds it.
+// "Installed · Shared across ActNow" with [Use]; the engine loading it claims it
+// again (claimInUse), and the Models page says "Shared across ActNow",
+// "In use by another app" while Dicta holds it.
 func TestRemovedModelReclaimedOnUse(t *testing.T) {
 	i18n.SetLocale("en")
 	a, _, tt := newTestApp(t)
@@ -198,7 +198,7 @@ func TestRemovedModelReclaimedOnUse(t *testing.T) {
 	openModels(a)
 	a.modelsFind = asr.DisplayName()
 	tt.Frame()
-	if got := a.modelStateText(asr, a.model(asr)); got != "Installed · from Dicta" || !tt.HasText("Use") {
+	if got := a.modelStateText(asr, a.model(asr)); got != "Installed · Shared across ActNow" || !tt.HasText("Use") {
 		t.Errorf("after the removal: %q %q", got, tt.Texts())
 	}
 	a.claimInUse([]string{asr.Repo})
@@ -213,10 +213,10 @@ func TestRemovedModelReclaimedOnUse(t *testing.T) {
 	a.famRT = tf.fam.Runtime(family.RuntimeOptions{})
 	a.refreshFamily()
 	tt.Frame()
-	if line := a.familyLine(asr, a.model(asr)); line != "Shared with Dicta · Also loaded in Dicta" || !tt.HasText(line) {
+	if line := a.familyLine(asr, a.model(asr)); line != "Shared across ActNow · In use by another app" || !tt.HasText(line) {
 		t.Errorf("line %q, texts %q", line, tt.Texts())
 	}
-	if a.installedBy(asr, a.model(asr)) != "" || tt.HasText("Installed · from Dicta") {
+	if a.installedBy(asr, a.model(asr)) != "" || tt.HasText("Installed · Shared across ActNow") {
 		t.Error("still installed by Dicta")
 	}
 }
@@ -381,7 +381,7 @@ func TestReuseCardAfterDiscovery(t *testing.T) {
 	a.showFamily(readFamilyView(fam, nil, cache))
 	tt.Frame()
 	tt.Frame()
-	if !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasPrefix(s, "Installed by Dicta · ") }) {
+	if !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasPrefix(s, "Shared across ActNow · ") }) {
 		t.Errorf("card %q", tt.Texts())
 	}
 }
