@@ -270,6 +270,11 @@ func (a *app) recordKey(ev ui.InputEvent) bool {
 		a.stopShortcutRecording()
 		return true
 	}
+	if ev.Key == ui.KeyUnknown && ev.PhysicalKey == ui.KeyUnknown {
+		// A modifier on its own (MyGo sends those since 0.8, named by Code
+		// alone): the user is still pressing the combination.
+		return true
+	}
 	key := ev.Key
 	if _, ok := shortcutKeyNames[key]; !ok && ev.PhysicalKey != ui.KeyUnknown {
 		key = ev.PhysicalKey // a letter of another script: its key's place
