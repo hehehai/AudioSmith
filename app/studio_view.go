@@ -149,7 +149,7 @@ func (a *app) composerToolbar(c *ui.Context) {
 // afterSecond builds the view again when the time elapsed since start
 // next reaches a whole second, for a clock counting in seconds.
 func (a *app) afterSecond(c *ui.Context, start time.Time) {
-	c.After(time.Second - a.since(start)%time.Second)
+	afterShown(c, time.Second-a.since(start)%time.Second)
 }
 
 // now is the time for the jobs' clocks (a.clock, else time.Now).

@@ -255,7 +255,7 @@ func soundRow(c *ui.Context, sp soundPickerSpec, choice, name, kind string) {
 	if sp.Playing != nil {
 		if ch, left := sp.Playing(); ch != "" {
 			playing = ch == choice
-			c.After(left) // redraw when it ends
+			afterShown(c, left) // redraw when it ends
 		}
 	}
 	ui.Row(c.Key("row-" + choice)).Gap(px(t, 2)).AlignItems(ui.Center).Children(func() {
@@ -366,7 +366,7 @@ func (a *app) dictSoundRows(c *ui.Context) {
 				if a.dictPlayer != nil {
 					var left time.Duration
 					if ch, left = a.dictPlayer.Previewing(); ch != "" {
-						c.After(left) // redraw when it ends
+						afterShown(c, left) // redraw when it ends
 					}
 				}
 				if ch != "" && ch == choice {

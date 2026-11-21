@@ -34,9 +34,9 @@ package main
 // Beta channel (thread #52): betas are prereleases (0.4.0-beta.5). Their
 // files are in the feed's beta directory, …/updates/audiosmith/beta/, whose
 // manifest names the newest beta or release. With Settings → Receive beta
-// updates on, MyGo's updater (patches 0003 and 0008,
-// mygo.Updater.SetPrereleases) reads it as well as the releases' and offers
-// the newer; the changelog then lists betas too. The setting
+// updates on, MyGo's updater (mygo.Updater.SetPrereleases, with
+// mygo.json's updates.prereleases) reads it as well as the releases' and
+// offers the newer; the changelog then lists betas too. The setting
 // (settings.Updates.Beta) defaults to on in a beta copy, off in a release.
 // Turning it off never goes back to an older version: a beta stays until a
 // release newer than it is out.
@@ -129,7 +129,7 @@ func (a *app) connectUpdates() {
 		if a.lib != nil {
 			set := a.lib.settings
 			client = updateHTTPClient(func() string { return set.Get().Models.Proxy })
-			mygo.Updater.SetHTTPClient(client)
+			mygo.Updater.SetTransport(client.Transport)
 		}
 		u.mgr = akup.New(akup.Config{
 			Updater: akup.Funcs{
@@ -146,7 +146,7 @@ func (a *app) connectUpdates() {
 			History:  &akup.HistoryClient{App: updateSlug, HTTPClient: client},
 			Language: i18n.Locale,
 			Beta:     func() bool { return betaUpdates(a.prefs, a.version) },
-			Restart:  func() { a.post(mygo.App.Relaunch) },
+			Restart:  func() { a.post(func() { mygo.App.Relaunch() }) },
 			Log:      func(s string) { log.Printf("updates: %s", s) },
 		})
 		a.keepUpdaterChoices()

@@ -129,7 +129,7 @@ func (a *app) transcriptSegments(c *ui.Context, tr *core.Transcript) {
 		}
 	})
 	if a.pl.Playing(trPlayID(tr.ID)) {
-		c.After(150 * time.Millisecond)
+		afterShown(c, 150*time.Millisecond)
 	}
 }
 

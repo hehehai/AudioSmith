@@ -29,7 +29,7 @@ func (a *app) clonePage(c *ui.Context) {
 		}
 	}})
 	if s.busy != "" || s.mic.phase != "" {
-		c.After(100 * time.Millisecond) // the timer, the level
+		afterShown(c, 100*time.Millisecond) // the timer, the level
 	}
 	s.syncStep()
 	page := ui.Scroll(c.Key("clone-scroll")).Grow(1).MinHeight(0)

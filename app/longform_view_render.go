@@ -164,7 +164,7 @@ func (a *app) chapterTracker(c *ui.Context, r *lfRender) {
 	}
 	now := time.Now()
 	if r.rec.State == core.RenderRunning {
-		c.After(time.Second) // the clock
+		afterShown(c, time.Second) // the clock
 	}
 	fillCard(c.Key("lf-track")).Padding(px(t, sp3)).Gap(px(t, sp2)).Children(func() {
 		ui.Progress(c, frac).Label(i18n.T("Render progress"))

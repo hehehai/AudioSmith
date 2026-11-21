@@ -4,6 +4,7 @@
 
 ### Changed
 - Settings → Models & network: models other ActNow apps use too say “Shared across ActNow” instead of naming the apps; so do the shared API keys and the storage page.
+- App framework updated to ActNow's v0.10.0-actnow.4 (based on upstream 0.10.0).
 
 ## 0.5.0-beta.4 — 2026-11-17
 

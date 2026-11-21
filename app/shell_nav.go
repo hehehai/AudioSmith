@@ -112,7 +112,7 @@ func (a *app) sidebarFrame(c *ui.Context, page func()) {
 	}
 	if split.Changed() {
 		a.sideWAt = time.Now()
-		c.After(600 * time.Millisecond)
+		afterShown(c, 600*time.Millisecond)
 	}
 	if !a.sideWAt.IsZero() && time.Since(a.sideWAt) >= 500*time.Millisecond {
 		a.sideWAt = time.Time{}

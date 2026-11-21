@@ -70,7 +70,10 @@ version="$(jq -r .version mygo.json)"
 min_macos="$(jq -r '.macos.minimumSystemVersion // empty' mygo.json)"
 tag="v$version"
 manifest="$OUT/update-darwin-arm64.json"
-dmg="$OUT/AudioSmith $version arm64.dmg"
+# MyGo names the disk image "<slug>-<version>-<arch>.dmg" (0.7 and later;
+# "AudioSmith <version> arm64.dmg" before); the GitHub release gets a copy
+# named AudioSmith-<version>-arm64.dmg.
+dmg="$OUT/audiosmith-$version-arm64.dmg"
 
 # Everything that can be checked before anything is sent.
 # The disk image goes to the website and to the GitHub release.
@@ -82,7 +85,7 @@ actnow_is_prerelease "$version" && feed="$feed/beta"
 if [[ -f "$manifest" ]]; then
   jq -e --arg v "$version" '.version == $v' "$manifest" > /dev/null || fail "$manifest is not of $version: build again"
   # The site takes the archive and deltas at exactly $feed/<file> (a beta's
-  # in beta/, as MyGo patch 0008 names them from updates.url).
+  # in beta/, as MyGo names them from updates.url with updates.prereleases).
   for url in $(jq -r '.url, .deltas[]?.url' "$manifest"); do
     [[ "$url" == "$feed/"* && "${url#"$feed/"}" != */* ]] ||
       fail "$manifest points at $url, not into $feed/: build with scripts/release-config.sh (updates.url $ACTNOW_UPDATES_URL)"

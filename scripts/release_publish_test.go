@@ -95,7 +95,7 @@ func (s *site) reset() {
 
 // publishRoot is a checkout with a verified build of 0.4.0-beta.5 in
 // build/darwin-arm64 (the manifest's URLs as MyGo makes them with
-// updates.url https://actnow.dev/updates/audiosmith, patch 0008), the
+// updates.url https://actnow.dev/updates/audiosmith and updates.prereleases), the
 // vendored actnow-publish.sh, and a fake gh that logs its calls in log
 // (fails "release upload" when $GH_FAIL is set).
 func publishRoot(t *testing.T, siteURL, manifestURL string) (root, log string) {
@@ -114,7 +114,7 @@ func publishRoot(t *testing.T, siteURL, manifestURL string) (root, log string) {
 		"mygo.json":            config,
 		"CHANGELOG.md":         "# Changelog\n\n## 0.4.0-beta.5\n\n- Five.\n\n## 0.4.0-beta.4\n\n- Four.\n",
 		"CHANGELOG.zh-Hans.md": "# 更新日志\n\n## 0.4.0-beta.5\n\n- 五。\n\n## 0.4.0-beta.4\n\n- 四。\n",
-		"build/darwin-arm64/AudioSmith 0.4.0-beta.5 arm64.dmg":                          "disk image",
+		"build/darwin-arm64/audiosmith-0.4.0-beta.5-arm64.dmg":                          "disk image",
 		"build/darwin-arm64/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz":                "archive",
 		"build/darwin-arm64/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta": "delta",
 		"build/darwin-arm64/update-darwin-arm64.json":                                   string(manifest),
@@ -191,7 +191,7 @@ func TestReleasePublish(t *testing.T) {
 	for _, a := range request["artifacts"].([]any) {
 		names = append(names, a.(map[string]any)["filename"].(string))
 	}
-	if want := []string{"AudioSmith-0.4.0-beta.5-arm64.dmg", "audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta", "audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz", "update-darwin-arm64.json"}; !slices.Equal(names, want) {
+	if want := []string{"audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta", "audiosmith-0.4.0-beta.5-arm64.dmg", "audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz", "update-darwin-arm64.json"}; !slices.Equal(names, want) {
 		t.Errorf("dry run: files %v", names)
 	}
 	if request["app"] != "audiosmith" || request["version"] != "0.4.0-beta.5" || request["channel"] != "beta" || request["minMacOS"] != "15.0" || request["notes"] != "- Five." || request["publish"] != nil {
@@ -237,8 +237,8 @@ func TestReleasePublish(t *testing.T) {
 	calls := readLog(log)
 	want := []string{
 		"site POST /api/releases/sessions",
-		"site PUT /api/releases/r1/artifacts/AudioSmith-0.4.0-beta.5-arm64.dmg",
 		"site PUT /api/releases/r1/artifacts/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta",
+		"site PUT /api/releases/r1/artifacts/audiosmith-0.4.0-beta.5-arm64.dmg",
 		"site PUT /api/releases/r1/artifacts/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz",
 		"site PUT /api/releases/r1/artifacts/update-darwin-arm64.json",
 		"site POST /api/releases/r1/complete",
@@ -257,7 +257,7 @@ func TestReleasePublish(t *testing.T) {
 		}
 	}
 	manifestBytes, _ := os.ReadFile(filepath.Join(root, "build/darwin-arm64/update-darwin-arm64.json"))
-	if s.files["AudioSmith-0.4.0-beta.5-arm64.dmg"] != "disk image" || s.files["audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz"] != "archive" || s.files["update-darwin-arm64.json"] != string(manifestBytes) {
+	if s.files["audiosmith-0.4.0-beta.5-arm64.dmg"] != "disk image" || s.files["audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz"] != "archive" || s.files["update-darwin-arm64.json"] != string(manifestBytes) {
 		t.Errorf("uploaded %v", s.files)
 	}
 	for _, a := range s.session["artifacts"].([]any) {
@@ -306,7 +306,7 @@ func TestReleasePublish(t *testing.T) {
 	os.Remove(log)
 	s.reset()
 	// (from the run's artifact, which has no disk image)
-	dmg := filepath.Join(root, "build/darwin-arm64/AudioSmith 0.4.0-beta.5 arm64.dmg")
+	dmg := filepath.Join(root, "build/darwin-arm64/audiosmith-0.4.0-beta.5-arm64.dmg")
 	os.Rename(dmg, dmg+".away")
 	if _, stderr, err := publish(root, log, []string{"GITHUB_FEED=true"}, "--skip-website"); err != nil || s.calls != 0 || len(readLog(log)) != 4 {
 		t.Errorf("--skip-website: %v, %v\n%s", err, readLog(log), stderr)

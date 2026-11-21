@@ -13,9 +13,10 @@
 #   https://actnow.dev/updates/audiosmith/beta/<file>  betas (channel beta); its
 #                                                      manifest names the newer of both
 #
-# Every build, beta or not, has updates.url = ACTNOW_UPDATES_URL: MyGo
-# (patch 0008) points a beta's archive and deltas into beta/, and the app
-# reads beta/'s manifest as well only with Receive beta updates on.
+# Every build, beta or not, has updates.url = ACTNOW_UPDATES_URL and
+# updates.prereleases: MyGo points a beta's archive and deltas into beta/,
+# and the app reads beta/'s manifest as well only with Receive beta updates
+# on (mygo.Updater.SetPrereleases).
 
 ACTNOW_APP=audiosmith
 # ACTNOW_URL, as actnow-publish.sh reads it, is for tests (a fake site).

@@ -317,7 +317,7 @@ func (a *app) view(c *ui.Context) {
 		// Notice the end of playback, so Pause turns back into Play. Views
 		// that show where it plays ask for their own frames (a slider, the
 		// word playing) or repaint (a waveform).
-		c.After(a.pl.Left())
+		afterShown(c, a.pl.Left())
 	}
 	a.syncNav()
 	// The headers' ‹ › (ui_page_header.go): the window's history.
@@ -391,7 +391,7 @@ func (a *app) toastsView(c *ui.Context) {
 				box.Opacity(float32(left) / float32(fade))
 				c.AnimationFrame()
 			case left > 0:
-				c.After(left - fade)
+				afterShown(c, left-fade)
 			}
 			box.Children(func() {
 				ui.Text(c, ts.Title).MinWidth(0).Shrink(1)

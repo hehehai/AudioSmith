@@ -187,7 +187,7 @@ func (a *app) voiceEditor(c *ui.Context) {
 		return
 	}
 	if e.consent.phase != "" {
-		c.After(100 * time.Millisecond)
+		afterShown(c, 100*time.Millisecond)
 	}
 	ui.Column(c.Key("editor-" + v.ID)).Padding(px(t, panelPad)).Gap(px(t, sp3)).Children(func() {
 		id := v.ID

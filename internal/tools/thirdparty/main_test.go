@@ -46,7 +46,7 @@ func TestNoticesCurrent(t *testing.T) {
 		t.Errorf("only %d components", n)
 	}
 	// The file names every component with its version.
-	for _, s := range []string{"github.com/egoist/mygo v0.5.5", "mlx-swift 0.32.3", "mlx-audio-swift revision", "swift-crypto", "NOTICE.txt", "SQLite", "RapiDoc", "Solar icon set"} {
+	for _, s := range []string{"github.com/egoist/mygo v0.10.0-actnow.", "mlx-swift 0.32.3", "mlx-audio-swift revision", "swift-crypto", "NOTICE.txt", "SQLite", "RapiDoc", "Solar icon set"} {
 		if !bytes.Contains(data, []byte(s)) {
 			t.Errorf("the notices lack %q", s)
 		}

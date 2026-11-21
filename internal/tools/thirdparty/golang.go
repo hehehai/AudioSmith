@@ -21,6 +21,9 @@ var goEnv = []string{"GOOS=darwin", "GOARCH=arm64", "CGO_ENABLED=0"}
 type goPackage struct {
 	importPath, dir            string
 	module, version, moduleDir string
+	// replacement is the module go.mod's replace puts in its place,
+	// "path version" ("" without one): MyGo is ActNow's fork.
+	replacement string
 }
 
 // mainPackage is the app's main package, mygo.json's "main" (MyGo's
@@ -44,7 +47,7 @@ func mainPackage(root string) (string, error) {
 // the main package for darwin/arm64. Test files and tools are not built
 // into it, so their modules are not listed.
 func linkedPackages(root string) ([]goPackage, error) {
-	const format = `{{if not .Standard}}{{.ImportPath}}|{{.Dir}}|{{with .Module}}{{.Path}}|{{.Version}}|{{.Dir}}{{end}}{{end}}`
+	const format = `{{if not .Standard}}{{.ImportPath}}|{{.Dir}}|{{with .Module}}{{.Path}}|{{.Version}}|{{.Dir}}|{{with .Replace}}{{.Path}} {{.Version}}{{end}}{{end}}{{end}}`
 	main, err := mainPackage(root)
 	if err != nil {
 		return nil, err
@@ -62,10 +65,10 @@ func linkedPackages(root string) ([]goPackage, error) {
 	sc := bufio.NewScanner(bytes.NewReader(out))
 	for sc.Scan() {
 		f := strings.Split(sc.Text(), "|")
-		if len(f) != 5 {
+		if len(f) != 6 {
 			continue // the standard library: an empty line
 		}
-		pkgs = append(pkgs, goPackage{importPath: f[0], dir: f[1], module: f[2], version: f[3], moduleDir: f[4]})
+		pkgs = append(pkgs, goPackage{importPath: f[0], dir: f[1], module: f[2], version: f[3], moduleDir: f[4], replacement: f[5]})
 	}
 	return pkgs, nil
 }
@@ -91,7 +94,13 @@ func goComponents(root string) ([]component, map[string]bool, error) {
 			continue
 		}
 		if modules[p.module] == nil {
-			modules[p.module] = &component{name: p.module, version: p.version, url: goModuleURL(p.module)}
+			c := &component{name: p.module, version: p.version, url: goModuleURL(p.module)}
+			// A module replaced by another module (MyGo by ActNow's fork):
+			// its source and version are the replacement's.
+			if rpath, rversion, ok := strings.Cut(p.replacement, " "); ok && rversion != "" {
+				c.version, c.url = rversion, goModuleURL(rpath)
+			}
+			modules[p.module] = c
 			moduleDirs[p.module] = p.moduleDir
 		}
 		dirs[p.module] = append(dirs[p.module], p.dir)

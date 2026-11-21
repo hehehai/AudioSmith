@@ -8,7 +8,7 @@ import (
 )
 
 // TestSelectListScrolls: a select with many options opens a list that
-// stays inside the window and scrolls (vendored MyGo, patch 0002), rather
+// stays inside the window and scrolls (MyGo 0.6 and later), rather
 // than running off the bottom with options out of reach.
 func TestSelectListScrolls(t *testing.T) {
 	var opts []string

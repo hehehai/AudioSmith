@@ -110,7 +110,7 @@ gh secret set ACTNOW_INGEST_TOKEN -R hehehai/AudioSmith
 GitHub → Actions → **Release** → Run workflow，勾选 **sign**。它会用你的 secrets 构建、签名、公证，跑校验脚本（`scripts/verify-release.sh`），显示正式发布时会发布什么（`scripts/release-publish.sh --dry-run`：`actnow-publish.sh --dry-run` 检查构建目录，打印它将发出的请求，包括文件、大小和 sha256；然后是 GitHub 上的文件），并把 DMG、更新文件和 GitHub 文件作为这次运行的附件（artifact）上传，**不会碰官网和任何 Release**。下载 DMG，在 Mac 上检查：
 
 ```sh
-spctl --assess --type open --context context:primary-signature -vv AudioSmith-0.4.0-beta.5.dmg
+spctl --assess --type open --context context:primary-signature -vv audiosmith-0.5.0-beta.5-arm64.dmg
 # 应显示 accepted，source=Notarized Developer ID
 ```
 
@@ -148,18 +148,18 @@ Beta 版（`0.4.0-beta.2`）和正式版（`0.4.0`）步骤完全一样，由版
 
 ## Beta 版和正式版（更新通道）
 
-设置 → 诊断与关于 → 软件更新 → **接收 Beta 版更新** 决定更新通道（MyGo 补丁 `0003-update-prereleases.patch` 和 `0008-update-url-prereleases.patch`，`mygo.Updater.SetPrereleases`）：
+设置 → 诊断与关于 → 软件更新 → **接收 Beta 版更新** 决定更新通道（mygo.json 的 `updates.prereleases`，由 `scripts/release-config.sh` 写入，以及 `mygo.Updater.SetPrereleases`）：
 
 - **关闭：只收正式版。** 读 `https://actnow.dev/updates/audiosmith/update-darwin-arm64.json`，即 stable 通道。
 - **打开：Beta 版和正式版都收。** 同时读它和 `https://actnow.dev/updates/audiosmith/beta/update-darwin-arm64.json`（beta 通道），取较新的那个（`0.4.0-beta.1 < 0.4.0-beta.2 < 0.4.0 < 0.4.1-beta.1`）。官网让 Beta 清单始终指向最新 Beta 和最新正式版中较新的那个，所以无论哪种情况都不会漏掉正式版。没有 Beta 清单（404）时只读正式版的。
-- **两种构建用同一个更新地址。** Beta 和正式版构建的 `updates.url` 都是 `https://actnow.dev/updates/audiosmith`（`scripts/release-config.sh`），由 MyGo 把 Beta 的更新包和增量包放进 `beta/`（`…/updates/audiosmith/beta/<文件>`），这正是官网要检查的。官网文档建议 Beta 构建用 `…/audiosmith/beta`；AudioSmith 不这样做，因为那样的话关掉「接收 Beta 版更新」的 Beta 副本仍会读 Beta 通道（客户端还会去找 `beta/beta/`）。清单里的文件如果不正好在这个通道的目录下，`scripts/release-publish.sh` 会拒绝发布。
+- **两种构建用同一个更新地址。** Beta 和正式版构建的 `updates.url` 都是 `https://actnow.dev/updates/audiosmith`（`scripts/release-config.sh`，同时打开 `updates.prereleases`），由 MyGo 把 Beta 的更新包和增量包放进 `beta/`（`…/updates/audiosmith/beta/<文件>`），这正是官网要检查的。官网文档建议 Beta 构建用 `…/audiosmith/beta`；AudioSmith 不这样做，因为那样的话关掉「接收 Beta 版更新」的 Beta 副本仍会读 Beta 通道（客户端还会去找 `beta/beta/`）。清单里的文件如果不正好在这个通道的目录下，`scripts/release-publish.sh` 会拒绝发布。
 - **默认值：** Beta 版副本默认打开（装了 Beta 的人想要下一个 Beta），正式版默认关闭，直到用户自己选（存在 `settings.Updates.Beta`）。
 - **不会降级。** 在 Beta 版里关掉它，会一直停留在这个 Beta，直到有比它新的正式版：0.4.0-beta.5 关掉 Beta 后会更新到 0.4.0，绝不会退回 0.3.x。
 - **增量包**两个通道都有：`mygo build` 会同时参考两份清单，取最新的最多三个版本做增量，所以 0.4.0-beta.6 有相对 0.4.0-beta.5 的增量，0.4.0 有相对各个 Beta 和上一个正式版的增量。0.4.0-beta.5 是官网上的第一个版本，没有增量（在它之前官网还没有清单）。
-- **Mac 上的版本号。** MyGo 把完整版本号（`0.4.0-beta.1`）写进 `CFBundleShortVersionString` 和 `CFBundleVersion`，`mygo.App.Version()` 再从那里读回来；更新器拿它来比较版本，所以必须保留预发布后缀。只有 App Store 要求纯数字版本号，Developer ID 公证和 Gatekeeper 不检查（VS Code Insiders 也是这样发 `1.x.0-insider` 的）。万一公证拒绝，构建日志里 `notarytool log` 会写明原因。
+- **Mac 上的版本号。** MyGo 把完整版本号（`0.4.0-beta.1`）写进 `CFBundleShortVersionString`，`mygo.App.Version()` 再从那里读回来；更新器拿它来比较版本，所以保留预发布后缀。`CFBundleVersion` 只写数字部分（`0.4.0`），符合 Apple 的要求。万一公证拒绝某个版本，构建日志里 `notarytool log` 会写明原因。
 - 「关于」里 Beta 版的版本号旁边有一个 **Beta** 标记。
 
-**0.4.0-beta.1 … beta.4 的副本**仍然读 GitHub：关闭 Beta 时读 `releases/latest/download/update-darwin-arm64.json`，打开时通过 GitHub API 找最新的 Release 或 prerelease（补丁 0003）。`scripts/release-publish.sh` 创建的每个 GitHub Release 都给它们附一个 `update-darwin-arm64.json`：过渡期（`GITHUB_FEED=true`）指向 GitHub Release 上的更新包，过渡之后就是官网的那份。签名的只是更新包（清单里带着它们的签名），清单本身不签名，所以两份清单装的是同一个签过名的更新包。检查：`curl -sL https://github.com/hehehai/AudioSmith/releases/download/v0.4.0-beta.5/update-darwin-arm64.json | jq '{version, url}'`。
+**0.4.0-beta.1 … beta.4 的副本**仍然读 GitHub：关闭 Beta 时读 `releases/latest/download/update-darwin-arm64.json`，打开时通过 GitHub API 找最新的 Release 或 prerelease（当时 AudioSmith 打过补丁的 MyGo）。`scripts/release-publish.sh` 创建的每个 GitHub Release 都给它们附一个 `update-darwin-arm64.json`：过渡期（`GITHUB_FEED=true`）指向 GitHub Release 上的更新包，过渡之后就是官网的那份。签名的只是更新包（清单里带着它们的签名），清单本身不签名，所以两份清单装的是同一个签过名的更新包。检查：`curl -sL https://github.com/hehehai/AudioSmith/releases/download/v0.4.0-beta.5/update-darwin-arm64.json | jq '{version, url}'`。
 
 ## 端到端验证一次更新
 
@@ -167,7 +167,7 @@ Beta 版（`0.4.0-beta.2`）和正式版（`0.4.0`）步骤完全一样，由版
 
 1. 从旧版本的 DMG 把 AudioSmith 拖到 `/Applications` 并打开（用管理员账户，这样它才能替换自己）。
 2. 发布新版本。检查更新源：`curl -s https://actnow.dev/updates/audiosmith/update-darwin-arm64.json | jq '{version, size, deltas: [.deltas[]?.from]}'`（Beta 版：`…/updates/audiosmith/beta/update-darwin-arm64.json`；只发过 Beta 时正式版的清单是 404）。
-3. 在旧版本里：菜单 AudioSmith → **检查更新…** → 窗口显示新版本和更新说明 → **安装更新** → 下载（有增量包时只下增量）→ **立即重新启动**。
+3. 在旧版本里：菜单 AudioSmith → **检查更新…** → 窗口显示新版本和更新说明 → **安装更新** → 下载（有增量包时只下增量）→ **立即重新启动**。新版本在旧版本退出后才替换应用（MyGo 先把它准备好，应用退出时换掉 bundle 再打开），所以不点重新启动、直接退出也会装上。
 4. 设置 → 诊断与关于：「关于」里显示新版本号，「软件更新」里显示「上次检查：…」。麦克风和辅助功能权限保持不变（两个版本都是你的 Developer ID 签名）。
 
 自动检查：每天一次，启动 10 秒后若距上次检查已满一天就检查。设置 → 诊断与关于 → 软件更新 里可以关掉自动检查，或打开「无需询问直接安装」。
@@ -212,6 +212,6 @@ scripts/release-local.sh --dry-run        # ad-hoc，与工作流的试跑一样
 - **从 ad-hoc 换到 Developer ID 后的权限**：对 macOS 的隐私设置来说，本地 ad-hoc 构建和 Developer ID 正式版是两个不同的应用。第一次装正式版后，需要重新授予麦克风和辅助功能权限（系统设置 → 隐私与安全性；先删掉旧的 AudioSmith 条目）。之后的正式版更新会保留这些权限。
 - **许可证**：0.4.0-beta.1 之后的版本采用 GNU AGPL-3.0（之前的版本是 Apache-2.0）。应用的 `Contents/Resources` 里带有 `LICENSE`、`NOTICE` 和 `THIRD-PARTY-NOTICES.txt`（所有第三方组件完整的许可和 NOTICE 文本，由 `scripts/third-party-notices.sh` 生成；mygo.json 的 `resources`），访达里显示的版权信息也写明了许可（`copyright` → `NSHumanReadableCopyright`），设置 → 诊断与关于 里有源代码链接，也能打开第三方许可。发布版本从公开仓库的 tag 构建，GitHub 会在 Release 上附上对应的源码包：保留 tag，不要发布源码没有推送的构建。
 - **增量更新**：`mygo build` 会按官网已发布的清单（正式版和 `beta/`）下载之前版本的更新包（并用公钥校验）来生成增量包。**官网上的第一个版本（0.4.0-beta.5）没有增量**（在它之前官网还没有清单）；之后每个版本都有相对最近最多三个已发布版本的增量包。
-- **DMG 不公开**：官网存着 DMG（以 `AudioSmith-<版本>-arm64.dmg` 的名字上传：`actnow-publish.sh` 把 MyGo 文件名里的空格换成横线），只通过需要登录的下载页提供；`/updates/audiosmith/` 只提供清单、更新包和增量包（`update-*.json` 不缓存，其余长期缓存）。
+- **DMG 不公开**：官网存着 DMG（按 MyGo 的命名 `audiosmith-<版本>-arm64.dmg` 上传；GitHub Release 上的副本叫 `AudioSmith-<版本>-arm64.dmg`），只通过需要登录的下载页提供；`/updates/audiosmith/` 只提供清单、更新包和增量包（`update-*.json` 不缓存，其余长期缓存）。
 - **公证失败**：构建日志里有 submission ID，用 `xcrun notarytool log <ID> --keychain-profile notary` 查看 Apple 拒绝的原因。
 - **报错「the update signing key does not match updates.publicKey」**：secret 里的私钥和变量里的公钥不是同一对，用同一次 `mygo keygen` 的输出重新设置两者。

@@ -236,7 +236,7 @@ jobs:
           MYGO_UPDATER_PUBLIC_KEY: ${{ env.SIGN == 'true' && vars.MYGO_UPDATER_PUBLIC_KEY || '' }}
         run: |
           scripts/release-config.sh
-          jq '{version, updates: (.updates | if . then {url, s3, github, publicKey: "set"} else null end), macos: {signingIdentity: (.macos.signingIdentity // "-" | if . == "-" then "ad hoc" else "Developer ID" end), notarize: (.macos.notarize != null)}}' mygo.json
+          jq '{version, updates: (.updates | if . then {url, prereleases, s3, github, publicKey: "set"} else null end), macos: {signingIdentity: (.macos.signingIdentity // "-" | if . == "-" then "ad hoc" else "Developer ID" end), notarize: (.macos.notarize != null)}}' mygo.json
 
       - name: Build
         env:

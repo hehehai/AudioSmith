@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -37,8 +36,7 @@ var goLicences = map[string]string{
 func goNotes(root, path string) []string {
 	switch path {
 	case "github.com/egoist/mygo":
-		patches, _ := filepath.Glob(filepath.Join(root, "third_party", "mygo-patches", "*.patch"))
-		return []string{fmt.Sprintf("AudioSmith builds against a copy in third_party/mygo with %d patches of its own (third_party/mygo-patches), made by scripts/vendor-mygo.sh.", len(patches))}
+		return []string{"AudioSmith builds against ActNow's fork of MyGo, github.com/hehehai/mygo (the replace in go.mod): upstream MyGo with the changes its ACTNOW.md lists, under the same licence."}
 	}
 	return nil
 }

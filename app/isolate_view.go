@@ -310,7 +310,7 @@ func (a *app) isoStemRow(c *ui.Context, x services.Isolation, s isoStem) {
 	pid := "iso:" + x.ID + ":" + s.key
 	card(c.Key("stem-"+s.key)).Row().Gap(px(t, sp3)).AlignItems(ui.Center).Padding(px(t, sp2), px(t, sp3)).Children(func() {
 		if a.pl.Playing(pid) {
-			c.After(200 * time.Millisecond)
+			afterShown(c, 200*time.Millisecond)
 		}
 		if playButton(c.Key("play"), a.pl.Playing(pid), false, 36).Label(i18n.T("Play %s", s.name)).Clicked() {
 			if err := a.pl.Toggle(pid, a.isoSvc.Path(x.ID, s.file)); err != nil {

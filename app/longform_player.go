@@ -217,7 +217,7 @@ func (a *app) readAlongView(c *ui.Context, p *lfPage, r *lfRender) {
 	if a.pl.Current() == id {
 		pos = float64(a.pl.Progress(id)) * ch.Seconds
 		if a.pl.Playing(id) {
-			c.After(200 * time.Millisecond) // the word playing
+			afterShown(c, 200*time.Millisecond) // the word playing
 		}
 	}
 	k := tok(t)

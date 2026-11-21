@@ -1,7 +1,7 @@
 # Linux CI: the Go side (views in ui.Tester, services, store, jobs, the
 # supervisor against a scripted engine, the hub against a fake HF, the
 # protocol fixtures, i18n key parity, mygo.json and CHANGELOG.md for
-# releases), MyGo's vet, gofmt, the vendored MyGo and the workflows. The
+# releases), MyGo's vet, gofmt and the workflows. The
 # Swift engine and the end-to-end tests need a Mac with Apple silicon; they
 # are not run here (README: Tests). Releases: release.yml.
 name: CI
@@ -23,11 +23,6 @@ concurrency:
 jobs:
   go:
     runs-on: ubuntu-latest
-    env:
-      # The MyGo SQLite plugin loads a prebuilt library. Tests would download
-      # it on first use; CI fetches it once, checks its sha256 against the
-      # plugin's manifest and points the plugin at it.
-      SQLITE_ASSET: mygo-sqlite3-linux-amd64.so
     steps:
       - uses: actions/checkout@v4
 
@@ -36,29 +31,22 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: SQLite library for the MyGo plugin
+      - name: SQLite library for MyGo's SQLite plugin
+        # MyGo (ActNow's fork, go.mod's replace) is a module in the cache,
+        # so the plugin's native module loads the library MyGo published
+        # (its mygo-plugin.json), downloading it on first use into
+        # ~/.cache/mygo/natives/<sha256>/ and checking its sha256. CI keeps
+        # that directory between runs.
         id: sqlite
         run: |
-          dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/sqlite"
-          read -r url sum < <(jq -r '.libraries[0].files["linux-amd64"] | "\(.url) \(.sha256)"' "$dir/mygo-plugin.json")
-          echo "sha=$sum" >> "$GITHUB_OUTPUT"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
+          go mod download github.com/egoist/mygo
+          dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/sqlite/internal/sqlitecore"
+          echo "sha=$(jq -r '.libraries[0].files["linux-amd64"].sha256' "$dir/mygo-plugin.json")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
-        id: sqlite-cache
         with:
-          path: ~/.cache/mygo-ci/sqlite
-          key: mygo-sqlite-${{ steps.sqlite.outputs.sha }}
-
-      - name: Fetch and verify the SQLite library
-        run: |
-          mkdir -p ~/.cache/mygo-ci/sqlite
-          lib=~/.cache/mygo-ci/sqlite/libmygo-sqlite3.so
-          if [ ! -f "$lib" ]; then
-            curl -fsSL --retry 3 -o "$lib" "${{ steps.sqlite.outputs.url }}"
-          fi
-          echo "${{ steps.sqlite.outputs.sha }}  $lib" | sha256sum -c -
-          echo "MYGO_SQLITE_LIBRARY=$lib" >> "$GITHUB_ENV"
+          path: ~/.cache/mygo/natives
+          key: mygo-natives-${{ steps.sqlite.outputs.sha }}
 
       - name: gofmt
         run: |
@@ -67,9 +55,6 @@ jobs:
             echo "::error::not gofmt'd: $unformatted"
             exit 1
           fi
-
-      - name: Vendored MyGo
-        run: scripts/vendor-mygo.sh --check
 
       - name: Workflows
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=

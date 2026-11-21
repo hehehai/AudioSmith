@@ -98,10 +98,9 @@ func pinSnapshots(t *testing.T, bubble bool, body func(t *testing.T, out string)
 	// every snapshot test starts from the uncalibrated predictor, so its
 	// pictures do not depend on which tests ran before it.
 	translate.DefaultPredictor.ResetCalibration()
-	// So are the glyph atlases (MyGo's text system): where a glyph sits
-	// in them rounds text drawn scaled by a level, so every snapshot test
-	// starts from empty atlases too (MyGo patch 0006).
-	ui.ForgetGlyphs()
+	// The glyph atlases need no reset: every ui.Tester has a text system
+	// of its own since MyGo 0.9.1, so a snapshot draws as in a fresh
+	// process whatever ran before it.
 	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(1))
 	local := time.Local
 	time.Local = time.UTC

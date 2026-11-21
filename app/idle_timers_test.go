@@ -38,7 +38,7 @@ func TestNoTimedBuildsWhileHidden(t *testing.T) {
 	if *builds != 10 {
 		t.Fatalf("a transcription's clock: %d builds in 10 s, want one a second", *builds)
 	}
-	tt.SetOccluded(true)
+	tt.SetWindowHidden(true)
 	*builds = 0
 	tt.Advance(10 * time.Second)
 	if *builds > 1 {
@@ -46,7 +46,7 @@ func TestNoTimedBuildsWhileHidden(t *testing.T) {
 	}
 	a.trJob.stage = "Aligning words" // an update while hidden
 	*builds = 0
-	tt.SetOccluded(false)
+	tt.SetWindowHidden(false)
 	if *builds == 0 || !tt.HasText("Aligning words · "+formatDuration(a.since(a.trJob.started).Seconds())) {
 		t.Fatalf("shown again: %d builds, shows %q", *builds, tt.Texts())
 	}

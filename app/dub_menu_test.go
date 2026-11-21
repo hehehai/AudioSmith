@@ -9,8 +9,8 @@ import (
 // TestDubEditMenuUndoRedo: the Edit menu's Undo and Redo reach the Dub
 // editor. On macOS the menu takes ⌘Z and ⇧⌘Z before the window sees them
 // and sends its commands to the focused element, so the editor's window
-// shortcuts never ran (⌘Z) or stopped running with MyGo patch 0009
-// (⇧⌘Z). The editor has the focus when it appears, keeps it through the
+// shortcuts never ran (⌘Z) or stopped running once MyGo's menus took
+// ⇧⌘Z as AppKit does (ActNow's MyGo). The editor has the focus when it appears, keeps it through the
 // toolbar's and a line's buttons, gets it back when a line's text is
 // left, and its timeline takes the commands too; a line's text being
 // edited undoes its own typing, the editor's history untouched.

@@ -20,7 +20,7 @@ func (a *app) tasksBell(c *ui.Context, rail bool) {
 	t := c.Theme()
 	k := tok(t)
 	if a.actTick {
-		c.After(time.Second) // a card counts time or goes soon
+		afterShown(c, time.Second) // a card counts time or goes soon
 	}
 	n := len(a.actCards)
 	unread := a.unreadNotices()

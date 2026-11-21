@@ -54,7 +54,7 @@ github.com/hehehai/AudioSmith
 │   └── tools/           developer commands (standard library only): snapcmp (snapshot comparison), declhash (pure-move check)
 ├── engine/              the Swift helper (audiosmith-engine), Fixtures/, Tests/
 ├── resources/           shipped as they are in the bundle's Resources (mygo); darwin-arm64/engine is staged by scripts/build-engine.sh
-└── scripts/, docs/, third_party/ (vendored MyGo + patches)
+└── scripts/, docs/, third_party/ (licence texts; MyGo is ActNow's fork, github.com/hehehai/mygo, by go.mod's replace)
 ```
 
 The module root holds no Go files (`internal/archtest` checks it): the app is `./app` (refactor batch B13), and `go:embed` cannot reach a parent directory, so what the app embeds is in `assets/` as package `assets`. File names without a directory in this document (`shell.go`, `dub*.go`) are the app's, in `app/`.
@@ -316,7 +316,7 @@ The engine builds on upstream Blaizzy/mlx-audio-swift (pinned commit, see README
 
 | What | Command | Notes |
 |---|---|---|
-| All Go tests | `CGO_ENABLED=0 go test ./...` | Views in `ui.Tester` with fake engines; the real scheduler and supervisor against a scripted engine; the hub against a fake HF; protocol fixtures; i18n key parity. The SQLite library is downloaded and cached on first run (`MYGO_SQLITE_LIBRARY` overrides it; see `.github/workflows/ci.yml`). |
+| All Go tests | `CGO_ENABLED=0 go test ./...` | Views in `ui.Tester` with fake engines; the real scheduler and supervisor against a scripted engine; the hub against a fake HF; protocol fixtures; i18n key parity. The SQLite library (MyGo's published `Sqlitecore` native module) is downloaded on first run and cached in `~/.cache/mygo/natives` (CI keeps that directory; see `.github/workflows/ci.yml`). |
 | MyGo vet | `go tool mygo vet .` | `go vet ./...` and the UI-lifetime checks |
 | Race | `go test -race ./...` | needs cgo |
 | Snapshots | `AUDIOSMITH_SNAPSHOTS=/tmp/shots go test -run TestSnapshots ./app` or `scripts/snapshots.sh render /tmp/shots` | every page, light/dark, en/zh-Hans. Reproducible: two runs of one commit write the same bytes (`snapshot_env_test.go` runs each test in a `testing/synctest` bubble from a fixed time, on fixed data directories, free space and ports). A new snapshot test calls `runSnapshots` and makes its folders with `testDir` |

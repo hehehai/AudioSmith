@@ -41,8 +41,8 @@ func TestTimelineZoomKeepsThePointersTime(t *testing.T) {
 	for _, e := range []ui.InputEvent{
 		{Kind: ui.InputScroll, X: 300, DY: -40, Mods: ui.Cmd},
 		{Kind: ui.InputScroll, X: 300, DY: -40, Mods: ui.Alt},
-		{Kind: ui.InputMagnify, X: 300, Magnify: 0.25},
-		{Kind: ui.InputMagnify, X: 300, Magnify: -0.1},
+		{Kind: ui.InputZoom, X: 300, Scale: 1.25},
+		{Kind: ui.InputZoom, X: 300, Scale: 0.9},
 	} {
 		before, z := tlTimeAt(s, d, 300), s.zoom
 		if !timelineInput(s, m, tlEvents{}, e) {
@@ -237,7 +237,7 @@ func TestTimelineLabelsCollapse(t *testing.T) {
 }
 
 // TestTimelineGestures: in the Dub editor, ⌘+wheel and a pinch over the
-// lane zoom it (MyGo patch 0012), a vertical wheel leaves it, and the
+// lane zoom it (MyGo's InputZoom), a vertical wheel leaves it, and the
 // overview strip shows once zoomed.
 func TestTimelineGestures(t *testing.T) {
 	d := newDubTest(t, 6)
@@ -258,12 +258,12 @@ func TestTimelineGestures(t *testing.T) {
 	if a.dubTL.zoom != 1 {
 		t.Errorf("a vertical wheel zoomed: %v", a.dubTL.zoom)
 	}
-	tt.ScrollWith(ui.Cmd, r.X+r.W/4, y, 0, -40)
+	tt.WheelWith(ui.Cmd, r.X+r.W/4, y, 0, -40)
 	z := a.dubTL.zoom
 	if z <= 1 {
 		t.Fatalf("⌘+wheel did not zoom: %v", z)
 	}
-	tt.Magnify(r.X+r.W/4, y, 0.5)
+	tt.Pinch(r.X+r.W/4, y, 1.5)
 	if a.dubTL.zoom <= z {
 		t.Errorf("pinch: zoom %v after %v", a.dubTL.zoom, z)
 	}

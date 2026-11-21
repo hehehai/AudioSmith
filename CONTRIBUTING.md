@@ -21,7 +21,6 @@ CGO_ENABLED=0 go test -p 4 ./...                     # everything, the UI headle
 go tool mygo vet .                                    # MyGo's checks of the UI code
 GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build ./... # the Mac build compiles
 gofmt -l . | grep -v ^engine/                         # prints nothing
-scripts/vendor-mygo.sh --check                        # the vendored MyGo is intact
 go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12   # if you change a workflow
 scripts/snapshots.sh check                            # renders the UI before and after your change and lists the differences
 ```
@@ -69,7 +68,7 @@ The bot commits to that branch with the workflow's token: don't require pull req
 
 **代码位置：** 应用本身（package main：界面和装配）在 `app/`，它嵌入的文件在 `assets/`，其余在 `internal/`；在仓库根目录用 `go run ./app` 运行，`go tool mygo dev` 带热重载。
 
-**提交前运行检查：** 见上面 [Checks](#checks) 的命令（`go test`、`go tool mygo vet .`、macOS 交叉编译、`gofmt`、`scripts/vendor-mygo.sh --check`，改了 workflow 再跑 actionlint，改了界面跑 `scripts/snapshots.sh check`）。界面文字用英文写在 `i18n.T` 里，并在 `internal/i18n/locales/zh-Hans.json` 补上中文。增删或升级依赖（Go 模块、`engine/Package.resolved` 里的 Swift 包、mlx-audio-swift 的版本、MyGo、RapiDoc、试听音频）后，运行 `scripts/third-party-notices.sh`（Swift 依赖版本变了加 `--fetch`）并提交生成的 `THIRD-PARTY-NOTICES.txt`，否则 `TestNoticesCurrent` 会失败；只引入与 AGPL-3.0 兼容的许可。
+**提交前运行检查：** 见上面 [Checks](#checks) 的命令（`go test`、`go tool mygo vet .`、macOS 交叉编译、`gofmt`，改了 workflow 再跑 actionlint，改了界面跑 `scripts/snapshots.sh check`）。界面文字用英文写在 `i18n.T` 里，并在 `internal/i18n/locales/zh-Hans.json` 补上中文。增删或升级依赖（Go 模块、`engine/Package.resolved` 里的 Swift 包、mlx-audio-swift 的版本、MyGo、RapiDoc、试听音频）后，运行 `scripts/third-party-notices.sh`（Swift 依赖版本变了加 `--fetch`）并提交生成的 `THIRD-PARTY-NOTICES.txt`，否则 `TestNoticesCurrent` 会失败；只引入与 AGPL-3.0 兼容的许可。
 
 **许可证与 CLA：** AudioSmith 采用 [GNU AGPL-3.0](LICENSE) 许可。你的第一个 PR 合并前，需要签署一次[贡献者许可协议（CLA）](CLA.md)：
 

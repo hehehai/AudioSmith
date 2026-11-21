@@ -4,11 +4,12 @@
 # why. Every other snapshot must match byte for byte or pixel for pixel.
 # Remove a line once its cause is gone.
 
-# MyGo patch 0005 fixed the workflow canvas's glyph atlas order (2026-10-16).
+# MyGo's atlas repack fix (AudioSmith's patch 0005, in ActNow's MyGo since
+# the move to it) fixed the workflow canvas's glyph atlas order (2026-10-16).
 
 # Workflow canvas: since 2026-10-18 two renders of one commit (9ab1a8e)
 # differ in 2–6 pixels by one level (antialiasing of the canvas edges).
-# Stop-gap until the cause is found (the patch 0005 atlas fix may have
+# Stop-gap until the cause is found (the atlas repack fix may have
 # regressed); see thread #83's handoff.
 workflows-graph-* 1 canvas edge antialiasing differs by one level between renders
 workflows-run-* 1 canvas edge antialiasing differs by one level between renders
