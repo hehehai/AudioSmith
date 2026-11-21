@@ -62,7 +62,7 @@ func TestRemovedKeptListed(t *testing.T) {
 	}
 	i18n.SetLocale("zh-Hans")
 	defer i18n.SetLocale("en")
-	if _, _, kept := a.removedOnDisk(); !slices.Equal(kept, []string{"Gemma 4 E4B · 已保留：Dicta 在使用"}) {
+	if _, _, kept := a.removedOnDisk(); !slices.Equal(kept, []string{"Gemma 4 E4B · 已保留：ActNow 共用"}) {
 		t.Errorf("zh kept %q", kept)
 	}
 }
