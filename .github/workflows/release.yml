@@ -276,13 +276,14 @@ jobs:
         # For finishing the GitHub release by hand when its step failed
         # after the website took the version (which refuses it again):
         # unpack into build/darwin-arm64, then
-        # scripts/release-publish.sh --skip-website. No disk image: the
-        # website's download page is its only place.
+        # scripts/release-publish.sh --skip-website. The disk image too: the
+        # GitHub release carries it besides the website's download page.
         if: env.RELEASE == 'true' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: AudioSmith-${{ env.VERSION }}-update
           path: |
+            build/darwin-arm64/*.dmg
             build/darwin-arm64/*.tar.gz
             build/darwin-arm64/*.delta
             build/darwin-arm64/update-*.json

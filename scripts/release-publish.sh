@@ -15,7 +15,9 @@
 #      --no-publish it stops at "verified": publish it in the site's panel
 #      (https://actnow.dev/panel/releases), where yanks and rollbacks are too.
 #   2. GitHub: a draft release v<version> (a prerelease for a beta) with
-#      the notes and links to the download page, plus update-darwin-arm64.json
+#      the notes, the disk image (the signed and notarized DMG, as
+#      AudioSmith-<version>-arm64.dmg, for people who come from GitHub,
+#      awesome lists and Homebrew without an account), plus update-darwin-arm64.json
 #      for copies that still read GitHub (0.4.0-beta.1 … beta.4):
 #      - GITHUB_FEED=true (the transition): the update archive and deltas
 #        too, and the manifest points at them on GitHub;
@@ -71,7 +73,7 @@ manifest="$OUT/update-darwin-arm64.json"
 dmg="$OUT/AudioSmith $version arm64.dmg"
 
 # Everything that can be checked before anything is sent.
-# The disk image goes to the website only (not to GitHub).
+# The disk image goes to the website and to the GitHub release.
 if $website && [[ ! -f "$dmg" ]]; then
   fail "no disk image $dmg (build first: go tool mygo build -platform darwin/arm64)"
 fi
@@ -109,12 +111,23 @@ if $github; then
     echo
     echo "---"
     echo
-    echo "**Download:** [actnow.dev/download/audiosmith]($ACTNOW_DOWNLOAD_URL) (a free account) · [Changelog]($ACTNOW_CHANGELOG_URL) · or build it from this tag's source (AGPL-3.0)."
+    if [[ -f "$dmg" ]]; then
+      echo "**Download:** AudioSmith-$version-arm64.dmg below (signed and notarized; macOS ${min_macos:-15.0}+, Apple silicon), or [actnow.dev/audiosmith](${ACTNOW_DOWNLOAD_URL%/download/*}/audiosmith) · [Changelog]($ACTNOW_CHANGELOG_URL) · or build it from this tag's source (AGPL-3.0)."
+    else
+      echo "**Download:** [actnow.dev/download/audiosmith]($ACTNOW_DOWNLOAD_URL) · [Changelog]($ACTNOW_CHANGELOG_URL) · or build it from this tag's source (AGPL-3.0)."
+    fi
     if [[ -f "$manifest" ]]; then
       echo
       echo "Installed copies update themselves: AudioSmith → Check for Updates…"
     fi
   } > "$notes_file"
+  # The disk image first, so the release offers it as soon as it is published.
+  if [[ -f "$dmg" ]]; then
+    cp "$dmg" "$gh_dir/AudioSmith-$version-arm64.dmg"
+    gh_files+=("$gh_dir/AudioSmith-$version-arm64.dmg")
+  else
+    echo "release-publish: no $dmg, so the GitHub release gets no disk image (upload it by hand: gh release upload $tag)" >&2
+  fi
   if [[ -f "$manifest" ]]; then
     if [[ "$github_feed" == true ]]; then
       # The transition: copies that read GitHub get the archive (and the

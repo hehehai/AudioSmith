@@ -9,7 +9,7 @@ English: [release.md](release.md)
 3. 生成用你的更新密钥签名的**更新文件**：`audiosmith-<版本>-darwin-arm64.tar.gz`、相对最近最多三个版本的增量包（delta），以及 `update-darwin-arm64.json`（更新清单，更新说明取自 `CHANGELOG.md` 里这个版本的那一节）；
 4. 校验构建（`scripts/verify-release.sh`）之后，发布到家族官网 **actnow.dev**（`scripts/release-publish.sh`）。AudioSmith 的下载、更新和更新日志都由官网提供：
    - **先发官网。** 官网自己的发布脚本 [`scripts/actnow-publish.sh`](../scripts/actnow-publish.sh) 把 DMG、更新包、增量包和更新清单经官网的发布接口送上去，只用一个 secret：`ACTNOW_INGEST_TOKEN`。官网逐项检查（大小和 sha256、清单里的地址和更新签名、`CHANGELOG.md` 里这个版本的那一节），存好文件，在[下载页](https://actnow.dev/download/audiosmith)（需要免费账号）和[更新日志](https://actnow.dev/audiosmith/changelog)列出这个版本，然后发布：公开清单最后写入。已安装的 AudioSmith 每天读一次 `https://actnow.dev/updates/audiosmith/update-darwin-arm64.json`（或通过菜单 AudioSmith → 检查更新…）：**官网一发布，它们就能看到新版本**：侧栏底部出现"有新版本"，更新说明按 app 的语言从官网的更新日志接口读取（updates.go：在 MyGo 的更新 API 上用 actnowkit 的 `updates`，不再用 MyGo 的更新窗口）。CI 不持有任何存储密钥，写存储的是官网自己。
-   - **再建草稿 GitHub Release**，带更新说明和下载页链接（源码仍在 GitHub，AGPL）。你检查后点发布。
+   - **再建草稿 GitHub Release**，带更新说明、已签名并公证的安装包（`AudioSmith-<版本>-arm64.dmg`，从 GitHub、awesome 列表或 Homebrew 来的人不用注册就能下载）和产品页链接（源码仍在 GitHub，AGPL）。你检查后点发布。
 
 标签带预发布后缀（例如 `v0.4.0-beta.5`）时，做出来的是 **Beta 版**：在官网走 Beta 通道 `/updates/audiosmith/beta/`，只有打开了「接收 Beta 版更新」的副本才会读；在 GitHub 上是 prerelease（预发布）（见下文 [Beta 版和正式版](#beta-版和正式版更新通道)）。
 

@@ -216,11 +216,11 @@ func TestReleasePublish(t *testing.T) {
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	if want := []string{"audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta", "audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz", "update-darwin-arm64.json"}; !slices.Equal(names, want) {
+	if want := []string{"AudioSmith-0.4.0-beta.5-arm64.dmg", "audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta", "audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz", "update-darwin-arm64.json"}; !slices.Equal(names, want) {
 		t.Errorf("build/github: %v", names)
 	}
 	notes, _ := os.ReadFile(filepath.Join(root, "build/github-notes.md"))
-	if !strings.HasPrefix(string(notes), "- Five.\n\n---\n") || !strings.Contains(string(notes), "https://actnow.dev/download/audiosmith") || strings.Contains(string(notes), "Four") {
+	if !strings.HasPrefix(string(notes), "- Five.\n\n---\n") || !strings.Contains(string(notes), "AudioSmith-0.4.0-beta.5-arm64.dmg below") || strings.Contains(string(notes), "Four") {
 		t.Errorf("notes:\n%s", notes)
 	}
 	if calls := readLog(log); calls != nil || s.calls != 0 {
@@ -245,7 +245,7 @@ func TestReleasePublish(t *testing.T) {
 		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
 		"gh release create v0.4.0-beta.5 --repo hehehai/AudioSmith --draft --title v0.4.0-beta.5 --notes-file build/github-notes.md --prerelease",
 		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
-		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz build/github/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/AudioSmith-0.4.0-beta.5-arm64.dmg build/github/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz build/github/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta",
 		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-darwin-arm64.json",
 	}
 	if !slices.Equal(calls, want) {
@@ -285,6 +285,7 @@ func TestReleasePublish(t *testing.T) {
 	if want := []string{
 		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
 		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/AudioSmith-0.4.0-beta.5-arm64.dmg",
 		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-darwin-arm64.json",
 	}; len(calls) != 6+len(want) || !slices.Equal(calls[6:], want) {
 		t.Errorf("after the transition, calls\n%s", strings.Join(calls, "\n"))
