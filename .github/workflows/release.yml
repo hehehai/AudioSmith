@@ -246,6 +246,7 @@ jobs:
           # updates are made from the versions the website's manifests
           # (releases and beta/) name; the first version there has none.
           go tool mygo build -platform darwin/arm64
+          scripts/dmg-name.sh
 
       - name: Verify
         run: |

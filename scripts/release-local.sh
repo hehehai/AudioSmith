@@ -104,6 +104,7 @@ flags=()
 $notarize || flags+=(-skip-notarize)
 rm -rf build/darwin-arm64
 go tool mygo build -platform darwin/arm64 ${flags[@]+"${flags[@]}"}
+scripts/dmg-name.sh
 
 if $dry || ! $notarize; then
   scripts/verify-release.sh

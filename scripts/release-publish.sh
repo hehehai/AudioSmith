@@ -70,10 +70,9 @@ version="$(jq -r .version mygo.json)"
 min_macos="$(jq -r '.macos.minimumSystemVersion // empty' mygo.json)"
 tag="v$version"
 manifest="$OUT/update-darwin-arm64.json"
-# MyGo names the disk image "<slug>-<version>-<arch>.dmg" (0.7 and later;
-# "AudioSmith <version> arm64.dmg" before); the GitHub release gets a copy
-# named AudioSmith-<version>-arm64.dmg.
-dmg="$OUT/audiosmith-$version-arm64.dmg"
+# The disk image as people download it (scripts/dmg-name.sh renames MyGo's
+# "audiosmith-<version>-arm64.dmg" after the build).
+dmg="$OUT/AudioSmith-$version-arm64.dmg"
 
 # Everything that can be checked before anything is sent.
 # The disk image goes to the website and to the GitHub release.

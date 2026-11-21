@@ -110,7 +110,7 @@ gh secret set ACTNOW_INGEST_TOKEN -R hehehai/AudioSmith
 GitHub → Actions → **Release** → Run workflow，勾选 **sign**。它会用你的 secrets 构建、签名、公证，跑校验脚本（`scripts/verify-release.sh`），显示正式发布时会发布什么（`scripts/release-publish.sh --dry-run`：`actnow-publish.sh --dry-run` 检查构建目录，打印它将发出的请求，包括文件、大小和 sha256；然后是 GitHub 上的文件），并把 DMG、更新文件和 GitHub 文件作为这次运行的附件（artifact）上传，**不会碰官网和任何 Release**。下载 DMG，在 Mac 上检查：
 
 ```sh
-spctl --assess --type open --context context:primary-signature -vv audiosmith-0.5.0-beta.5-arm64.dmg
+spctl --assess --type open --context context:primary-signature -vv AudioSmith-0.5.0-beta.5-arm64.dmg
 # 应显示 accepted，source=Notarized Developer ID
 ```
 
@@ -212,6 +212,6 @@ scripts/release-local.sh --dry-run        # ad-hoc，与工作流的试跑一样
 - **从 ad-hoc 换到 Developer ID 后的权限**：对 macOS 的隐私设置来说，本地 ad-hoc 构建和 Developer ID 正式版是两个不同的应用。第一次装正式版后，需要重新授予麦克风和辅助功能权限（系统设置 → 隐私与安全性；先删掉旧的 AudioSmith 条目）。之后的正式版更新会保留这些权限。
 - **许可证**：0.4.0-beta.1 之后的版本采用 GNU AGPL-3.0（之前的版本是 Apache-2.0）。应用的 `Contents/Resources` 里带有 `LICENSE`、`NOTICE` 和 `THIRD-PARTY-NOTICES.txt`（所有第三方组件完整的许可和 NOTICE 文本，由 `scripts/third-party-notices.sh` 生成；mygo.json 的 `resources`），访达里显示的版权信息也写明了许可（`copyright` → `NSHumanReadableCopyright`），设置 → 诊断与关于 里有源代码链接，也能打开第三方许可。发布版本从公开仓库的 tag 构建，GitHub 会在 Release 上附上对应的源码包：保留 tag，不要发布源码没有推送的构建。
 - **增量更新**：`mygo build` 会按官网已发布的清单（正式版和 `beta/`）下载之前版本的更新包（并用公钥校验）来生成增量包。**官网上的第一个版本（0.4.0-beta.5）没有增量**（在它之前官网还没有清单）；之后每个版本都有相对最近最多三个已发布版本的增量包。
-- **DMG 不公开**：官网存着 DMG（按 MyGo 的命名 `audiosmith-<版本>-arm64.dmg` 上传；GitHub Release 上的副本叫 `AudioSmith-<版本>-arm64.dmg`），只通过需要登录的下载页提供；`/updates/audiosmith/` 只提供清单、更新包和增量包（`update-*.json` 不缓存，其余长期缓存）。
+- **DMG 不公开**：官网存着 DMG（以 `AudioSmith-<版本>-arm64.dmg` 的名字上传：MyGo 生成的是 `audiosmith-<版本>-arm64.dmg`，构建后由 `scripts/dmg-name.sh` 改名），只通过需要登录的下载页提供；`/updates/audiosmith/` 只提供清单、更新包和增量包（`update-*.json` 不缓存，其余长期缓存）。
 - **公证失败**：构建日志里有 submission ID，用 `xcrun notarytool log <ID> --keychain-profile notary` 查看 Apple 拒绝的原因。
 - **报错「the update signing key does not match updates.publicKey」**：secret 里的私钥和变量里的公钥不是同一对，用同一次 `mygo keygen` 的输出重新设置两者。

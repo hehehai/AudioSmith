@@ -21,7 +21,7 @@ fail() { echo "verify-release: $*" >&2; exit 1; }
 version="$(jq -r .version "$ROOT/mygo.json")"
 [[ -d "$APP" ]] || fail "no $APP"
 [[ -x "$ENGINE" ]] || fail "no audiosmith-engine in the app (run scripts/build-engine.sh first)"
-dmg="$OUT/audiosmith-$version-arm64.dmg" # MyGo's "<slug>-<version>-<arch>.dmg"
+dmg="$OUT/AudioSmith-$version-arm64.dmg" # scripts/dmg-name.sh named it
 [[ -f "$dmg" ]] || fail "no disk image ${dmg#$ROOT/}"
 
 codesign --verify --deep --strict --verbose=2 "$APP" 2>&1 | tail -2
