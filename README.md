@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://actnow.dev/download/audiosmith"><img alt="Download" src="https://img.shields.io/badge/download-actnow.dev-0d9384"></a>
+  <a href="https://actnow.dev/audiosmith"><img alt="Website: actnow.dev/audiosmith" src="https://img.shields.io/badge/website-actnow.dev%2Faudiosmith-0d9384"></a>
+  <a href="https://github.com/hehehai/AudioSmith/releases"><img alt="Release" src="https://img.shields.io/github/v/release/hehehai/AudioSmith?include_prereleases&label=release&color=0d9384"></a>
   <img alt="macOS 15 or later" src="https://img.shields.io/badge/macOS-15%2B-0d9384">
   <img alt="Apple silicon" src="https://img.shields.io/badge/Apple%20silicon-M1%20or%20later-0d9384">
   <a href="LICENSE"><img alt="AGPL-3.0" src="https://img.shields.io/badge/licence-AGPL--3.0-0d9384"></a>
-  <a href="https://awesomemygo.dev/apps/audiosmith"><img alt="Listed on Awesome MyGo" src="https://awesomemygo.dev/badge.svg"></a>
 </p>
 
 <p align="center"><a href="https://actnow.dev/audiosmith">Website</a> · <a href="https://actnow.dev/download/audiosmith">Download</a> · <a href="https://actnow.dev/audiosmith/changelog">Changelog</a></p>
@@ -25,7 +25,7 @@ AudioSmith turns text into speech, clones and designs voices, gives a story a ca
 
 [Features](#features) · [Install](#install) · [Models](#models) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Licence](#licence-and-credits)
 
-> **The current version, 0.5.0-beta.1, is a beta.** Releases are signed with a Developer ID, notarized by Apple and update themselves. Expect rough edges; see [Known limits](#known-limits) and [the changelog](https://actnow.dev/audiosmith/changelog).
+> **AudioSmith is in beta** ([Releases](https://github.com/hehehai/AudioSmith/releases), [changelog](https://actnow.dev/audiosmith/changelog)). Releases are signed with a Developer ID, notarized by Apple and update themselves. Expect rough edges; see [Known limits](#known-limits) and [the changelog](https://actnow.dev/audiosmith/changelog).
 
 ## Features
 
@@ -161,7 +161,7 @@ The full reference is [docs/local-api.md](docs/local-api.md), and `/docs` in the
 - Disk: 1.3–17 GB for models, depending on the pack; the dialogue models add 2.4 GB and 10.9 GB.
 
 **Steps**
-1. Download the DMG from [actnow.dev/download/audiosmith](https://actnow.dev/download/audiosmith), AudioSmith's page on our website. AudioSmith is free; the download needs a free account. Rather not sign up? [Build it from source](#build-from-source). The current version is a beta; [the changelog](https://actnow.dev/audiosmith/changelog) lists every version.
+1. Download the DMG from [GitHub Releases](https://github.com/hehehai/AudioSmith/releases) (no account needed) or from [actnow.dev/download/audiosmith](https://actnow.dev/download/audiosmith), AudioSmith's page on our website (a free account). Or [build it from source](#build-from-source). The current version is a beta; [the changelog](https://actnow.dev/audiosmith/changelog) lists every version.
 2. Drag **AudioSmith** to Applications and open it. Releases are signed and notarized, so Gatekeeper lets them open; macOS only asks once to confirm an app from the internet.
 3. The setup wizard checks your Mac (macOS, chip, memory, disk, network), suggests a model pack, and asks about privacy and dictation. You can skip the pack and download models later in Settings → Models & network.
 

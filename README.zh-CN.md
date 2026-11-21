@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://actnow.dev/download/audiosmith"><img alt="下载" src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD-actnow.dev-0d9384"></a>
+  <a href="https://actnow.dev/zh/audiosmith"><img alt="官网：actnow.dev/audiosmith" src="https://img.shields.io/badge/%E5%AE%98%E7%BD%91-actnow.dev%2Faudiosmith-0d9384"></a>
+  <a href="https://github.com/hehehai/AudioSmith/releases"><img alt="版本" src="https://img.shields.io/github/v/release/hehehai/AudioSmith?include_prereleases&label=%E7%89%88%E6%9C%AC&color=0d9384"></a>
   <img alt="macOS 15 及以上" src="https://img.shields.io/badge/macOS-15%2B-0d9384">
   <img alt="Apple 芯片" src="https://img.shields.io/badge/Apple%20%E8%8A%AF%E7%89%87-M1%20%E5%8F%8A%E4%BB%A5%E4%B8%8A-0d9384">
   <a href="LICENSE"><img alt="AGPL-3.0" src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-AGPL--3.0-0d9384"></a>
-  <a href="https://awesomemygo.dev/apps/audiosmith"><img alt="收录于 Awesome MyGo" src="https://awesomemygo.dev/badge.svg"></a>
 </p>
 
 <p align="center"><a href="https://actnow.dev/audiosmith">官网</a> · <a href="https://actnow.dev/download/audiosmith">下载</a> · <a href="https://actnow.dev/audiosmith/changelog">更新日志</a></p>
@@ -25,7 +25,7 @@ AudioSmith 能把文字变成语音，克隆和设计音色，给故事配齐角
 
 [功能](#功能) · [安装](#安装) · [模型](#模型) · [隐私](#隐私) · [从源码构建](#从源码构建) · [许可证](#许可证与致谢)
 
-> **当前版本 0.5.0-beta.1 是 Beta 版。** 发布版本用 Developer ID 签名、经过 Apple 公证，并且能自动更新。可能还有不完善的地方，见[已知限制](#已知限制)和[更新日志](https://actnow.dev/audiosmith/changelog)。
+> **AudioSmith 目前是 Beta 版**（[GitHub Releases](https://github.com/hehehai/AudioSmith/releases)、[更新日志](https://actnow.dev/audiosmith/changelog)）。 发布版本用 Developer ID 签名、经过 Apple 公证，并且能自动更新。可能还有不完善的地方，见[已知限制](#已知限制)和[更新日志](https://actnow.dev/audiosmith/changelog)。
 
 ## 功能
 
@@ -161,7 +161,7 @@ curl http://127.0.0.1:3901/v1/audio/speech \
 - 磁盘：模型需要 1.3–17 GB，取决于模型包；两个对话模型另需 2.4 GB 和 10.9 GB。
 
 **步骤**
-1. 从官网 [actnow.dev/download/audiosmith](https://actnow.dev/download/audiosmith) 下载 DMG。AudioSmith 免费，下载需要一个免费账号；不想注册也可以[从源码构建](#从源码构建)。当前版本是 Beta 版，[更新日志](https://actnow.dev/audiosmith/changelog)列出了所有版本。
+1. 从 [GitHub Releases](https://github.com/hehehai/AudioSmith/releases) 下载 DMG（不用注册），或者从官网 [actnow.dev/download/audiosmith](https://actnow.dev/download/audiosmith) 下载（需要一个免费账号）；也可以[从源码构建](#从源码构建)。当前版本是 Beta 版，[更新日志](https://actnow.dev/audiosmith/changelog)列出了所有版本。
 2. 把 **AudioSmith** 拖进“应用程序”并打开。正式版本经过签名和公证，Gatekeeper 会放行；macOS 只会询问一次是否打开从网上下载的应用。
 3. 设置向导会检查这台 Mac（系统、芯片、内存、磁盘、网络），推荐一个模型包，并询问隐私和听写设置。也可以跳过模型包，之后在“设置 → 模型与网络”里下载。
 
