@@ -114,7 +114,7 @@ func publishRoot(t *testing.T, siteURL, manifestURL string) (root, log string) {
 		"mygo.json":            config,
 		"CHANGELOG.md":         "# Changelog\n\n## 0.4.0-beta.5\n\n- Five.\n\n## 0.4.0-beta.4\n\n- Four.\n",
 		"CHANGELOG.zh-Hans.md": "# 更新日志\n\n## 0.4.0-beta.5\n\n- 五。\n\n## 0.4.0-beta.4\n\n- 四。\n",
-		"build/darwin-arm64/AudioSmith-0.4.0-beta.5-arm64.dmg":                           "disk image",
+		"build/darwin-arm64/AudioSmith-0.4.0-beta.5-arm64.dmg":                          "disk image",
 		"build/darwin-arm64/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz":                "archive",
 		"build/darwin-arm64/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta": "delta",
 		"build/darwin-arm64/update-darwin-arm64.json":                                   string(manifest),
