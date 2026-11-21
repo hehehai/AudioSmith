@@ -39,8 +39,10 @@ jobs:
         # that directory between runs.
         id: sqlite
         run: |
-          go mod download github.com/egoist/mygo
-          dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/sqlite/internal/sqlitecore"
+          # go list -m gives no directory for a module not downloaded yet;
+          # go mod download names the replacement's.
+          dir="$(go mod download -json github.com/egoist/mygo | jq -r .Dir)/plugins/sqlite/internal/sqlitecore"
+          [ -f "$dir/mygo-plugin.json" ] || { echo "::error::no $dir/mygo-plugin.json"; exit 1; }
           echo "sha=$(jq -r '.libraries[0].files["linux-amd64"].sha256' "$dir/mygo-plugin.json")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
