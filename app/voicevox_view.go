@@ -140,7 +140,7 @@ func (a *app) characterNotes(c *ui.Context) {
 	t := c.Theme()
 	k := tok(t)
 	voice := a.studioCharacterVoice()
-	if voice == "" {
+	if voice == "" || !a.lib.vv.Online() {
 		ui.Column(c.Key("vv-offline")).Gap(px(t, 4)).Children(func() {
 			caption(c, i18n.T("Neither VOICEVOX nor AivisSpeech is running: open one of them, then try again.")).TextColor(t.Warning)
 			a.characterGetLinks(c)
