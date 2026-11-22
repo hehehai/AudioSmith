@@ -69,13 +69,16 @@ type TakeJSON struct {
 	ProjectID    string    `json:"project_id,omitempty"`
 	JobID        string    `json:"job_id,omitempty"`
 	AudioURL     string    `json:"audio_url"`
+	// Credit is the attribution the audio must carry when published (a
+	// VOICEVOX character's, thread #171).
+	Credit string `json:"credit,omitempty"`
 }
 
 func takeJSON(t core.Take) TakeJSON {
 	j := TakeJSON{ID: t.ID, Object: "take", CreatedAt: t.CreatedAt, Text: t.Text, Model: t.Model, Voice: t.Voice,
 		VoiceID: t.VoiceID, Language: t.Language, Speed: t.Speed, Seed: t.Seed, Duration: t.Duration, Steps: t.Steps,
 		SampleRate: t.SampleRate, AudioSeconds: t.AudioSeconds, GenSeconds: t.GenSeconds, RTF: round2(t.RTF()),
-		Starred: t.Starred, ProjectID: t.ProjectID, JobID: t.JobID, AudioURL: "/api/takes/" + t.ID + "/audio"}
+		Starred: t.Starred, ProjectID: t.ProjectID, JobID: t.JobID, AudioURL: "/api/takes/" + t.ID + "/audio", Credit: t.Credit}
 	if e, ok := catalog.Builtin().ByRepo(t.Model); ok {
 		j.ModelID = e.ID
 	}
@@ -148,6 +151,13 @@ type SpeakerJSON struct {
 	ID       string `json:"id"`
 	Language string `json:"language,omitempty"`
 	Gender   string `json:"gender,omitempty"`
+	// An outside engine's character (thread #171): its name and style,
+	// the credit its audio carries and what its terms allow
+	// ("commercial", "individual", "noncommercial", "ask").
+	Name   string `json:"name,omitempty"`
+	Style  string `json:"style,omitempty"`
+	Credit string `json:"credit,omitempty"`
+	Use    string `json:"use,omitempty"`
 }
 
 // LicenceJSON is a model's licence.
@@ -182,6 +192,7 @@ func modelJSON(m Model, isDefault bool) ModelJSON {
 			j.Voices = append(j.Voices, SpeakerJSON{ID: v.ID, Language: v.Language, Gender: v.Gender})
 		}
 	}
+	j.Voices = append(j.Voices, m.Speakers...)
 	return j
 }
 

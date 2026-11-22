@@ -416,6 +416,8 @@ func (a *app) aboutBlocks(c *ui.Context) {
 	})
 	settingBlock(c, "about-notes", func() {
 		caption(c, i18n.T("AudioSmith runs every model on this Mac. Each model keeps its own licence: see Settings → Models & network."))
+		// Thread #171: the outside engines and their credits.
+		caption(c, i18n.T("Japanese character voices: AudioSmith connects to the VOICEVOX or AivisSpeech app you installed and bundles none of their files. VOICEVOX audio is credited \"VOICEVOX:<character>\"; each character's and AivisSpeech model's terms apply, and takes keep their credit."))
 		// 0.3: the icons' attribution (CC BY 4.0; NOTICE has it too).
 		ui.Row(c.Key("about-icons")).Gap(px(t, 6)).AlignItems(ui.Center).Wrap().Children(func() {
 			caption(c, i18n.T("Icons: Solar by 480 Design, under CC BY 4.0 (@iconify-json/solar %s); play and pause: Hugeicons, under the MIT licence (@iconify-json/hugeicons %s).", icons.SolarVersion, icons.HugeiconsVersion))

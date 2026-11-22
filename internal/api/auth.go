@@ -70,7 +70,7 @@ func (s *Server) guard(lan bool, port int) http.Handler {
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Vary", "Origin")
 			h.Set("Access-Control-Allow-Credentials", "true")
-			h.Set("Access-Control-Expose-Headers", "X-AudioSmith-Take-Id, X-AudioSmith-Model, X-AudioSmith-Voice, X-AudioSmith-Seed, X-AudioSmith-Job-Id, Retry-After")
+			h.Set("Access-Control-Expose-Headers", "X-AudioSmith-Take-Id, X-AudioSmith-Model, X-AudioSmith-Voice, X-AudioSmith-Seed, X-AudioSmith-Job-Id, X-AudioSmith-Credit, Retry-After")
 			if r.Method == http.MethodOptions {
 				h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 				h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, "+HeaderCSRF+", "+HeaderPIN+", "+HeaderClient+", Mcp-Session-Id, Mcp-Protocol-Version")

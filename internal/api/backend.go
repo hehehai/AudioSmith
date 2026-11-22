@@ -149,6 +149,9 @@ type Model struct {
 	Downloaded bool
 	// Licence says whether the licence must still be accepted before use.
 	LicenceNeeded bool
+	// Speakers are the voices of a model whose voices are not in the
+	// catalogue: an outside engine's characters (thread #171).
+	Speakers []SpeakerJSON
 }
 
 // SpeakRequest is a speech request the API resolved: its model and voice

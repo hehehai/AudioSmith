@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -250,6 +251,14 @@ func (sp *Speech) Cancel() {
 }
 
 // speechHeaders describe a take in response headers.
+// creditHeader names the credit a take's audio must carry
+// (X-AudioSmith-Credit, percent-encoded UTF-8; thread #171).
+func creditHeader(h http.Header, t core.Take) {
+	if t.Credit != "" {
+		h.Set("X-AudioSmith-Credit", url.PathEscape(t.Credit))
+	}
+}
+
 func speechHeaders(h http.Header, sp *Speech) {
 	h.Set("X-AudioSmith-Take-Id", sp.Recipe.ID)
 	h.Set("X-AudioSmith-Job-Id", sp.JobID)

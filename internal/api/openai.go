@@ -220,6 +220,7 @@ func (s *Server) answerSpeech(w http.ResponseWriter, r *http.Request, sp *Speech
 		w.Header().Set("Content-Type", contentType(format))
 		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 		speechHeaders(w.Header(), sp)
+		creditHeader(w.Header(), res.Take)
 		w.Header().Set("X-AudioSmith-Seed", strconv.FormatInt(res.Take.Seed, 10))
 		w.WriteHeader(http.StatusOK)
 		w.Write(data)
@@ -275,6 +276,7 @@ func (s *Server) answerSpeech(w http.ResponseWriter, r *http.Request, sp *Speech
 		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 	}
 	speechHeaders(w.Header(), sp)
+	creditHeader(w.Header(), res.Take)
 	w.Header().Set("X-AudioSmith-Seed", strconv.FormatInt(res.Take.Seed, 10))
 	w.WriteHeader(http.StatusOK)
 	io.Copy(w, f)
