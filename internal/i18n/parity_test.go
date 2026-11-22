@@ -189,8 +189,21 @@ func verbs(s string) []string {
 	return out
 }
 
+// markupRE finds what a translation must keep as it is: {name}
+// placeholders, script markup ([pause 1s], [[word|say]], [voice:…,
+// [emphasis]…), `code` spans and line breaks.
+var markupRE = regexp.MustCompile("\\{\\w+\\}|\\[\\[|\\]\\]|\\[pause[^\\]]*\\]|\\[/?(?:emphasis|spell|laughter)\\]|\\[voice:|`[^`]+`|\n")
+
+// markup lists the markup of s, sorted.
+func markup(s string) []string {
+	out := markupRE.FindAllString(s, -1)
+	sort.Strings(out)
+	return out
+}
+
 // TestKeyParity fails when a supported locale lacks a message the sources
-// use, has one they no longer use, or formats it with other verbs.
+// use, has one they no longer use, formats it with other verbs or drops
+// its markup.
 func TestKeyParity(t *testing.T) {
 	keys, dynamic := sourceKeys(t)
 	for _, pos := range dynamic {
@@ -218,6 +231,8 @@ func TestKeyParity(t *testing.T) {
 				missing = append(missing, strconv.Quote(k)+" ("+pos+")")
 			case !slices.Equal(verbs(k), verbs(v)):
 				t.Errorf("%s: %q → %q: verbs %v ≠ %v", tag, k, v, verbs(k), verbs(v))
+			case !slices.Equal(markup(k), markup(v)):
+				t.Errorf("%s: %q → %q: markup %q ≠ %q", tag, k, v, markup(k), markup(v))
 			}
 		}
 		sort.Strings(missing)

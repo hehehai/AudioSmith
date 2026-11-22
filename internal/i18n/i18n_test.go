@@ -51,10 +51,24 @@ func TestChinese(t *testing.T) {
 	}
 }
 
+func TestJapanese(t *testing.T) {
+	defer SetLocale("en")
+	if got := SetLocale("ja-JP"); got != "ja" || Locale() != "ja" {
+		t.Fatal(got)
+	}
+	if got := T("Generate"); got != "生成" {
+		t.Error(got)
+	}
+	if got := N(1, "%d take", "%d takes", 1); got != "1件のテイク" {
+		t.Error("ja has no singular, so it uses the translation of other:", got)
+	}
+}
+
 func TestMatch(t *testing.T) {
 	for in, want := range map[string]string{
 		"": "en", "en": "en", "en-GB": "en", "fr-FR": "en",
 		"zh": "zh-Hans", "zh-CN": "zh-Hans", "zh-Hans": "zh-Hans", "zh_Hans_CN": "zh-Hans", "zh-TW": "en", "ZH-HANS": "zh-Hans",
+		"ja": "ja", "ja-JP": "ja", "ja_JP": "ja", "JA-jp": "ja", "jv": "en",
 	} {
 		if got := Match(in); got != want {
 			t.Errorf("Match(%q) = %q, want %q", in, got, want)
@@ -72,8 +86,8 @@ func TestCatalogsParse(t *testing.T) {
 }
 
 func TestNames(t *testing.T) {
-	if Name("en") != "English" || Name("zh-Hans") != "简体中文" || Name("xx") != "xx" {
-		t.Error(Name("en"), Name("zh-Hans"))
+	if Name("en") != "English" || Name("zh-Hans") != "简体中文" || Name("ja") != "日本語" || Name("xx") != "xx" {
+		t.Error(Name("en"), Name("zh-Hans"), Name("ja"))
 	}
 }
 
@@ -98,5 +112,15 @@ func TestDates(t *testing.T) {
 	}
 	if got := Date(old); got != "2024年11月22日" {
 		t.Errorf("zh date: %q", got)
+	}
+	SetLocale("ja")
+	if got := DateTime(this); got != "3月4日 15:06" {
+		t.Errorf("ja this year: %q", got)
+	}
+	if got := DateTime(old); got != "2024年11月22日 09:05" {
+		t.Errorf("ja: %q", got)
+	}
+	if got := Date(old); got != "2024年11月22日" {
+		t.Errorf("ja date: %q", got)
 	}
 }

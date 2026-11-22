@@ -12,10 +12,10 @@
 // by design. A key-parity test (thread C) scans the sources for T/N/X
 // calls and fails when a supported locale lacks one.
 //
-// Thread C owns this package: M0 ships en and zh-Hans, M7 the rest.
+// Thread C owns this package: M0 ships en and zh-Hans; thread #173 adds ja.
 // TestKeyParity (parity_test.go) scans every non-test .go file for T/N/X
 // calls with literal messages, plus the catalogue's about texts, and fails
-// when zh-Hans lacks one, keeps one nothing uses, or changes its format
+// when a locale (zh-Hans, ja) lacks one, keeps one nothing uses, or changes its format
 // verbs (a translation may reorder them with %[2]s). Every function is
 // safe from any goroutine; switching the locale takes effect at the next
 // build pass (the shell rebuilds the native menu itself).
@@ -45,10 +45,10 @@ var current atomic.Pointer[catalog]
 func init() { SetLocale("en") }
 
 // Supported lists the UI languages, as BCP-47 tags, English first.
-func Supported() []string { return []string{"en", "zh-Hans"} }
+func Supported() []string { return []string{"en", "zh-Hans", "ja"} }
 
 // Name is the name of a supported language in that language, as a
-// language picker shows it ("English", "简体中文"); the tag itself for
+// language picker shows it ("English", "简体中文", "日本語"); the tag itself for
 // others.
 func Name(tag string) string {
 	switch tag {
@@ -56,6 +56,8 @@ func Name(tag string) string {
 		return "English"
 	case "zh-Hans":
 		return "简体中文"
+	case "ja":
+		return "日本語"
 	}
 	return tag
 }
@@ -77,15 +79,17 @@ func SetLocale(tag string) string {
 	return tag
 }
 
-// Match maps a system or user locale ("zh-CN", "zh_Hans_CN", "en-GB") to
+// Match maps a system or user locale ("zh-CN", "zh_Hans_CN", "ja-JP", "en-GB") to
 // the closest supported tag, English when none is close.
 func Match(tag string) string {
 	t := strings.ToLower(strings.ReplaceAll(tag, "_", "-"))
 	switch {
 	case t == "zh" || strings.HasPrefix(t, "zh-hans") || t == "zh-cn" || t == "zh-sg" || strings.HasPrefix(t, "zh-cn-"):
 		return "zh-Hans"
+	case t == "ja" || strings.HasPrefix(t, "ja-"):
+		return "ja"
 	}
-	// Exact matches of other supported tags (none yet besides en).
+	// Exact matches of other supported tags (en).
 	for _, s := range Supported() {
 		if strings.EqualFold(s, tag) {
 			return s
@@ -110,7 +114,7 @@ func X(context, msg string, args ...any) string {
 
 // N picks the singular (one) or plural (other) English source for n by the
 // active locale's plural rule, translates it and formats it with args.
-// Locales without a singular (zh-Hans) always use other. A singular may
+// Locales without a singular (zh-Hans, ja) always use other. A singular may
 // leave the count out ("Generate dub" / "Generate %d dubs"): one without
 // a verb is not formatted, so the count does not show as %!(EXTRA int=1).
 func N(n int, one, other string, args ...any) string {

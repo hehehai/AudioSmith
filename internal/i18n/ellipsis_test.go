@@ -40,10 +40,18 @@ var ellipsisAllowed = map[string]bool{
 }
 
 // TestNoEllipsisLabels: action labels (buttons, menu items, options) end
-// without "…" in both languages; only work under way and placeholders
+// without "…" in every language; only work under way and placeholders
 // keep it.
 func TestNoEllipsisLabels(t *testing.T) {
-	b, err := os.ReadFile("locales/zh-Hans.json")
+	for _, tag := range Supported() {
+		if tag != "en" {
+			t.Run(tag, func(t *testing.T) { checkEllipses(t, tag) })
+		}
+	}
+}
+
+func checkEllipses(t *testing.T, tag string) {
+	b, err := os.ReadFile("locales/" + tag + ".json")
 	if err != nil {
 		t.Fatal(err)
 	}
