@@ -59,6 +59,9 @@ func TestModelPickerDub(t *testing.T) {
 	a.dubSide.set, a.dubSide.open = true, true
 	a.pickerOpen = map[string]bool{"gen-model": true}
 	a.pickerAll = map[string]bool{"gen-model": true}
+	// Tall enough for the whole list (Irodori and the VOICEVOX connector
+	// lengthened it): MyGo 0.10's Click needs the row on screen.
+	tt.SetSize(1100, 1600)
 	tt.Frame()
 	tt.Frame()
 	texts := strings.Join(tt.Texts(), "|")
