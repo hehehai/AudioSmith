@@ -34,7 +34,7 @@ func TestRealCharacterEngines(t *testing.T) {
 	os.MkdirAll(out, 0o755)
 	type entry struct {
 		File, Engine, Character, Style, Voice, Credit, Use, Text string
-		AudioSeconds, WallSeconds                               float64
+		AudioSeconds, WallSeconds                                float64
 	}
 	var report []entry
 	for _, en := range e.lib.vv.Engines() {
