@@ -57,7 +57,7 @@ func TestAgentPrompts(t *testing.T) {
 		"cursor":      {`"X-AudioSmith-Client": "cursor"`, "~/.cursor/mcp.json", ".cursor/mcp.json", `"url": "http://127.0.0.1:4000/mcp"`, "`~/.cursor/skills/audiosmith/`", `D="$HOME/.cursor/skills/audiosmith"`},
 		"mcp":         {`"X-AudioSmith-Client": "<your-name>"`, `"type": "http"`, testExe, `"--mcp-stdio"`, "`~/.agents/skills`", `D="$HOME/.agents/skills/audiosmith"`},
 	}
-	for _, lang := range []string{"en", "zh-Hans"} {
+	for _, lang := range []string{"en", "zh-Hans", "ja"} {
 		i18n.SetLocale(lang)
 		for slug, words := range want {
 			for mode, e := range envs {
@@ -72,6 +72,9 @@ func TestAgentPrompts(t *testing.T) {
 					}
 					if lang == "zh-Hans" && w == "port 4000" {
 						w = "端口 4000"
+					}
+					if lang == "ja" && w == "port 4000" {
+						w = "ポート4000"
 					}
 					if !strings.Contains(s, w) {
 						t.Errorf("%s %s %s: no %q in\n%s", lang, slug, mode, w, s)

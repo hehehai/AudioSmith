@@ -21,9 +21,13 @@ func TestIrodoriWiring(t *testing.T) {
 	}
 
 	t.Cleanup(func() { i18n.SetLocale("en") })
-	for _, loc := range []string{"en", "zh-Hans"} {
+	for _, loc := range []string{"en", "zh-Hans", "ja"} {
 		i18n.SetLocale(loc)
-		if languageNote(iro) != i18n.T("Japanese only") || languageNote(vox) != "" {
+		want := i18n.T("Japanese only")
+		if loc == "ja" {
+			want = "" // a Japanese UI need not say it (model_picker.go)
+		}
+		if languageNote(iro) != want || languageNote(vox) != "" {
 			t.Errorf("%s: note %q", loc, languageNote(iro))
 		}
 	}

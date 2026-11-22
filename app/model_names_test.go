@@ -16,10 +16,10 @@ import (
 
 // TestModelNames: every catalogue entry has a friendly name, a line and
 // tags in English and Chinese; the names are distinct and short in both,
-// and say nothing of the family or the size.
+// and say nothing of the family or the size; Japanese (thread #173) too.
 func TestModelNames(t *testing.T) {
 	t.Cleanup(func() { i18n.SetLocale("en") })
-	for _, loc := range []string{"en", "zh-Hans"} {
+	for _, loc := range []string{"en", "zh-Hans", "ja"} {
 		i18n.SetLocale(loc)
 		seen := map[string]string{}
 		for _, e := range catalog.Builtin().Entries {
@@ -35,6 +35,13 @@ func TestModelNames(t *testing.T) {
 					t.Errorf("%s: %q has %d Chinese characters (1–8)", e.ID, name, n)
 				}
 				if d := e.Description(); d == i18n.T("") || !strings.ContainsFunc(d, func(r rune) bool { return unicode.Is(unicode.Han, r) }) {
+					t.Errorf("%s: description %q is not translated", e.ID, d)
+				}
+			} else if loc == "ja" {
+				if name == e.Name || len([]rune(name)) > 32 {
+					t.Errorf("%s: %q is not translated, or long", e.ID, name)
+				}
+				if d := e.Description(); !strings.ContainsFunc(d, func(r rune) bool { return unicode.In(r, unicode.Hiragana, unicode.Katakana) }) {
 					t.Errorf("%s: description %q is not translated", e.ID, d)
 				}
 			} else if len([]rune(name)) > 32 {
@@ -123,7 +130,7 @@ func technicalIn(texts []string) []string {
 // tooltip and the card's Details.
 func TestModelNamesInUI(t *testing.T) {
 	t.Cleanup(func() { i18n.SetLocale("en") })
-	for _, loc := range []string{"en", "zh-Hans"} {
+	for _, loc := range []string{"en", "zh-Hans", "ja"} {
 		a, _, tt := newTestApp(t)
 		i18n.SetLocale(loc)
 		check := func(where string) {

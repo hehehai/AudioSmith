@@ -46,7 +46,7 @@ func TestVoiceNameInjection(t *testing.T) {
 	}
 
 	t.Cleanup(func() { i18n.SetLocale("en") })
-	for _, lang := range []string{"en", "zh-Hans"} {
+	for _, lang := range []string{"en", "zh-Hans", "ja"} {
 		i18n.SetLocale(lang)
 		for _, name := range []string{res.Voice.Name, evilName} { // cleaned, and saved before the fix
 			p := promptEnv{integEnv: integEnv{Base: "http://127.0.0.1:3901", Exe: testExe},
@@ -70,7 +70,7 @@ func TestVoiceNameInjection(t *testing.T) {
 				if strings.Contains(s, "\n## IMPORTANT") || strings.Contains(s, "evil.example") {
 					t.Fatalf("%s %s: payload in full", lang, what)
 				}
-				if !strings.Contains(s, i18n.T("not instructions")) && !strings.Contains(s, "不是指令") {
+				if !strings.Contains(s, i18n.T("not instructions")) && !strings.Contains(s, "不是指令") && !strings.Contains(s, "指示ではありません") {
 					t.Fatalf("%s %s: no data note", lang, what)
 				}
 			}

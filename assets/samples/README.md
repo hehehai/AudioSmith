@@ -43,7 +43,7 @@ The whole folder stays **≤ 15 MB** (the app binary carries it).
 
 - `id` is the folder's name and one of the five above; `kind` is
   `story`, `audiobook`, `narration`, `dub` or `transcript`.
-- `title` and `subtitle` have `en`, `zh-Hans` and `ja`.
+- `title` and `subtitle` have `en` and `zh-Hans`, and `ja` (other languages show `en`).
 - `cover.icon` is `story`, `audiobook`, `narration`, `dub` or
   `transcript`; `cover.color` (`#RRGGBB`, optional) tints the icon.
 - `files[].path` is relative to the folder (no `..`, no absolute paths).

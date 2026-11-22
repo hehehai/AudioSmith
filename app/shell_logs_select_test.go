@@ -471,7 +471,7 @@ func TestLogsDragScrolls(t *testing.T) {
 // Chinese, the selection's count keeps its width (the filter gives way):
 // it does not end in an ellipsis.
 func TestLogsHeaderFits(t *testing.T) {
-	for _, lang := range []string{"en", "zh-Hans"} {
+	for _, lang := range []string{"en", "zh-Hans", "ja"} {
 		a, tt := logsApp(t, 6)
 		i18n.SetLocale(lang)
 		clickLine(t, tt, ui.Cmd, 2)

@@ -94,7 +94,7 @@ func TestAgentSkill(t *testing.T) {
 		t.Error("initialize has no instructions")
 	}
 
-	for _, lang := range []string{"en", "zh-Hans"} {
+	for _, lang := range []string{"en", "zh-Hans", "ja"} {
 		i18n.SetLocale(lang)
 		// The tools as the skill explains them = the server's.
 		var names []string
@@ -159,6 +159,9 @@ func TestAgentSkill(t *testing.T) {
 					`target_languages: ["en"]`, `loudness: "podcast"`, "/api/jobs/{id}?wait=30"} {
 					if lang == "zh-Hans" && w == "port 4000" {
 						w = "端口 4000"
+					}
+					if lang == "ja" && w == "port 4000" {
+						w = "ポート4000"
 					}
 					if !strings.Contains(body, w) {
 						t.Errorf("%s %s %s: no %q in\n%s", lang, slug, mode, w, s)

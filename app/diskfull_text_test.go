@@ -18,13 +18,13 @@ func TestDiskFullText(t *testing.T) {
 	t.Cleanup(func() { i18n.SetLocale("en") })
 	pre := fmt.Errorf("dub x: %w", &core.DiskFullError{What: "the dub", Path: "/data", Need: 3.2e9, Free: 1.1e9})
 	job := services.DiskFullJob(pre)
-	for _, loc := range []string{"en", "zh-Hans"} {
+	for _, loc := range []string{"en", "zh-Hans", "ja"} {
 		i18n.SetLocale(loc)
 		for _, got := range []string{engineErrorText(pre), jobErrorText(job)} {
 			if !strings.Contains(got, "3.2 GB") || !strings.Contains(got, "1.1 GB") || strings.Contains(got, "/data") {
 				t.Errorf("%s: %q", loc, got)
 			}
-			if loc == "zh-Hans" && !strings.Contains(got, "磁盘空间不足") {
+			if loc == "zh-Hans" && !strings.Contains(got, "磁盘空间不足") || loc == "ja" && !strings.Contains(got, "ディスクの空き容量") {
 				t.Errorf("not translated: %q", got)
 			}
 		}
