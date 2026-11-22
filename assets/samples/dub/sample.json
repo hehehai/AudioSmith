@@ -4,11 +4,13 @@
   "kind": "dub",
   "title": {
     "en": "A dubbed clip",
-    "zh-Hans": "一段配音短片"
+    "zh-Hans": "一段配音短片",
+    "ja": "吹き替えたクリップ"
   },
   "subtitle": {
     "en": "Why is the sky blue? An English explainer dubbed into Chinese",
-    "zh-Hans": "《天空为什么是蓝色的》：英文讲解配成中文"
+    "zh-Hans": "《天空为什么是蓝色的》：英文讲解配成中文",
+    "ja": "「空はなぜ青いの？」英語の解説を中国語に吹き替え"
   },
   "cover": {
     "color": "#EF4444",

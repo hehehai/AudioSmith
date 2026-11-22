@@ -192,8 +192,11 @@ func (a *app) runProbe(path string) {
 // rateLangDefault is the rate-fit language for the UI's.
 func rateLangDefault() string {
 	code := "en"
-	if strings.HasPrefix(i18n.Locale(), "zh") {
+	switch l := i18n.Locale(); {
+	case strings.HasPrefix(l, "zh"):
 		code = "zh"
+	case l == "ja":
+		code = "ja"
 	}
 	return langName(code)
 }

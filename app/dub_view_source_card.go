@@ -327,14 +327,18 @@ func dubPicture(w, h int) string {
 }
 
 // compactCount is "1,234", "12.3K", "4.5M" (in Chinese "1234", "12.3万",
-// "4.5亿").
+// "4.5亿"; in Japanese "12.3万", "4.5億").
 func compactCount(n int64) string {
 	f := float64(n)
 	trim := func(s string) string { return strings.TrimSuffix(s, ".0") }
-	if i18n.Locale() == "zh-Hans" {
+	if l := i18n.Locale(); l == "zh-Hans" || l == "ja" {
+		yi := "亿"
+		if l == "ja" {
+			yi = "億"
+		}
 		switch {
 		case n >= 1e8:
-			return trim(fmt.Sprintf("%.1f", f/1e8)) + "亿"
+			return trim(fmt.Sprintf("%.1f", f/1e8)) + yi
 		case n >= 1e4:
 			return trim(fmt.Sprintf("%.1f", f/1e4)) + "万"
 		}

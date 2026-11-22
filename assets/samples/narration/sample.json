@@ -4,11 +4,13 @@
   "kind": "narration",
   "title": {
     "en": "A product narration",
-    "zh-Hans": "一段产品旁白"
+    "zh-Hans": "一段产品旁白",
+    "ja": "製品のナレーション"
   },
   "subtitle": {
     "en": "Thirty seconds of voice-over for a made-up lamp",
-    "zh-Hans": "为一款虚构台灯配的三十秒旁白"
+    "zh-Hans": "为一款虚构台灯配的三十秒旁白",
+    "ja": "架空のランプのための30秒のボイスオーバー"
   },
   "cover": {
     "color": "#F59E0B",

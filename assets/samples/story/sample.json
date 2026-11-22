@@ -4,11 +4,13 @@
   "kind": "story",
   "title": {
     "en": "A story for two voices",
-    "zh-Hans": "两人对话的故事"
+    "zh-Hans": "两人对话的故事",
+    "ja": "2人の声によるストーリー"
   },
   "subtitle": {
     "en": "A rainy night at a watch repair shop, two voices and a narrator",
-    "zh-Hans": "雨夜修表铺：两个角色和一位旁白"
+    "zh-Hans": "雨夜修表铺：两个角色和一位旁白",
+    "ja": "雨の夜の時計修理店：2人のキャラクターとナレーター"
   },
   "cover": {
     "color": "#8B5CF6",

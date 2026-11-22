@@ -416,7 +416,7 @@ func (a *app) removedOnDisk() (names []string, bytes []int64, kept []string) {
 
 // listJoin joins names as the interface's language lists them.
 func listJoin(names []string) string {
-	if strings.HasPrefix(i18n.Locale(), "zh") {
+	if l := i18n.Locale(); strings.HasPrefix(l, "zh") || l == "ja" {
 		return strings.Join(names, "、")
 	}
 	return strings.Join(names, ", ")

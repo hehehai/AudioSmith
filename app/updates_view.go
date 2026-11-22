@@ -149,7 +149,7 @@ func (a *app) updatePanelBody(c *ui.Context) {
 	if st.Release == nil {
 		return
 	}
-	if i18n.Locale() == "zh-Hans" && st.NotesLocale == "en" {
+	if i18n.Locale() != "en" && st.NotesLocale == "en" {
 		caption(c.Key("upd-en"), i18n.T("These notes are not translated yet; here they are in English."))
 	}
 	notes := st.Notes
@@ -330,7 +330,7 @@ func (a *app) historyDialog(c *ui.Context) {
 						tagChip(c, i18n.T("This version"))
 					}
 				})
-				if i18n.Locale() == "zh-Hans" && e.Locale == "en" {
+				if i18n.Locale() != "en" && e.Locale == "en" {
 					caption(c, i18n.T("These notes are not translated yet; here they are in English."))
 				}
 				markdown.View(c.Key("hist-md-"+e.Version), e.Notes, &u.md)

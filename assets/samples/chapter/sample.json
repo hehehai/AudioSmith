@@ -4,11 +4,13 @@
   "kind": "audiobook",
   "title": {
     "en": "An audiobook chapter",
-    "zh-Hans": "一章有声书"
+    "zh-Hans": "一章有声书",
+    "ja": "オーディオブックの章"
   },
   "subtitle": {
     "en": "Chapter one, read by a narrator with two characters",
-    "zh-Hans": "第一章：旁白朗读，两个角色各说一句"
+    "zh-Hans": "第一章：旁白朗读，两个角色各说一句",
+    "ja": "第1章：ナレーターが朗読し、2人のキャラクターがひと言ずつ"
   },
   "cover": {
     "color": "#0EA5E9",

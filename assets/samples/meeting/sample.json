@@ -4,11 +4,13 @@
   "kind": "transcript",
   "title": {
     "en": "A meeting transcript",
-    "zh-Hans": "一段会议转写"
+    "zh-Hans": "一段会议转写",
+    "ja": "会議の文字起こし"
   },
   "subtitle": {
     "en": "A release meeting for two, with speakers and timings",
-    "zh-Hans": "两人的发布安排会，分说话人、带时间"
+    "zh-Hans": "两人的发布安排会，分说话人、带时间",
+    "ja": "2人のリリース会議。話者とタイミング付き"
   },
   "cover": {
     "color": "#10B981",

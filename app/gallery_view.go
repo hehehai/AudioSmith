@@ -45,13 +45,18 @@ func facetTitle(f gallery.Facet) string {
 var recommendedVoices = map[string][]string{
 	"zh": {"serena", "headline-desk", "paper-lantern", "warm-uncle", "grandma-osmanthus", "dylan"},
 	"en": {"af_heart", "late-night-radio", "history-vault", "interviewer", "velvet-chapters", "trailer-thunder"},
+	// ja (thread #173): the Japanese voice first, then English's best.
+	"ja": {"sakura-station", "af_heart", "late-night-radio", "history-vault", "interviewer", "velvet-chapters"},
 }
 
 // recommended are 「推荐」's voices for the interface's language.
 func recommended() []gallery.Archetype {
 	ids := recommendedVoices["en"]
-	if strings.HasPrefix(i18n.Locale(), "zh") {
+	switch l := i18n.Locale(); {
+	case strings.HasPrefix(l, "zh"):
 		ids = recommendedVoices["zh"]
+	case l == "ja":
+		ids = recommendedVoices["ja"]
 	}
 	var out []gallery.Archetype
 	for _, id := range ids {

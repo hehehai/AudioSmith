@@ -146,8 +146,8 @@ func agentSkill(slug string, p promptEnv) string {
 	head(i18n.T("What AudioSmith does"))
 	line(i18n.T("The pages of AudioSmith's sidebar, by the names the user sees, what each is for, and the tools that do it (or where it stays in the app)."))
 	mods := skillModules()
-	sp := " " // between sentences; Chinese sets none
-	if strings.HasPrefix(i18n.Locale(), "zh") {
+	sp := " " // between sentences; Chinese and Japanese set none
+	if l := i18n.Locale(); strings.HasPrefix(l, "zh") || l == "ja" {
 		sp = ""
 	}
 	page := func(pg navPage) {

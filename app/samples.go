@@ -188,8 +188,8 @@ func readSample(fsys fs.FS, dir string) (sampleManifest, int64, error) {
 		return m, 0, fmt.Errorf("id %q is not the folder's name", m.ID)
 	case !slices.Contains([]string{sampleStory, sampleAudiobook, sampleNarration, sampleDub, sampleTranscriptKind}, m.Kind):
 		return m, 0, fmt.Errorf("kind %q", m.Kind)
-	case m.Title["en"] == "" || m.Title["zh-Hans"] == "":
-		return m, 0, fmt.Errorf("title needs en and zh-Hans")
+	case m.Title["en"] == "" || m.Title["zh-Hans"] == "" || m.Title["ja"] == "":
+		return m, 0, fmt.Errorf("title needs en, zh-Hans and ja")
 	}
 	size := int64(len(b))
 	for _, f := range m.Files {
