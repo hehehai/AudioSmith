@@ -204,6 +204,10 @@ translate                text/markup
 
 voicedesign              text
 
+voicevox                 dsp/wav
+voicevox                 engine/proto
+voicevox                 jobs
+
 watermark                torchpt
 
 workflow                 i18n
