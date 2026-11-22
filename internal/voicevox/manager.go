@@ -343,9 +343,15 @@ func (m *Manager) Info(ctx context.Context, k Kind, uuid string) error {
 
 // Prefetch reads the info of every character of the online engines that
 // was not read yet, one at a time (the picker's previews and marks).
-func (m *Manager) Prefetch(ctx context.Context) {
+func (m *Manager) Prefetch(ctx context.Context) { m.prefetch(ctx, false) }
+
+// PrefetchLicences reads the infos AivisSpeech's terms need (its models'
+// licences); VOICEVOX's terms come from the table.
+func (m *Manager) PrefetchLicences(ctx context.Context) { m.prefetch(ctx, true) }
+
+func (m *Manager) prefetch(ctx context.Context, licences bool) {
 	for _, e := range m.Engines() {
-		if !e.Online {
+		if !e.Online || licences && e.Flavor != Aivis {
 			continue
 		}
 		for _, s := range e.Speakers {

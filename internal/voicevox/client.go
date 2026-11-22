@@ -71,13 +71,14 @@ type Speaker struct {
 type Style struct {
 	Name string `json:"name"`
 	ID   int64  `json:"id"`
-	// Type is "talk" (or "" from old engines) for speech; the singing
-	// types ("sing", "frame_decode"…) are not offered.
+	// Type is "talk" or (VOICEVOX 0.26) "streaming_talk", or "" from old
+	// engines, for speech; the singing types ("sing", "singing_teacher",
+	// "frame_decode") are not offered.
 	Type string `json:"type,omitempty"`
 }
 
 // Talks reports whether the style speaks (rather than sings).
-func (s Style) Talks() bool { return s.Type == "" || s.Type == "talk" }
+func (s Style) Talks() bool { return s.Type == "" || strings.HasSuffix(s.Type, "talk") }
 
 // SpeakerInfo is /speaker_info: the character's terms (VOICEVOX) or its
 // model's licence (AivisSpeech), as Markdown or plain text, and each

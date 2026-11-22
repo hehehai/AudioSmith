@@ -94,7 +94,7 @@ func (b *apiBackend) characterModel(ctx context.Context) (api.Model, bool) {
 		return api.Model{}, false
 	}
 	vv.Refresh(ctx, 15*time.Second)
-	vv.Prefetch(ctx) // the AivisSpeech models' licences (read once)
+	vv.PrefetchLicences(ctx) // the AivisSpeech models' licences (read once)
 	m := api.Model{Entry: e, Downloaded: true}
 	for _, en := range vv.Engines() {
 		if !en.Online {

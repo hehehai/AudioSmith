@@ -97,7 +97,7 @@ func (f *Fake) speakers() []speaker {
 		}
 	}
 	return []speaker{
-		{Name: "ずんだもん", UUID: ZundamonUUID, Styles: []style{{"ノーマル", ZundamonNormal, "talk"}, {"あまあま", ZundamonSweet, "talk"}, {"ハミング", 3001, "frame_decode"}}},
+		{Name: "ずんだもん", UUID: ZundamonUUID, Styles: []style{{"ノーマル", ZundamonNormal, "streaming_talk"}, {"あまあま", ZundamonSweet, "talk"}, {"ハミング", 3001, "frame_decode"}}},
 		{Name: "No.7", UUID: No7UUID, Styles: []style{{"ノーマル", No7Normal, "talk"}}},
 	}
 }
