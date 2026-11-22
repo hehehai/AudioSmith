@@ -130,18 +130,20 @@ func dataKeys(t *testing.T) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
+	type entry struct {
+		About   string `json:"about"`
+		Summary string `json:"summary"`
+		Name    string `json:"name"`
+	}
 	var c struct {
-		Entries []struct {
-			About   string `json:"about"`
-			Summary string `json:"summary"`
-			Name    string `json:"name"`
-		} `json:"entries"`
+		Entries  []entry `json:"entries"`
+		External []entry `json:"external"` // thread #171
 	}
 	if err := json.Unmarshal(data, &c); err != nil {
 		t.Fatal(err)
 	}
 	var out []string
-	for _, e := range c.Entries {
+	for _, e := range append(c.Entries, c.External...) {
 		for _, s := range []string{e.About, e.Summary} {
 			if s != "" {
 				out = append(out, s)
