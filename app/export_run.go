@@ -57,6 +57,13 @@ func (a *app) exportTo(f *exportForm, dst string) {
 		s.Export.Audio[kind] = prefs
 	})
 	tk, src := f.take, f.src
+	if tk.Credit != "" {
+		// The credit the audio must carry (thread #171): its comment tag.
+		if o.Metadata == nil {
+			o.Metadata = map[string]string{}
+		}
+		o.Metadata["comment"] = tk.Credit
+	}
 	extras := map[string]bool{}
 	for _, x := range f.extrasShown() {
 		extras[x] = f.extraOn(x)
@@ -153,7 +160,7 @@ func exportEncoderOf(ex jobs.Executor, tool *ffmpeg.Tool) services.AudioEncoder 
 				return fmt.Errorf("%s", i18n.T("M4A needs the speech engine; it is not running."))
 			}
 			p := proto.EncodeParams{Input: in, Output: proto.Output{Path: dst, Format: services.FormatM4A}, Codec: "aac", Bitrate: o.Bitrate,
-				Metadata: proto.EncodeMetadata{Title: o.Metadata["title"], Author: o.Metadata["artist"]}}
+				Metadata: proto.EncodeMetadata{Title: o.Metadata["title"], Author: o.Metadata["artist"], Description: o.Metadata["comment"]}}
 			raw, err := json.Marshal(p)
 			if err != nil {
 				return err
