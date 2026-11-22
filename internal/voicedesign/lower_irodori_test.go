@@ -62,3 +62,20 @@ func TestLowerIrodori(t *testing.T) {
 		t.Error("IsJapanese")
 	}
 }
+
+// TestParseJapanese: a Japanese caption says its speaker's age and
+// gender (thread #172's curated voices: the facets and the reference
+// texts' register follow it).
+func TestParseJapanese(t *testing.T) {
+	for s, want := range map[string][2]string{
+		"元気いっぱいの小さな女の子。高くて明るい声で話す。": {"female", "child"},
+		"七十代のおばあさん。少しかすれた、温かみのある声。": {"female", "elderly"},
+		"四十代の男性。落ち着いた低めの声。":         {"male", "middle_aged"},
+		"二十代前半の若い男性。爽やかな声。":         {"male", "young_adult"},
+		"年配の男性の声。":                  {"male", "elderly"},
+	} {
+		if a := Parse(s).Attrs; a.Gender != want[0] || a.Age != want[1] {
+			t.Errorf("%s: %s/%s", s, a.Gender, a.Age)
+		}
+	}
+}

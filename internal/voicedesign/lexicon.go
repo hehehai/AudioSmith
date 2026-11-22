@@ -14,7 +14,9 @@ package voicedesign
 // English phrases are lower case, words separated by single spaces
 // (hyphens and underscores in the input count as spaces); a trailing `*`
 // matches any word ending ("whisper*" → whispering, whispery). Chinese
-// phrases match anywhere; at one position the longest phrase wins.
+// phrases match anywhere; at one position the longest phrase wins. The
+// Chinese table also has a few Japanese words for age and gender (女の子,
+// 七十代: Irodori-TTS's captions, curated Japanese voices, thread #172).
 const lexiconEN = `
 gender=male: male|man|men|guy|guys|gentleman|gentlemen|gent|masculine|dude|fellow|sir|lad|husband|king|baritone voiced
 gender=male,age~child: boy|boys|boyish
@@ -119,26 +121,26 @@ dialect=shanghai: shanghai|shanghainese
 
 const lexiconZH = `
 gender=male: 男|男性|男人|男生|男士|男声|先生|男子|汉子|爷们|帅哥
-gender=male,age=child: 小男孩|男童|男孩子
+gender=male,age=child: 小男孩|男童|男孩子|男の子
 gender=male,age~child: 男孩|小子
 gender=male,age~young_adult: 小伙|小伙子|小哥|小哥哥|青年男性|年轻男人|男青年|大男孩|公子
 gender=male,age=middle_aged: 大叔|中年男人|中年男性
 gender=male,age~middle_aged: 叔叔|爸爸|父亲|老爸|大哥
-gender=male,age=elderly: 爷爷|老爷爷|老头|老头儿|老大爷|大爷|老爷子|外公|老先生|老汉
+gender=male,age=elderly: 爷爷|老爷爷|老头|老头儿|老大爷|大爷|老爷子|外公|老先生|老汉|おじいさん|おじいちゃん
 gender=female: 女|女性|女人|女生|女士|女声|女子|美女|姐姐|小姐姐
-gender=female,age=child: 小女孩|女童|女孩子|小姑娘|萝莉
+gender=female,age=child: 小女孩|女童|女孩子|小姑娘|萝莉|女の子
 gender=female,age~teen: 女孩|少女|女学生
 gender=female,age~young_adult: 姑娘|小姐|年轻女人|青年女性|女青年|御姐
 gender=female,age=middle_aged: 阿姨|大妈|中年女人|中年女性|大婶|大姐
 gender=female,age~middle_aged: 妈妈|母亲|老妈|婶婶
-gender=female,age=elderly: 奶奶|老奶奶|老太太|老太|外婆|姥姥|婆婆|老妇人
+gender=female,age=elderly: 奶奶|老奶奶|老太太|老太|外婆|姥姥|婆婆|老妇人|おばあさん|おばあちゃん|老婦人
 gender~male: 他
 gender~female: 她
-age=child: 儿童|孩子|小孩|小孩子|童声|宝宝|小朋友|幼儿|稚嫩
+age=child: 儿童|孩子|小孩|小孩子|童声|宝宝|小朋友|幼儿|稚嫩|子ども|子供
 age=teen: 少年|青少年|中学生|高中生|初中生
-age=young_adult: 青年|年轻|年轻人|大学生|二十多岁|三十多岁
-age=middle_aged: 中年|成熟|中年人|四十多岁|五十多岁
-age=elderly: 老年|老人|老年人|年迈|年长|苍老|老者|老迈|上了年纪|六十多岁|七十多岁|八十多岁
+age=young_adult: 青年|年轻|年轻人|大学生|二十多岁|三十多岁|二十代|三十代|若い
+age=middle_aged: 中年|成熟|中年人|四十多岁|五十多岁|四十代|五十代
+age=elderly: 老年|老人|老年人|年迈|年长|苍老|老者|老迈|上了年纪|六十多岁|七十多岁|八十多岁|六十代|七十代|八十代|年配|高齢|お年寄り
 pitch=very_low: 极低|超低音|重低音
 pitch=low: 低沉|低音|深沉|低|低音调|低嗓|沉
 pitch=low,style=resonant: 浑厚低沉|雄浑|洪亮
