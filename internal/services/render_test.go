@@ -230,10 +230,11 @@ func omniInfo(string) ModelInfo {
 	return ModelInfo{Traits: TraitsFor("omnivoice", []string{"speed", "duration", "clone"}), Revision: "r2"}
 }
 
-// waitJob waits for a job to end.
+// waitJob waits for a job to end. The bound only catches hangs: the
+// race build on a hosted runner took over 10 s for Irodori's 12 chunks.
 func (e *renderEnv) waitJob(t *testing.T, id string) jobs.Job {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
 		j, err := e.sched.Get(ctx, id)
 		if err == nil && (j.State.Terminal() || j.State == jobs.StateInterrupted) {
