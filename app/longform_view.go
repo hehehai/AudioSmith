@@ -109,7 +109,7 @@ func (a *app) lfSetup(c *ui.Context, p *lfPage, locked bool) {
 	ui.Field(c, i18n.T("Model"), func() {
 		a.modelPicker(c, "lf-model", lfWorkflow(p), e, func(ne catalog.Entry) {
 			d.Model, p.auto = ne.Repo, false
-		}, pickerOpts{Locked: locked, Dialogue: a.storyDialoguePick(p), Langs: []string{lfContentLang(d)}, Uses: lfUses(p)})
+		}, pickerOpts{Locked: locked, Dialogue: a.storyDialoguePick(p), Langs: []string{lfContentLang(d)}, Uses: lfUses(p), Characters: true})
 	})
 	if m := a.model(e); e.ID != "custom" && m.known && m.local.State != hub.Downloaded {
 		ui.Row(c.Key("lf-download")).Gap(px(t, 6)).AlignItems(ui.Center).Children(func() {
@@ -206,7 +206,9 @@ func (a *app) lfVoiceSelect(c *ui.Context, key string, ref *string, e catalog.En
 		}
 		seen[v.label]++
 		op := voiceOption{value: v.ref, label: l}
-		if id, ok := strings.CutPrefix(v.ref, services.SpeakerRef); ok {
+		if id, ok := strings.CutPrefix(v.ref, services.SpeakerRef); ok && e.IsExternal() {
+			op = a.characterLfOption(v, id) // voicevox_longform.go
+		} else if ok {
 			op.group, op.preview = i18n.T("Model voices"), speakerPreview(e, id)
 		} else if sv := a.findVoice(v.ref); sv != nil {
 			op.group, op.voice, op.sub, op.preview = i18n.T("My voices"), sv, voiceKindLabel(sv), a.savedVoicePreview(sv)

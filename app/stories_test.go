@@ -81,7 +81,7 @@ func TestStoriesAutoCastRenderAndOutputs(t *testing.T) {
 	// Save the cue sheet and the chapters (as the dialogs would).
 	dir := t.TempDir()
 	a.writeOutput(a.lib.svc.Library, r.rec, "cues", r.body.Output.Cues, filepath.Join(dir, "cues.txt"), "txt", 0)
-	a.writeChapters(a.lib.svc.Library, r.rec, r.body.Output.Chapters, dir)
+	a.writeChapters(a.lib.svc.Library, r.rec, r.body.Output.Chapters, dir, nil)
 	cues, err := os.ReadFile(filepath.Join(dir, "cues.txt"))
 	if err != nil || !strings.HasPrefix(string(cues), "00:00:00\tThe Ferry") {
 		t.Errorf("cues %q %v", cues, err)

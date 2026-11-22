@@ -95,20 +95,26 @@ func (a *app) ffmpegBookItems(m *ui.Menu, r *lfRender) {
 	if out == nil {
 		return
 	}
-	rec, spec := r.rec, r.body.Spec
+	rec, body := r.rec, r.body
 	a.ffmpegMenuItems(m, []string{ffmpeg.MP3, ffmpeg.Opus}, func(f string) {
-		a.saveRenderEncoded(r, "book", bookEncodeOptions(rec, &spec, out, f), services.SafeFileName(rec.Title, "audiobook"))
+		a.saveRenderEncoded(r, "book", bookEncodeOptions(rec, &body, f), services.SafeFileName(rec.Title, "audiobook"))
 	})
 }
 
 // bookEncodeOptions encode a render's book as f (MP3, Opus) with its
-// chapters, cover and tags (the API's export_longform uses it too).
-func bookEncodeOptions(rec core.Render, spec *services.LongformSpec, out *services.AssembleResult, f string) ffmpeg.EncodeOptions {
+// chapters, cover and tags, its credits in its comment (the API's
+// export_longform uses it too).
+func bookEncodeOptions(rec core.Render, body *services.RenderBody, f string) ffmpeg.EncodeOptions {
+	spec, out := &body.Spec, body.Output
 	o := ffmpeg.EncodeOptions{Input: out.Book, Format: f, Cover: spec.Book.Cover, Duration: out.Seconds,
 		Metadata: map[string]string{"title": rec.Title, "album": rec.Title, "artist": spec.Book.Author, "album_artist": spec.Book.Author,
 			"composer": spec.Book.Narrator, "date": spec.Book.Year, "genre": spec.Book.Genre, "comment": spec.Book.Description}}
 	if f == ffmpeg.MP3 {
 		o.Bitrate = 128000 // speech: smaller books, as audiobook stores ask
+	}
+	if cr := joinCredits(body.Summary.Credits); cr != "" {
+		// The credits the audio must carry (thread #171).
+		o.Metadata["comment"] = strings.TrimSpace(spec.Book.Description + "\n" + cr)
 	}
 	for i, c := range out.Chapters {
 		title := c.Title

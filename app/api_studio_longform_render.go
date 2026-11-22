@@ -271,7 +271,7 @@ func (b *apiBackend) ExportLongform(ctx context.Context, req api.LongformExport)
 			return api.ExportJSON{}, apiErr(http.StatusBadRequest, api.CodeUnsupportedFormat, "format",
 				"%s needs ffmpeg: the user can set it up in AudioSmith → Settings → Audio tools; without it export wav or m4b (or m4a), or ask the user before converting the WAV yourself.", strings.ToUpper(format))
 		}
-		o := bookEncodeOptions(rec, &body.Spec, out, format)
+		o := bookEncodeOptions(rec, &body, format)
 		o.Output = file(formatExt(format))
 		if err := tool.EncodeAudio(ctx, o, nil); err != nil {
 			return api.ExportJSON{}, err
@@ -283,7 +283,7 @@ func (b *apiBackend) ExportLongform(ctx context.Context, req api.LongformExport)
 		if err != nil {
 			return api.ExportJSON{}, err
 		}
-		if res.Files, err = writeRenderChapters(ctx, lib, rec, slices.Clone(out.Chapters), dir); err != nil {
+		if res.Files, err = writeRenderChapters(ctx, lib, rec, slices.Clone(out.Chapters), dir, body.Summary.Credits); err != nil {
 			return api.ExportJSON{}, err
 		}
 	case "cues":

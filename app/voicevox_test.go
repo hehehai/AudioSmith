@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
+	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/settings"
 	"github.com/hehehai/AudioSmith/internal/voicevox"
 	"github.com/hehehai/AudioSmith/internal/voicevox/voicevoxtest"
@@ -245,5 +246,39 @@ func TestCharacterPickerOffline(t *testing.T) {
 	}
 	if a.preset().IsExternal() {
 		t.Fatal("the connector was picked while no engine runs")
+	}
+}
+
+// Stories and Audiobook: the cast offers the characters, a book's voice
+// reference resolves to the character, and a non-commercial one is
+// confirmed before the render.
+func TestCharacterLongform(t *testing.T) {
+	vv := voicevoxtest.New(voicevoxtest.VOICEVOX)
+	defer vv.Close()
+	a, _, _ := newTestApp(t)
+	a.vvProbe = true
+	useCharacterEngines(t, a.lib, vv, nil)
+	e := charactersEntry()
+	vs := a.lfVoices(e)
+	if len(vs) != 3 || vs[0].ref != services.SpeakerRef+zundamon(voicevoxtest.ZundamonNormal) || vs[0].label != "ずんだもん（ノーマル）" {
+		t.Fatalf("cast voices %+v", vs)
+	}
+	if got := a.lfVoiceLabel(vs[1].ref); got != "ずんだもん（あまあま）" {
+		t.Fatalf("label %q", got)
+	}
+	resolve := a.lfResolver(&services.LongformDoc{Model: e.Repo})
+	ref, tk, ok := resolve(vs[1].ref)
+	if !ok || ref != vs[1].ref || tk.Voice != zundamon(voicevoxtest.ZundamonSweet) {
+		t.Fatalf("resolved %q %+v %v", ref, tk, ok)
+	}
+	no7 := voicevox.Voice{Kind: voicevox.VOICEVOX, Speaker: voicevoxtest.No7UUID, Style: voicevoxtest.No7Normal}.String()
+	spec := services.LongformSpec{Model: e.Repo, Voices: map[string]core.Take{"n": {Voice: zundamon(3)}, "s": {Voice: no7}},
+		Chapters: []services.ChapterSpec{{Lines: []services.LineSpec{{Spans: []services.SpanSpec{{Voice: "n"}, {Voice: "s"}}}}}}}
+	if got := a.unconfirmedCharacter(spec); got != no7 {
+		t.Fatalf("unconfirmed %q", got)
+	}
+	a.confirmCharacter(no7)
+	if got := a.unconfirmedCharacter(spec); got != "" {
+		t.Fatalf("still unconfirmed %q", got)
 	}
 }

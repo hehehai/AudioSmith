@@ -111,6 +111,9 @@ func (a *app) refreshModels() {
 
 // refreshModel reads what of e is on disk, in the background.
 func (a *app) refreshModel(e catalog.Entry) {
+	if e.IsExternal() {
+		return // nothing on disk: an engine the user runs (thread #171)
+	}
 	client := a.hubClient()
 	a.async(func() {
 		l, err := client.Status(context.Background(), e)

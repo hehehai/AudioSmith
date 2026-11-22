@@ -3509,6 +3509,7 @@
   "Connected · %s · %d characters": "已连接 · %s · %d 个角色",
   "Connects to VOICEVOX ENGINE (127.0.0.1:50021) or AivisSpeech Engine (127.0.0.1:10101) running on this Mac; AudioSmith bundles none of their files. Japanese only, no cloning.": "连接本机运行的 VOICEVOX ENGINE（127.0.0.1:50021）或 AivisSpeech Engine（127.0.0.1:10101）；AudioSmith 不附带它们的任何文件。仅日语，不能克隆。",
   "Credit copied": "已复制署名",
+  "Credits to name when you publish: %s": "发布时请注明署名：%s",
   "Credit": "署名",
   "Credit: %s": "署名：%s",
   "Emotion strength": "情感强度",
