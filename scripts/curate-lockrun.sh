@@ -2,7 +2,7 @@
 # curate-lockrun.sh: one stage of TestCuratedVoicesE2E on the Mac (run by
 # make-curated-voices.sh from MAC_DIR; MODE and CURATE_* in the
 # environment). The shared Mac's rules: waits for other apps' GPU
-# engines to be idle and for ≥ 40 % free memory (the project's rule), holds /tmp/as-gpu.lock,
+# engines to be idle and for ≥ 50 % free memory, holds /tmp/as-gpu.lock,
 # kills the stage when free memory stays below 30 % (two readings, 3 s
 # apart) or the disk falls below
 # 6 GB (exit 3; stages resume where they stopped), one model loaded at a
@@ -14,13 +14,13 @@ disk() { df -g ~ | tail -1 | awk '{print $4}'; }
 busy() { ps -Ao pcpu=,command= | awk '/-engine --role gpu/ && !/awk/ && $1 > 50 {b=1} END {exit !b}'; }
 for i in $(seq 1 120); do busy || break; [ "$i" = 1 ] && echo "waiting: another GPU engine is busy"; sleep 15; done
 for i in $(seq 1 120); do
-  f=$(free); [ "$f" -ge 40 ] && break
+  f=$(free); [ "$f" -ge 50 ] && break
   [ $((i % 8)) = 1 ] && echo "waiting: memory only $f % free"; sleep 15
 done
-[ "$(free)" -ge 40 ] || { echo "memory below 40 % free for 30 min: stop"; exit 3; }
+[ "$(free)" -ge 50 ] || { echo "memory below 50 % free for 30 min: stop"; exit 3; }
 [ "$(disk)" -ge 6 ] || { echo "disk below 6 GB: stop"; exit 3; }
 until mkdir /tmp/as-gpu.lock 2>/dev/null; do echo "lock held by: $(cat /tmp/as-gpu.lock/owner 2>/dev/null)"; sleep 20; done
-echo "curate $PWD $MODE $$ $(date +%T)" > /tmp/as-gpu.lock/owner
+echo "c94 curate $MODE $$ $(date +%T)" > /tmp/as-gpu.lock/owner
 trap 'rm -rf /tmp/as-gpu.lock' EXIT
 echo "start $MODE $(date +%T) free $(free) % disk $(disk) GB"
 D=$PWD
