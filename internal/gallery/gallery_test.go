@@ -217,6 +217,17 @@ func TestSearch(t *testing.T) {
 			t.Errorf("%q: no %s in %d results", q, want, r.Total)
 		}
 	}
+	// Japanese (#172): Sakura Station, the seven Irodori-TTS voices and
+	// Ono_Anna; a Japanese word finds them too.
+	ja := g.Search(Query{Language: "ja"})
+	if ja.Total < 9 || !slices.ContainsFunc(ja.Items, func(a Archetype) bool { return a.ID == "c-ono_anna" }) {
+		t.Errorf("Japanese voices: %d", ja.Total)
+	}
+	for _, q := range []string{"昔話", "ニュース"} {
+		if r := g.Search(Query{Text: q, Language: "ja"}); r.Total == 0 {
+			t.Errorf("%q: no Japanese voice", q)
+		}
+	}
 	if r := g.Search(Query{Text: "zzzz-nothing"}); r.Total != 0 {
 		t.Error("nonsense found something")
 	}
