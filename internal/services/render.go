@@ -106,8 +106,8 @@ type RenderResult struct {
 	Seconds      float64         `json:"seconds"` // the render's wall time
 	Seed         int64           `json:"seed,omitempty"`
 	Render       core.TakeRender `json:"render"`
-	// Credits are the attributions the audio must carry (Config.Credits).
-	Credits []string `json:"credits,omitempty"`
+	// Credit is the attribution the audio must carry (Config.Credit).
+	Credit string `json:"credit,omitempty"`
 }
 
 // RenderProgress is published when a render starts a chunk, so the UI can
@@ -213,8 +213,8 @@ type renderer struct {
 	// nil: none.
 	engine              func(method string) jobs.Executor
 	aligner, recognizer string
-	// credits is Config.Credits.
-	credits func(ctx context.Context, model, voice string) []string
+	// credit is Config.Credit.
+	credit func(ctx context.Context, model, voice string) string
 }
 
 func (r *renderer) model(repo string) ModelInfo {
@@ -473,8 +473,8 @@ func (r *renderer) renderOnce(ctx context.Context, job jobs.Job, pp *RenderParam
 	res.Render.Chunks, res.Render.Warnings = takeChunks, warnings
 	res.Render.Issues, res.Render.QCDone = out.issues, out.qcDone
 	res.Render.Watermarked = marked
-	if r.credits != nil {
-		res.Credits = r.credits(ctx, t.Model, t.Voice)
+	if r.credit != nil {
+		res.Credit = r.credit(ctx, t.Model, t.Voice)
 	}
 	return json.Marshal(res)
 }

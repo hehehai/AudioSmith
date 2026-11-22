@@ -149,8 +149,8 @@ type renderEnv struct {
 	keep  atomic.Int64
 	// wm is the render's watermark (watermark_test.go); nil: none.
 	wm WatermarkFunc
-	// credits is Config.Credits (render_external_test.go); nil: none.
-	credits func(model, voice string) []string
+	// credit is Config.Credit (render_external_test.go); nil: none.
+	credit func(model, voice string) string
 
 	mu       sync.Mutex
 	stream   map[string][]byte // pcm16 by job
@@ -198,11 +198,11 @@ func newRenderEnvWith(t *testing.T, models func(string) ModelInfo, replace func(
 		Models:    models,
 		Replace:   replace,
 		KeepTakes: func() int { return int(e.keep.Load()) },
-		Credits: func(_ context.Context, model, voice string) []string {
-			if e.credits == nil {
-				return nil
+		Credit: func(_ context.Context, model, voice string) string {
+			if e.credit == nil {
+				return ""
 			}
-			return e.credits(model, voice)
+			return e.credit(model, voice)
 		},
 		Watermark: func(ctx context.Context, path string, bits int) (bool, error) {
 			if e.wm == nil {

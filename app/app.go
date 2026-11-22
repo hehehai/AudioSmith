@@ -70,6 +70,7 @@ type app struct {
 	isolateState                      // isolate.go (0.5 F2): the Voice isolator
 	samplesState                      // samples_copy.go (0.5 F6): opening the samples
 	introState                        // intro.go (0.5 F6): the features' 「介绍」 dialogs
+	charactersState                   // voicevox_app.go (thread #171): VOICEVOX / AivisSpeech
 }
 
 func newApp(eng *engineHost, lib *library) *app {
@@ -88,6 +89,7 @@ func newApp(eng *engineHost, lib *library) *app {
 	a.openLongform(lib)    // M3: longform.go (thread #18)
 	a.openDubs(lib)        // M4: dub.go (thread #19)
 	a.openIsolations(lib)  // 0.5 F2: isolate.go
+	a.openCharacters(lib)  // voicevox_app.go (thread #171)
 	a.openTools(lib)       // M5: tools.go (thread #20)
 	a.openWorkflows(lib)   // M6: workflow.go (thread #21)
 	a.openWatermark(lib)   // watermark_app.go (thread #14)

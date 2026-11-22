@@ -366,21 +366,18 @@ func safeName(s string) string {
 	return string(b)
 }
 
-// Credits are the credits a take spoken by voice carries: the
-// character's (VOICEVOX), or an AivisSpeech model's when its licence asks
-// for one. It reads the character's info if needed (an AivisSpeech
-// model's licence); nil for no credit or an unknown voice.
-func (m *Manager) Credits(ctx context.Context, voice string) []string {
+// Credit is the credit a take spoken by voice carries: the character's
+// (VOICEVOX), or an AivisSpeech model's when its licence asks for one.
+// It reads the character's info if needed (an AivisSpeech model's
+// licence); "" for no credit or an unknown voice.
+func (m *Manager) Credit(ctx context.Context, voice string) string {
 	ch, ok := m.Lookup(voice)
 	if !ok {
-		return nil
+		return ""
 	}
 	if ch.Engine.Flavor == Aivis && !m.HasInfo(voice) {
 		m.Info(ctx, ch.Engine.Kind, ch.Speaker.UUID)
 	}
 	t, _ := m.Terms(voice)
-	if t.Credit == "" {
-		return nil
-	}
-	return []string{t.Credit}
+	return t.Credit
 }

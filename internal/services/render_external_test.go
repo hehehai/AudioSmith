@@ -17,11 +17,11 @@ func voicevoxInfo(string) ModelInfo {
 // credits are kept with it, and its script is not normalised.
 func TestRenderExternalEngine(t *testing.T) {
 	e := newRenderEnv(t, voicevoxInfo)
-	e.credits = func(model, voice string) []string {
+	e.credit = func(model, voice string) string {
 		if model == "external/voicevox" && voice == "voicevox:u/3" {
-			return []string{"VOICEVOX:ずんだもん"}
+			return "VOICEVOX:ずんだもん"
 		}
-		return nil
+		return ""
 	}
 	recipe := core.Take{Text: "今日は2026年11月22日です。", Model: "external/voicevox", Voice: "voicevox:u/3", Language: "ja",
 		Scales: &core.Scales{Pitch: 0.05, Intonation: 1.3, PreSilence: 0.5, PostSilence: 0.7}}
@@ -29,8 +29,8 @@ func TestRenderExternalEngine(t *testing.T) {
 	if j.State != jobs.StateSucceeded {
 		t.Fatalf("job %s: %+v", j.State, j)
 	}
-	if len(tk.Credits) != 1 || tk.Credits[0] != "VOICEVOX:ずんだもん" {
-		t.Fatalf("credits %q", tk.Credits)
+	if tk.Credit != "VOICEVOX:ずんだもん" {
+		t.Fatalf("credit %q", tk.Credit)
 	}
 	calls := e.synth.calls
 	if len(calls) != 1 || calls[0].Scales == nil || calls[0].Scales.Pitch != 0.05 || calls[0].Scales.Intonation != 1.3 {

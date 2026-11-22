@@ -45,10 +45,10 @@ type Take struct {
 	// #171): its AudioQuery scales and silences; nil = the engine's.
 	Scales *Scales `json:"scales,omitempty"`
 
-	// Credits are the attributions the take's audio must carry when it is
+	// Credit is the attribution the take's audio must carry when it is
 	// published ("VOICEVOX:ずんだもん"; thread #171): set by the render from
 	// the voice's terms, shown with the take and written into exports.
-	Credits []string `json:"credits,omitempty"`
+	Credit string `json:"credit,omitempty"`
 
 	// Relations (M1+). Empty for MVP takes.
 	VoiceID   string `json:"voiceId,omitempty"`   // Voice profile it was spoken with

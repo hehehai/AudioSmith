@@ -93,10 +93,10 @@ type Config struct {
 	Engine              func(method string) jobs.Executor
 	Aligner, Recognizer string
 
-	// Credits are the attributions a take of model spoken by voice must
-	// carry (a VOICEVOX character's, thread #171): renders record them
-	// with the take. nil: none.
-	Credits func(ctx context.Context, model, voice string) []string
+	// Credit is the attribution a take of model spoken by voice must
+	// carry (a VOICEVOX character's, thread #171; "" = none): renders
+	// record it with the take. nil: none.
+	Credit func(ctx context.Context, model, voice string) string
 }
 
 // Services is the set of services over one store, as core.Services for

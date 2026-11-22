@@ -126,6 +126,7 @@ func recipeRows(t *core.Take) [][2]string {
 		add(i18n.T("Technical name"), tech) // the family and version (thread #45)
 	}
 	add(i18n.T("Voice"), t.Voice)
+	add(i18n.T("Credit"), t.Credit)
 	add(i18n.T("Language"), t.Language)
 	if t.RefAudio != "" {
 		add(i18n.T("Reference clip"), t.RefAudio)

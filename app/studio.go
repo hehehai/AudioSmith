@@ -37,6 +37,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/services"
+	"github.com/hehehai/AudioSmith/internal/voicevox"
 	"github.com/hehehai/AudioSmith/internal/settings"
 )
 
@@ -267,12 +268,15 @@ func (a *app) selectModel(e catalog.Entry) {
 func (a *app) modelChanged() {
 	p := a.preset()
 	a.needDownload = nil
-	if p.ID != "" && p.ID != "custom" && p.ID != a.prefs.Studio.Model {
+	if p.ID != "" && p.ID != "custom" && !p.IsExternal() && p.ID != a.prefs.Studio.Model {
 		id := p.ID
 		a.updateSettings(func(s *settings.Settings) { s.Studio.Model = id })
 	}
 	a.studioAuto = false
 	a.loadPreset(p, a.prefs.Studio.Overrides[p.ID])
+	if p.IsExternal() {
+		a.voice = a.vvLast // the character spoken with last (voicevox_app.go)
+	}
 }
 
 func (a *app) canGenerate() bool {
@@ -364,6 +368,13 @@ func (a *app) generate() {
 			return
 		}
 	}
+	if p := a.preset(); p.IsExternal() {
+		// A character whose terms limit its use asks once (voicevox_app.go).
+		if v := a.studioCharacterVoice(); v != "" && !a.characterConfirmed(v) {
+			a.askCharacterTerms(v, a.generate)
+			return
+		}
+	}
 	a.startRender()
 	a.startTake(a.recipe(time.Now()))
 }
@@ -398,6 +409,10 @@ func (a *app) recipe(now time.Time) core.Take {
 		t.Temperature, t.TopP = a.temperature, a.topP
 	}
 	a.setStudioVoice(&t, p)
+	if p.IsExternal() {
+		// A character of VOICEVOX or AivisSpeech (voicevox_app.go).
+		t.Voice, t.Language, t.Scales = a.studioCharacterVoice(), "ja", a.characterScales()
+	}
 	if p.Has(catalog.CapDuration) && a.duration > 0 {
 		t.Duration = a.duration
 	}
@@ -424,6 +439,12 @@ func (a *app) reuse(t *core.Take) {
 		a.modelLabel, a.customRepo = catalog.CustomLabel, t.Model
 	}
 	a.voice, a.language = t.Voice, t.Language
+	if voicevox.IsVoice(t.Voice) {
+		a.vvLast, a.vvScales = t.Voice, core.Scales{}
+		if t.Scales != nil {
+			a.vvScales = *t.Scales
+		}
+	}
 	if m := *t; replaceRemovedTake(&m) {
 		a.voice, a.language = m.Voice, m.Language // what the replacement takes
 	}

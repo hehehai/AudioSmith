@@ -46,8 +46,12 @@ func (l *library) synthExecutor() jobs.Executor {
 	l.synthMu.Lock()
 	fn := l.synth
 	l.synthMu.Unlock()
-	if fn == nil {
-		return nil
+	var eng jobs.Executor
+	if fn != nil {
+		eng = fn()
 	}
-	return fn()
+	if l.vv == nil {
+		return eng
+	}
+	return externalRouter(eng, l.vv.Executor()) // voicevox_app.go
 }

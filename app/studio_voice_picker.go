@@ -23,7 +23,7 @@ import (
 func (a *app) studioVoicePicker(c *ui.Context, e catalog.Entry) {
 	cur, opts, acts := a.studioVoiceChoices(e)
 	st := &a.ttsUI
-	if st.recommend {
+	if st.recommend && !e.IsExternal() {
 		recs := a.recommendVoices(e, opts)
 		if st.regen { // another voice: not the one it has
 			recs = slices.DeleteFunc(recs, func(r voiceOption) bool { return r.value == "rec:"+cur })
@@ -77,6 +77,13 @@ func isActionValue(opts []voiceOption, value string) bool {
 // studioVoiceAbout is the voice row's second line: a saved voice's kind,
 // a curated speaker's description, else its gender and language.
 func (a *app) studioVoiceAbout(e catalog.Entry) string {
+	if e.IsExternal() {
+		if tm, ok := a.lib.vv.Terms(a.studioCharacterVoice()); ok {
+			mark, _ := termsMark(tm)
+			return mark
+		}
+		return ""
+	}
 	if v := a.findVoice(a.studioVoice); v != nil {
 		if id, ok := strings.CutPrefix(v.Origin, "gallery:"); ok {
 			if ar, ok := gallery.Default().ByID(id); ok && ar.Description.In(i18n.Locale()) != "" {
@@ -113,6 +120,9 @@ func (a *app) studioVoiceAbout(e catalog.Entry) string {
 // studioVoiceChoices are the Studio's voice rows for model e, the chosen
 // one's value and what picking each does.
 func (a *app) studioVoiceChoices(e catalog.Entry) (cur string, opts []voiceOption, acts map[string]func()) {
+	if e.IsExternal() {
+		return a.characterVoiceChoices() // voicevox_view.go
+	}
 	speaker, style := splitVoice(a.voice, e.AllVoiceIDs())
 	saved := a.findVoice(a.studioVoice)
 	clip := a.studioClip != nil && a.studioVoice == "" && e.Has(catalog.CapClone)

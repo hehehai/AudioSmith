@@ -104,26 +104,25 @@ func TestTermsAndCredits(t *testing.T) {
 	cases := []struct {
 		voice   string
 		use     voicevox.Use
-		credits []string
+		credit  string
 		confirm bool
 	}{
-		{voice(voicevox.VOICEVOX, voicevoxtest.ZundamonUUID, 3), voicevox.UseCommercial, []string{"VOICEVOX:ずんだもん"}, false},
-		{voice(voicevox.VOICEVOX, voicevoxtest.No7UUID, 29), voicevox.UseNonCommercial, []string{"VOICEVOX:No.7"}, true},
-		{voice(voicevox.Aivis, voicevoxtest.AnneliUUID, voicevoxtest.AnneliNormal), voicevox.UseCommercial, nil, false},
-		{voice(voicevox.Aivis, voicevoxtest.NCUUID, voicevoxtest.NCNormal), voicevox.UseNonCommercial, nil, true},
-		{voice(voicevox.Aivis, voicevoxtest.CustomUUID, voicevoxtest.CustomNormal), voicevox.UseAsk, []string{"AivisSpeech:独自さん"}, true},
+		{voice(voicevox.VOICEVOX, voicevoxtest.ZundamonUUID, 3), voicevox.UseCommercial, "VOICEVOX:ずんだもん", false},
+		{voice(voicevox.VOICEVOX, voicevoxtest.No7UUID, 29), voicevox.UseNonCommercial, "VOICEVOX:No.7", true},
+		{voice(voicevox.Aivis, voicevoxtest.AnneliUUID, voicevoxtest.AnneliNormal), voicevox.UseCommercial, "", false},
+		{voice(voicevox.Aivis, voicevoxtest.NCUUID, voicevoxtest.NCNormal), voicevox.UseNonCommercial, "", true},
+		{voice(voicevox.Aivis, voicevoxtest.CustomUUID, voicevoxtest.CustomNormal), voicevox.UseAsk, "AivisSpeech:独自さん", true},
 	}
 	for _, c := range cases {
-		got := m.Credits(ctx, c.voice)
-		if len(got) != len(c.credits) || len(got) > 0 && got[0] != c.credits[0] {
-			t.Errorf("%s: credits %q, want %q", c.voice, got, c.credits)
+		if got := m.Credit(ctx, c.voice); got != c.credit {
+			t.Errorf("%s: credit %q, want %q", c.voice, got, c.credit)
 		}
 		tm, ok := m.Terms(c.voice)
 		if !ok || tm.Use != c.use || tm.Confirm() != c.confirm {
 			t.Errorf("%s: terms %+v", c.voice, tm)
 		}
 	}
-	if m.Credits(ctx, "voicevox:nobody/1") != nil {
+	if m.Credit(ctx, "voicevox:nobody/1") != "" {
 		t.Fatal("credits for an unknown voice")
 	}
 	// The special credits and notes of the table.

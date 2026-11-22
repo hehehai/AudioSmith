@@ -80,7 +80,7 @@ func (a *app) generateRefused(t core.Take, err error) {
 func (a *app) preload() {
 	e := a.preset()
 	repo := e.Repo
-	if a.engState != engineReady || a.job != nil || repo == "" || repo == a.loadedModel {
+	if a.engState != engineReady || a.job != nil || repo == "" || repo == a.loadedModel || e.IsExternal() {
 		return
 	}
 	if licence.Required(e) != nil && !licence.Covers(a.accepted, e) {
