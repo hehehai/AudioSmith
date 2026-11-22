@@ -10,5 +10,13 @@ two clips each, Ogg Vorbis, mono 24 kHz:
 - `<id>.preview.ogg`: the voice's preview line, cloned from that reference
   on Qwen3-TTS 1.7B Base, as the Studio would make it.
 
-Made by `scripts/make-curated-voices.sh` (thread #94). Generated speech of
-no real person; the models are Apache-2.0 (see NOTICE).
+The seven Japanese voices of thread #172 (curated.json's `designModel`:
+`irodori-tts-v4.1-small-mf-8bit`) were made on Irodori-TTS v4.1 instead:
+the reference designed from the voice's Japanese caption saying one of its
+own texts (app/e2e_curated_ja_test.go), the best of four seeds by what
+Qwen3-ASR heard (kana error rate), and the preview cloned from it on the
+same model, the recommended Japanese model of the Studio.
+
+Made by `scripts/make-curated-voices.sh` (threads #94, #172). Generated
+speech of no real person or character; Qwen3-TTS is Apache-2.0, Irodori-TTS
+MIT with its author's terms (see NOTICE).

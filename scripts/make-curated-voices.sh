@@ -64,7 +64,7 @@ refs | pick | clone | asr | smoke)
   ;;
 final)
   picks="${2:?picks.json}"
-  scp -q "$picks" "$HOST:$REMOTE_OUT/picks.json"
+  rsync -a "$picks" "$HOST:$REMOTE_OUT/picks.json"
   run_stage final CURATE_PICKS="\$PWD/out/picks.json"
   ;;
 pull)

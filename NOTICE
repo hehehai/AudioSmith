@@ -68,7 +68,8 @@ Voice previews (assets/voice-previews)
   Short clips of the built-in speakers of Qwen3-TTS 12Hz 0.6B CustomVoice
   (Apache License 2.0, https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice)
   and Kokoro 82M (Apache License 2.0, https://huggingface.co/hexgrad/Kokoro-82M),
-  made with AudioSmith's engine by scripts/make-voice-previews.sh (2026-10-16).
+  made with AudioSmith's engine by scripts/make-voice-previews.sh (2026-10-16;
+  Ono_Anna's 2026-11-22).
   The voices are the models' own synthetic speakers, not recordings of people.
 
 Discover voices' clips (assets/gallery-voices)
@@ -77,8 +78,15 @@ Discover voices' clips (assets/gallery-voices)
   https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign), previews
   cloned from them with Qwen3-TTS 12Hz 1.7B Base (Apache License 2.0,
   https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base), made with
-  AudioSmith's engine by scripts/make-curated-voices.sh (2026-10-20). They
-  are synthetic voices, not recordings of people.
+  AudioSmith's engine by scripts/make-curated-voices.sh (2026-10-20). The
+  seven Japanese ones added on 2026-11-22 (bunko-reader, irori-granny,
+  yugata-newsroom, natsu-senpai, tanpopo, tsukiyo-queen, hoshizora-ehon)
+  were designed from Japanese captions and their previews cloned with
+  Aratako's Irodori-TTS v4.1 Small MF (MIT License,
+  https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF; mlx-community's
+  8-bit conversion, with the author's terms: no cloning or impersonating
+  anyone without consent, no deepfakes). They are synthetic voices, not
+  recordings of people, and imitate no real person or character.
 
 VoxtNew (the logs' line selection and order, shell_logs_select.go,
 shell_logs_order.go)
