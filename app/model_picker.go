@@ -84,11 +84,27 @@ func englishOnly(e catalog.Entry) bool {
 	return langs > 0 || len(p.Languages) == 1 && p.Languages[0] == "en"
 }
 
+// soleLanguage is the language (base code) of a model that speaks only
+// one other than English (Irodori-TTS: "ja", thread #170); "" otherwise.
+// Its previews, designs and references are in that language.
+func soleLanguage(e catalog.Entry) string {
+	if len(e.Languages) != 1 {
+		return ""
+	}
+	if l := catalog.BaseLanguage(e.Languages[0].Code); l != "en" {
+		return l
+	}
+	return ""
+}
+
 // languageNote warns about a model for the interface's language: one the
 // evaluation found unusable in it (Kokoro's Chinese), or one that speaks
-// only English; "" when it is fine.
+// only English or only another language; "" when it is fine.
 func languageNote(e catalog.Entry) string {
 	base := catalog.BaseLanguage(i18n.Locale())
+	if l := soleLanguage(e); l == "ja" && base != "ja" {
+		return i18n.T("Japanese only")
+	}
 	if base == "en" {
 		return ""
 	}

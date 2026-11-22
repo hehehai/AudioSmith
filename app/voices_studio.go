@@ -240,7 +240,8 @@ func styleFor(e catalog.Entry, style string) string {
 	}
 	eng, ok := vd.EngineFor(e.Family, e.Repo)
 	if ok && eng.Vocabulary == vd.VocabTags {
-		r := vd.Recipe{Attrs: vd.Parse(style).Attrs}
+		// The style as written too: Irodori keeps a Japanese one (thread #170).
+		r := vd.Recipe{Description: style, Attrs: vd.Parse(style).Attrs}
 		low, err := vd.Lower(eng.Target, r, vd.Options{Lang: vd.TextLang(style)})
 		if err != nil {
 			return ""
@@ -269,11 +270,12 @@ func cloneDelivery(t core.Take, e catalog.Entry, typed string) string {
 }
 
 // clonesOwnTake reports whether model e speaks designed voice v by cloning
-// its reference (else its sample) although e designs: VoxCPM2 designs a
-// voice differently each take (thread #165), so a voice with a clip
-// keeps sounding like that clip; OmniVoice designs it anew each take.
+// its reference (else its sample) although e designs: VoxCPM2 and
+// Irodori-TTS design a voice differently each take (threads #165, #170),
+// so a voice with a clip keeps sounding like that clip; OmniVoice designs
+// it anew each take.
 func clonesOwnTake(e catalog.Entry, v *core.Voice) bool {
-	return e.Family == "voxcpm2" && e.Has(catalog.CapClone) && voiceHasReference(v)
+	return (e.Family == "voxcpm2" || e.Family == "irodori_tts") && e.Has(catalog.CapClone) && voiceHasReference(v)
 }
 
 func firstOf(xs ...string) string {

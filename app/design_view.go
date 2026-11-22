@@ -243,7 +243,7 @@ func (a *app) designTarget(c *ui.Context) {
 	ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
 		ui.Text(c, i18n.T("Model")).FontWeight(600)
 		ui.Box(c).Grow(1).Basis(px(t, 200)).MaxWidth(px(t, 360)).Children(func() {
-			a.modelPicker(c, "design-model", catalog.WorkflowDesign, e, func(ne catalog.Entry) { d.model = ne.Label }, pickerOpts{Only: ms, Langs: []string{d.speechLang()}, Uses: designUses(d)})
+			a.modelPicker(c, "design-model", catalog.WorkflowDesign, e, d.useModel, pickerOpts{Only: ms, Langs: []string{d.speechLang()}, Uses: designUses(d)})
 		})
 		if !e.Licence.Commercial {
 			nc := e.Licence.Name + " · " + i18n.T("non-commercial use only")

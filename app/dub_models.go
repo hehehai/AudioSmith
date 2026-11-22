@@ -293,7 +293,8 @@ func dubDefaultModelBy(onDisk func(catalog.Entry) (ready, known bool)) string {
 		}
 	}
 	for _, e := range dubTTSModels() {
-		if ready, _ := onDisk(e); ready && e.Has(catalog.CapClone) {
+		// Not one that speaks a single language (Irodori-TTS: Japanese).
+		if ready, _ := onDisk(e); ready && e.Has(catalog.CapClone) && soleLanguage(e) == "" {
 			return e.Repo
 		}
 	}

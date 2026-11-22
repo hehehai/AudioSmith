@@ -3,7 +3,8 @@ package voicedesign
 // Lowering a recipe for an engine: targets, options, the engine registry
 // and Lower. Files: lower.go, one per target: lower_freeform.go (Qwen3-TTS
 // VoiceDesign and VoxCPM2), lower_omnivoice.go (OmniVoice),
-// lower_customvoice.go (Qwen3-TTS CustomVoice).
+// lower_customvoice.go (Qwen3-TTS CustomVoice), lower_irodori.go
+// (Irodori-TTS: a Japanese caption).
 
 import (
 	"fmt"
@@ -61,7 +62,7 @@ type Dropped struct {
 type Lowered struct {
 	Target  Target    `json:"target"`
 	Voice   string    `json:"voice"`             // the voice/instruct field; "" = the model's auto voice
-	Lang    string    `json:"lang"`              // language of Voice: "en" or "zh"
+	Lang    string    `json:"lang"`              // language of Voice: "en" or "zh" ("ja": Irodori)
 	Speaker string    `json:"speaker,omitempty"` // CustomVoice: the speaker chosen
 	Seed    int64     `json:"seed"`
 	Used    []Value   `json:"used,omitempty"`    // values that made it into Voice
@@ -109,6 +110,11 @@ var (
 			Target: TargetVoxCPM, Label: "VoxCPM2", Vocabulary: VocabFreeform,
 			Match: func(f, _ string) bool { return f == "voxcpm2" },
 			Lower: lowerFreeform,
+		},
+		{
+			Target: TargetIrodori, Label: "Irodori-TTS", Vocabulary: VocabTags,
+			Match: func(f, _ string) bool { return f == "irodori_tts" },
+			Lower: lowerIrodori,
 		},
 	}
 )

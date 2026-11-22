@@ -8,9 +8,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"slices"
 	"strings"
 
+	"github.com/hehehai/AudioSmith/internal/catalog"
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/gallery"
 	"github.com/hehehai/AudioSmith/internal/i18n"
@@ -49,9 +51,33 @@ func (d *designState) recipe() vd.Recipe {
 	return vd.Recipe{Description: d.description, Attrs: d.attrs.Canonical(), Seed: vd.FoldSeed(int64(d.seed))}
 }
 
-// speechLang is the language the preview speaks.
+// speechLang is the language the preview speaks: the model's own when it
+// speaks only one (Irodori-TTS: Japanese, thread #170).
 func (d *designState) speechLang() string {
+	if e, ok := voiceCatalog().ByLabel(d.model); ok && soleLanguage(e) != "" {
+		return soleLanguage(e)
+	}
 	return firstOf(d.language, d.attrs.Language(), vd.TextLang(d.script))
+}
+
+// designLines are the default line in the languages a design model may
+// speak alone (soleLanguage).
+var designLines = map[string]string{"ja": "こんにちは。あなたがデザインした声です。いかがでしょうか？"}
+
+// useModel makes e the draft's model. A model that speaks one language
+// only gets that language, and the default line in it while the line is
+// still a default one.
+func (d *designState) useModel(e catalog.Entry) {
+	d.model = e.Label
+	l := soleLanguage(e)
+	if l == "" {
+		return
+	}
+	d.language = l
+	def := i18n.T("Hello! This is the voice you designed. How does it sound?")
+	if line, ok := designLines[l]; ok && (strings.TrimSpace(d.script) == def || slices.Contains(slices.Collect(maps.Values(designLines)), d.script)) {
+		d.script = line
+	}
 }
 
 // reparse maps a changed description (capped at vd.MaxDescription

@@ -341,6 +341,7 @@ func TestEngineFor(t *testing.T) {
 		"qwen3-tts-0.6b-customvoice-8bit": TargetQwen3CustomVoice,
 		"qwen3-tts-1.7b-voicedesign-4bit": TargetQwen3Design, // catalogue entry added by the M1 engine thread
 		"voxcpm2-8bit":                    TargetVoxCPM,
+		"irodori-tts-v4.1-small-mf-8bit":  TargetIrodori,
 	}
 	for _, e := range cat.Entries {
 		got, ok := EngineFor(e.Family, e.Repo)
