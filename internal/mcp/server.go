@@ -86,6 +86,8 @@ const Instructions = "AudioSmith is a local speech app on this Mac (MLX; nothing
 	"transcription, audiobooks, stories, dubbing, voice isolation, exports, workflows.\n" +
 	"- generate_speech: text to a WAV; voice = a saved voice (list_voices), a built-in speaker (list_models) or empty; " +
 	"output \"file\" (+ filename) writes to the agents' folder, \"inline\" returns base64; instructions = delivery.\n" +
+	"- Japanese character voices (model voicevox, while the user's VOICEVOX or AivisSpeech runs): the result's credit " +
+	"(\"VOICEVOX:<character>\") must be named wherever the audio is published; tell the user.\n" +
 	"- transcribe: path (absolute), timestamps: true for segments, speakers: true for who says what; export_transcript.\n" +
 	"- Voices: design_voice_candidates then design_voice (description), describe_voice, check_reference then clone_voice " +
 	"(name, path; consent: true only after the user confirms the speaker agreed), search_voices, preview_voice, use_gallery_voice, " +
