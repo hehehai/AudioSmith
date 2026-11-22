@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -32,8 +33,12 @@ func TestIrodori(t *testing.T) {
 	var sum int64
 	for _, f := range e.Files {
 		sum += f.Size
-		if f.Size > 1<<20 && len(f.SHA256) != 64 {
-			t.Errorf("%s has no sha256", f.Path)
+		// The hub lists a sha256 only for LFS files; the 6.7 MB
+		// tokenizer.json is a plain git file there (the revision pins it),
+		// so a pinned sha256 on it fails every download.
+		lfs := strings.HasSuffix(f.Path, ".safetensors")
+		if lfs && len(f.SHA256) != 64 || !lfs && f.SHA256 != "" {
+			t.Errorf("%s: sha256 %q", f.Path, f.SHA256)
 		}
 	}
 	if sum != e.Size {

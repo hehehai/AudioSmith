@@ -549,7 +549,7 @@
         {"path": "model.safetensors", "size": 1030634110, "sha256": "0f399266214856bd7e90768bba033793053f28088ec0fdc8c3f5516342d8e9c7"},
         {"path": "dacvae/config.json", "size": 300},
         {"path": "dacvae/model.safetensors", "size": 429504222, "sha256": "7366646af3d250ec0162c2b2717a64f7dbd5b8bfaebbf9ed69ad79db4944b8b9"},
-        {"path": "tokenizer/tokenizer.json", "size": 6718495, "sha256": "6a0734cf21c802169defaffe719bc2ef12bb9d0be37e54b61ed27aa89394723d"},
+        {"path": "tokenizer/tokenizer.json", "size": 6718495},
         {"path": "tokenizer/tokenizer_config.json", "size": 668}
       ],
       "minMemoryGB": 6,
