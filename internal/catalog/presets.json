@@ -372,6 +372,28 @@
       },
       "notes": "Thread #165: optional, no workflow's default. Upstream defaults (10 steps, cfg 2.0). mac-air: 0.80–1.03× real time (5 steps 1.33×), MLX peak 6.2–7.0 GB for 10 s takes, 8.5 GB for a 150-character chunk; Qwen3-ASR read back every zh/en/Sichuanese/Cantonese/Vietnamese sample whole. An instruction with refText was read aloud: the engine then clones without the transcript. Long chunks may end with a filler (\"嗯\")."
     },
+    "irodori-tts-v4.1-small-mf-8bit": {
+      "recommend": [],
+      "rank": {},
+      "languages": [
+        "ja"
+      ],
+      "speed": 3,
+      "quality": 2,
+      "defaults": {
+        "temperature": null,
+        "topP": null,
+        "voice": null,
+        "language": "auto",
+        "steps": null,
+        "guidance": null,
+        "speed": 1.0
+      },
+      "dub": {
+        "timing": "smart"
+      },
+      "notes": "Thread #170: optional, Japanese only, no workflow's default or recommendation (main/user decide). mac-air: 3.3x real time designed, 1.8x cloned from a 12 s clip; MLX peak 4.4 GB, 1.47 GB resident. 40 tricky Japanese sentences, Kana-CER (better of Qwen3-ASR and Whisper turbo): clone 3.5 % (kanji words 2.3 %), design 4.9 %, Qwen3-TTS 1.7B Base 4.3 % (7.2 %), VoxCPM2 5.2 % (9.8 %); weaker on rare names and dropped a ten (十五分 → 五分). Without a reference, very short texts run long and repeat (はい。, ありがとうございます。)."
+    },
     "qwen3-tts-1.7b-voicedesign-4bit": {
       "recommend": [
         "design"
