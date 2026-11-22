@@ -65,15 +65,15 @@ const (
 // voicevoxSpecial are the characters whose terms differ from "credit
 // VOICEVOX:<name>, any use", by the name /speakers gives.
 var voicevoxSpecial = map[string]Terms{
-	"No.7":     {Use: UseNonCommercial},
-	"ユーレイちゃん":  {Use: UseNonCommercial, Credit: "VOICEVOX:ユーレイちゃん(CV:神崎零)"},
-	"青山龍星":     {Use: UseIndividual, Note: NoteCompanies},
-	"後鬼":       {Use: UseIndividual, Note: NoteCompanies},
-	"もち子さん":    {Use: UseIndividual, Credit: "VOICEVOX:もち子(cv 明日葉よもぎ)", Note: NoteMochiko},
-	"Voidoll":  {Use: UseIndividual, Credit: "VOICEVOX:Voidoll(CV:丹下桜)", Note: NoteCompanies},
-	"ぞん子":      {Use: UseAsk},
-	"里石ユカ":     {Use: UseCommercial, Credit: "VOICEVOX:里石ユカ（つぼみ）"},
-	"雨晴はう":     {Use: UseAsk, Note: NoteUnknown},
+	"No.7":    {Use: UseNonCommercial},
+	"ユーレイちゃん": {Use: UseNonCommercial, Credit: "VOICEVOX:ユーレイちゃん(CV:神崎零)"},
+	"青山龍星":    {Use: UseIndividual, Note: NoteCompanies},
+	"後鬼":      {Use: UseIndividual, Note: NoteCompanies},
+	"もち子さん":   {Use: UseIndividual, Credit: "VOICEVOX:もち子(cv 明日葉よもぎ)", Note: NoteMochiko},
+	"Voidoll": {Use: UseIndividual, Credit: "VOICEVOX:Voidoll(CV:丹下桜)", Note: NoteCompanies},
+	"ぞん子":     {Use: UseAsk},
+	"里石ユカ":    {Use: UseCommercial, Credit: "VOICEVOX:里石ユカ（つぼみ）"},
+	"雨晴はう":    {Use: UseAsk, Note: NoteUnknown},
 }
 
 // voicevoxKnown are the characters of voicevox_vvm 0.17.1 credited the
