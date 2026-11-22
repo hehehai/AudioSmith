@@ -45,8 +45,8 @@ func facetTitle(f gallery.Facet) string {
 var recommendedVoices = map[string][]string{
 	"zh": {"serena", "headline-desk", "paper-lantern", "warm-uncle", "grandma-osmanthus", "dylan"},
 	"en": {"af_heart", "late-night-radio", "history-vault", "interviewer", "velvet-chapters", "trailer-thunder"},
-	// ja (thread #173): the Japanese voice first, then English's best.
-	"ja": {"sakura-station", "af_heart", "late-night-radio", "history-vault", "interviewer", "velvet-chapters"},
+	// ja (thread #173): #172's Japanese voices first, then English's best.
+	"ja": {"bunko-reader", "yugata-newsroom", "natsu-senpai", "irori-granny", "tsukiyo-queen", "hoshizora-ehon"},
 }
 
 // recommended are 「推荐」's voices for the interface's language.

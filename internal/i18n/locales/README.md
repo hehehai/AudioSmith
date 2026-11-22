@@ -13,7 +13,7 @@ Thread #173. Style follows Apple's macOS Japanese: sentences in です/ます,
 short noun or verb labels for buttons and menus (書き出す, 取り消す, 設定),
 katakana loanwords where Apple uses them. No space between Japanese and
 Latin words or numbers (「Macで」, 「3件」, 「APIキー」); full-width
-（）：、。 and 「」 for quoted UI names (「設定」→「モデルとネットワーク」).
+（）：、。 and 「」 for quoted UI names (「設定」→「モデルと通信」).
 Counts never take a plural form: `i18n.N` uses the "other" text.
 
 | English | 日本語 | note |
@@ -45,7 +45,7 @@ Counts never take a plural form: `i18n.N` uses the "other" text.
 | Dictation | 音声入力 | as macOS |
 | Writing help | 文章アシスト | |
 | Integrations, Developers | 連携, 開発者 | |
-| Models & network | モデルとネットワーク | |
+| Models & network | モデルと通信 | short enough for the Settings sidebar at the minimum width |
 | agent | エージェント | |
 | Keychain, Finder | キーチェーン, Finder | |
 | Local API | ローカルAPI | |
