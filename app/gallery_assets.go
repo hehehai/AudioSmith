@@ -6,7 +6,8 @@ package main
 // its preview line cloned from that reference, as the Studio would), Ogg
 // Vorbis made by scripts/make-curated-voices.sh. "Use voice" decodes them
 // into the saved voice, so it is ready at once: no reference to wait for.
-// Generated with Qwen3-TTS VoiceDesign and Base (Apache-2.0); see NOTICE.
+// Generated with Qwen3-TTS VoiceDesign and Base (Apache-2.0), the Japanese
+// ones with Irodori-TTS (MIT, #172); see NOTICE.
 
 import (
 	"bytes"
