@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hehehai/AudioSmith/internal/catalog"
@@ -80,4 +81,24 @@ func containsKana(s string) bool {
 		}
 	}
 	return false
+}
+
+// TestIrodoriRecommendedInStudio (user 11-22): a Japanese script marks
+// Irodori-TTS 推荐 / Recommended in the Studio's picker, first, without
+// switching the model.
+func TestIrodoriRecommendedInStudio(t *testing.T) {
+	a, _, tt := newTestApp(t)
+	before := a.preset().ID
+	a.text = "今日は一日中、雨が降っていました。"
+	a.pickerOpen = map[string]bool{"model": true}
+	tt.Frame()
+	tt.Frame()
+	texts := strings.Join(tt.Texts(), "|")
+	rec := strings.Index(texts, "|Recommended|Japanese · Natural|")
+	if rec < 0 || strings.Index(texts, "Show all models") < rec {
+		t.Errorf("Irodori not recommended first: %s", texts)
+	}
+	if a.preset().ID != before {
+		t.Errorf("model switched to %s", a.preset().ID)
+	}
 }

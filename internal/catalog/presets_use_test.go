@@ -38,7 +38,8 @@ func TestRecommendByUse(t *testing.T) {
 		{WorkflowAudiobook, "zh-Hans", []string{"sw"}, nil, []string{vox, omni}},
 		{WorkflowDub, "en", []string{"zu"}, nil, []string{omni}}, // VoxCPM2 doesn't speak Zulu
 		// Languages the lists already serve: unchanged.
-		{WorkflowStudio, "zh-Hans", []string{"ja"}, nil, []string{"qwen3-tts-0.6b-customvoice-8bit", "qwen3-tts-1.7b-base-8bit"}},
+		// Japanese: Irodori-TTS leads (thread #170), the list follows.
+		{WorkflowStudio, "zh-Hans", []string{"ja"}, nil, []string{"irodori-tts-v4.1-small-mf-8bit", "qwen3-tts-0.6b-customvoice-8bit", "qwen3-tts-1.7b-base-8bit"}},
 		{WorkflowStudio, "en", []string{"en"}, nil, []string{"kokoro-82m-bf16", "qwen3-tts-1.7b-base-8bit", "chatterbox-turbo-8bit"}},
 		{WorkflowDub, "zh-Hans", []string{"en", "", "auto"}, nil, []string{"qwen3-tts-0.6b-base-8bit", "qwen3-tts-1.7b-base-8bit"}},
 		// Uses.

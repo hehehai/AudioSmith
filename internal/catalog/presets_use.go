@@ -4,7 +4,8 @@ package catalog
 // language's list when the content calls for them — VoxCPM2 (Apache,
 // commercial) before OmniVoice (non-commercial) for languages the
 // language's models don't speak (Vietnamese, Thai, Arabic…), VoxCPM2 for
-// a clone directed line by line (Stories) and for Chinese dialect design.
+// a clone directed line by line (Stories) and for Chinese dialect design;
+// Irodori-TTS for Japanese content (thread #170).
 // They only mark models 推荐 / Recommended: defaults never come from them
 // and no choice is switched by them.
 
@@ -22,6 +23,11 @@ const (
 	UseDirectedClone Use = "directedClone"
 	// UseDialect: a designed voice in a Chinese dialect.
 	UseDialect Use = "dialect"
+	// UseJapanese: content in Japanese (thread #170, user 11-22):
+	// Irodori-TTS reads kanji best in the Studio, Stories and audiobooks;
+	// not in dubs (its clones from other languages are unheard). Implied
+	// by a content language "ja" (RecommendedFor).
+	UseJapanese Use = "japanese"
 )
 
 // ForUse are the models presets recommend for use u in workflow w, best
@@ -36,6 +42,9 @@ func (c *Catalog) ForUse(u Use, w Workflow) []Entry {
 // language (presets_use: other languages), with the uses' models first;
 // at most three.
 func (c *Catalog) RecommendedFor(w Workflow, ui string, langs []string, uses ...Use) []Entry {
+	if slices.ContainsFunc(langs, func(l string) bool { return BaseLanguage(l) == "ja" }) && !slices.Contains(uses, UseJapanese) {
+		uses = append(slices.Clone(uses), UseJapanese)
+	}
 	out := c.coverLanguages(w, c.Recommended(w, ui), langs)
 	var first []Entry
 	for _, u := range uses {

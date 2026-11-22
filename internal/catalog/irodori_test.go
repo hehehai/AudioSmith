@@ -7,7 +7,7 @@ import (
 
 // TestIrodori: Irodori-TTS v4.1 MF (thread #170), an optional Japanese
 // model: MIT with the author's ethical terms stated, 48 kHz, Japanese
-// only, offered but no workflow's default or recommendation.
+// only, offered but no workflow's default (TestIrodoriRecommended).
 func TestIrodori(t *testing.T) {
 	c := Builtin()
 	e, ok := c.ByID("irodori-tts-v4.1-small-mf-8bit")
@@ -42,11 +42,37 @@ func TestIrodori(t *testing.T) {
 	if !slices.Contains(e.NonVerbal, "[laughter]") || !slices.Contains(e.NonVerbal, "[sigh]") {
 		t.Errorf("non-verbal %v", e.NonVerbal)
 	}
-	for _, w := range []Workflow{WorkflowStudio, WorkflowStory, WorkflowAudiobook, WorkflowDub, WorkflowDesign} {
-		for _, ui := range []string{"zh-Hans", "en"} {
-			for _, r := range c.RecommendedFor(w, ui, []string{"ja"}) {
-				if r.ID == e.ID {
-					t.Errorf("recommended for %s (%s)", w, ui)
+}
+
+// TestIrodoriRecommended (user 11-22): recommended first for Japanese
+// content in the Studio, Stories and audiobooks; not in dubs or design,
+// not for content that is not all Japanese; never a default.
+func TestIrodoriRecommended(t *testing.T) {
+	c := Builtin()
+	const id = "irodori-tts-v4.1-small-mf-8bit"
+	for _, ui := range []string{"zh-Hans", "en"} {
+		for _, w := range []Workflow{WorkflowStudio, WorkflowStory, WorkflowAudiobook, WorkflowDub, WorkflowDesign} {
+			for _, langs := range [][]string{{"ja"}, {"ja-JP"}, {"ja", "zh"}, {"zh"}, {"en"}, nil} {
+				got := entryIDs(c.RecommendedFor(w, ui, langs))
+				want := w != WorkflowDub && w != WorkflowDesign && len(langs) == 1 && BaseLanguage(langs[0]) == "ja"
+				if has := slices.Contains(got, id); has != want || want && got[0] != id {
+					t.Errorf("RecommendedFor(%s, %s, %v) = %v", w, ui, langs, got)
+				}
+				if len(got) > 3 {
+					t.Errorf("RecommendedFor(%s, %s, %v): %d models", w, ui, langs, len(got))
+				}
+			}
+		}
+	}
+	// The dub's list for Japanese stays the language list.
+	if got := entryIDs(c.RecommendedFor(WorkflowDub, "zh-Hans", []string{"ja"})); !slices.Equal(got, []string{"qwen3-tts-0.6b-base-8bit", "qwen3-tts-1.7b-base-8bit"}) {
+		t.Errorf("dub ja %v", got)
+	}
+	for _, l := range []string{"zh-Hans", "en", "ja"} {
+		for _, w := range []Workflow{WorkflowStudio, WorkflowStory, WorkflowAudiobook, WorkflowDub, WorkflowDesign} {
+			for _, hv := range []bool{false, true} {
+				if e, _ := c.DefaultModel(w, l, hv); e.ID == id {
+					t.Errorf("DefaultModel(%s, %s, %v) = %s", w, l, hv, e.ID)
 				}
 			}
 		}

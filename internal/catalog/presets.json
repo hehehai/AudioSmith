@@ -103,6 +103,17 @@
       "design": [
         "voxcpm2-8bit"
       ]
+    },
+    "japanese": {
+      "studio": [
+        "irodori-tts-v4.1-small-mf-8bit"
+      ],
+      "story": [
+        "irodori-tts-v4.1-small-mf-8bit"
+      ],
+      "audiobook": [
+        "irodori-tts-v4.1-small-mf-8bit"
+      ]
     }
   },
   "models": {
@@ -392,7 +403,7 @@
       "dub": {
         "timing": "smart"
       },
-      "notes": "Thread #170: optional, Japanese only, no workflow's default or recommendation (main/user decide). mac-air: 3.3x real time designed, 1.8x cloned from a 12 s clip; MLX peak 4.4 GB, 1.47 GB resident. 40 tricky Japanese sentences, Kana-CER (better of Qwen3-ASR and Whisper turbo): clone 3.5 % (kanji words 2.3 %), design 4.9 %, Qwen3-TTS 1.7B Base 4.3 % (7.2 %), VoxCPM2 5.2 % (9.8 %); weaker on rare names and dropped a ten (十五分 → 五分). Without a reference, very short texts run long and repeat (はい。, ありがとうございます。)."
+      "notes": "Thread #170: optional, Japanese only, never a default; recommended (recommendByUse japanese, user 11-22) for Japanese content in the Studio, Stories and audiobooks, not in dubs. mac-air: 3.3x real time designed, 1.8x cloned from a 12 s clip; MLX peak 4.4 GB, 1.47 GB resident. 40 tricky Japanese sentences, Kana-CER (better of Qwen3-ASR and Whisper turbo): clone 3.5 % (kanji words 2.3 %), design 4.9 %, Qwen3-TTS 1.7B Base 4.3 % (7.2 %), VoxCPM2 5.2 % (9.8 %); weaker on rare names and dropped a ten (十五分 → 五分). Without a reference, very short texts run long and repeat (はい。, ありがとうございます。)."
     },
     "qwen3-tts-1.7b-voicedesign-4bit": {
       "recommend": [
