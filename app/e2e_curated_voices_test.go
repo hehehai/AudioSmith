@@ -26,7 +26,8 @@ package main
 //	       references (<id>.ref.ogg in CURATE_OUT/final, decoded here as
 //	       the app does): the preview line and the listening-pack lines
 //	       cloned on Base 1.7B; the built-in voices' pack lines on their
-//	       own models.
+//	       own models. CURATE_PREVIEWS=n makes n takes of the preview
+//	       (preview-<k>.wav besides preview.wav), for asr to choose from.
 //
 // CURATE_ONLY limits it to some ids (comma-separated, without "c-").
 //
@@ -451,6 +452,12 @@ func TestCuratedVoicesE2E(t *testing.T) {
 				}
 			}
 			clone("preview "+v.ID, v, r.Seed, ref, r.Text, v.Line, filepath.Join(dir, "preview.wav"))
+			// More takes of the preview to choose from (CURATE_PREVIEWS,
+			// #172: a misread word in the one take): preview-<k>.wav.
+			n, _ := strconv.Atoi(os.Getenv("CURATE_PREVIEWS"))
+			for k := 1; k < n; k++ {
+				clone(fmt.Sprintf("preview %s %d", v.ID, k), v, curateSeed(v.ID, 100+k), ref, r.Text, v.Line, filepath.Join(dir, fmt.Sprintf("preview-%d.wav", k)))
+			}
 			for j, line := range lines {
 				clone(fmt.Sprintf("pack %s %c", v.ID, "NC"[j]), v, r.Seed, ref, r.Text, line, filepath.Join(dir, string("NC"[j])+".wav"))
 			}

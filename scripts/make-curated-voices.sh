@@ -11,6 +11,7 @@
 #   scripts/make-curated-voices.sh pull                                  # results to $CURATE_TMP
 #   scripts/make-curated-voices.sh encode picks.json                     # refs to Ogg (here), pushed back
 #   scripts/make-curated-voices.sh final picks.json                      # previews + listening lines
+#   CURATE_PREVIEWS=4 scripts/make-curated-voices.sh final picks.json    # and 3 more preview takes to choose from
 #   scripts/make-curated-voices.sh install                               # Ogg clips to assets/gallery-voices
 #   scripts/make-curated-voices.sh smoke                                 # the app with the bundle: curated and old voices in the Studio
 #   scripts/make-curated-voices.sh clean                                 # delete the Mac scratch
@@ -38,7 +39,7 @@ remote() { ssh "$HOST" "$@"; }
 run_stage() {
   local mode=$1; shift
   # shellcheck disable=SC2029
-  remote "cd '$MAC_DIR' && rm -f out/$mode.rc && (MODE=$mode $* CURATE_ONLY='${CURATE_ONLY:-}' CURATE_SEEDS='${CURATE_SEEDS:-}' \
+  remote "cd '$MAC_DIR' && rm -f out/$mode.rc && (MODE=$mode $* CURATE_ONLY='${CURATE_ONLY:-}' CURATE_SEEDS='${CURATE_SEEDS:-}' CURATE_PREVIEWS='${CURATE_PREVIEWS:-}' \
     nohup bash -c 'bash scripts/curate-lockrun.sh; echo \$? > out/$mode.rc' > out/$mode.stage.log 2>&1 < /dev/null &)"
   local rc=""
   while [ -z "$rc" ]; do
