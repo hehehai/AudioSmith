@@ -240,14 +240,25 @@ func recColumns(avail, least, gap float32) int {
 // recCard is one recommended voice: avatar, name, a line of description,
 // the language and the first use; a click opens the detail, ▶ previews.
 func (a *app) recCard(c *ui.Context, arch gallery.Archetype) {
+	p := archetypePreview(arch)
+	playing := p.ok() && a.pl.Playing(p.id)
+	// The card sits in a column cell without padding: Basis(0) shares a
+	// row's room by content boxes (CSS flex, MyGo 0.6 and later), so a
+	// padded card beside the unpadded fillers would come out wider than
+	// them, and a full row's columns and the last row's would not line up.
+	ui.Row(c.Key("rec-" + arch.ID)).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Stretch).Children(func() {
+		a.recCardBody(c, arch, p, playing)
+	})
+}
+
+// recCardBody is recCard's card, in its column cell.
+func (a *app) recCardBody(c *ui.Context, arch gallery.Archetype, p voicePreview, playing bool) {
 	t := c.Theme()
 	k := tok(t)
 	g := &a.gallery
 	loc := i18n.Locale()
-	p := archetypePreview(arch)
-	playing := p.ok() && a.pl.Playing(p.id)
-	cell := ui.Row(c.Key("rec-" + arch.ID)).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusCard)).
-		Grow(1).Basis(0).MinWidth(0)
+	cell := ui.Row(c.Key("card")).Gap(px(t, sp2)).AlignItems(ui.Center).Padding(px(t, sp2)).Radius(px(t, radiusCard)).
+		Grow(1).MinWidth(0)
 	switch {
 	case g.detail == arch.ID:
 		cell.Background(k.Selected)

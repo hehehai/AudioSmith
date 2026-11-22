@@ -255,6 +255,12 @@ func TestDictationShortcutSettings(t *testing.T) {
 	if keys.has(defaultAcc) || !a.dictSet.recording {
 		t.Fatal("old shortcut still registered while recording")
 	}
+	// ⌥ goes down first, on its own: nothing yet, no complaint.
+	tt.Key(ui.Alt, ui.KeyUnknown)
+	tt.Frame()
+	if a.dictSet.pending != "" || a.dictSet.recErr != "" || !a.dictSet.recording {
+		t.Fatalf("a modifier alone: pending %q, error %q", a.dictSet.pending, a.dictSet.recErr)
+	}
 	tt.Key(ui.Alt, ui.KeyD)
 	tt.Frame()
 	if a.dictSet.pending != "Alt+D" || !tt.HasText("⌥D") {

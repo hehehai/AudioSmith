@@ -82,8 +82,8 @@ func timelineInput(s *timelineState, m tlModel, ev tlEvents, e ui.InputEvent) bo
 		// Alt allows overlap; otherwise the block stays between its neighbours.
 		ev.Change(g.id, g.curS, g.curE, e.Mods&ui.Alt == 0)
 		return true
-	case ui.InputMagnify:
-		s.zoomAt(min(max(1+float64(e.Magnify), 0.5), 2), e.X, d)
+	case ui.InputZoom:
+		s.zoomAt(min(max(float64(e.Scale), 0.5), 2), e.X, d)
 		s.panned = e.Time
 		return true
 	case ui.InputScroll:

@@ -78,7 +78,7 @@ func (a *app) homePage(c *ui.Context) {
 	_, h := c.Size()
 	a.homeReadRecent()
 	if a.homeUI.stale() {
-		c.After(homeReadGap) // the change waits for the gap since the last read
+		afterShown(c, homeReadGap) // the change waits for the gap since the last read
 	}
 	// No title: the question is; ‹ › only.
 	pageHeaderBar(c, pageHead{title: i18n.T("Home"), bare: true})
@@ -131,7 +131,7 @@ func (a *app) homeComposer(c *ui.Context) {
 			// Only while it shows, in the window in front: an idle Home
 			// built itself again every 4 s (perf review 11-02 H1).
 			if hp.text == "" && hp.file == "" && a.win.IsVisible() && a.win.IsFocused() {
-				c.After(4 * time.Second)
+				afterShown(c, 4*time.Second)
 			}
 		}
 		if hp.file != "" {

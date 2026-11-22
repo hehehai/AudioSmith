@@ -152,7 +152,7 @@ func (a *app) devStatusLine(c *ui.Context) {
 			statusDot(c, t.Success)
 			truncText(c, i18n.T("Last request: %s", ago(last))).FontSize(px(t, fsCaption)).Grow(1)
 			truncText(c, a.apiBaseURL()).FontSize(px(t, fsCaption)).TextColor(k.Text3).Shrink(1)
-			c.After(30 * time.Second) // "just now" ages
+			afterShown(c, 30*time.Second) // "just now" ages
 		}
 	})
 }

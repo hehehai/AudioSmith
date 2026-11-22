@@ -78,6 +78,7 @@ func (a *app) commands() []command {
 	add("notifications", view, i18n.T("Notifications"), "Notifications", "", true, func() { a.noticesOpen = true })
 	add("shortcuts", view, i18n.T("Keyboard shortcuts"), "Keyboard shortcuts", "?", true, func() { a.sheetOpen = true })
 	add("updates", view, i18n.T("Check for Updates"), "Check for updates software update new version", "", true, a.checkForUpdates)    // updates.go
+	add("send-feedback", view, i18n.T("Send Feedback"), "Send Feedback bug report contact support", "", true, a.sendFeedback)          // feedback.go
 	add("setup", view, i18n.T("Run the setup again"), "Run the setup again first run wizard welcome", "", !a.obOpen, a.openOnboarding) // M7a
 
 	look := i18n.T("Appearance")
@@ -333,6 +334,8 @@ func (a *app) buildMenu() {
 		{Label: i18n.T("Help"), Submenu: []*mygo.MenuItem{
 			{Label: i18n.T("Keyboard shortcuts"), Click: act(func() { a.sheetOpen = true })},
 			{Label: i18n.T("Logs"), Click: act(func() { a.navigate("/logs") })},
+			mygo.Separator(),
+			{Label: i18n.T("Send Feedback"), Click: act(a.sendFeedback)},
 		}},
 	}))
 }

@@ -354,6 +354,7 @@ func (a *app) generate() {
 	if !a.canGenerate() {
 		return
 	}
+	a.step("generate") // feedback_report.go
 	// A designed voice cloned for the first time gets its reference
 	// first (#83, voice_reference.go); a reference made from the voice is
 	// heard once, and made again when it doesn't say its text (#93).

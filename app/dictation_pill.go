@@ -88,7 +88,7 @@ func (a *app) pillView(c *ui.Context) {
 		return
 	}
 	if s.phase.live() {
-		c.After(100 * time.Millisecond) // the level, the time
+		afterShown(c, 100*time.Millisecond) // the level, the time
 	}
 	// The pill draws its own shadow in the window's clear margin. No
 	// tooltips here: they could not leave this small window, and were cut.

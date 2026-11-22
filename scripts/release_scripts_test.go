@@ -91,9 +91,9 @@ func TestReleaseConfig(t *testing.T) {
 		return string(b)
 	}
 
-	// The website's feed, for betas too (MyGo patch 0008 puts a beta's
+	// The website's feed, for betas too (updates.prereleases puts a beta's
 	// files in beta/); no s3 or github, even when mygo.json had them.
-	website := `{"publicKey":"` + key + `","url":"https://actnow.dev/updates/audiosmith"}`
+	website := `{"prereleases":true,"publicKey":"` + key + `","url":"https://actnow.dev/updates/audiosmith"}`
 	c, err := config("MYGO_UPDATER_PUBLIC_KEY=" + key)
 	if err != nil || updates(c) != website {
 		t.Errorf("website: %s, %v\nwant %s", updates(c), err, website)

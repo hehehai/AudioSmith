@@ -95,7 +95,7 @@ func (s *site) reset() {
 
 // publishRoot is a checkout with a verified build of 0.4.0-beta.5 in
 // build/darwin-arm64 (the manifest's URLs as MyGo makes them with
-// updates.url https://actnow.dev/updates/audiosmith, patch 0008), the
+// updates.url https://actnow.dev/updates/audiosmith and updates.prereleases), the
 // vendored actnow-publish.sh, and a fake gh that logs its calls in log
 // (fails "release upload" when $GH_FAIL is set).
 func publishRoot(t *testing.T, siteURL, manifestURL string) (root, log string) {
@@ -114,7 +114,7 @@ func publishRoot(t *testing.T, siteURL, manifestURL string) (root, log string) {
 		"mygo.json":            config,
 		"CHANGELOG.md":         "# Changelog\n\n## 0.4.0-beta.5\n\n- Five.\n\n## 0.4.0-beta.4\n\n- Four.\n",
 		"CHANGELOG.zh-Hans.md": "# 更新日志\n\n## 0.4.0-beta.5\n\n- 五。\n\n## 0.4.0-beta.4\n\n- 四。\n",
-		"build/darwin-arm64/AudioSmith 0.4.0-beta.5 arm64.dmg":                          "disk image",
+		"build/darwin-arm64/AudioSmith-0.4.0-beta.5-arm64.dmg":                          "disk image",
 		"build/darwin-arm64/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz":                "archive",
 		"build/darwin-arm64/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta": "delta",
 		"build/darwin-arm64/update-darwin-arm64.json":                                   string(manifest),
@@ -216,11 +216,11 @@ func TestReleasePublish(t *testing.T) {
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	if want := []string{"audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta", "audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz", "update-darwin-arm64.json"}; !slices.Equal(names, want) {
+	if want := []string{"AudioSmith-0.4.0-beta.5-arm64.dmg", "audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta", "audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz", "update-darwin-arm64.json"}; !slices.Equal(names, want) {
 		t.Errorf("build/github: %v", names)
 	}
 	notes, _ := os.ReadFile(filepath.Join(root, "build/github-notes.md"))
-	if !strings.HasPrefix(string(notes), "- Five.\n\n---\n") || !strings.Contains(string(notes), "https://actnow.dev/download/audiosmith") || strings.Contains(string(notes), "Four") {
+	if !strings.HasPrefix(string(notes), "- Five.\n\n---\n") || !strings.Contains(string(notes), "AudioSmith-0.4.0-beta.5-arm64.dmg below") || strings.Contains(string(notes), "Four") {
 		t.Errorf("notes:\n%s", notes)
 	}
 	if calls := readLog(log); calls != nil || s.calls != 0 {
@@ -245,7 +245,7 @@ func TestReleasePublish(t *testing.T) {
 		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
 		"gh release create v0.4.0-beta.5 --repo hehehai/AudioSmith --draft --title v0.4.0-beta.5 --notes-file build/github-notes.md --prerelease",
 		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
-		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz build/github/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/AudioSmith-0.4.0-beta.5-arm64.dmg build/github/audiosmith-0.4.0-beta.5-darwin-arm64.tar.gz build/github/audiosmith-0.4.0-beta.4-to-0.4.0-beta.5-darwin-arm64.delta",
 		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-darwin-arm64.json",
 	}
 	if !slices.Equal(calls, want) {
@@ -285,6 +285,7 @@ func TestReleasePublish(t *testing.T) {
 	if want := []string{
 		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
 		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/AudioSmith-0.4.0-beta.5-arm64.dmg",
 		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-darwin-arm64.json",
 	}; len(calls) != 6+len(want) || !slices.Equal(calls[6:], want) {
 		t.Errorf("after the transition, calls\n%s", strings.Join(calls, "\n"))
@@ -305,7 +306,7 @@ func TestReleasePublish(t *testing.T) {
 	os.Remove(log)
 	s.reset()
 	// (from the run's artifact, which has no disk image)
-	dmg := filepath.Join(root, "build/darwin-arm64/AudioSmith 0.4.0-beta.5 arm64.dmg")
+	dmg := filepath.Join(root, "build/darwin-arm64/AudioSmith-0.4.0-beta.5-arm64.dmg")
 	os.Rename(dmg, dmg+".away")
 	if _, stderr, err := publish(root, log, []string{"GITHUB_FEED=true"}, "--skip-website"); err != nil || s.calls != 0 || len(readLog(log)) != 4 {
 		t.Errorf("--skip-website: %v, %v\n%s", err, readLog(log), stderr)

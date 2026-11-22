@@ -55,9 +55,10 @@ Hugeicons (the play and pause icons)
 
 MyGo
   Copyright (c) 2026 MyGo contributors — https://github.com/egoist/mygo
-  Licensed under the MIT License (third_party/mygo/LICENSE). AudioSmith
-  builds against a copy with its own patches (third_party/mygo-patches),
-  made by scripts/vendor-mygo.sh, until upstream releases the fixes.
+  Licensed under the MIT License (in the module's LICENSE; the text is in
+  THIRD-PARTY-NOTICES.txt). AudioSmith builds against ActNow's fork,
+  https://github.com/hehehai/mygo (the replace in go.mod): upstream MyGo
+  with the changes its ACTNOW.md lists, under the same licence.
 
 RapiDoc 10.1.0 (the Local API's reference page, internal/api/docs)
   Copyright (c) 2022 Mrinmoy Majumdar — https://github.com/rapi-doc/RapiDoc

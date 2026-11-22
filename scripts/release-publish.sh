@@ -15,7 +15,9 @@
 #      --no-publish it stops at "verified": publish it in the site's panel
 #      (https://actnow.dev/panel/releases), where yanks and rollbacks are too.
 #   2. GitHub: a draft release v<version> (a prerelease for a beta) with
-#      the notes and links to the download page, plus update-darwin-arm64.json
+#      the notes, the disk image (the signed and notarized DMG, as
+#      AudioSmith-<version>-arm64.dmg, for people who come from GitHub,
+#      awesome lists and Homebrew without an account), plus update-darwin-arm64.json
 #      for copies that still read GitHub (0.4.0-beta.1 … beta.4):
 #      - GITHUB_FEED=true (the transition): the update archive and deltas
 #        too, and the manifest points at them on GitHub;
@@ -68,10 +70,12 @@ version="$(jq -r .version mygo.json)"
 min_macos="$(jq -r '.macos.minimumSystemVersion // empty' mygo.json)"
 tag="v$version"
 manifest="$OUT/update-darwin-arm64.json"
-dmg="$OUT/AudioSmith $version arm64.dmg"
+# The disk image as people download it (scripts/dmg-name.sh renames MyGo's
+# "audiosmith-<version>-arm64.dmg" after the build).
+dmg="$OUT/AudioSmith-$version-arm64.dmg"
 
 # Everything that can be checked before anything is sent.
-# The disk image goes to the website only (not to GitHub).
+# The disk image goes to the website and to the GitHub release.
 if $website && [[ ! -f "$dmg" ]]; then
   fail "no disk image $dmg (build first: go tool mygo build -platform darwin/arm64)"
 fi
@@ -80,7 +84,7 @@ actnow_is_prerelease "$version" && feed="$feed/beta"
 if [[ -f "$manifest" ]]; then
   jq -e --arg v "$version" '.version == $v' "$manifest" > /dev/null || fail "$manifest is not of $version: build again"
   # The site takes the archive and deltas at exactly $feed/<file> (a beta's
-  # in beta/, as MyGo patch 0008 names them from updates.url).
+  # in beta/, as MyGo names them from updates.url with updates.prereleases).
   for url in $(jq -r '.url, .deltas[]?.url' "$manifest"); do
     [[ "$url" == "$feed/"* && "${url#"$feed/"}" != */* ]] ||
       fail "$manifest points at $url, not into $feed/: build with scripts/release-config.sh (updates.url $ACTNOW_UPDATES_URL)"
@@ -109,12 +113,23 @@ if $github; then
     echo
     echo "---"
     echo
-    echo "**Download:** [actnow.dev/download/audiosmith]($ACTNOW_DOWNLOAD_URL) (a free account) · [Changelog]($ACTNOW_CHANGELOG_URL) · or build it from this tag's source (AGPL-3.0)."
+    if [[ -f "$dmg" ]]; then
+      echo "**Download:** AudioSmith-$version-arm64.dmg below (signed and notarized; macOS ${min_macos:-15.0}+, Apple silicon), or [actnow.dev/audiosmith](${ACTNOW_DOWNLOAD_URL%/download/*}/audiosmith) · [Changelog]($ACTNOW_CHANGELOG_URL) · or build it from this tag's source (AGPL-3.0)."
+    else
+      echo "**Download:** [actnow.dev/download/audiosmith]($ACTNOW_DOWNLOAD_URL) · [Changelog]($ACTNOW_CHANGELOG_URL) · or build it from this tag's source (AGPL-3.0)."
+    fi
     if [[ -f "$manifest" ]]; then
       echo
       echo "Installed copies update themselves: AudioSmith → Check for Updates…"
     fi
   } > "$notes_file"
+  # The disk image first, so the release offers it as soon as it is published.
+  if [[ -f "$dmg" ]]; then
+    cp "$dmg" "$gh_dir/AudioSmith-$version-arm64.dmg"
+    gh_files+=("$gh_dir/AudioSmith-$version-arm64.dmg")
+  else
+    echo "release-publish: no $dmg, so the GitHub release gets no disk image (upload it by hand: gh release upload $tag)" >&2
+  fi
   if [[ -f "$manifest" ]]; then
     if [[ "$github_feed" == true ]]; then
       # The transition: copies that read GitHub get the archive (and the

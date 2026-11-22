@@ -13,7 +13,8 @@ import (
 // #98: on the Mac, "也", "多米", "西", "吃" at the ends of rows were cut in
 // half at the editor's right edge: soft wraps summed the widths of
 // characters shaped alone, and Core Text shapes a Chinese comma alone half
-// as wide as between ideographs; MyGo patch 0010).
+// as wide as between ideographs; MyGo now wraps rows by their shaped
+// width).
 const (
 	scriptZhPara = "他也说过，这个城市里有很多米粉店，西边那家最好吃，每天早上都排着长队，大家吃完了才去上班，也有人专门从很远的地方赶过来吃一碗。"
 	scriptZhMix  = "M4B（含章节）导出 3 个文件，AI 模型 Qwen3-ASR 识别 25 分钟的音频，约 0.2 秒；Kokoro、MOSS 和 SoulX 也可以用，吃的东西越来越多，也越来越好。"
@@ -56,9 +57,9 @@ func TestScriptEditorWrapsInside(t *testing.T) {
 		(&b1Shooter{t: t, run: run}).setup(a, tt)
 		a.text = longScript(run)
 		name := fmt.Sprintf("%s %s", run.lang, run.suffix())
-		// The editor measures its rows within a time budget a frame (MyGo
-		// patch 0011), so a slow machine (CI) may need a few frames before
-		// every row in view is painted: wait until the left half shows text.
+		// The editor measures its rows within a time budget a frame, so a
+		// slow machine (CI) may need a few frames before every row in view
+		// is painted: wait until the left half shows text.
 		var (
 			img *image.RGBA
 			box ui.Rect

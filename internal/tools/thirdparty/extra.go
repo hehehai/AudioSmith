@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -39,39 +41,52 @@ func extraComponents(root string, linked map[string]bool) ([]component, error) {
 }
 
 // pluginLibraries are the native libraries MyGo plugins ship in the app's
-// resources (their mygo-plugin.json): today SQLite, in MyGo's SQLite
-// plugin.
+// resources (their mygo-plugin.json): today SQLite, in the native module
+// of MyGo's SQLite plugin (plugins/sqlite/internal/sqlitecore, MyGo 0.9 and
+// later), which `mygo build` downloads as MyGo published it.
 func pluginLibraries(root string, linked map[string]bool) ([]component, error) {
 	const mygo = "github.com/egoist/mygo/"
+	var dir string
 	var out []component
 	for _, pkg := range sortedKeys(linked) {
 		rel, ok := strings.CutPrefix(pkg, mygo)
 		if !ok {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(root, "third_party", "mygo", filepath.FromSlash(rel), "mygo-plugin.json"))
+		if dir == "" {
+			var err error
+			if dir, err = moduleDir(root, strings.TrimSuffix(mygo, "/")); err != nil {
+				return nil, err
+			}
+		}
+		pkgDir := filepath.Join(dir, filepath.FromSlash(rel))
+		data, err := os.ReadFile(filepath.Join(pkgDir, "mygo-plugin.json"))
 		if err != nil {
 			continue // not a plugin with native libraries
 		}
 		var plugin struct {
 			Libraries []struct {
-				Name   string `json:"name"`
-				Source string `json:"source"`
+				Name string `json:"name"`
 			} `json:"libraries"`
 		}
 		if err := json.Unmarshal(data, &plugin); err != nil {
 			return nil, fmt.Errorf("%s/mygo-plugin.json: %v", pkg, err)
 		}
 		for _, lib := range plugin.Libraries {
-			if lib.Name != "mygo-sqlite3" {
+			if lib.Name != "Sqlitecore" {
 				return nil, fmt.Errorf("%s ships the native library %s, which the generator does not know: add it to pluginLibraries (internal/tools/thirdparty/extra.go)", pkg, lib.Name)
 			}
-			m := regexp.MustCompile(`sqlite-amalgamation-(\d)(\d\d)(\d\d)\d\d\.zip$`).FindStringSubmatch(lib.Source)
-			if m == nil {
-				return nil, fmt.Errorf("%s: no SQLite version in %q", pkg, lib.Source)
+			// The amalgamation the library is built from (its Zig build).
+			zon, err := os.ReadFile(filepath.Join(pkgDir, "zig", "build.zig.zon"))
+			if err != nil {
+				return nil, fmt.Errorf("%s: %v", pkg, err)
 			}
-			minor, _ := strconv.Atoi(m[2])
-			patch, _ := strconv.Atoi(m[3])
+			m := regexp.MustCompile(`sqlite-amalgamation-(\d)(\d\d)(\d\d)\d\d\.zip`).FindSubmatch(zon)
+			if m == nil {
+				return nil, fmt.Errorf("%s: no SQLite version in zig/build.zig.zon", pkg)
+			}
+			minor, _ := strconv.Atoi(string(m[2]))
+			patch, _ := strconv.Atoi(string(m[3]))
 			body, err := readFile(root, "third_party/licenses/texts/SQLite-blessing.txt")
 			if err != nil {
 				return nil, err
@@ -84,6 +99,25 @@ func pluginLibraries(root string, linked map[string]bool) ([]component, error) {
 		}
 	}
 	return out, nil
+}
+
+// moduleDir is where the module path is, as the app's build has it (the
+// module cache; a replace's module for MyGo).
+func moduleDir(root, path string) (string, error) {
+	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", path)
+	cmd.Dir = root
+	cmd.Env = append(os.Environ(), goEnv...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("go list -m %s: %v\n%s", path, err, stderr.String())
+	}
+	dir := strings.TrimSpace(string(out))
+	if dir == "" {
+		return "", fmt.Errorf("go list -m %s: no directory (go mod download)", path)
+	}
+	return dir, nil
 }
 
 // rapiDoc is the Local API's reference page (internal/api/docs): RapiDoc

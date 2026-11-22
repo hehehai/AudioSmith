@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -12,32 +11,32 @@ import (
 
 // goLicences are the Go modules' licences ("std": the standard library).
 var goLicences = map[string]string{
-	"std":                                    "BSD-3-Clause",
-	"github.com/ebitengine/purego":           "Apache-2.0",
-	"github.com/egoist/mygo":                 "MIT",
-	"github.com/go-text/typesetting":         "Unlicense OR BSD-3-Clause",
-	"github.com/google/jsonschema-go":        "MIT",
-	"github.com/hehehai/actnowkit":           "Apache-2.0",
-	"github.com/jfreymuth/oggvorbis":         "MIT",
-	"github.com/jfreymuth/vorbis":            "MIT",
-	"github.com/modelcontextprotocol/go-sdk": "Apache-2.0 AND MIT",
-	"github.com/segmentio/asm":               "MIT-0",
-	"github.com/segmentio/encoding":          "MIT",
-	"github.com/yosida95/uritemplate/v3":     "BSD-3-Clause",
-	"golang.org/x/image":                     "BSD-3-Clause",
-	"golang.org/x/oauth2":                    "BSD-3-Clause",
-	"golang.org/x/sync":                      "BSD-3-Clause",
-	"golang.org/x/sys":                       "BSD-3-Clause",
-	"golang.org/x/text":                      "BSD-3-Clause",
-	"golang.org/x/time":                      "BSD-3-Clause",
+	"std":                                     "BSD-3-Clause",
+	"github.com/ebitengine/purego":            "Apache-2.0",
+	"github.com/egoist/mygo":                  "MIT",
+	"github.com/go-text/typesetting":          "Unlicense OR BSD-3-Clause",
+	"github.com/google/jsonschema-go":         "MIT",
+	"github.com/hehehai/actnowkit":            "Apache-2.0",
+	"github.com/hehehai/actnowkit/feedbackui": "Apache-2.0",
+	"github.com/jfreymuth/oggvorbis":          "MIT",
+	"github.com/jfreymuth/vorbis":             "MIT",
+	"github.com/modelcontextprotocol/go-sdk":  "Apache-2.0 AND MIT",
+	"github.com/segmentio/asm":                "MIT-0",
+	"github.com/segmentio/encoding":           "MIT",
+	"github.com/yosida95/uritemplate/v3":      "BSD-3-Clause",
+	"golang.org/x/image":                      "BSD-3-Clause",
+	"golang.org/x/oauth2":                     "BSD-3-Clause",
+	"golang.org/x/sync":                       "BSD-3-Clause",
+	"golang.org/x/sys":                        "BSD-3-Clause",
+	"golang.org/x/text":                       "BSD-3-Clause",
+	"golang.org/x/time":                       "BSD-3-Clause",
 }
 
 // goNotes says more about some modules.
 func goNotes(root, path string) []string {
 	switch path {
 	case "github.com/egoist/mygo":
-		patches, _ := filepath.Glob(filepath.Join(root, "third_party", "mygo-patches", "*.patch"))
-		return []string{fmt.Sprintf("AudioSmith builds against a copy in third_party/mygo with %d patches of its own (third_party/mygo-patches), made by scripts/vendor-mygo.sh.", len(patches))}
+		return []string{"AudioSmith builds against ActNow's fork of MyGo, github.com/hehehai/mygo (the replace in go.mod): upstream MyGo with the changes its ACTNOW.md lists, under the same licence."}
 	}
 	return nil
 }

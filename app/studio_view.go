@@ -149,7 +149,7 @@ func (a *app) composerToolbar(c *ui.Context) {
 // afterSecond builds the view again when the time elapsed since start
 // next reaches a whole second, for a clock counting in seconds.
 func (a *app) afterSecond(c *ui.Context, start time.Time) {
-	c.After(time.Second - a.since(start)%time.Second)
+	afterShown(c, time.Second-a.since(start)%time.Second)
 }
 
 // now is the time for the jobs' clocks (a.clock, else time.Now).
@@ -325,6 +325,8 @@ func (a *app) jobProblem(c *ui.Context) {
 		ui.Text(c, a.jobError).TextColor(t.Danger).FontSize(px(t, fsCaption)).Selectable().Grow(1).MinWidth(0)
 		e := a.needDownload
 		if e == nil {
+			a.reportLink(c, failure{key: "studio", title: i18n.T("The take failed"), code: codeSpeech, kind: kindSpeech,
+				where: "Text to speech › Generate", message: a.jobError})
 			return
 		}
 		m := a.model(*e)

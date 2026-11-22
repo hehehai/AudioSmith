@@ -74,7 +74,7 @@ func (a *app) offering(ks keySlot) (*keyView, bool) {
 }
 
 // keyNotes go under a key's input: the share checkbox (for a key not
-// shared yet), "Also updates it in Auralink." while a new key for a
+// shared yet), "Shared across ActNow: …" while a new key for a
 // shared one is typed, and "Auralink has a different DeepSeek key."
 // with Use this key.
 func (a *app) keyNotes(c *ui.Context, ks keySlot, typed string) {
@@ -115,7 +115,7 @@ func (a *app) keyNoteLines(c *ui.Context, ks keySlot, v *keyView, typed string) 
 		}
 	}
 	if in.Shared && len(in.Others) > 0 && strings.TrimSpace(typed) != "" {
-		caption(c.Key("key-updates"), i18n.T("Also updates it in %s.", listJoin(in.Others)))
+		caption(c.Key("key-updates"), i18n.T("Shared across ActNow: the other apps get the new key too."))
 	}
 	if in.Different && in.From != "" {
 		ui.Row(c.Key("key-different")).Wrap().Gap(px(t, sp2)).AlignItems(ui.Center).Children(func() {

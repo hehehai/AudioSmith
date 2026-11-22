@@ -142,7 +142,11 @@ func (a *app) transcriptStatus(c *ui.Context) {
 			}
 		})
 		caption(c, a.trErr).TextColor(tok(t).Text).Selectable()
-		ui.Row(c).Gap(px(t, sp2)).Wrap().Children(func() {
+		ui.Row(c).Gap(px(t, sp2)).Wrap().AlignItems(ui.Center).Children(func() {
+			if a.trNeed == nil {
+				a.reportLink(c, failure{key: "transcription", title: i18n.T("Transcription failed"), code: codeTranscribe, kind: kindTranscribe,
+					where: "Speech to text", message: a.trErr})
+			}
 			if e := a.trNeed; e != nil {
 				m := a.model(*e)
 				label := i18n.T("Download %s", modelRef(*e))
@@ -334,7 +338,7 @@ func (a *app) trRecorder(c *ui.Context, busy bool) {
 	a.trRecEnded()
 	switch m.phase {
 	case "recording":
-		c.After(100 * time.Millisecond)
+		afterShown(c, 100*time.Millisecond)
 		ui.Text(c, clock(time.Since(m.started).Seconds())).FontSize(px(t, fsTitle)).FontWeight(600).Font(monoFont)
 		ui.Meter(c, float64(levelFraction(m.level)), 0, 1, nil).Width(px(t, 180)).Label(i18n.T("Input level"))
 		if inputDetected(m.level) {

@@ -168,6 +168,8 @@ func (a *app) modelCard(c *ui.Context, e catalog.Entry) {
 			ui.Row(c).Gap(px(t, sp1)).AlignItems(ui.Start).Children(func() {
 				ui.Icon(c, icons.DangerCircle.Linear).Size(px(t, 14), px(t, 14)).TextColor(t.Danger).Shrink(0)
 				ui.Text(c, m.err).FontSize(px(t, fsCaption)).TextColor(t.Danger).Selectable().Grow(1).MinWidth(0)
+				a.reportLink(c, failure{key: e.ID, title: i18n.T("The download failed"), code: codeModel, kind: kindModelDownload,
+					where: "Models › Model card", message: m.err})
 			})
 		}
 	})
@@ -353,8 +355,8 @@ func (a *app) modelStateText(e catalog.Entry, m *modelState) string {
 	case !m.known:
 		return i18n.T("Checking…")
 	case m.local.State == hub.Downloaded:
-		if by := a.installedBy(e, m); by != "" {
-			return i18n.T("Installed · from %s", by) // family_reuse.go
+		if a.installedBy(e, m) != "" {
+			return i18n.T("Installed · Shared across ActNow") // family_reuse.go
 		}
 		return i18n.T("Downloaded · %s", mb(m.local.Bytes))
 	case m.local.State == hub.Partial:

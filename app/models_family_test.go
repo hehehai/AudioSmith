@@ -57,12 +57,12 @@ func TestRemovedKeptListed(t *testing.T) {
 	if len(names) != 1 || bytes[0] != 300 || !strings.Contains(names[0], "Parakeet") {
 		t.Errorf("to clean %v %v", names, bytes)
 	}
-	if !slices.Equal(kept, []string{"Gemma 4 E4B · Kept: used by Dicta"}) {
+	if !slices.Equal(kept, []string{"Gemma 4 E4B · Kept: shared across ActNow"}) {
 		t.Errorf("kept %q", kept)
 	}
 	i18n.SetLocale("zh-Hans")
 	defer i18n.SetLocale("en")
-	if _, _, kept := a.removedOnDisk(); !slices.Equal(kept, []string{"Gemma 4 E4B · 已保留：Dicta 在使用"}) {
+	if _, _, kept := a.removedOnDisk(); !slices.Equal(kept, []string{"Gemma 4 E4B · 已保留：ActNow 共用"}) {
 		t.Errorf("zh kept %q", kept)
 	}
 }

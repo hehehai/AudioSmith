@@ -14,7 +14,7 @@
 //   - the Go modules linked into the darwin/arm64 app (go list -deps with
 //     GOOS=darwin GOARCH=arm64; test-only and tool modules are not linked),
 //     with the Go standard library; their texts come from the module
-//     cache (go.sum verifies it) and the vendored MyGo (third_party/mygo);
+//     cache (go.sum verifies it; MyGo is ActNow's fork, go.mod's replace);
 //   - the Swift packages of the engine: engine/Package.resolved, the
 //     mlx-audio-swift pin of scripts/fetch-engine-deps.sh and the git
 //     submodules of those (mlx and mlx-c in mlx-swift). Their texts are
@@ -117,8 +117,8 @@ func generate(root string) ([]byte, int, error) {
 }
 
 // findRoot is AudioSmith's module root: the first directory above the
-// working directory with both go.mod and mygo.json (third_party/mygo has
-// a go.mod of its own).
+// working directory with both go.mod and mygo.json (a nested module, as
+// a tool's, has a go.mod of its own).
 func findRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {

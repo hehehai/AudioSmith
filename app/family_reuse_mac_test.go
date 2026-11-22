@@ -25,7 +25,7 @@ import (
 // download, in throwaway directories: "Dicta" (a release build, its .app
 // a stand-in under the family directory's parent) downloads Silero VAD
 // from Hugging Face and claims it; AudioSmith's first run then migrates
-// nothing, its models step shows "Installed by Dicta", "Use them" claims
+// nothing, its models step shows "Shared across ActNow", "Use them" claims
 // the model (origin reused) next to Dicta's claim, and finishing the
 // setup downloads only the fast pack's other models (recorded, not run):
 // none of Silero VAD.
@@ -98,7 +98,7 @@ func TestMacReuseScenario(t *testing.T) {
 		}
 	}
 	t.Logf("card: %q", card)
-	if !slices.ContainsFunc(card, func(s string) bool { return strings.HasPrefix(s, "Installed by Dicta · ") }) {
+	if !slices.ContainsFunc(card, func(s string) bool { return strings.HasPrefix(s, "Shared across ActNow · ") }) {
 		t.Fatalf("no card naming Dicta: %q", tt.Texts())
 	}
 	if err := tt.Click("Use them"); err != nil {

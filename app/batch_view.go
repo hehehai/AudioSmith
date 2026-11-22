@@ -23,7 +23,7 @@ func (a *app) batchPage(c *ui.Context) {
 	k := tok(t)
 	b := &a.batch
 	if len(b.jobs) > 0 {
-		c.After(time.Second)
+		afterShown(c, time.Second)
 	}
 	side := px(t, inspectorWidth+40)
 	stacked := a.pageWidth(c)-side < px(t, 440)

@@ -17,8 +17,8 @@ import (
 )
 
 // TestSnapshotsM7 renders M7a's views (the icon rail, Settings → Audio
-// tools, Storage, Diagnostics, Network, Usage, Privacy, Appearance, the
-// first-run wizard) light and dark, in English and Chinese:
+// tools, Storage, Diagnostics, Network, Usage, Privacy, Feedback,
+// Appearance, the first-run wizard) light and dark, in English and Chinese:
 //
 //	AUDIOSMITH_SNAPSHOTS=/tmp/shots go test -run TestSnapshots .
 func TestSnapshotsM7(t *testing.T) { runSnapshots(t, snapshotsM7) }
@@ -100,6 +100,9 @@ func snapshotsM7(t *testing.T, out string) {
 		shot(tall, "settings-usage")
 		a.navigate("/settings/privacy")
 		shot(tall, "settings-privacy")
+		connectFeedbackShots(t, a) // feedback_test.go
+		a.navigate("/settings/feedback")
+		shot(tall, "settings-feedback")
 		a.navigate("/settings/appearance")
 		save("settings-appearance-m7")
 

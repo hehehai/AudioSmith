@@ -43,7 +43,7 @@ func (a *app) dubPage(c *ui.Context) {
 	t := c.Theme()
 	a.dubShortcuts(c)
 	if a.dubPlaying() {
-		c.After(100 * time.Millisecond) // the playhead moves
+		afterShown(c, 100*time.Millisecond) // the playhead moves
 		a.dubVideoSync(false)
 	}
 	width := px(t, inspectorWidth+20)
@@ -79,7 +79,7 @@ func (a *app) dubPage(c *ui.Context) {
 		}
 		if winH != a.dubWorkWin {
 			a.dubWorkWin = winH
-			c.After(10 * time.Millisecond)
+			afterShown(c, 10*time.Millisecond)
 		}
 		ui.Scroll(c.Key("dub-work")).Bind(&a.dubWork).Grow(1).MinWidth(0).Children(func() {
 			ui.Column(c).MinHeight(avail).Padding(bodyTop(t), gutterRBeside(t, width, inline && shown), px(t, sp2), gutterL(t)).Gap(px(t, sp2)).Children(func() {
@@ -255,8 +255,12 @@ func (a *app) dubWorkspace(c *ui.Context) {
 	// it, as a line's text, undoes its own typing. The toolbar's and the
 	// lines' buttons leave the focus where it is (KeepFocus).
 	ed := ui.Column(c.Key("dub-ed")).Grow(1).Gap(px(t, sp2)).Focusable().FocusRing(false).Bind(&a.dubEdFocus).Label(i18n.T("Dub editor"))
-	if !c.FocusWithin(a.dubSideFocus) {
-		ed.AutoFocus()
+	// Once when it appears (no box laid out yet), as AutoFocus, but
+	// without scrolling the workspace to it: MyGo reveals what takes the
+	// focus, and in a short window that hid the notices above the
+	// editor as the dub opened.
+	if !c.FocusWithin(a.dubSideFocus) && a.dubEdFocus.Bounds(c) == (ui.Rect{}) {
+		ed.Focus(ui.FocusOptions{PreventScroll: true})
 	}
 	ed.HandleInput(func(ev ui.InputEvent) bool {
 		return ev.Kind == ui.InputCommand && a.dubCommand(ev.Text) || a.dubTransportKeys(ev)

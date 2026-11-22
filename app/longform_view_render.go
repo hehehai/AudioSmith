@@ -92,6 +92,12 @@ func (a *app) lfRenderBar(c *ui.Context, p *lfPage) {
 			ui.Row(c).Gap(px(t, 6)).Children(func() {
 				iconMark(c, icons.DangerCircle, t.Danger, "")
 				caption(c.Key("lf-failed"), msg).TextColor(t.Danger).Selectable().Grow(1).MinWidth(0)
+				where := "Stories › Render"
+				if p.kind == core.ProjectAudiobook {
+					where = "Audiobook › Render"
+				}
+				a.reportLink(c, failure{key: r.rec.ID, title: i18n.T("The render failed"), code: codeAudiobook, kind: kindRender,
+					where: where, message: renderErrorText(&r.body)})
 			})
 			a.chapterTracker(c, r)
 		case r.rec.State == core.RenderStopped:
@@ -158,7 +164,7 @@ func (a *app) chapterTracker(c *ui.Context, r *lfRender) {
 	}
 	now := time.Now()
 	if r.rec.State == core.RenderRunning {
-		c.After(time.Second) // the clock
+		afterShown(c, time.Second) // the clock
 	}
 	fillCard(c.Key("lf-track")).Padding(px(t, sp3)).Gap(px(t, sp2)).Children(func() {
 		ui.Progress(c, frac).Label(i18n.T("Render progress"))

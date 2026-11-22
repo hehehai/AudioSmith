@@ -166,6 +166,7 @@ func (a *app) quit() {
 	a.closeDictation() // M2: dictation.go
 	a.closeDubs()      // M4: dub.go
 	a.closeUpdates()   // updates.go
+	a.closeFeedback()  // feedback.go: the outbox stays
 	// family_coord.go: OnWillQuit did it already; for quits without it.
 	a.quitFamilyRuntime()
 	a.quitSteps()

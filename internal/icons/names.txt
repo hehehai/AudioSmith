@@ -132,3 +132,7 @@ tag                     # a kind, a use case
 repeat                  # how often a voice was used
 # Dub editor transport (thread #134).
 skip-previous           # back to the start
+# Settings → Feedback (feedback_view.go).
+chat-round-dots         # the section
+gallery                 # a screenshot
+videocamera             # a screen recording

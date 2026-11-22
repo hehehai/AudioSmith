@@ -8,17 +8,20 @@
 #
 # Updates come from actnow.dev (threads #69, #71, scripts/actnow.sh): the
 # app reads https://actnow.dev/updates/audiosmith/update-darwin-arm64.json,
-# and with Receive beta updates on the beta/ one beside it too (MyGo patch
-# 0008). Betas are built with that same url, not …/audiosmith/beta as the
-# site suggests: MyGo already points a beta's archive and deltas into
-# beta/ (which the site checks), and a beta with Receive beta updates off
-# must read the releases' feed, not beta/. No updates.s3 or updates.github:
+# and with Receive beta updates on the beta/ one beside it too
+# (updates.prereleases: MyGo links both feeds into the app and
+# mygo.Updater.SetPrereleases chooses). Betas are built with that same url,
+# not …/audiosmith/beta as the site suggests: with updates.prereleases
+# MyGo points a beta's archive and deltas into beta/ (which the site
+# checks) and makes deltas from the newest versions of both channels, and a
+# beta with Receive beta updates off must read the releases' feed, not
+# beta/. No updates.s3 or updates.github:
 # the files go to the site through scripts/actnow-publish.sh. Up to
 # 0.4.0-beta.4 the app read GitHub releases.
 #
 # From the environment, each optional:
 #   MYGO_UPDATER_PUBLIC_KEY  contents of mygo-update.pub (mygo keygen): adds
-#                            "updates": {publicKey, url}
+#                            "updates": {publicKey, url, prereleases}
 #   MACOS_SIGNING_IDENTITY   "Developer ID Application: Name (TEAMID)" or
 #                            its SHA-1: macos.signingIdentity
 #   NOTARY_PROFILE           a notarytool keychain profile: macos.notarize
@@ -55,7 +58,7 @@ result="$(jq \
   --arg profile "${NOTARY_PROFILE:-}" \
   --arg keychain "${NOTARY_KEYCHAIN:-}" '
   (if $key == "" then .
-    else .updates = ((.updates // {}) | del(.github, .tagPrefix, .s3)) + {publicKey: $key, url: $url}
+    else .updates = ((.updates // {}) | del(.github, .tagPrefix, .s3)) + {publicKey: $key, url: $url, prereleases: true}
     end)
   | (if $identity != "" then .macos.signingIdentity = $identity else . end)
   | (if $profile != "" then .macos.notarize = ({keychainProfile: $profile}

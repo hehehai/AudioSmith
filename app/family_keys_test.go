@@ -244,7 +244,7 @@ func TestKeyRemoveAsks(t *testing.T) {
 		typed := "sk-new-000000001"
 		a.llmForm.edits["deepseek"].key = typed
 		tt.Frame()
-		if !tt.HasText("Also updates it in Auralink.") {
+		if !tt.HasText("Shared across ActNow: the other apps get the new key too.") {
 			t.Errorf("no also-updates: %q", tt.Texts())
 		}
 		a.llmForm.edits["deepseek"].key = ""
