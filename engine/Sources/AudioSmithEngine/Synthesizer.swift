@@ -96,7 +96,9 @@ final class Synthesizer: @unchecked Sendable {
             // Irodori-TTS v4.1 (thread #170): Japanese only; clones without a
             // transcript, designs from a Japanese caption (which also restyles
             // a clone), takes a target duration, non-verbal tags as emoji.
-            caps += ["clone", "cloneAudioOnly", "design", "voiceStyle", "instruct", "duration", "nonVerbal"]
+            // No "instruct": stories' English or Chinese directions would
+            // become its Japanese caption (an API instruct still joins it).
+            caps += ["clone", "cloneAudioOnly", "design", "voiceStyle", "duration", "nonVerbal"]
         case is VibeVoiceTTSModel:
             caps += ["clone", "cloneAudioOnly", "steps", "guidance", "dialogue"]
         case is VibeVoiceRealtimeModel:

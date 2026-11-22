@@ -525,6 +525,45 @@
       ]
     },
     {
+      "id": "irodori-tts-v4.1-small-mf-8bit",
+      "label": "Irodori-TTS v4.1 Small MF",
+      "name": "Japanese · Natural",
+      "summary": "Japanese that reads kanji, numbers and names well: clones a short clip, designs a voice from a Japanese description, laughs and sighs. Japanese only.",
+      "tags": ["clone", "design", "fast", "light"],
+      "family": "irodori_tts",
+      "repo": "mlx-community/Irodori-TTS-v4.1-Small-MF-8bit",
+      "revision": "76e6b18f9889e4cf50d90f7df91d9b6f56e23c3f",
+      "tasks": ["tts"],
+      "about": "Aratako's Irodori-TTS v4.1 (MeanFlow, 4 steps): Japanese speech at 48 kHz that reads kanji, numbers and names well. Clones a reference clip without its transcript, designs a voice from a Japanese description, and voices laughs, sighs and breaths ([laughter], [sigh], [breath]). Japanese only. The author's terms: no cloning or impersonating anyone without their consent, no deepfakes or misleading speech. AudioSmith's watermark stays on its audio.",
+      "languages": [
+        {"code": "ja"}
+      ],
+      "capabilities": ["clone", "cloneAudioOnly", "design", "voiceStyle", "duration", "nonVerbal", "seed"],
+      "nonVerbal": ["[laughter]", "[sigh]", "[breath]", "[confirmation-en]", "[question-en]", "[question-ah]", "[question-oh]", "[question-ei]", "[question-yi]", "[surprise-ah]", "[surprise-oh]", "[surprise-wa]", "[surprise-yo]", "[dissatisfaction-hnn]"],
+      "sampleRate": 48000,
+      "maxChars": 360,
+      "rtf": 1.8,
+      "size": 1466863177,
+      "files": [
+        {"path": "config.json", "size": 5382},
+        {"path": "model.safetensors", "size": 1030634110, "sha256": "0f399266214856bd7e90768bba033793053f28088ec0fdc8c3f5516342d8e9c7"},
+        {"path": "dacvae/config.json", "size": 300},
+        {"path": "dacvae/model.safetensors", "size": 429504222, "sha256": "7366646af3d250ec0162c2b2717a64f7dbd5b8bfaebbf9ed69ad79db4944b8b9"},
+        {"path": "tokenizer/tokenizer.json", "size": 6718495, "sha256": "6a0734cf21c802169defaffe719bc2ef12bb9d0be37e54b61ed27aa89394723d"},
+        {"path": "tokenizer/tokenizer_config.json", "size": 668}
+      ],
+      "minMemoryGB": 6,
+      "quantization": "8bit",
+      "licence": {
+        "id": "mit",
+        "name": "MIT",
+        "url": "https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF",
+        "commercial": true,
+        "verified": true,
+        "note": "Aratako/Irodori-TTS-v4.1-Small-MF's model card (checked 2026-11-22): MIT, with ethical restrictions on top: no cloning or impersonating anyone (voice actors, celebrities, public figures) without their explicit consent; no deepfakes or speech meant to mislead; voices made without a reference may resemble real people by chance; users answer for their use. mlx-community's 8-bit conversion (revision 76e6b18) bundles the Semantic-DACVAE-Japanese-32dim codec and ModernBERT-ja-310m's tokenizer (both MIT); the training data is not published. AudioSmith runs upstream mlx-audio-swift's MIT port (engine patch 0013). Its takes are watermarked (AudioSeal) as every model's are; the About text states the author's terms, and clones go through AudioSmith's consent step."
+      }
+    },
+    {
       "id": "qwen3-asr-0.6b-4bit",
       "label": "Qwen3-ASR 0.6B",
       "name": "Chinese & English transcription",

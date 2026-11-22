@@ -56,9 +56,9 @@ func TestBuiltin(t *testing.T) {
 	}
 	// 7 since the curation (#41–#46), VoxCPM2 (thread #165) and the
 	// optional VibeVoice Realtime (#166; VibeVoice 1.5B is a dialogue
-	// model, hidden as SoulX's).
-	if got := c.ForTask(TaskTTS); len(got) != 9 {
-		t.Errorf("%d speech models offered, want 9", len(got))
+	// model, hidden as SoulX's), the optional Irodori-TTS (Japanese, #170).
+	if got := c.ForTask(TaskTTS); len(got) != 10 {
+		t.Errorf("%d speech models offered, want 10", len(got))
 	}
 	if k, _ := c.ByLabel("Kokoro 82M"); len(k.Voices) != 25 || k.VoiceIDs()[0] != "af_heart" || len(k.Aux) != 2 {
 		t.Errorf("kokoro voices %d aux %v", len(k.Voices), k.Aux)

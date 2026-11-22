@@ -4085,5 +4085,8 @@
   "Microsoft's small real-time English model with preset voices, streamed as it speaks. English only; it cannot clone voices. Microsoft's terms: for research and testing; no voice impersonation without the person's consent, no disinformation or deepfakes. AudioSmith's watermark stays on its audio.": "微软的小型实时英文模型，使用预设声音，边生成边播放。只支持英文，不能克隆声音。微软的使用条款：面向研究和测试；未经本人同意不得冒充其声音，不得用于虚假信息或深度伪造。它生成的音频照常带 AudioSmith 的水印。",
   "This model says each line as written: scene, personas and directions are kept but not heard. Pacing and merged turns still apply. For directed delivery, use %s (it keeps cloned voices), %s or %s.": "当前模型逐句照读：场景、性格和演绎会保留，但模型听不到。节奏和合并同角色仍然生效。想要指令演绎，请换用%s（可保留克隆音色）、%s或%s。",
   "To hear the directions, switch to %s (recommended: it keeps cloned voices), or to %s or %s.": "想听到演绎效果，推荐换用%s（可保留克隆音色），也可换用%s或%s。",
-  "For Chinese dialects, %s is recommended.": "中文方言推荐使用%s。"
+  "For Chinese dialects, %s is recommended.": "中文方言推荐使用%s。",
+  "model name\u0004Japanese · Natural": "日语 · 自然朗读",
+  "Japanese that reads kanji, numbers and names well: clones a short clip, designs a voice from a Japanese description, laughs and sighs. Japanese only.": "日语汉字、数字和人名读得准：用一小段片段就能克隆，也能根据日文描述设计声音，会笑、会叹气。只支持日语。",
+  "Aratako's Irodori-TTS v4.1 (MeanFlow, 4 steps): Japanese speech at 48 kHz that reads kanji, numbers and names well. Clones a reference clip without its transcript, designs a voice from a Japanese description, and voices laughs, sighs and breaths ([laughter], [sigh], [breath]). Japanese only. The author's terms: no cloning or impersonating anyone without their consent, no deepfakes or misleading speech. AudioSmith's watermark stays on its audio.": "Aratako 的 Irodori-TTS v4.1（MeanFlow，4 步）：48 kHz 日语语音，汉字、数字和人名读得准。不需要文字稿就能用参考片段克隆，能根据日文描述设计声音，还能发出笑声、叹气和呼吸声（[laughter]、[sigh]、[breath]）。只支持日语。作者的使用条款：未经本人同意不得克隆或冒充其声音，不得用于深度伪造或误导他人的语音。它生成的音频照常带 AudioSmith 的水印。"
 }
