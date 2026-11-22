@@ -31,4 +31,7 @@ the network.
   the Apache License 2.0 (SPDX's copy; the voice previews) and SQLite's
   public-domain dedication (MyGo's SQLite plugin), and the MIT licence of
   Hugeicons (`MIT-Hugeicons.txt`; the npm package @iconify-json/hugeicons,
-  the icons' Play and Pause, states only "MIT", author Hugeicons).
+  the icons' Play and Pause, states only "MIT", author Hugeicons), and
+  Irodori-TTS's (`MIT-Irodori-TTS.txt`, from github.com/Aratako/Irodori-TTS:
+  the model card of Aratako/Irodori-TTS-v4.1-Small-MF states MIT and ships
+  no text; for the Japanese Discover voices' clips, thread #172).

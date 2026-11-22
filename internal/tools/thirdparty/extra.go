@@ -295,22 +295,75 @@ func voicePreviews(root string, linked map[string]bool) ([]component, error) {
 
 // galleryVoices are the curated voices' clips of assets/gallery-voices
 // (thread #94): references and previews generated with Qwen3-TTS
-// VoiceDesign and Base, Apache-2.0 like the models.
+// VoiceDesign and Base, Apache-2.0 like the models; those of the voices
+// curated.json says Irodori-TTS made (designModel, thread #172), MIT like
+// that model.
 func galleryVoices(root string) ([]component, error) {
 	files, err := filepath.Glob(filepath.Join(root, "assets", "gallery-voices", "*.ogg"))
 	if err != nil || len(files) == 0 {
 		return nil, err
 	}
+	irodori, err := irodoriVoices(root)
+	if err != nil {
+		return nil, err
+	}
+	var qwen, iro int
+	for _, f := range files {
+		id, _, _ := strings.Cut(filepath.Base(f), ".")
+		if irodori[id] {
+			iro++
+		} else {
+			qwen++
+		}
+	}
 	apache, err := readFile(root, "third_party/licenses/texts/Apache-2.0.txt")
 	if err != nil {
 		return nil, err
 	}
-	return []component{{
-		name: "Discover voices' clips: Qwen3-TTS 12Hz 1.7B VoiceDesign and Base", version: fmt.Sprintf("%d clips", len(files)),
+	var out []component
+	if iro > 0 {
+		mit, err := readFile(root, "third_party/licenses/texts/MIT-Irodori-TTS.txt")
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, component{
+			name: "Discover voices' clips: Irodori-TTS v4.1 Small MF", version: fmt.Sprintf("%d clips", iro),
+			url: "https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF", spdx: "MIT",
+			notes: []string{"The Japanese curated voices' references and previews (assets/gallery-voices: the voices whose designModel in internal/gallery/data/curated.json is Irodori-TTS): voices designed from Japanese captions and previews cloned from them with Aratako's Irodori-TTS v4.1 Small MF (mlx-community's 8-bit conversion), made with AudioSmith's engine by scripts/make-curated-voices.sh. The author's terms on top of MIT: no cloning or impersonating anyone without their consent, no deepfakes or misleading speech. They are synthetic voices, not recordings of people."},
+			texts: []text{{name: "The model's licence (its code repository's, github.com/Aratako/Irodori-TTS; the model card states MIT)", body: mit}},
+		})
+	}
+	if qwen == 0 {
+		return out, nil
+	}
+	return append([]component{{
+		name: "Discover voices' clips: Qwen3-TTS 12Hz 1.7B VoiceDesign and Base", version: fmt.Sprintf("%d clips", qwen),
 		url: "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign", spdx: "Apache-2.0",
 		notes: []string{"The curated voices' references and previews (assets/gallery-voices/*.ogg): voices designed from written descriptions with Qwen3-TTS 1.7B VoiceDesign, previews cloned from them with Qwen3-TTS 1.7B Base (https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base), made with AudioSmith's engine by scripts/make-curated-voices.sh. They are synthetic voices, not recordings of people."},
 		texts: []text{{name: "The models' licence", body: apache}},
-	}}, nil
+	}}, out...), nil
+}
+
+// irodoriVoices are the ids of the curated voices Irodori-TTS made.
+func irodoriVoices(root string) (map[string]bool, error) {
+	b, err := os.ReadFile(filepath.Join(root, "internal", "gallery", "data", "curated.json"))
+	if err != nil {
+		return nil, err
+	}
+	var specs []struct {
+		ID          string `json:"id"`
+		DesignModel string `json:"designModel"`
+	}
+	if err := json.Unmarshal(b, &specs); err != nil {
+		return nil, err
+	}
+	ids := map[string]bool{}
+	for _, s := range specs {
+		if strings.HasPrefix(s.DesignModel, "irodori-") {
+			ids[s.ID] = true
+		}
+	}
+	return ids, nil
 }
 
 // familySounds are the dictation's sounds of official builds: React Bits
