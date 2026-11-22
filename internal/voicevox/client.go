@@ -37,8 +37,11 @@ type Client struct {
 	HTTP *http.Client
 }
 
-// localHTTP is the default client: no proxy, short connects.
-var localHTTP = &http.Client{Transport: &http.Transport{Proxy: nil, MaxIdleConnsPerHost: 4, IdleConnTimeout: 30 * time.Second}}
+// localHTTP is the default client: no proxy; idle connections are let
+// go before the engines' server (uvicorn) closes them after 5 s, so a
+// request never goes out on a connection being closed (seen on the Mac,
+// thread #171).
+var localHTTP = &http.Client{Transport: &http.Transport{Proxy: nil, MaxIdleConnsPerHost: 4, IdleConnTimeout: 2 * time.Second}}
 
 func (c Client) http() *http.Client {
 	if c.HTTP != nil {
@@ -112,22 +115,35 @@ func (c Client) do(ctx context.Context, method, path string, q url.Values, body 
 	if len(q) > 0 {
 		u += "?" + q.Encode()
 	}
-	var rd io.Reader
+	var raw []byte
 	if body != nil {
 		b, err := json.Marshal(body)
 		if err != nil {
 			return nil, err
 		}
-		rd = bytes.NewReader(b)
+		raw = b
 	}
-	req, err := http.NewRequestWithContext(ctx, method, u, rd)
-	if err != nil {
-		return nil, err
+	send := func() (*http.Response, error) {
+		var rd io.Reader
+		if raw != nil {
+			rd = bytes.NewReader(raw)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, u, rd)
+		if err != nil {
+			return nil, err
+		}
+		if raw != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		return c.http().Do(req)
 	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	resp, err := send()
+	if err != nil && ctx.Err() == nil {
+		// Once more on a fresh connection: the engines' requests are
+		// safe to repeat, and a kept-alive connection may have just been
+		// closed by the server.
+		resp, err = send()
 	}
-	resp, err := c.http().Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

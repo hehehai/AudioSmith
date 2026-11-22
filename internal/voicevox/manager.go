@@ -97,8 +97,10 @@ func (m *Manager) changed() {
 	}
 }
 
-// probeTimeout bounds one probe of an engine.
-const probeTimeout = 4 * time.Second
+// probeTimeout bounds one probe of an engine: AivisSpeech's manifest is
+// over 1 MB (its icons), and an engine still loading its models answers
+// slowly; probes run in the background.
+const probeTimeout = 15 * time.Second
 
 // Probe asks engine kind what it is and which characters it has.
 func (m *Manager) Probe(ctx context.Context, k Kind) Engine {
