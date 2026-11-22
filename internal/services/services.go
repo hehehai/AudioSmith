@@ -92,6 +92,11 @@ type Config struct {
 	// the speech recognizer's repos); nil: renders do neither.
 	Engine              func(method string) jobs.Executor
 	Aligner, Recognizer string
+
+	// Credits are the attributions a take of model spoken by voice must
+	// carry (a VOICEVOX character's, thread #171): renders record them
+	// with the take. nil: none.
+	Credits func(ctx context.Context, model, voice string) []string
 }
 
 // Services is the set of services over one store, as core.Services for

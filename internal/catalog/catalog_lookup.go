@@ -46,6 +46,11 @@ func (c *Catalog) find(match func(*Entry) bool) (Entry, bool) {
 			return c.Entries[i], true
 		}
 	}
+	for i := range c.External {
+		if match(&c.External[i]) {
+			return c.External[i], true
+		}
+	}
 	return Entry{}, false
 }
 

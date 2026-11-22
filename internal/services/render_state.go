@@ -61,6 +61,11 @@ func (r *renderer) chunks(p *RenderParams, pl *plan.Plan, info ModelInfo, modelP
 			MaxTokens: t.MaxTokens, RefAudio: t.RefAudio, RefText: t.RefText, Steps: t.Steps, Seed: seed,
 			VoicePrompt: t.VoicePrompt,
 		}
+		scales := ""
+		if sc := t.Scales; sc != nil && (sc.Pitch != 0 || sc.Intonation != 0 || sc.Volume != 0 || sc.TempoDynamics != 0) {
+			sp.Scales = &proto.Scales{Pitch: sc.Pitch, Intonation: sc.Intonation, Volume: sc.Volume, TempoDynamics: sc.TempoDynamics}
+			scales = fmt.Sprintf("%g/%g/%g/%g", sc.Pitch, sc.Intonation, sc.Volume, sc.TempoDynamics)
+		}
 		if t.Guidance != 0 {
 			sp.Guidance = &t.Guidance
 		}
@@ -99,6 +104,9 @@ func (r *renderer) chunks(p *RenderParams, pl *plan.Plan, info ModelInfo, modelP
 			"maxTokens": strconv.Itoa(t.MaxTokens), "steps": strconv.Itoa(t.Steps), "duration": f(sp.Duration),
 			"ref": ref, "refText": t.RefText, "bits": "32",
 			"guidance": f(sp.Guidance), "exaggeration": f(sp.Exaggeration), "voicePrompt": t.VoicePrompt,
+		}
+		if scales != "" {
+			keyParams["scales"] = scales // only when set: other models' keys stay as they were
 		}
 		if seed != nil && !info.Deterministic {
 			keyParams["seed"] = strconv.FormatInt(*seed, 10)

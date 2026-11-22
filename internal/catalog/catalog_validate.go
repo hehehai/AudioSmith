@@ -19,7 +19,10 @@ func (c *Catalog) Validate() error {
 		return fmt.Errorf("version %d", c.Version)
 	}
 	seen := map[string]bool{}
-	for _, e := range c.Entries {
+	for i, e := range append(slices.Clone(c.Entries), c.External...) {
+		if external := i >= len(c.Entries); external != e.IsExternal() {
+			return fmt.Errorf("entry %q: a runtime belongs to the external entries, and they need one", e.ID)
+		}
 		if e.ID == "" || e.Repo == "" || e.Label == "" || e.Family == "" || e.Name == "" {
 			return fmt.Errorf("entry %q: id, label, name, family and repo are required", e.ID)
 		}

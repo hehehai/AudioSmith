@@ -41,6 +41,14 @@ type Take struct {
 	// sent with the recipe.
 	CloneRef     string `json:"cloneRef,omitempty"`
 	CloneRefText string `json:"cloneRefText,omitempty"`
+	// Scales are the reading of a VOICEVOX-compatible engine (thread
+	// #171): its AudioQuery scales and silences; nil = the engine's.
+	Scales *Scales `json:"scales,omitempty"`
+
+	// Credits are the attributions the take's audio must carry when it is
+	// published ("VOICEVOX:ずんだもん"; thread #171): set by the render from
+	// the voice's terms, shown with the take and written into exports.
+	Credits []string `json:"credits,omitempty"`
 
 	// Relations (M1+). Empty for MVP takes.
 	VoiceID   string `json:"voiceId,omitempty"`   // Voice profile it was spoken with
@@ -65,6 +73,19 @@ type Take struct {
 	SampleRate   int     `json:"sampleRate"`
 	AudioSeconds float64 `json:"audioSeconds"`
 	GenSeconds   float64 `json:"genSeconds"`
+}
+
+// Scales tune a VOICEVOX-compatible engine's reading; 0 = the engine's
+// own. Pitch, Intonation and Volume are its AudioQuery's scales
+// (TempoDynamics AivisSpeech's own); PreSilence and PostSilence are
+// seconds of silence the render adds before and after the take.
+type Scales struct {
+	Pitch         float64 `json:"pitch,omitempty"`
+	Intonation    float64 `json:"intonation,omitempty"`
+	Volume        float64 `json:"volume,omitempty"`
+	TempoDynamics float64 `json:"tempoDynamics,omitempty"`
+	PreSilence    float64 `json:"preSilence,omitempty"`
+	PostSilence   float64 `json:"postSilence,omitempty"`
 }
 
 // Take origins (Take.Origin).
