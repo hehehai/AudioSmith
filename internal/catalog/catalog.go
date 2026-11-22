@@ -88,6 +88,12 @@ type Catalog struct {
 	// Removed are the models AudioSmith offered once and no longer does
 	// (threads #43, #46): what still names them maps to their replacement.
 	Removed []Removed `json:"removed,omitempty"`
+	// External are models that run in an engine the user installed and
+	// AudioSmith only connects to (VOICEVOX and AivisSpeech, thread #171):
+	// nothing to download, and offered only while the engine answers, so
+	// they are not among Entries (which pickers, downloads and the Models
+	// list walk) but ByID, ByRepo and ByLabel find them.
+	External []Entry `json:"external,omitempty"`
 }
 
 // Removed is a model taken out of the catalogue. Projects, drafts,
@@ -198,7 +204,16 @@ type Entry struct {
 	Hidden bool `json:"hidden,omitempty"`
 
 	Licence Licence `json:"licence"`
+
+	// Runtime names the outside engine an External entry runs in
+	// ("voicevox": VOICEVOX ENGINE or AivisSpeech Engine over HTTP); ""
+	// for the models of the app's own engine.
+	Runtime string `json:"runtime,omitempty"`
 }
+
+// IsExternal reports whether the model runs in an engine the user
+// installed (Runtime): nothing to download, its own terms per voice.
+func (e Entry) IsExternal() bool { return e.Runtime != "" }
 
 // Aux is an auxiliary repo of an entry.
 type Aux struct {

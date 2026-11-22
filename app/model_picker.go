@@ -45,6 +45,9 @@ type pickerOpts struct {
 	// models lead (catalog.RecommendedFor, thread #167).
 	Langs []string
 	Uses  []catalog.Use
+	// Characters adds the Japanese character voices of VOICEVOX and
+	// AivisSpeech (voicevox_view.go: the Studio), or how to get them.
+	Characters bool
 }
 
 // whyNotFor says why model e cannot do workflow w ("" = it can).
@@ -234,6 +237,9 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 				if o.Dialogue != nil {
 					n += a.pickerDialogueRows(c, key, o.Dialogue, find, func() { a.pickerOpen[key] = false })
 				}
+				if o.Characters {
+					n += a.characterPickerRows(c, cur, find, pick)
+				}
 				if n == 0 {
 					ui.Text(c, i18n.T("No model matches")).FontSize(px(t, fsCaption)).TextColor(k.Text3).Padding(px(t, 6), px(t, sp2))
 				}
@@ -266,6 +272,9 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 			}
 			for _, e := range others {
 				a.pickerEntryRow(c, e, cur, w, pick)
+			}
+			if o.Characters {
+				a.characterPickerRows(c, cur, "", pick)
 			}
 			if o.Custom {
 				custom := catalog.Custom("")

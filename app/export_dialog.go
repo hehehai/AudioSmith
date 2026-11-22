@@ -148,6 +148,10 @@ func (a *app) exportDialog(c *ui.Context) {
 	dialogFrame(c, "export-dialog", &f.open, i18n.T("Export audio"), sub, px(t, 560), func() {
 		exportAudioRows(c, f)
 		exportFileRows(c, f, ef)
+		if f.take.Credit != "" {
+			// The credit goes into the file's tags; the user names it too.
+			a.creditLine(c, f.take.Credit) // voicevox_view.go (thread #171)
+		}
 		ui.Box(c).Height(px(t, sp1))
 		a.advancedSection(c, "export", f.changes(), false, f.restore, func() { exportAdvancedRows(c, f, ef) })
 	}, func() {

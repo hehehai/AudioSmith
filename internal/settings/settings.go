@@ -166,6 +166,20 @@ type Models struct {
 	// finished (cancelled, skipped, interrupted): the models it moved are
 	// there, so they are looked for there too (#101 M2). "" = none.
 	MovingTo string `json:"movingTo,omitempty"`
+	// Characters are the outside engines of Japanese character voices
+	// (thread #171).
+	Characters CharacterEngines `json:"characters,omitzero"`
+}
+
+// CharacterEngines are the addresses of the VOICEVOX and AivisSpeech
+// engines AudioSmith connects to ("" = their defaults,
+// voicevox.DefaultURL), and the characters whose terms the user
+// confirmed ("voicevox:<speaker uuid>", asked once for those that are
+// non-commercial or need asking).
+type CharacterEngines struct {
+	VoicevoxURL string   `json:"voicevoxURL,omitempty"`
+	AivisURL    string   `json:"aivisURL,omitempty"`
+	Confirmed   []string `json:"confirmed,omitempty"`
 }
 
 // Engine: resource limits.

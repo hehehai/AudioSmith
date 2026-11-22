@@ -106,6 +106,8 @@ type RenderResult struct {
 	Seconds      float64         `json:"seconds"` // the render's wall time
 	Seed         int64           `json:"seed,omitempty"`
 	Render       core.TakeRender `json:"render"`
+	// Credit is the attribution the audio must carry (Config.Credit).
+	Credit string `json:"credit,omitempty"`
 }
 
 // RenderProgress is published when a render starts a chunk, so the UI can
@@ -211,6 +213,8 @@ type renderer struct {
 	// nil: none.
 	engine              func(method string) jobs.Executor
 	aligner, recognizer string
+	// credit is Config.Credit.
+	credit func(ctx context.Context, model, voice string) string
 }
 
 func (r *renderer) model(repo string) ModelInfo {
@@ -323,7 +327,7 @@ func (r *renderer) renderOnce(ctx context.Context, job jobs.Job, pp *RenderParam
 	pl := plan.Build(t.Text, plan.Options{
 		Lang: p.Lang, NonVerbal: info.NonVerbal, NonVerbalTags: info.NonVerbalTags, Speed: info.Speed,
 		MaxChars: info.MaxChars, MaxCharsCJK: info.MaxCharsCJK,
-		NoNormalize: opts.NoNormalize, Lexicon: dict,
+		NoNormalize: opts.NoNormalize || info.External, Lexicon: dict,
 	})
 	var warnings []core.TakeNotice
 	for _, d := range pl.Diags {
@@ -360,7 +364,10 @@ func (r *renderer) renderOnce(ctx context.Context, job jobs.Job, pp *RenderParam
 	}
 	defer st.cleanup()
 
-	// Speech and silences, in order.
+	// Speech and silences, in order, between the recipe's own silences.
+	if sc := t.Scales; sc != nil && sc.PreSilence > 0 {
+		st.silence(min(sc.PreSilence, 10))
+	}
 	n := len(chunks)
 	ci := 0
 	cached := 0
@@ -418,6 +425,11 @@ func (r *renderer) renderOnce(ctx context.Context, job jobs.Job, pp *RenderParam
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if sc := t.Scales; sc != nil && sc.PostSilence > 0 && rawSingle == "" {
+		if err := st.silence(min(sc.PostSilence, 10)); err != nil {
+			return nil, &jobs.Error{Code: CodeRenderFailed, Message: err.Error()}
+		}
+	}
 
 	r.publish(RenderProgress{Job: job.ID, Owner: job.Owner, Chunk: 0, Chunks: n, Cached: cached})
 	report(jobs.Progress{Stage: "writing", Fraction: 1, AudioSeconds: st.seconds()})
@@ -461,6 +473,9 @@ func (r *renderer) renderOnce(ctx context.Context, job jobs.Job, pp *RenderParam
 	res.Render.Chunks, res.Render.Warnings = takeChunks, warnings
 	res.Render.Issues, res.Render.QCDone = out.issues, out.qcDone
 	res.Render.Watermarked = marked
+	if r.credit != nil {
+		res.Credit = r.credit(ctx, t.Model, t.Voice)
+	}
 	return json.Marshal(res)
 }
 

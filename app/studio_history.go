@@ -15,6 +15,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
+	"github.com/hehehai/AudioSmith/internal/voicevox"
 )
 
 // studioHistoryMax is how many takes the tab lists; Assets has them all.
@@ -40,6 +41,12 @@ func (a *app) takeVoiceName(t *core.Take) string {
 		return v.Name
 	}
 	if s := strings.TrimSpace(t.Voice); s != "" {
+		if voicevox.IsVoice(s) {
+			if l := a.characterLabel(s); l != s || t.Credit == "" {
+				return l
+			}
+			return t.Credit // the engine is not running: its credit names it
+		}
 		if sp, _, ok := strings.Cut(s, ","); ok {
 			return strings.TrimSpace(sp)
 		}
@@ -88,6 +95,9 @@ func (a *app) studioHistoryRow(c *ui.Context, tk *core.Take) {
 	}}
 	if listRow(c, spec, func() {
 		meta := a.takeVoiceName(tk) + " · " + i18n.T("%.1f s", tk.AudioSeconds) + " · " + ago(tk.CreatedAt)
+		if tk.Credit != "" {
+			meta += " · " + tk.Credit // the credit the audio must carry (thread #171)
+		}
 		listTitleMarks(c, text, meta, playing, nil)
 	}, nil) {
 		a.play(tk)

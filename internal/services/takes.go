@@ -65,7 +65,7 @@ func newTakes(cfg Config, pron *Pronunciation) *Takes {
 	t.render = &renderer{
 		synth: cfg.Synth, modelPath: cfg.ModelPath, licences: cfg.Licences, models: cfg.Models, replace: cfg.Replace,
 		pron: pron, cacheDir: cfg.CacheDir, bus: cfg.Bus, logf: cfg.Logf, watermark: cfg.Watermark,
-		engine: cfg.Engine, aligner: cfg.Aligner, recognizer: cfg.Recognizer,
+		engine: cfg.Engine, aligner: cfg.Aligner, recognizer: cfg.Recognizer, credit: cfg.Credit,
 	}
 	if cfg.Scheduler != nil {
 		cfg.Scheduler.Register(KindRender, t.render)
@@ -418,6 +418,9 @@ func (s *Takes) completeRender(ctx context.Context, j jobs.Job, id string, t cor
 	}
 	rnd := res.Render
 	t.Render = &rnd
+	if res.Credit != "" {
+		t.Credit = res.Credit
+	}
 	if err := s.store.Put(ctx, t); err != nil {
 		return err
 	}

@@ -267,6 +267,9 @@ func (a *app) takePanel(c *ui.Context, t *core.Take, latest, studio bool) {
 				}
 			})
 		})
+		if t.Credit != "" {
+			a.creditLine(c, t.Credit) // voicevox_view.go (thread #171)
+		}
 		if t.Render != nil && len(t.Render.Warnings) > 0 {
 			a.noticeList(c, t, "warn", t.Render.Warnings)
 		}

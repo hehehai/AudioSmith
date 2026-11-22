@@ -107,6 +107,7 @@ func (a *app) lfOutputs(c *ui.Context, p *lfPage) {
 			})
 		}
 		a.loudnessReport(c, p, r)
+		a.renderCredits(c, r.body.Summary.Credits) // voicevox_longform.go (thread #171)
 		if r.rec.Kind == core.ProjectAudiobook {
 			a.readAlongView(c, p, r)
 		}
@@ -240,14 +241,15 @@ func (a *app) writeOutput(lib *services.Library, rec core.Render, kind, src, dst
 // saveChapters copies every chapter's WAV into a folder.
 func (a *app) saveChapters(r *lfRender) {
 	rec, chs, lib := r.rec, slices.Clone(r.body.Output.Chapters), a.lib.svc.Library
+	credits := slices.Clone(r.body.Summary.Credits)
 	a.openFile(mygo.OpenDialogOptions{Title: i18n.T("Save chapters"), Directory: true,
 		ButtonLabel: i18n.T("Save here")}, func(dir string) {
-		a.background(func() { a.writeChapters(lib, rec, chs, dir) })
+		a.background(func() { a.writeChapters(lib, rec, chs, dir, credits) })
 	})
 }
 
-func (a *app) writeChapters(lib *services.Library, rec core.Render, chs []services.BookChapter, dir string) {
-	_, err := writeRenderChapters(context.Background(), lib, rec, chs, dir)
+func (a *app) writeChapters(lib *services.Library, rec core.Render, chs []services.BookChapter, dir string, credits []string) {
+	_, err := writeRenderChapters(context.Background(), lib, rec, chs, dir, credits)
 	a.post(func() {
 		if err != nil {
 			a.toastWarn(i18n.T("Export failed: %v", err))
@@ -275,8 +277,17 @@ func writeRenderFile(ctx context.Context, lib *services.Library, rec core.Render
 
 // writeRenderChapters copies every chapter's WAV into dir as "NN Title.wav"
 // and records each export; it returns the files written.
-func writeRenderChapters(ctx context.Context, lib *services.Library, rec core.Render, chs []services.BookChapter, dir string) ([]string, error) {
+//
+// credits, when there are any, go beside them as credits.txt (thread
+// #171).
+func writeRenderChapters(ctx context.Context, lib *services.Library, rec core.Render, chs []services.BookChapter, dir string, credits []string) ([]string, error) {
 	var files []string
+	if err := services.WriteCredits(dir, credits); err != nil {
+		return files, err
+	}
+	if len(credits) > 0 {
+		files = append(files, filepath.Join(dir, services.CreditsFile))
+	}
 	for i, ch := range chs {
 		title := ch.Title
 		if title == "" {

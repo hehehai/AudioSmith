@@ -848,5 +848,14 @@
       "reason": "#44: invalid JSON (decimal commas), batch translation loops, hangs up calls; larger than Qwen3 4B."},
     {"id": "qwen3-1.7b-4bit", "label": "Qwen3 1.7B", "repo": "mlx-community/Qwen3-1.7B-4bit", "task": "llm", "replacedBy": "qwen3-4b-instruct-2507-4bit",
       "reason": "#44: barely cleans up, copies the director prompt's examples, mixes languages in translations."}
+  ],
+  "external": [
+    {"id": "voicevox", "label": "VOICEVOX / AivisSpeech", "name": "Japanese character voices (VOICEVOX / AivisSpeech)",
+      "summary": "Japanese characters of the VOICEVOX or AivisSpeech app you installed; each character has its own terms and credit.",
+      "tags": ["voices"], "family": "voicevox", "repo": "external/voicevox", "runtime": "voicevox", "tasks": ["tts"],
+      "about": "Connects to VOICEVOX ENGINE (127.0.0.1:50021) or AivisSpeech Engine (127.0.0.1:10101) running on this Mac; AudioSmith bundles none of their files. Japanese only, no cloning.",
+      "languages": [{"code": "ja"}], "capabilities": ["speed"], "deterministic": true, "size": 0,
+      "licence": {"id": "voicevox-terms", "name": "Per character (VOICEVOX / AivisSpeech terms)", "url": "https://voicevox.hiroshiba.jp/term/", "commercial": true, "verified": true,
+        "note": "Each VOICEVOX character's terms (credit \"VOICEVOX:<name>\"; some non-commercial) or each AivisSpeech model's licence (ACML, ACML-NC, CC0, own); shown per voice."}}
   ]
 }

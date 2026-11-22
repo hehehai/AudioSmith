@@ -108,6 +108,10 @@ type RenderSummary struct {
 	Chars    int        `json:"chars"` // unspaced-script characters
 	Prod     Production `json:"production"`
 	Stems    bool       `json:"stems,omitempty"`
+	// Credits are the attributions the audio must carry when published
+	// (its VOICEVOX characters', thread #171), also in the render's
+	// folder as credits.txt.
+	Credits []string `json:"credits,omitempty"`
 }
 
 // Done reports whether every chapter is made.

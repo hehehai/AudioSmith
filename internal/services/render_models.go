@@ -49,6 +49,10 @@ type Traits struct {
 	// Exaggeration: takes an emotion exaggeration (Chatterbox, capability
 	// "exaggeration"): stories send their lines' emotion intensities.
 	Exaggeration bool `json:"exaggeration,omitempty"`
+	// External models run in an engine the user installed (VOICEVOX,
+	// AivisSpeech; thread #171), which reads numbers and dates itself:
+	// the script is not normalised for them.
+	External bool `json:"external,omitempty"`
 }
 
 // WithCatalog applies what the catalogue knows of the model (v3): its
@@ -107,6 +111,10 @@ func TraitsFor(family string, caps []string) Traits {
 		t.Deterministic = true
 	case "qwen3_tts", "qwen3":
 		t.MaxChars, t.MaxCharsCJK = 500, 250
+	case "voicevox":
+		// One sentence at a time reads best; the engines take more.
+		t.MaxChars, t.MaxCharsCJK = 400, 200
+		t.External, t.Deterministic = true, true
 	case "omnivoice":
 		// Until the catalogue lists OmniVoice's tags (CapNonVerbal).
 		t.NonVerbal, t.Steps = true, true

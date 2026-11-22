@@ -31,6 +31,9 @@ func (a *app) inspector(c *ui.Context) {
 
 	// The voice first (0.5 F3): what most takes change.
 	a.studioVoiceField(c, p)
+	if p.IsExternal() {
+		a.characterNotes(c) // voicevox_view.go: the character's terms and credit
+	}
 	if studioNeedsDescription(p) && !a.studioUsesSavedVoice(p) {
 		ui.Field(c, i18n.T("Voice description"), func() {
 			ui.TextArea(c.Key("description"), &a.voice).Lines(2, 5).Placeholder(i18n.T("e.g. a calm, warm female narrator, mid-thirties")).
@@ -55,7 +58,7 @@ func (a *app) inspector(c *ui.Context) {
 				a.modelLabel = e.Label
 			}
 			a.modelChanged()
-		}, pickerOpts{Custom: true, Row: true, Langs: []string{a.studioScriptLang()}})
+		}, pickerOpts{Custom: true, Row: true, Langs: []string{a.studioScriptLang()}, Characters: true})
 		if custom {
 			ui.TextInput(c.Key("repo"), &a.customRepo).Placeholder("owner/model-name").Label(i18n.T("Repo"))
 		}
@@ -107,6 +110,9 @@ func joinVoice(speaker, style string) string {
 
 // studioVoiceLabel names the Studio's voice for model e.
 func (a *app) studioVoiceLabel(e catalog.Entry) string {
+	if e.IsExternal() {
+		return a.characterLabel(a.studioCharacterVoice())
+	}
 	if v := a.findVoice(a.studioVoice); v != nil {
 		return v.Name
 	}
@@ -169,6 +175,9 @@ func (a *app) studioVoiceField(c *ui.Context, e catalog.Entry) {
 // studioAdvanced are the Studio's 「高级」 controls, those the model takes.
 func (a *app) studioAdvanced(c *ui.Context, p catalog.Entry) {
 	t := c.Theme()
+	if p.IsExternal() {
+		a.characterAdvanced(c) // voicevox_view.go
+	}
 	saved := a.studioUsesSavedVoice(p)
 	if services.CloneTakesInstruct(capNames(p)) && (saved || strings.TrimSpace(a.refAudio) != "") {
 		// VoxCPM2 (thread #165): the clone keeps its voice and takes how to

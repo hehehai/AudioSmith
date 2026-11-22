@@ -122,6 +122,9 @@ func (b *apiBackend) Models(ctx context.Context) ([]api.Model, error) {
 		m.LicenceNeeded = licence.Required(e) != nil && !licence.Covers(accepted, e)
 		out = append(out, m)
 	}
+	if m, ok := b.characterModel(ctx); ok {
+		out = append(out, m) // voicevox_api.go: while an engine answers
+	}
 	return out, nil
 }
 
@@ -169,6 +172,11 @@ func (b *apiBackend) VoiceFits(v core.Voice, e catalog.Entry) (bool, string) {
 // choices, and queues it.
 func (b *apiBackend) Generate(ctx context.Context, req api.SpeakRequest) (core.Take, string, error) {
 	t := apiRecipe(req, b.fill, b.lib.svc.Voices.FilePath)
+	if req.Model.IsExternal() {
+		// A character of VOICEVOX or AivisSpeech (voicevox_api.go).
+		t.Voice, t.Language = b.characterVoiceFor(ctx, t.Voice), "ja"
+		t.Credit = b.lib.takeCredit(ctx, t.Model, t.Voice) // known before the audio streams
+	}
 	id, err := b.lib.svc.Takes.Generate(ctx, core.TakeRequest{Recipe: t, Background: req.Background})
 	return t, id, err
 }
@@ -208,7 +216,7 @@ func apiRecipe(req api.SpeakRequest, fill func(*core.Take, *core.Voice, catalog.
 			}
 		}
 	}
-	if instr == "" {
+	if instr == "" || e.IsExternal() {
 		return t
 	}
 	eng, known := vd.EngineFor(e.Family, e.Repo)

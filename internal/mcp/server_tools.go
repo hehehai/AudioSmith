@@ -52,6 +52,9 @@ type speechOut struct {
 	// ReplacedBy and Warning: the request named a removed model.
 	ReplacedBy string `json:"replaced_by,omitempty"`
 	Warning    string `json:"warning,omitempty"`
+	// Credit is the attribution the audio must carry wherever it is
+	// published (a VOICEVOX character's, thread #171).
+	Credit string `json:"credit,omitempty"`
 }
 
 func (s *Server) generateSpeech(ctx context.Context, req *sdk.CallToolRequest, in speechIn) (*sdk.CallToolResult, any, error) {
@@ -80,6 +83,10 @@ func (s *Server) generateSpeech(ctx context.Context, req *sdk.CallToolRequest, i
 		AudioURL: "/api/takes/" + res.Take.ID + "/audio", Ignored: sp.Ignored}
 	if r := sp.Replaced; r != nil {
 		out.ReplacedBy, out.Warning = r.ReplacedBy, r.Warning
+	}
+	if res.Take.Credit != "" {
+		out.Credit = res.Take.Credit
+		out.Note = "Credit the audio as \"" + res.Take.Credit + "\" wherever it is published (the character's terms)."
 	}
 	var extra []sdk.Content
 	if mode == "inline" || mode == "both" {

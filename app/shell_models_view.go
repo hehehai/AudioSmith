@@ -67,6 +67,9 @@ func (a *app) modelsList(c *ui.Context) {
 		if find == "" && a.removedShows(a.modelsKind) {
 			a.removedRow(c) // removed models still on disk
 		}
+		if (a.modelsKind == 0 || a.modelsKind == 1) && (find == "" || charactersEntry().Matches(find)) {
+			a.charactersSettings(c) // voicevox_view.go: VOICEVOX / AivisSpeech
+		}
 		n := 0
 		for _, e := range entries {
 			if (a.modelsKind == 0 || modelKindOf(e) == a.modelsKind) && e.Matches(find) {

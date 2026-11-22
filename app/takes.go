@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -32,6 +33,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/settings"
 	"github.com/hehehai/AudioSmith/internal/store"
 	"github.com/hehehai/AudioSmith/internal/store/sqlitestore"
+	"github.com/hehehai/AudioSmith/internal/voicevox"
 )
 
 // peakCount is how many peaks a waveform draws.
@@ -68,6 +70,9 @@ type library struct {
 	encode   func() jobs.Executor // M3: the engine's media.encode, for M4B books (useEncoder, longform.go)
 
 	wm watermarkState // watermark_app.go (thread #14)
+
+	vv        *voicevox.Manager      // VOICEVOX / AivisSpeech (voicevox_app.go, thread #171)
+	vvChanged atomic.Pointer[func()] // redraws when vv learns something
 }
 
 // libraryOptions adjust openLibrary for tests.
@@ -108,6 +113,7 @@ func openLibrary(dataDir, cacheDir string, opts ...libraryOptions) (*library, er
 		peaks:     audio.PeakCache{Dir: filepath.Join(cacheDir, "peaks"), N: peakCount},
 		peakSlots: make(chan struct{}, 2),
 	}
+	l.vv = l.newCharacterEngines(cacheDir)
 	l.settings, err = settings.Open(ctx, st.Documents(), func(ev settings.Changed) { bus.Publish(ev) })
 	if err != nil {
 		log.Printf("settings: %v", err) // the defaults, until the next change saves them
@@ -146,6 +152,7 @@ func openLibrary(dataDir, cacheDir string, opts ...libraryOptions) (*library, er
 		Engine:     l.engineExecutor,
 		Aligner:    modelRepo(catalog.DefaultAlign),
 		Recognizer: modelRepo(catalog.DefaultSTT),
+		Credit:     l.takeCredit, // voicevox_app.go
 	})
 	async := o.Async
 	if async == nil {
@@ -292,6 +299,9 @@ func entryFor(repo string) catalog.Entry {
 // the engine executors fill it into the job as it starts (engines run
 // offline: they load only what the hub downloaded).
 func (l *library) modelSnapshot(ctx context.Context, repo string) (string, error) {
+	if entryFor(repo).IsExternal() {
+		return "", nil // nothing on disk: an engine the user runs
+	}
 	loc, err := hub.StatusIn(modelCaches(l.settings.Get()), entryFor(repo))
 	if err != nil {
 		return "", err
@@ -300,18 +310,6 @@ func (l *library) modelSnapshot(ctx context.Context, repo string) (string, error
 		return "", fmt.Errorf("%s: %w", catalog.Builtin().DisplayName(repo), core.ErrNotDownloaded)
 	}
 	return loc.Snapshot, nil
-}
-
-// auxSnapshots are the snapshot directories of the auxiliary repos of a
-// model (engine.ExecutorOptions.AuxPaths).
-func (l *library) auxSnapshots(ctx context.Context, repo string) map[string]string {
-	return hub.AuxSnapshotsIn(modelCaches(l.settings.Get()), entryFor(repo))
-}
-
-// modelReady is services.Config.Ready.
-func (l *library) modelReady(ctx context.Context, repo string) error {
-	_, err := l.modelSnapshot(ctx, repo)
-	return err
 }
 
 // close writes pending drafts, waits for takes being saved and closes the store.

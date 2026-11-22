@@ -110,7 +110,25 @@ func ProcessAudio(b dsp.Buffer, o AudioExport) (dsp.Buffer, float64, float64) {
 // ExportAudio writes the WAV src to dst as o says; enc writes the formats
 // other than WAV. dst is written whole or not at all. Without a loudness
 // target it streams (export_stream.go); a target needs the whole take.
+//
+// A WAV gets o.Metadata's "comment" and "artist" as a LIST/INFO chunk
+// (a VOICEVOX character's credit, thread #171); the other formats get
+// all of o.Metadata from their encoder.
 func ExportAudio(ctx context.Context, src, dst string, o AudioExport, enc AudioEncoder) (ExportedAudio, error) {
+	res, err := exportAudio(ctx, src, dst, o, enc)
+	if err != nil || o.Format != FormatWAV || o.Metadata["comment"] == "" {
+		return res, err
+	}
+	if err := wav.AppendInfo(dst, map[string]string{"ICMT": o.Metadata["comment"], "IART": o.Metadata["artist"], "INAM": o.Metadata["title"]}); err != nil {
+		return res, err
+	}
+	if fi, err := os.Stat(dst); err == nil {
+		res.Bytes = fi.Size()
+	}
+	return res, nil
+}
+
+func exportAudio(ctx context.Context, src, dst string, o AudioExport, enc AudioEncoder) (ExportedAudio, error) {
 	if err := checkExportFree(filepath.Dir(dst), exportNeed(src, o)); err != nil {
 		return ExportedAudio{}, err
 	}

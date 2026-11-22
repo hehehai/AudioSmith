@@ -281,6 +281,10 @@ func (a *app) startLf(p *lfPage, what string) {
 			}
 		}
 	}
+	if v := a.unconfirmedCharacter(spec); v != "" { // voicevox_longform.go
+		a.askCharacterTerms(v, func() { a.startLf(p, what) })
+		return
+	}
 	svc := a.lib.svc.Longform
 	kind := p.kind
 	a.background(func() {

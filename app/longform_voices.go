@@ -14,6 +14,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/services"
+	"github.com/hehehai/AudioSmith/internal/voicevox"
 )
 
 // lfVoice is a choice of the voice pickers: a VoiceRef and its label.
@@ -21,7 +22,12 @@ type lfVoice struct{ ref, label string }
 
 // lfVoices are the voices model e can speak with: the saved voices it
 // can use, then its own speakers.
-func (a *app) lfVoices(e catalog.Entry) []lfVoice { return lfVoicesOf(a.voices, e) }
+func (a *app) lfVoices(e catalog.Entry) []lfVoice {
+	if e.IsExternal() {
+		return a.characterLfVoices() // voicevox_longform.go
+	}
+	return lfVoicesOf(a.voices, e)
+}
 
 // lfVoicesOf are the voices model e can speak with among voices, then
 // its own speakers (the API's projects use it too: api_studio*.go).
@@ -45,6 +51,9 @@ func (a *app) lfVoiceLabel(ref string) string {
 	case ref == "":
 		return i18n.T("Default voice")
 	case strings.HasPrefix(ref, services.SpeakerRef):
+		if id := strings.TrimPrefix(ref, services.SpeakerRef); voicevox.IsVoice(id) {
+			return a.characterLabel(id)
+		}
 		return strings.TrimPrefix(ref, services.SpeakerRef)
 	}
 	if v := a.findVoice(ref); v != nil {
@@ -76,7 +85,7 @@ func lfResolverOf(d *services.LongformDoc, all []core.Voice, fill func(*core.Tak
 	return func(ref string) (string, core.Take, bool) {
 		t := core.Take{Language: lang}
 		if id, ok := strings.CutPrefix(ref, services.SpeakerRef); ok {
-			if !slices.Contains(speakers, id) && e.ID != "custom" {
+			if !slices.Contains(speakers, id) && e.ID != "custom" && !(e.IsExternal() && voicevox.IsVoice(id)) {
 				return "", t, false
 			}
 			t.Voice = id

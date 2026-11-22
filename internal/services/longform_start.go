@@ -41,6 +41,7 @@ func (s *Longform) Start(ctx context.Context, spec LongformSpec) (core.Render, e
 	rec := core.Render{ID: id, ProjectID: spec.Project, Kind: spec.Kind, Title: spec.Title, State: core.RenderRunning,
 		Audition: spec.Audition, CreatedAt: now, UpdatedAt: now}
 	body := RenderBody{Spec: spec, Summary: summarize(&spec), Dir: dir, Runs: 1, Started: now}
+	body.Summary.Credits = s.credits(ctx, &spec) // longform_credits.go
 	for _, ch := range spec.Chapters {
 		body.Chapters = append(body.Chapters, RenderChapter{Title: ch.Title, Chars: chapterChars(ch), Lines: len(ch.Lines), State: ChapterPending})
 	}
@@ -67,6 +68,10 @@ func (s *Longform) Start(ctx context.Context, spec LongformSpec) (core.Render, e
 	s.live[id] = lr
 	s.mu.Unlock()
 	if err := os.MkdirAll(filepath.Join(dir, "chapters"), 0o755); err != nil {
+		s.forget(id)
+		return core.Render{}, err
+	}
+	if err := WriteCredits(dir, body.Summary.Credits); err != nil {
 		s.forget(id)
 		return core.Render{}, err
 	}

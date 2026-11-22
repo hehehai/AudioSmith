@@ -71,7 +71,8 @@ func findEntry(name string, task catalog.Task) (catalog.Entry, bool) {
 	if n == "" {
 		return catalog.Entry{}, false
 	}
-	for _, e := range catalog.Builtin().Entries {
+	c := catalog.Builtin()
+	for _, e := range append(slices.Clone(c.Entries), c.External...) {
 		if !slices.Contains(e.Tasks, task) {
 			continue
 		}
@@ -80,6 +81,14 @@ func findEntry(name string, task catalog.Task) (catalog.Entry, bool) {
 		}
 	}
 	return catalog.Entry{}, false
+}
+
+// CharacterBackend is a Backend that speaks with the characters of an
+// outside engine (VOICEVOX, AivisSpeech; thread #171): CharacterVoice
+// finds one by its voice id or its name ("ずんだもん", "ずんだもん/ノーマル")
+// among those of the engines that answer.
+type CharacterBackend interface {
+	CharacterVoice(ctx context.Context, name string) (id string, ok bool)
 }
 
 // Replacement says a request named a model AudioSmith removed (thread
@@ -230,6 +239,13 @@ func (s *Server) resolveVoice(ctx context.Context, name string, e *catalog.Entry
 			if strings.EqualFold(sp.ID, n) {
 				return voiceChoice{Speaker: sp.ID}, nil
 			}
+		}
+		if cb, ok := s.b.(CharacterBackend); ok && e.IsExternal() {
+			if id, ok := cb.CharacterVoice(ctx, n); ok {
+				return voiceChoice{Speaker: id}, nil
+			}
+			return voiceChoice{}, &Error{Status: http.StatusBadRequest, Code: CodeVoiceNotFound, Param: "voice",
+				Message: "No character of the running VOICEVOX or AivisSpeech is called " + n + ": GET /api/models/" + e.ID + " lists them."}
 		}
 	}
 	if g, ok := openAIVoices[strings.ToLower(n)]; ok {

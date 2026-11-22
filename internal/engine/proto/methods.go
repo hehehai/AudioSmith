@@ -261,10 +261,24 @@ type SynthesizeParams struct {
 	// "guidance" and "exaggeration".
 	Guidance     *float64 `json:"guidance,omitempty"`
 	Exaggeration *float64 `json:"exaggeration,omitempty"`
-	Output       Output   `json:"output"`
+	// Scales are the AudioQuery scales of a VOICEVOX-compatible engine
+	// (the connector of internal/voicevox, thread #171); the Swift engine
+	// ignores them.
+	Scales *Scales `json:"scales,omitempty"`
+	Output Output  `json:"output"`
 	// Stream asks for tts.chunk notifications as audio is generated, in
 	// addition to the file.
 	Stream bool `json:"stream,omitempty"`
+}
+
+// Scales tune a VOICEVOX-compatible engine's reading (its AudioQuery's
+// pitchScale, intonationScale, volumeScale and AivisSpeech's
+// tempoDynamicsScale); 0 = the engine's own.
+type Scales struct {
+	Pitch         float64 `json:"pitch,omitempty"`
+	Intonation    float64 `json:"intonation,omitempty"`
+	Volume        float64 `json:"volume,omitempty"`
+	TempoDynamics float64 `json:"tempoDynamics,omitempty"`
 }
 
 // Output says where and how to write audio. The engine writes to a
