@@ -4,8 +4,9 @@ package gallery
 // by #91's audit and measured on the Mac (scripts/make-curated-voices.sh).
 // A designed one has a persona (the description sent, as written), a
 // tested seed, a preview line and the text of the reference that ships
-// with the app (the app's assets/gallery-voices); a built-in one names a
-// catalogue model and its speaker.
+// with the app (the app's assets/gallery-voices), and the model that made
+// them when not Qwen3-TTS (DesignModel); a built-in one names a catalogue
+// model and its speaker.
 
 import (
 	"fmt"
@@ -84,6 +85,7 @@ type curatedSpec struct {
 	RefGrade    string   `json:"refGrade"`
 	Model       string   `json:"model"`
 	Speaker     string   `json:"speaker"`
+	DesignModel string   `json:"designModel"`
 	Tags        []string `json:"tags"`
 }
 
@@ -100,7 +102,7 @@ func BuildCurated() ([]Archetype, error) {
 			Name: s.Name, Description: s.Description, Gender: s.Gender, Age: s.Age,
 			Languages: []string{s.Language}, Tags: s.Tags, Seed: s.Seed,
 			Persona: strings.TrimSpace(s.Persona), Line: s.Sample, RefText: s.RefText, RefGrade: s.RefGrade,
-			Model: s.Model, Speaker: s.Speaker,
+			Model: s.Model, Speaker: s.Speaker, DesignModel: s.DesignModel,
 		}
 		if len(s.Uses) > 0 {
 			a.Category = s.Uses[0]
@@ -152,7 +154,7 @@ func validateCurated(a Archetype) error {
 			return fmt.Errorf("gallery: %s: a designed voice names no speaker", a.ID)
 		}
 	case KindBuiltin:
-		if a.Model == "" || a.Speaker == "" || a.Persona != "" {
+		if a.Model == "" || a.Speaker == "" || a.Persona != "" || a.DesignModel != "" {
 			return fmt.Errorf("gallery: %s: a built-in voice needs a model and a speaker, and no persona", a.ID)
 		}
 	default:

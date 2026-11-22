@@ -7,6 +7,7 @@ package main
 // nothing is rendered to listen.
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -219,7 +220,8 @@ func saveArchetype(ctx context.Context, svc voiceSaver, arch gallery.Archetype, 
 // the UI's language: a built-in speaker's profile (its model and speaker);
 // a curated designed voice with its persona, seed and the bundled
 // reference's text (heard saying it when it was made, so it is not heard
-// again), made with 1.7B VoiceDesign; an earlier gallery voice with its
+// again), made with 1.7B VoiceDesign or its own design model (Irodori-TTS
+// for the Japanese ones); an earlier gallery voice with its
 // attributes and seed (its reference is made on first use).
 func archetypeVoice(arch gallery.Archetype, loc string) core.Voice {
 	v := core.Voice{Name: arch.Name.In(loc), Language: arch.Languages[0], Origin: galleryOrigin(arch.ID), Tags: arch.Tags}
@@ -232,7 +234,7 @@ func archetypeVoice(arch gallery.Archetype, loc string) core.Voice {
 	attrs, _ := json.Marshal(r.Attrs)
 	v.Kind, v.Design, v.DesignAttrs, v.Seed = core.VoiceDesigned, r.Description, attrs, r.Seed
 	if arch.Kind == gallery.KindDesigned {
-		e, _ := catalog.Builtin().ByID(galleryDesignModel)
+		e, _ := catalog.Builtin().ByID(archetypeDesignModel(arch))
 		v.CreatedWith = e.Repo
 		v.RefText = arch.RefText
 		v.RefCheck = &core.RefQuality{Grade: arch.RefGrade, Cleaned: []string{"tidied"}, TextChecked: true}
@@ -242,8 +244,14 @@ func archetypeVoice(arch gallery.Archetype, loc string) core.Voice {
 }
 
 // galleryDesignModel made the curated voices' references (and makes them
-// again when asked).
+// again when asked), unless a voice names its own (DesignModel).
 const galleryDesignModel = "qwen3-tts-1.7b-voicedesign-4bit"
+
+// archetypeDesignModel is the catalogue id of the model that designed a
+// curated designed voice.
+func archetypeDesignModel(arch gallery.Archetype) string {
+	return cmp.Or(arch.DesignModel, galleryDesignModel)
+}
 
 // galleryOrigin is the origin of a voice saved from a gallery voice.
 func galleryOrigin(id string) string { return "gallery:" + id }

@@ -199,7 +199,7 @@ func (b *apiBackend) VoicePreview(ctx context.Context, q api.VoicePreviewQuery) 
 				"%s has no bundled preview: design_voice_candidates with its description makes one.", arch.ID)
 		}
 		text, _ := arch.PreviewLine()
-		return api.VoicePreview{Data: data, MIME: "audio/ogg", Ext: "ogg", Name: exportVoiceName(arch.ID) + ".ogg", Text: text, Model: galleryDesignModel}, nil
+		return api.VoicePreview{Data: data, MIME: "audio/ogg", Ext: "ogg", Name: exportVoiceName(arch.ID) + ".ogg", Text: text, Model: archetypeDesignModel(arch)}, nil
 	}
 	e, ok := catalog.Builtin().ByID(strings.TrimSpace(q.Model))
 	if !ok {

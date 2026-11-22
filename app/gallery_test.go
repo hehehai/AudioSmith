@@ -278,7 +278,13 @@ func TestGalleryCuratedAssets(t *testing.T) {
 			}
 		case gallery.KindDesigned:
 			r := arch.Recipe()
-			low, err := vd.Lower(vd.TargetQwen3Design, r, vd.Options{Lang: designTextLang(arch.Languages[0])})
+			// Sent as written to the model that designed it (Irodori-TTS
+			// for the Japanese ones, #172).
+			e, ok := catalog.Builtin().ByID(archetypeDesignModel(arch))
+			if !ok || !e.Has(catalog.CapDesign) || arch.DesignModel != "" && !e.Has(catalog.CapClone) {
+				t.Errorf("%s: design model %q", arch.ID, arch.DesignModel)
+			}
+			low, err := vd.Lower(designTarget(e), r, vd.Options{Lang: designTextLang(arch.Languages[0])})
 			if err != nil || low.Voice != arch.Persona || low.Seed != arch.Seed {
 				t.Errorf("%s: the persona is not sent as written: %q", arch.ID, low.Voice)
 			}
@@ -292,7 +298,7 @@ func TestGalleryCuratedAssets(t *testing.T) {
 			}
 		}
 	}
-	if langs["zh"] < 10 || langs["en"] < 10 || len(langs) < 6 {
+	if langs["zh"] < 10 || langs["en"] < 10 || langs["ja"] < 9 || len(langs) < 6 {
 		t.Errorf("languages %v", langs)
 	}
 	var total int64

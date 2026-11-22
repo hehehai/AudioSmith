@@ -166,12 +166,13 @@ func TestVoicePreviewsE2E(t *testing.T) {
 // not right (Qwen3-ASR heard words missing).
 var previewSeeds = map[string]int64{"Ryan": 23}
 
-// previewLines are the previews' lines by language. Not Japanese: Kokoro's
-// Japanese voices are unintelligible in the engine (Qwen3-ASR heard
-// 「幸運にちん晴れ晴り…」 for 「こんにちは、はじめまして。」, 2026-10-16), so they
-// have no preview.
+// previewLines are the previews' lines by language. Japanese is for
+// Qwen3-TTS's Ono_Anna (#172): Kokoro's Japanese voices are unintelligible
+// in the engine (Qwen3-ASR heard 「幸運にちん晴れ晴り…」 for
+// 「こんにちは、はじめまして。」, 2026-10-16), hidden, with no preview.
 var previewLines = map[string]string{
 	"zh": "你好，很高兴认识你，这是我的声音。",
+	"ja": "こんにちは、はじめまして。これが私の声です。",
 	"en": "Hi, nice to meet you. This is what I sound like.",
 	"es": "Hola, mucho gusto. Así suena mi voz.",
 	"fr": "Bonjour ! Voici à quoi ressemble ma voix.",
@@ -184,11 +185,8 @@ var previewLines = map[string]string{
 // catalogue's, else Qwen3-TTS CustomVoice's speakers' own (its model
 // card: Ryan and Aiden speak English, the others Chinese).
 func previewLanguage(e catalog.Entry, speaker string) string {
-	for _, v := range e.Voices {
-		if v.ID == speaker && v.Language != "" {
-			base, _, _ := strings.Cut(v.Language, "-")
-			return base
-		}
+	if l := e.SpeakerLanguage(speaker); l != "" {
+		return l
 	}
 	switch speaker {
 	case "Ryan", "Aiden":

@@ -99,7 +99,7 @@ func (b *apiBackend) UseGalleryVoice(ctx context.Context, id string) (api.Galler
 	}
 	// The model it is for: a built-in speaker's own, else the design
 	// model (that made a curated voice's reference).
-	mid := galleryDesignModel
+	mid := archetypeDesignModel(arch)
 	if arch.Kind == gallery.KindBuiltin {
 		mid = arch.Model
 	}

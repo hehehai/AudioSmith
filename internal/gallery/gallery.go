@@ -63,6 +63,10 @@ type Archetype struct {
 	// Model (catalogue id) and Speaker: a curated built-in speaker.
 	Model   string `json:"model,omitempty"`
 	Speaker string `json:"speaker,omitempty"`
+	// DesignModel is the catalogue id of the model that designed a
+	// curated designed voice's reference and cloned its preview ("": Qwen3
+	// 1.7B VoiceDesign and Base; Irodori-TTS for Japanese ones, #172).
+	DesignModel string `json:"designModel,omitempty"`
 	// Legacy marks a voice of the earlier gallery: found by id, not listed.
 	Legacy bool `json:"legacy,omitempty"`
 }

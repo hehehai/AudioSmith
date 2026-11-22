@@ -20,7 +20,7 @@ func TestBuiltin(t *testing.T) {
 	}{
 		{"Kokoro 82M", "mlx-community/Kokoro-82M-bf16", "≈ 481 MB", nil, nil, true, false, false, false},
 		{"Qwen3-TTS 0.6B CustomVoice", "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit", "≈ 2 GB",
-			[]string{"Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden"},
+			[]string{"Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna"},
 			[]string{"Chinese", "English", "Japanese", "Korean", "German", "French", "Spanish", "Italian", "Portuguese", "Russian"},
 			false, true, false, true},
 		{"Qwen3-TTS 0.6B Base (voice clone)", "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit", "≈ 2 GB", nil,

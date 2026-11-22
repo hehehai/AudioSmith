@@ -94,7 +94,8 @@
         {"id": "Dylan", "native": "zh", "gender": "male"},
         {"id": "Eric", "native": "zh", "gender": "male"},
         {"id": "Ryan", "native": "en", "gender": "male", "hideIn": ["zh"]},
-        {"id": "Aiden", "native": "en", "gender": "male"}
+        {"id": "Aiden", "native": "en", "gender": "male"},
+        {"id": "Ono_Anna", "native": "ja", "gender": "female"}
       ],
       "capabilities": ["sampling", "voiceStyle", "instruct", "language", "stream"],
       "sampleRate": 24000,

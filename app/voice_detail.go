@@ -276,7 +276,7 @@ func archetypeModel(arch gallery.Archetype) (catalog.Entry, bool) {
 	if arch.Kind == gallery.KindBuiltin {
 		return catalog.Builtin().ByID(arch.Model)
 	}
-	return catalog.Builtin().ByID(galleryDesignModel)
+	return catalog.Builtin().ByID(archetypeDesignModel(arch))
 }
 
 // tryArchetype says 「试一句」's line with a Discover voice, unsaved.

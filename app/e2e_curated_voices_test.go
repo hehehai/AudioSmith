@@ -11,11 +11,14 @@ package main
 //	refs   each designed voice's reference candidates, for CURATE_SEEDS
 //	       seeds (default 3): its persona with the conversational style,
 //	       the reference texts of its language, on 1.7B VoiceDesign, as
-//	       makeReference asks for them (TakeService, refTakeLimit).
+//	       makeReference asks for them (TakeService, refTakeLimit); a
+//	       voice with its own design model (DesignModel: Irodori-TTS for
+//	       the Japanese ones, #172) on that model, its caption as written
+//	       and its own texts (curateRefTexts), and its clones too.
 //	pick   tidies, measures and has Qwen3-ASR hear every candidate, and
 //	       keeps the best of each seed (refcheck.Pick): <id>/s<k>/ref.wav
 //	       and ref.json.
-//	clone  Base 1.7B clones of the test lines (#91's narrative and
+//	clone  Base 1.7B (or the voice's own model) clones of the test lines (#91's narrative and
 //	       conversational lines) from each seed's reference, "Even out
 //	       volume" on, as the Studio makes them.
 //	asr    Qwen3-ASR hears the clones: asr.json.
@@ -85,15 +88,33 @@ func curateSeed(id string, k int) int64 {
 
 // curateRefRecipe is what makeReference asks the design model for a
 // curated voice: its persona with the conversational style, and the
-// reference texts of its language and register.
+// reference texts of its language and register. A voice with its own
+// texts (curateRefTexts, thread #172) gets those, and its persona as
+// written (a Japanese caption for Irodori-TTS).
 func curateRefRecipe(a gallery.Archetype) (voice string, texts []string, lang string) {
 	lang = a.Languages[0]
+	if own, ok := curateRefTexts[strings.TrimPrefix(a.ID, gallery.CuratedPrefix)]; ok {
+		return a.Persona, own, lang
+	}
 	voice = vd.WithStyle(a.Persona, vd.ConversationalStyle(designTextLang(lang)))
 	reg := vd.RegisterAdult
 	if a.Age == "child" {
 		reg = vd.RegisterChild
 	}
 	return voice, vd.ReferenceTexts(lang, reg)[:refCandidates], lang
+}
+
+// curateModels are the models that design curated voice a's reference
+// and clone from it: its own (DesignModel: Irodori-TTS does both), else
+// 1.7B VoiceDesign and Base.
+func curateModels(a gallery.Archetype) (design, clone catalog.Entry) {
+	if a.DesignModel != "" {
+		e, _ := catalog.Builtin().ByID(a.DesignModel)
+		return e, e
+	}
+	design, _ = catalog.Builtin().ByID(curateVD)
+	clone, _ = catalog.Builtin().ByID(curateBase)
+	return design, clone
 }
 
 type curateCand struct {
@@ -272,13 +293,12 @@ func TestCuratedVoicesE2E(t *testing.T) {
 		json.Unmarshal(raw, &tr)
 		return tr.Text, nil
 	}
-	vdm, _ := catalog.Builtin().ByID(curateVD)
-	base, _ := catalog.Builtin().ByID(curateBase)
 	designed := slices.DeleteFunc(slices.Clone(items), func(a gallery.Archetype) bool { return a.Kind != gallery.KindDesigned })
 	clone := func(what string, a gallery.Archetype, seed int64, ref, refText, text, dst string) bool {
 		if have(dst) {
 			return true
 		}
+		_, base := curateModels(a)
 		return gen(what, core.Take{Text: text, Model: base.Repo, Seed: seed, Language: modelLanguage(base, a.Languages[0]),
 			RefAudio: ref, RefText: refText, Render: &core.TakeRender{Bits: 24, Master: services.MasterDefault}}, dst)
 	}
@@ -287,6 +307,7 @@ func TestCuratedVoicesE2E(t *testing.T) {
 	case "refs":
 		for i, v := range designed {
 			voice, texts, lang := curateRefRecipe(v)
+			vdm, _ := curateModels(v)
 			for k := range seeds {
 				for j, text := range texts {
 					dst := filepath.Join(out, v.ID, fmt.Sprintf("s%d", k), fmt.Sprintf("cand%d.wav", j))
@@ -302,6 +323,7 @@ func TestCuratedVoicesE2E(t *testing.T) {
 	case "pick":
 		for i, v := range designed {
 			_, texts, lang := curateRefRecipe(v)
+			vdm, _ := curateModels(v)
 			for k := range seeds {
 				dir := filepath.Join(out, v.ID, fmt.Sprintf("s%d", k))
 				if have(filepath.Join(dir, "ref.json")) {
@@ -317,7 +339,7 @@ func TestCuratedVoicesE2E(t *testing.T) {
 					}
 					c := &refCand{text: text}
 					c.path, c.secs, c.check = tidyCandidate(p, filepath.Join(dir, "tidy"), text)
-					c.check.Truncated = c.check.Raw.Seconds >= float64(refMaxTokens)/12.5-0.5
+					c.check.Truncated = refTakeLimit(vdm) > 0 && c.check.Raw.Seconds >= float64(refMaxTokens)/12.5-0.5
 					if c.path == "" {
 						continue
 					}

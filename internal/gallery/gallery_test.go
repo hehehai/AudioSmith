@@ -18,8 +18,8 @@ import (
 // a preview line and its reference's text.
 func TestDefault(t *testing.T) {
 	g := Default()
-	if n := g.Len(); n < 30 || n > 40 {
-		t.Errorf("Len = %d, want about 35", n)
+	if n := g.Len(); n < 40 || n > 50 {
+		t.Errorf("Len = %d, want about 45", n)
 	}
 	langs, uses, kinds := map[string]int{}, map[string]int{}, map[string]int{}
 	namesEn, namesZh := map[string]string{}, map[string]string{}
