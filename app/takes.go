@@ -71,11 +71,8 @@ type library struct {
 
 	wm watermarkState // watermark_app.go (thread #14)
 
-	// vv connects to the VOICEVOX and AivisSpeech engines the user runs
-	// (voicevox_app.go, thread #171); vvChanged redraws when it learns
-	// something (set by the app).
-	vv        *voicevox.Manager
-	vvChanged atomic.Pointer[func()]
+	vv        *voicevox.Manager      // VOICEVOX / AivisSpeech (voicevox_app.go, thread #171)
+	vvChanged atomic.Pointer[func()] // redraws when vv learns something
 }
 
 // libraryOptions adjust openLibrary for tests.
@@ -313,21 +310,6 @@ func (l *library) modelSnapshot(ctx context.Context, repo string) (string, error
 		return "", fmt.Errorf("%s: %w", catalog.Builtin().DisplayName(repo), core.ErrNotDownloaded)
 	}
 	return loc.Snapshot, nil
-}
-
-// auxSnapshots are the snapshot directories of the auxiliary repos of a
-// model (engine.ExecutorOptions.AuxPaths).
-func (l *library) auxSnapshots(ctx context.Context, repo string) map[string]string {
-	return hub.AuxSnapshotsIn(modelCaches(l.settings.Get()), entryFor(repo))
-}
-
-// modelReady is services.Config.Ready.
-func (l *library) modelReady(ctx context.Context, repo string) error {
-	if entryFor(repo).IsExternal() {
-		return l.characterEngineReady(ctx) // voicevox_app.go
-	}
-	_, err := l.modelSnapshot(ctx, repo)
-	return err
 }
 
 // close writes pending drafts, waits for takes being saved and closes the store.

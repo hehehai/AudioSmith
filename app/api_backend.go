@@ -175,6 +175,7 @@ func (b *apiBackend) Generate(ctx context.Context, req api.SpeakRequest) (core.T
 	if req.Model.IsExternal() {
 		// A character of VOICEVOX or AivisSpeech (voicevox_api.go).
 		t.Voice, t.Language = b.characterVoiceFor(ctx, t.Voice), "ja"
+		t.Credit = b.lib.takeCredit(ctx, t.Model, t.Voice) // known before the audio streams
 	}
 	id, err := b.lib.svc.Takes.Generate(ctx, core.TakeRequest{Recipe: t, Background: req.Background})
 	return t, id, err

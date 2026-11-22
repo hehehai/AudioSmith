@@ -6,7 +6,10 @@ package main
 // and transcribe); split from takes.go.
 
 import (
+	"context"
+
 	"github.com/hehehai/AudioSmith/internal/catalog"
+	"github.com/hehehai/AudioSmith/internal/hub"
 	"github.com/hehehai/AudioSmith/internal/jobs"
 )
 
@@ -54,4 +57,20 @@ func (l *library) synthExecutor() jobs.Executor {
 		return eng
 	}
 	return externalRouter(eng, l.vv.Executor()) // voicevox_app.go
+}
+
+// auxSnapshots are the snapshot directories of the auxiliary repos of a
+// model (engine.ExecutorOptions.AuxPaths).
+func (l *library) auxSnapshots(ctx context.Context, repo string) map[string]string {
+	return hub.AuxSnapshotsIn(modelCaches(l.settings.Get()), entryFor(repo))
+}
+
+// modelReady is services.Config.Ready: the model is downloaded, or its
+// outside engine answers (voicevox_app.go).
+func (l *library) modelReady(ctx context.Context, repo string) error {
+	if entryFor(repo).IsExternal() {
+		return l.characterEngineReady(ctx)
+	}
+	_, err := l.modelSnapshot(ctx, repo)
+	return err
 }
