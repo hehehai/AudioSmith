@@ -282,7 +282,7 @@ func (a *app) charactersSettings(c *ui.Context) {
 			if en.Kind == voicevox.Aivis {
 				url = &ce.AivisURL
 			}
-			ui.Row(c.Key("vv-engine-"+string(en.Kind))).Wrap().GapX(px(t, sp3)).GapY(px(t, 4)).AlignItems(ui.Center).Children(func() {
+			ui.Row(c.Key("vv-engine-" + string(en.Kind))).Wrap().GapX(px(t, sp3)).GapY(px(t, 4)).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, en.Kind.Brand()).Width(px(t, 96)).Shrink(0)
 				state, col := i18n.T("Not running"), k.Text3
 				if en.Online {
@@ -317,8 +317,6 @@ func (a *app) charactersSettings(c *ui.Context) {
 		}
 	})
 }
-
-
 
 // creditLine is a take's credit under it: the attribution its audio
 // must carry when published, and Copy.

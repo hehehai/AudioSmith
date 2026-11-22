@@ -37,8 +37,8 @@ import (
 	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/services"
-	"github.com/hehehai/AudioSmith/internal/voicevox"
 	"github.com/hehehai/AudioSmith/internal/settings"
+	"github.com/hehehai/AudioSmith/internal/voicevox"
 )
 
 // studioBits is the bit depth takes are kept at: room for editing; the
