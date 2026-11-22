@@ -32,7 +32,7 @@ const (
 
 // Query filters and pages the gallery. Empty fields don't filter.
 type Query struct {
-	Text     string // every word must occur in the name, description, persona, tags or facets (en or zh)
+	Text     string // every word must occur in the name, description, persona, tags or facets (en, zh or ja)
 	Category string // a use case (or an earlier gallery category, mapped by CategoryID)
 	Gender   string
 	Age      string
@@ -76,8 +76,10 @@ func haystack(a Archetype) string {
 	add := func(s string) { b.WriteString(fold(s)); b.WriteByte('\n') }
 	add(a.Name.En)
 	add(a.Name.Zh)
+	add(a.Name.Ja)
 	add(a.Description.En)
 	add(a.Description.Zh)
+	add(a.Description.Ja)
 	add(a.Persona)
 	add(a.Speaker)
 	add(a.Role)
@@ -88,6 +90,7 @@ func haystack(a Archetype) string {
 		if i := categoryIndex(u); i >= 0 {
 			add(categories[i].Name.En)
 			add(categories[i].Name.Zh)
+			add(categories[i].Name.Ja)
 		}
 	}
 	for _, c := range []vd.Category{vd.Gender, vd.Age} {
@@ -98,14 +101,17 @@ func haystack(a Archetype) string {
 		if op, ok := vd.Lookup(c, v); ok {
 			add(op.Label.En)
 			add(op.Label.Zh)
+			add(op.Label.Ja)
 		}
 	}
 	add(a.Attrs.Summary("en"))
 	add(a.Attrs.Summary("zh"))
+	add(a.Attrs.Summary("ja"))
 	for _, l := range a.Languages {
 		add(l)
 		add(languageName(l).En)
 		add(languageName(l).Zh)
+		add(languageName(l).Ja)
 	}
 	return b.String()
 }

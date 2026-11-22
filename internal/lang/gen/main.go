@@ -1,13 +1,14 @@
 //go:build ignore
 
-// Command gen builds internal/lang/languages.tsv and aliases.tsv from:
+// Command gen builds internal/lang/languages.tsv, aliases.tsv and
+// names_ja.tsv (the Japanese names, thread #173) from:
 //
 //   - OmniVoice's language list (Apache-2.0):
 //     https://raw.githubusercontent.com/k2-fsa/OmniVoice/HEAD/docs/lang_id_name_map.tsv
 //   - Whisper's LANGUAGES table (MIT):
 //     https://raw.githubusercontent.com/openai/whisper/main/whisper/tokenizer.py
 //   - Unicode CLDR 48.2 JSON (Unicode licence), npm packages
-//     cldr-localenames-full and cldr-core: native and Chinese names,
+//     cldr-localenames-full and cldr-core: native, Chinese and Japanese names,
 //     likely script and region, macrolanguage and legacy aliases, RTL scripts.
 //
 // Usage (from this directory, with the downloads unpacked under $D):
@@ -73,6 +74,8 @@ func main() {
 	}
 	var zhNames map[string]string
 	readJSON(filepath.Join(*names, "zh", "languages.json"), &zhNames, "main", "zh", "localeDisplayNames", "languages")
+	var jaNames map[string]string
+	readJSON(filepath.Join(*names, "ja", "languages.json"), &jaNames, "main", "ja", "localeDisplayNames", "languages")
 	var enNames map[string]string
 	readJSON(filepath.Join(*names, "en", "languages.json"), &enNames, "main", "en", "localeDisplayNames", "languages")
 
@@ -174,6 +177,16 @@ func main() {
 			x.script, rt, x.region, x.macro, x.models, x.whisper)
 	}
 	write(filepath.Join(*out, "languages.tsv"), b.String())
+
+	// Japanese names, apart from languages.tsv so that its layout stays.
+	b.Reset()
+	b.WriteString("# code\tja (CLDR 48.2 ja/languages.json), written by gen/main.go\n")
+	for _, x := range rows {
+		if n := jaNames[x.code]; n != "" {
+			fmt.Fprintf(&b, "%s\t%s\n", x.code, n)
+		}
+	}
+	write(filepath.Join(*out, "names_ja.tsv"), b.String())
 
 	// Aliases: legacy, bibliographic, overlong and macrolanguage codes that
 	// point at a code in the table and are not themselves codes in it.

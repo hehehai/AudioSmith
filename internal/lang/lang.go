@@ -37,7 +37,7 @@ type Language struct {
 	Whisper     bool   // in Whisper's list
 	WhisperCode string // Whisper's code when it differs from Code ("jw" for "jv")
 
-	zh string
+	zh, ja string
 }
 
 // Flag is the flag emoji of the likely region, or "" when the region is
@@ -50,10 +50,15 @@ func (l Language) Flag() string {
 }
 
 // NameIn is the language's name for a UI in locale: the Simplified Chinese
-// name for "zh…" locales when known, else the English name.
+// name for "zh…" locales and the Japanese one for "ja…" locales when
+// known, else the English name.
 func (l Language) NameIn(locale string) string {
-	if strings.HasPrefix(strings.ToLower(locale), "zh") && l.zh != "" {
+	loc := strings.ToLower(locale)
+	switch {
+	case strings.HasPrefix(loc, "zh") && l.zh != "":
 		return l.zh
+	case strings.HasPrefix(loc, "ja") && l.ja != "":
+		return l.ja
 	}
 	return l.Name
 }
@@ -63,6 +68,11 @@ var languagesTSV string
 
 //go:embed aliases.tsv
 var aliasesTSV string
+
+// namesJaTSV holds the Japanese names CLDR has (thread #173): code, name.
+//
+//go:embed names_ja.tsv
+var namesJaTSV string
 
 type table struct {
 	all     []Language // sorted by English name
@@ -91,6 +101,12 @@ var load = sync.OnceValue(func() *table {
 	for i, l := range t.all {
 		t.byCode[l.Code] = i
 	}
+	for _, line := range strings.Split(namesJaTSV, "\n") {
+		code, name, ok := strings.Cut(line, "\t")
+		if i, known := t.byCode[code]; ok && known && line[0] != '#' {
+			t.all[i].ja = name
+		}
+	}
 	for _, line := range strings.Split(aliasesTSV, "\n") {
 		if line == "" || line[0] == '#' {
 			continue
@@ -114,7 +130,7 @@ var load = sync.OnceValue(func() *table {
 	for i, l := range t.all {
 		keys := []string{l.Code, l.ISO639_3}
 		keys = append(keys, extra[l.Code]...)
-		t.folded[i] = append(keys, Fold(l.Name), Fold(l.Native), Fold(l.zh))
+		t.folded[i] = append(keys, Fold(l.Name), Fold(l.Native), Fold(l.zh), Fold(l.ja))
 	}
 	return t
 })
@@ -178,7 +194,7 @@ func Fold(s string) string {
 }
 
 // Search returns the languages matching query by code, alias or any name
-// (English, native, Chinese), case- and diacritic-insensitively, best
+// (English, native, Chinese, Japanese), case- and diacritic-insensitively, best
 // first: exact code, exact name, name prefix, word prefix, substring. An
 // empty query returns All().
 func Search(query string) []Language {
@@ -197,7 +213,7 @@ func Search(query string) []Language {
 			if key == "" {
 				continue
 			}
-			isCode := k < len(keys)-3
+			isCode := k < len(keys)-4
 			r := -1
 			switch {
 			case key == q && isCode:

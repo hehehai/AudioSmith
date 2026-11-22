@@ -173,3 +173,29 @@ func TestModels(t *testing.T) {
 		}
 	}
 }
+
+// TestJapanese: Japanese UI names come from names_ja.tsv and are searched
+// (thread #173).
+func TestJapanese(t *testing.T) {
+	for code, want := range map[string]string{"ja": "日本語", "zh": "中国語", "en": "英語", "yue": "広東語", "fr": "フランス語"} {
+		l, _ := Lookup(code)
+		if got := l.NameIn("ja-JP"); got != want {
+			t.Errorf("%s in ja = %q, want %q", code, got, want)
+		}
+	}
+	if l, _ := Lookup("zh"); l.NameIn("zh-Hans") != "中文" || l.NameIn("en") != "Chinese" {
+		t.Error(l.NameIn("zh-Hans"), l.NameIn("en"))
+	}
+	n := 0
+	for _, l := range All() {
+		if l.NameIn("ja") != l.Name {
+			n++
+		}
+	}
+	if n < 200 {
+		t.Errorf("only %d languages have a Japanese name", n)
+	}
+	if r := Search("フランス"); len(r) == 0 || r[0].Code != "fr" {
+		t.Errorf("Search(フランス) = %v", r)
+	}
+}

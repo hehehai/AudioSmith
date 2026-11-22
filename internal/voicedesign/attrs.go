@@ -14,17 +14,24 @@ import (
 	"strings"
 )
 
-// Text is a user-visible string in English and Simplified Chinese. The UI
-// picks one by locale; no i18n catalog is involved.
+// Text is a user-visible string in English, Simplified Chinese and
+// (thread #173, mostly for labels) Japanese. The UI picks one by locale;
+// no i18n catalog is involved.
 type Text struct {
 	En string `json:"en"`
 	Zh string `json:"zh"`
+	Ja string `json:"ja,omitempty"`
 }
 
-// In returns the Chinese text for "zh…" locales when present, else English.
+// In returns the Chinese text for "zh…" locales and the Japanese one for
+// "ja…" locales when present, else English.
 func (t Text) In(locale string) string {
-	if strings.HasPrefix(strings.ToLower(locale), "zh") && t.Zh != "" {
+	l := strings.ToLower(locale)
+	switch {
+	case strings.HasPrefix(l, "zh") && t.Zh != "":
 		return t.Zh
+	case strings.HasPrefix(l, "ja") && t.Ja != "":
+		return t.Ja
 	}
 	return t.En
 }
@@ -71,39 +78,39 @@ type CategoryInfo struct {
 }
 
 func o(id, en, zh, pen, pzh, oen, ozh string) Option {
-	return Option{ID: id, Label: Text{en, zh}, Phrase: Text{pen, pzh}, Omni: Text{oen, ozh}}
+	return Option{ID: id, Label: Text{En: en, Zh: zh}, Phrase: Text{En: pen, Zh: pzh}, Omni: Text{En: oen, Zh: ozh}}
 }
 
 // The tables. Option order is display order and the canonical order of
 // Styles. OmniVoice tags follow its published voice-design vocabulary
 // (gender, age, 5 pitch levels, whisper, 10 English accents, 12 dialects).
 var categoryTable = []CategoryInfo{
-	{ID: Gender, Label: Text{"Gender", "性别"}, Options: []Option{
+	{ID: Gender, Label: Text{En: "Gender", Zh: "性别"}, Options: []Option{
 		o("male", "Male", "男", "male", "男性", "male", "男"),
 		o("female", "Female", "女", "female", "女性", "female", "女"),
 	}},
-	{ID: Age, Label: Text{"Age", "年龄"}, Options: []Option{
+	{ID: Age, Label: Text{En: "Age", Zh: "年龄"}, Options: []Option{
 		o("child", "Child", "儿童", "child", "儿童", "child", "儿童"),
 		o("teen", "Teenager", "少年", "teenage", "少年", "teenager", "少年"),
 		o("young_adult", "Young adult", "青年", "young adult", "青年", "young adult", "青年"),
 		o("middle_aged", "Middle-aged", "中年", "middle-aged", "中年", "middle-aged", "中年"),
 		o("elderly", "Elderly", "老年", "elderly", "老年", "elderly", "老年"),
 	}},
-	{ID: Pitch, Label: Text{"Pitch", "音高"}, Options: []Option{
+	{ID: Pitch, Label: Text{En: "Pitch", Zh: "音高"}, Options: []Option{
 		o("very_low", "Very low", "很低", "very deep, low-pitched", "非常低沉", "very low pitch", "极低音调"),
 		o("low", "Low", "低", "deep, low-pitched", "低沉", "low pitch", "低音调"),
 		o("moderate", "Moderate", "适中", "medium-pitched", "音调适中", "moderate pitch", "中音调"),
 		o("high", "High", "高", "high-pitched", "音调偏高", "high pitch", "高音调"),
 		o("very_high", "Very high", "很高", "very high-pitched", "音调很高", "very high pitch", "极高音调"),
 	}},
-	{ID: Pace, Label: Text{"Pace", "语速"}, Options: []Option{
+	{ID: Pace, Label: Text{En: "Pace", Zh: "语速"}, Options: []Option{
 		o("very_slow", "Very slow", "很慢", "very slowly", "语速很慢", "", ""),
 		o("slow", "Slow", "慢", "slowly", "语速偏慢", "", ""),
 		o("moderate", "Moderate", "适中", "at a moderate pace", "语速适中", "", ""),
 		o("fast", "Fast", "快", "quickly", "语速偏快", "", ""),
 		o("very_fast", "Very fast", "很快", "very quickly", "语速很快", "", ""),
 	}},
-	{ID: Style, Label: Text{"Style", "风格"}, Multi: true, Options: []Option{
+	{ID: Style, Label: Text{En: "Style", Zh: "风格"}, Multi: true, Options: []Option{
 		o("whisper", "Whisper", "耳语", "whispering", "耳语般", "whisper", "耳语"),
 		o("breathy", "Breathy", "气声", "breathy", "带气声", "", ""),
 		o("raspy", "Raspy", "沙哑", "raspy", "沙哑", "", ""),
@@ -124,7 +131,7 @@ var categoryTable = []CategoryInfo{
 		o("dramatic", "Dramatic", "戏剧化", "dramatic", "富有戏剧性", "", ""),
 		o("professional", "Professional", "专业", "polished", "专业", "", ""),
 	}},
-	{ID: Emotion, Label: Text{"Emotion", "情绪"}, Options: []Option{
+	{ID: Emotion, Label: Text{En: "Emotion", Zh: "情绪"}, Options: []Option{
 		o("neutral", "Neutral", "中性", "neutral", "平和", "", ""),
 		o("happy", "Happy", "开心", "happy", "开心", "", ""),
 		o("sad", "Sad", "悲伤", "sad", "悲伤", "", ""),
@@ -136,7 +143,7 @@ var categoryTable = []CategoryInfo{
 		o("serious", "Serious", "严肃", "serious", "严肃", "", ""),
 		o("mysterious", "Mysterious", "神秘", "mysterious", "神秘", "", ""),
 	}},
-	{ID: Accent, Label: Text{"English accent", "英语口音"}, Options: []Option{
+	{ID: Accent, Label: Text{En: "English accent", Zh: "英语口音"}, Options: []Option{
 		o("american", "American", "美式", "an American accent", "美式口音", "american accent", ""),
 		o("british", "British", "英式", "a British accent", "英式口音", "british accent", ""),
 		o("australian", "Australian", "澳洲", "an Australian accent", "澳洲口音", "australian accent", ""),
@@ -156,7 +163,7 @@ var categoryTable = []CategoryInfo{
 		o("german", "German", "德式", "a German accent", "德式口音", "", ""),
 		o("spanish", "Spanish", "西班牙", "a Spanish accent", "西班牙口音", "", ""),
 	}},
-	{ID: Dialect, Label: Text{"Chinese dialect", "中文方言"}, Options: []Option{
+	{ID: Dialect, Label: Text{En: "Chinese dialect", Zh: "中文方言"}, Options: []Option{
 		o("sichuan", "Sichuan", "四川话", "a Sichuan accent", "四川话", "", "四川话"),
 		o("northeastern", "Northeastern", "东北话", "a Northeastern Chinese accent", "东北话", "", "东北话"),
 		o("henan", "Henan", "河南话", "a Henan accent", "河南话", "", "河南话"),
@@ -507,7 +514,7 @@ func (a Attributes) Summary(locale string) string {
 		}
 	}
 	if len(parts) == 0 {
-		return Text{"Auto — the model decides", "自动——由模型决定"}.In(locale)
+		return Text{En: "Auto — the model decides", Zh: "自动——由模型决定", Ja: "自動：モデルにおまかせ"}.In(locale)
 	}
 	return strings.Join(parts, " · ")
 }
