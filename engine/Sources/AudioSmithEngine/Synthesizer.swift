@@ -92,6 +92,11 @@ final class Synthesizer: @unchecked Sendable {
             // designs from a "(description)" and restyles a clone with a
             // "(instruction)" (voxCPMPrompt); 48 kHz.
             caps += ["clone", "cloneAudioOnly", "design", "voiceStyle", "instruct", "steps", "guidance"]
+        case is IrodoriTTSModel:
+            // Irodori-TTS v4.1 (thread #170): Japanese only; clones without a
+            // transcript, designs from a Japanese caption (which also restyles
+            // a clone), takes a target duration, non-verbal tags as emoji.
+            caps += ["clone", "cloneAudioOnly", "design", "voiceStyle", "instruct", "duration", "nonVerbal"]
         case is VibeVoiceTTSModel:
             caps += ["clone", "cloneAudioOnly", "steps", "guidance", "dialogue"]
         case is VibeVoiceRealtimeModel:
@@ -261,6 +266,19 @@ final class Synthesizer: @unchecked Sendable {
                 } else if vox.lastAttempts > 1 {
                     log("VoxCPM2: take \(vox.lastAttempts) ended normally (earlier ones ran to the cap)")
                 }
+                try Task.checkCancellation()
+                try audio(chunk)
+            } else if let iro = model as? IrodoriTTSModel {
+                // One take in the job's task (its generateStream runs in a
+                // Task of its own and always seeds 0): the job's seed, the
+                // caption from the voice field and the instruction, the
+                // script's non-verbal tags as the emoji Irodori knows.
+                let caption = irodoriCaption(voice: [p.voice, p.instruct].compactMap(nonEmpty).joined(separator: "、"),
+                                             cloning: refAudio != nil)
+                let chunk = try iro.generateWaveform(
+                    text: irodoriText(text), caption: caption, refAudio: refAudio,
+                    rngSeed: Int(UInt32(truncatingIfNeeded: seed)),
+                    secondsOverride: p.duration.flatMap { $0 > 0 ? Float($0) : nil })
                 try Task.checkCancellation()
                 try audio(chunk)
             } else if let vv = model as? VibeVoiceTTSModel {

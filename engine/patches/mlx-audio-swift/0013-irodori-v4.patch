@@ -1,0 +1,1764 @@
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriDiT.swift b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriDiT.swift
+index 0e8ec80..4545097 100644
+--- a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriDiT.swift
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriDiT.swift
+@@ -12,6 +12,16 @@ import MLXNN
+ 
+ typealias IrodoriKVCache = (keys: MLXArray, values: MLXArray)
+ 
++/// Output of `IrodoriDiT.encodeConditionsFull`, shared by duration prediction and sampling.
++typealias IrodoriEncodedConditions = (
++    textState: MLXArray,
++    textMask: MLXArray,
++    speakerState: MLXArray?,
++    speakerMask: MLXArray?,
++    captionState: MLXArray?,
++    captionMask: MLXArray?
++)
++
+ // MARK: - Helpers
+ 
+ /// Convert boolean mask (B, Sq, Sk) to additive float mask (B, 1, Sq, Sk).
+@@ -287,6 +297,65 @@ final class IrodoriTextEncoder: Module {
+     }
+ }
+ 
++/// Thin wrapper around the pretrained encoder shared by the text and caption
++/// projectors (v4: ModernBERT-ja-310m). Keeps the checkpoint's
++/// `pretrained_text_backbone.backbone.*` key layout.
++final class IrodoriPretrainedTextBackbone: Module {
++    let hiddenSize: Int
++
++    @ModuleInfo(key: "backbone") var backbone: IrodoriModernBertEncoder
++
++    init(config: IrodoriModernBertConfig) throws {
++        // v4-Large's T5Gemma2 encoder is not ported.
++        guard config.modelType.trimmingCharacters(in: .whitespaces).lowercased() != "t5gemma2" else {
++            throw IrodoriTTSError.generation("Irodori-TTS v4-Large (T5Gemma2 text encoder) is not supported")
++        }
++        self.hiddenSize = config.hiddenSize
++        self._backbone = ModuleInfo(wrappedValue: try IrodoriModernBertEncoder(config: config))
++    }
++
++    func callAsFunction(_ inputIDs: MLXArray, mask: MLXArray?) -> MLXArray {
++        let state = backbone(inputIDs, mask: mask)
++        guard let mask else { return state }
++        return state * mask.expandedDimensions(axis: -1).asType(state.dtype)
++    }
++}
++
++/// Projects the shared pretrained backbone output into a condition space (v4).
++/// `linear` is a plain projection; `residual_mlp` adds a SiLU residual branch on top.
++final class IrodoriPretrainedConditionProjector: Module {
++    let isResidualMLP: Bool
++
++    @ModuleInfo(key: "projector") var projector: Linear
++    @ModuleInfo(key: "residual_norm") var residualNorm: EchoRMSNorm?
++    @ModuleInfo(key: "residual_up") var residualUp: Linear?
++    @ModuleInfo(key: "residual_down") var residualDown: Linear?
++
++    init(backboneDim: Int, outputDim: Int, projectorType: String, hiddenRatio: Float, normEps: Float) throws {
++        let type = projectorType.trimmingCharacters(in: .whitespaces).lowercased()
++        guard type == "linear" || type == "residual_mlp" else {
++            throw IrodoriTTSError.generation(
++                "pretrained projector type must be 'linear' or 'residual_mlp', got \(projectorType)")
++        }
++        self.isResidualMLP = type == "residual_mlp"
++        self._projector = ModuleInfo(wrappedValue: Linear(backboneDim, outputDim, bias: true))
++        let hiddenDim = max(1, Int((Float(outputDim) * hiddenRatio).rounded()))
++        self._residualNorm = ModuleInfo(wrappedValue: isResidualMLP ? EchoRMSNorm(dimensions: backboneDim, eps: normEps) : nil)
++        self._residualUp = ModuleInfo(wrappedValue: isResidualMLP ? Linear(backboneDim, hiddenDim, bias: true) : nil)
++        self._residualDown = ModuleInfo(wrappedValue: isResidualMLP ? Linear(hiddenDim, outputDim, bias: true) : nil)
++    }
++
++    /// `state` is the (masked) backbone output, shared between the text and caption projectors.
++    func callAsFunction(_ state: MLXArray, mask: MLXArray?) -> MLXArray {
++        var projected = projector(state)
++        if let residualNorm, let residualUp, let residualDown {
++            projected = projected + residualDown(silu(residualUp(residualNorm(state))))
++        }
++        guard let mask else { return projected }
++        return projected * mask.expandedDimensions(axis: -1).asType(projected.dtype)
++    }
++}
++
+ /// Encoder for reference (speaker) audio latents.
+ /// Receives already-patched DACVAE latents: (B, S, latentDim * speakerPatchSize).
+ /// Uses non-causal attention (unlike Echo TTS which uses causal).
+@@ -658,14 +727,20 @@ public final class IrodoriDiT: Module {
+     let cfg: IrodoriDiTConfig
+     let headDim: Int
+ 
+-    @ModuleInfo(key: "text_encoder") var textEncoder: IrodoriTextEncoder
++    /// v4 only: the ModernBERT backbone shared by the text and caption projectors.
++    @ModuleInfo(key: "pretrained_text_backbone") var pretrainedTextBackbone: IrodoriPretrainedTextBackbone?
++    /// `IrodoriTextEncoder` (v1–v3) or `IrodoriPretrainedConditionProjector` (v4).
++    @ModuleInfo(key: "text_encoder") var textEncoder: Module
+     @ModuleInfo(key: "text_norm") var textNorm: EchoRMSNorm
+     @ModuleInfo(key: "speaker_encoder") var speakerEncoder: IrodoriReferenceLatentEncoder?
+     @ModuleInfo(key: "speaker_norm") var speakerNorm: EchoRMSNorm?
+-    @ModuleInfo(key: "caption_encoder") var captionEncoder: IrodoriTextEncoder?
++    /// Same split as `textEncoder`.
++    @ModuleInfo(key: "caption_encoder") var captionEncoder: Module?
+     @ModuleInfo(key: "caption_norm") var captionNorm: EchoRMSNorm?
+     @ModuleInfo(key: "duration_predictor") var durationPredictor: IrodoriDurationPredictor?
+     @ModuleInfo(key: "cond_module") var condModule: EchoSequential
++    /// MeanFlow only: interval-length (delta_t = t - r) conditioning, added to cond_module's output.
++    @ModuleInfo(key: "delta_cond_module") var deltaCondModule: EchoSequential?
+     @ModuleInfo(key: "in_proj") var inProj: Linear
+     @ModuleInfo(key: "blocks") var blocks: [IrodoriDiffusionBlock]
+     @ModuleInfo(key: "out_norm") var outNorm: EchoRMSNorm
+@@ -675,14 +750,39 @@ public final class IrodoriDiT: Module {
+         self.cfg = cfg
+         self.headDim = cfg.modelDim / cfg.numHeads
+ 
+-        self._textEncoder = ModuleInfo(wrappedValue: IrodoriTextEncoder(
+-            vocabSize: cfg.textVocabSize,
+-            dim: cfg.textDim,
+-            heads: cfg.textHeads,
+-            numLayers: cfg.textLayers,
+-            mlpRatio: cfg.textMlpRatioResolved,
+-            normEps: cfg.normEps
+-        ))
++        let flow = cfg.flowParameterization.trimmingCharacters(in: .whitespaces).lowercased()
++        guard flow == "rf_velocity" || flow == "meanflow" else {
++            throw IrodoriTTSError.generation(
++                "flow_parameterization must be 'rf_velocity' or 'meanflow', got \(cfg.flowParameterization)")
++        }
++
++        var backboneDim: Int?
++        if cfg.usePretrainedTextEncoder {
++            guard let encoderConfig = cfg.textEncoderConfig else {
++                throw IrodoriTTSError.generation(
++                    "text_encoder_type='pretrained' requires text_encoder_config in the model config")
++            }
++            let backbone = try IrodoriPretrainedTextBackbone(config: encoderConfig)
++            backboneDim = backbone.hiddenSize
++            self._pretrainedTextBackbone = ModuleInfo(wrappedValue: backbone)
++            self._textEncoder = ModuleInfo(wrappedValue: try IrodoriPretrainedConditionProjector(
++                backboneDim: backbone.hiddenSize,
++                outputDim: cfg.textDim,
++                projectorType: cfg.pretrainedProjectorType,
++                hiddenRatio: cfg.pretrainedProjectorHiddenRatio,
++                normEps: cfg.normEps
++            ))
++        } else {
++            self._pretrainedTextBackbone = ModuleInfo(wrappedValue: nil)
++            self._textEncoder = ModuleInfo(wrappedValue: IrodoriTextEncoder(
++                vocabSize: cfg.textVocabSize,
++                dim: cfg.textDim,
++                heads: cfg.textHeads,
++                numLayers: cfg.textLayers,
++                mlpRatio: cfg.textMlpRatioResolved,
++                normEps: cfg.normEps
++            ))
++        }
+         self._textNorm = ModuleInfo(wrappedValue: EchoRMSNorm(dimensions: cfg.textDim, eps: cfg.normEps))
+ 
+         var speakerCtxDim: Int?
+@@ -705,14 +805,29 @@ public final class IrodoriDiT: Module {
+         }
+ 
+         if cfg.useCaptionCondition {
+-            self._captionEncoder = ModuleInfo(wrappedValue: IrodoriTextEncoder(
+-                vocabSize: cfg.captionVocabSizeResolved,
+-                dim: cfg.captionDimResolved,
+-                heads: cfg.captionHeadsResolved,
+-                numLayers: cfg.captionLayersResolved,
+-                mlpRatio: cfg.captionMlpRatioResolved,
+-                normEps: cfg.normEps
+-            ))
++            if let backboneDim {
++                guard cfg.captionTokenizerRepoResolved == cfg.textTokenizerRepo else {
++                    throw IrodoriTTSError.generation(
++                        "A shared pretrained text/caption encoder requires identical tokenizer repositories: "
++                            + "text=\(cfg.textTokenizerRepo), caption=\(cfg.captionTokenizerRepoResolved)")
++                }
++                self._captionEncoder = ModuleInfo(wrappedValue: try IrodoriPretrainedConditionProjector(
++                    backboneDim: backboneDim,
++                    outputDim: cfg.captionDimResolved,
++                    projectorType: cfg.pretrainedProjectorType,
++                    hiddenRatio: cfg.pretrainedProjectorHiddenRatio,
++                    normEps: cfg.normEps
++                ))
++            } else {
++                self._captionEncoder = ModuleInfo(wrappedValue: IrodoriTextEncoder(
++                    vocabSize: cfg.captionVocabSizeResolved,
++                    dim: cfg.captionDimResolved,
++                    heads: cfg.captionHeadsResolved,
++                    numLayers: cfg.captionLayersResolved,
++                    mlpRatio: cfg.captionMlpRatioResolved,
++                    normEps: cfg.normEps
++                ))
++            }
+             self._captionNorm = ModuleInfo(wrappedValue: EchoRMSNorm(dimensions: cfg.captionDimResolved, eps: cfg.normEps))
+             captionCtxDim = cfg.captionDimResolved
+         } else {
+@@ -743,6 +858,13 @@ public final class IrodoriDiT: Module {
+             SiLU(),
+             Linear(cfg.modelDim, cfg.modelDim * 3, bias: false),
+         ]))
++        self._deltaCondModule = ModuleInfo(wrappedValue: cfg.useMeanflow ? EchoSequential([
++            Linear(cfg.timestepEmbedDim, cfg.modelDim, bias: false),
++            SiLU(),
++            Linear(cfg.modelDim, cfg.modelDim, bias: false),
++            SiLU(),
++            Linear(cfg.modelDim, cfg.modelDim * 3, bias: false),
++        ]) : nil)
+ 
+         self._inProj = ModuleInfo(wrappedValue: Linear(cfg.patchedLatentDim, cfg.modelDim, bias: true))
+         let mlpHidden = Int(Float(cfg.modelDim) * cfg.mlpRatio)
+@@ -764,6 +886,14 @@ public final class IrodoriDiT: Module {
+ 
+     // MARK: Condition encoding (cached across sampling steps)
+ 
++    /// v4: one backbone pass per input, then the text or caption projector.
++    private func encodeWithProjector(_ projector: Module, _ inputIDs: MLXArray, mask: MLXArray?) -> MLXArray {
++        if let pretrainedTextBackbone, let projector = projector as? IrodoriPretrainedConditionProjector {
++            return projector(pretrainedTextBackbone(inputIDs, mask: mask), mask: mask)
++        }
++        return (projector as! IrodoriTextEncoder)(inputIDs, mask: mask)
++    }
++
+     /// Encode all conditions including both speaker and caption states.
+     /// Returns (textState, textMask, speakerState, speakerMask, captionState, captionMask).
+     func encodeConditionsFull(
+@@ -773,15 +903,8 @@ public final class IrodoriDiT: Module {
+         refMask: MLXArray?,
+         captionInputIDs: MLXArray?,
+         captionMask: MLXArray?
+-    ) -> (
+-        textState: MLXArray,
+-        textMask: MLXArray,
+-        speakerState: MLXArray?,
+-        speakerMask: MLXArray?,
+-        captionState: MLXArray?,
+-        captionMask: MLXArray?
+-    ) {
+-        let textState = textNorm(textEncoder(textInputIDs, mask: textMask))
++    ) -> IrodoriEncodedConditions {
++        let textState = textNorm(encodeWithProjector(textEncoder, textInputIDs, mask: textMask))
+ 
+         var speakerState: MLXArray?
+         var speakerMaskOut: MLXArray?
+@@ -808,7 +931,7 @@ public final class IrodoriDiT: Module {
+         var captionMaskOut: MLXArray?
+         if cfg.useCaptionCondition, let captionEncoder, let captionNorm {
+             if let captionInputIDs, let captionMask {
+-                captionState = captionNorm(captionEncoder(captionInputIDs, mask: captionMask))
++                captionState = captionNorm(encodeWithProjector(captionEncoder, captionInputIDs, mask: captionMask))
+                 captionMaskOut = captionMask
+             }
+         }
+@@ -883,6 +1006,8 @@ public final class IrodoriDiT: Module {
+     /// For caption-only models: speakerState/Mask carry the caption context
+     /// (backward-compat; internally routed to the caption branch).
+     /// For dual models (v3 VoiceDesign): speakerState=speaker, captionState=caption.
++    /// `deltaT` (interval length t - r) is required for MeanFlow checkpoints and
++    /// rejected for standard RF-velocity checkpoints.
+     func forwardWithConditions(
+         xT: MLXArray,
+         t: MLXArray,
+@@ -895,10 +1020,21 @@ public final class IrodoriDiT: Module {
+         startPos: Int = 0,
+         captionState: MLXArray? = nil,
+         captionMask: MLXArray? = nil,
+-        kvCaption: [IrodoriKVCache]? = nil
++        kvCaption: [IrodoriKVCache]? = nil,
++        deltaT: MLXArray? = nil
+     ) throws -> MLXArray {
+         let tEmbed = echoTtsTimestepEmbedding(t, embedSize: cfg.timestepEmbedDim).asType(xT.dtype)
+-        let condEmbed = condModule(tEmbed).expandedDimensions(axis: 1) // (B, 1, 3*modelDim)
++        var condEmbed = condModule(tEmbed)
++        if let deltaCondModule {
++            guard let deltaT else {
++                throw IrodoriTTSError.generation("deltaT is required for a MeanFlow forward pass.")
++            }
++            let deltaEmbed = echoTtsTimestepEmbedding(deltaT, embedSize: cfg.timestepEmbedDim).asType(xT.dtype)
++            condEmbed = condEmbed + deltaCondModule(deltaEmbed)
++        } else if deltaT != nil {
++            throw IrodoriTTSError.generation("deltaT was provided to an RF velocity model.")
++        }
++        condEmbed = condEmbed.expandedDimensions(axis: 1) // (B, 1, 3*modelDim)
+ 
+         var x = inProj(xT)
+         let freqs = echoTtsPrecomputeFreqsCis(dim: headDim, end: startPos + x.shape[1])
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriModernBERT.swift b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriModernBERT.swift
+new file mode 100644
+index 0000000..79230d2
+--- /dev/null
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriModernBERT.swift
+@@ -0,0 +1,229 @@
++import Foundation
++import MLX
++import MLXNN
++
++// MARK: - ModernBERT encoder (Swift port of mlx_audio/tts/models/irodori_tts/modernbert.py)
++//
++// Irodori-TTS v4 conditions on a pretrained encoder (sbintuitions/modernbert-ja-310m)
++// whose weights ship inside the checkpoint under `pretrained_text_backbone.backbone.*`,
++// so only the bidirectional encoder stack is needed. Property names are the camelCase
++// form of the HuggingFace module tree, which is what `IrodoriTTSModel.sanitize` emits.
++
++/// LayerNorm with optional bias that accumulates in float32 and casts back,
++/// matching the Python port bit-for-bit rather than the fused kernel's rounding.
++final class IrodoriModernBertLayerNorm: Module, UnaryLayer {
++    let eps: Float
++    @ParameterInfo(key: "weight") var weight: MLXArray
++    @ParameterInfo(key: "bias") var bias: MLXArray?
++
++    init(dimensions: Int, eps: Float, bias: Bool) {
++        self.eps = eps
++        self._weight = ParameterInfo(wrappedValue: MLXArray.ones([dimensions]))
++        self._bias = ParameterInfo(wrappedValue: bias ? MLXArray.zeros([dimensions]) : nil)
++    }
++
++    func callAsFunction(_ x: MLXArray) -> MLXArray {
++        let xDtype = x.dtype
++        let xf = x.asType(.float32)
++        let mean = xf.mean(axis: -1, keepDims: true)
++        let variance = xf.variance(axis: -1, keepDims: true)
++        var y = (xf - mean) * MLX.rsqrt(variance + eps)
++        y = y * weight.asType(.float32)
++        if let bias { y = y + bias.asType(.float32) }
++        return y.asType(xDtype)
++    }
++}
++
++/// HuggingFace-style (rotate_half) RoPE tables of shape (seqLen, headDim).
++func irodoriModernBertRopeCosSin(headDim: Int, seqLen: Int, theta: Float) -> (cos: MLXArray, sin: MLXArray) {
++    let exponents = MLX.arange(0, headDim, step: 2, dtype: .float32) / Float(headDim)
++    let invFreq = 1 / MLX.pow(MLXArray(theta), exponents)
++    let positions = MLX.arange(seqLen, dtype: .float32)
++    let freqs = MLX.outer(positions, invFreq)
++    let emb = MLX.concatenated([freqs, freqs], axis: -1)
++    return (MLX.cos(emb), MLX.sin(emb))
++}
++
++/// x: (B, H, S, D); cos/sin: (S, D).
++private func irodoriModernBertApplyRope(_ x: MLXArray, cos: MLXArray, sin: MLXArray) -> MLXArray {
++    let half = x.shape[3] / 2
++    let rotated = MLX.concatenated([-x[.ellipsis, half...], x[.ellipsis, ..<half]], axis: -1)
++    return x * cos.asType(x.dtype) + rotated * sin.asType(x.dtype)
++}
++
++/// Additive attention mask in the compute dtype. Uses the dtype's finite minimum
++/// (as transformers does with `finfo.min`) rather than -inf.
++private func irodoriModernBertAdditiveMask(_ boolMask: MLXArray, dtype: DType) -> MLXArray {
++    let floor: Float
++    switch dtype {
++    case .float16: floor = -65_504
++    case .bfloat16: floor = -3.3895314e38
++    default: floor = -Float.greatestFiniteMagnitude
++    }
++    return MLX.where(
++        boolMask,
++        MLXArray.zeros(boolMask.shape, dtype: dtype),
++        MLXArray.full(boolMask.shape, values: MLXArray(floor), dtype: dtype)
++    )
++}
++
++final class IrodoriModernBertAttention: Module {
++    let numHeads: Int
++    let headDim: Int
++    let scale: Float
++
++    @ModuleInfo(key: "Wqkv") var wqkv: Linear
++    @ModuleInfo(key: "Wo") var wo: Linear
++
++    init(config: IrodoriModernBertConfig) {
++        self.numHeads = config.numAttentionHeads
++        self.headDim = config.headDim
++        self.scale = 1 / sqrt(Float(config.headDim))
++        self._wqkv = ModuleInfo(
++            wrappedValue: Linear(config.hiddenSize, 3 * config.hiddenSize, bias: config.attentionBias),
++            key: "Wqkv")
++        self._wo = ModuleInfo(
++            wrappedValue: Linear(config.hiddenSize, config.hiddenSize, bias: config.attentionBias),
++            key: "Wo")
++    }
++
++    func callAsFunction(_ x: MLXArray, cos: MLXArray, sin: MLXArray, mask: MLXArray?) -> MLXArray {
++        let bsz = x.shape[0]
++        let seqLen = x.shape[1]
++        // (B, S, 3, H, D) -> (3, B, H, S, D)
++        let qkv = wqkv(x).reshaped([bsz, seqLen, 3, numHeads, headDim]).transposed(2, 0, 3, 1, 4)
++        let q = irodoriModernBertApplyRope(qkv[0], cos: cos, sin: sin)
++        let k = irodoriModernBertApplyRope(qkv[1], cos: cos, sin: sin)
++        let out = MLXFast.scaledDotProductAttention(
++            queries: q, keys: k, values: qkv[2], scale: scale, mask: mask)
++        return wo(out.transposed(0, 2, 1, 3).reshaped([bsz, seqLen, numHeads * headDim]))
++    }
++}
++
++/// GeGLU MLP with a single fused input projection (Wi -> 2 * intermediate).
++final class IrodoriModernBertMLP: Module {
++    let exactGelu: Bool
++
++    @ModuleInfo(key: "Wi") var wi: Linear
++    @ModuleInfo(key: "Wo") var wo: Linear
++
++    init(config: IrodoriModernBertConfig) throws {
++        let activation = config.hiddenActivation.lowercased()
++        guard ["gelu", "gelu_new", "gelu_pytorch_tanh"].contains(activation) else {
++            throw IrodoriTTSError.generation(
++                "Unsupported ModernBERT hidden_activation=\(config.hiddenActivation)")
++        }
++        self.exactGelu = activation == "gelu"
++        self._wi = ModuleInfo(
++            wrappedValue: Linear(config.hiddenSize, 2 * config.intermediateSize, bias: config.mlpBias),
++            key: "Wi")
++        self._wo = ModuleInfo(
++            wrappedValue: Linear(config.intermediateSize, config.hiddenSize, bias: config.mlpBias),
++            key: "Wo")
++    }
++
++    func callAsFunction(_ x: MLXArray) -> MLXArray {
++        let gated = wi(x)
++        let half = gated.shape[gated.ndim - 1] / 2
++        let input = gated[.ellipsis, ..<half]
++        let act = exactGelu ? gelu(input) : geluApproximate(input)
++        return wo(act * gated[.ellipsis, half...])
++    }
++}
++
++final class IrodoriModernBertEncoderLayer: Module {
++    /// nil for layer 0, which consumes the already-normalised embedding output.
++    @ModuleInfo(key: "attn_norm") var attnNorm: IrodoriModernBertLayerNorm?
++    @ModuleInfo(key: "attn") var attn: IrodoriModernBertAttention
++    @ModuleInfo(key: "mlp_norm") var mlpNorm: IrodoriModernBertLayerNorm
++    @ModuleInfo(key: "mlp") var mlp: IrodoriModernBertMLP
++
++    init(config: IrodoriModernBertConfig, layerIdx: Int) throws {
++        self._attnNorm = ModuleInfo(wrappedValue: layerIdx == 0 ? nil : IrodoriModernBertLayerNorm(
++            dimensions: config.hiddenSize, eps: config.normEps, bias: config.normBias))
++        self._attn = ModuleInfo(wrappedValue: IrodoriModernBertAttention(config: config))
++        self._mlpNorm = ModuleInfo(wrappedValue: IrodoriModernBertLayerNorm(
++            dimensions: config.hiddenSize, eps: config.normEps, bias: config.normBias))
++        self._mlp = ModuleInfo(wrappedValue: try IrodoriModernBertMLP(config: config))
++    }
++
++    func callAsFunction(_ x: MLXArray, cos: MLXArray, sin: MLXArray, mask: MLXArray?) -> MLXArray {
++        let h = x + attn(attnNorm.map { $0(x) } ?? x, cos: cos, sin: sin, mask: mask)
++        return h + mlp(mlpNorm(h))
++    }
++}
++
++final class IrodoriModernBertEmbeddings: Module {
++    @ModuleInfo(key: "tok_embeddings") var tokEmbeddings: Embedding
++    @ModuleInfo(key: "norm") var norm: IrodoriModernBertLayerNorm
++
++    init(config: IrodoriModernBertConfig) {
++        self._tokEmbeddings = ModuleInfo(wrappedValue: Embedding(
++            embeddingCount: config.vocabSize, dimensions: config.hiddenSize))
++        self._norm = ModuleInfo(wrappedValue: IrodoriModernBertLayerNorm(
++            dimensions: config.hiddenSize, eps: config.normEps, bias: config.normBias))
++    }
++
++    func callAsFunction(_ inputIDs: MLXArray) -> MLXArray {
++        norm(tokEmbeddings(inputIDs))
++    }
++}
++
++/// Bidirectional ModernBERT encoder returning last_hidden_state.
++final class IrodoriModernBertEncoder: Module {
++    let config: IrodoriModernBertConfig
++
++    @ModuleInfo(key: "embeddings") var embeddings: IrodoriModernBertEmbeddings
++    @ModuleInfo(key: "layers") var layers: [IrodoriModernBertEncoderLayer]
++    @ModuleInfo(key: "final_norm") var finalNorm: IrodoriModernBertLayerNorm
++
++    init(config: IrodoriModernBertConfig) throws {
++        self.config = config
++        self._embeddings = ModuleInfo(wrappedValue: IrodoriModernBertEmbeddings(config: config))
++        self._layers = ModuleInfo(wrappedValue: try (0 ..< config.numHiddenLayers).map {
++            try IrodoriModernBertEncoderLayer(config: config, layerIdx: $0)
++        })
++        self._finalNorm = ModuleInfo(wrappedValue: IrodoriModernBertLayerNorm(
++            dimensions: config.hiddenSize, eps: config.normEps, bias: config.normBias))
++    }
++
++    /// Returns (global, local) additive (B|1, 1, S, S) masks; global is nil without a key mask.
++    private func attentionMasks(_ mask: MLXArray?, seqLen: Int, dtype: DType) -> (MLXArray?, MLXArray) {
++        let window = config.localAttention / 2
++        let positions = MLX.arange(seqLen)
++        let distance = MLX.abs(positions.expandedDimensions(axis: 1) - positions.expandedDimensions(axis: 0))
++        let withinWindow = (distance .<= window).expandedDimensions(axes: [0, 1])
++        guard let mask else {
++            return (nil, irodoriModernBertAdditiveMask(withinWindow, dtype: dtype))
++        }
++        let keyMask = mask.asType(.bool).expandedDimensions(axes: [1, 2])
++        let globalBool = MLX.broadcast(keyMask, to: [mask.shape[0], 1, seqLen, seqLen])
++        // A padding query far from every real token would otherwise have an all-masked
++        // row, whose softmax is NaN and would poison later layers. Leaving the diagonal
++        // open keeps those rows finite without changing any non-padding output.
++        let localBool = (globalBool .&& withinWindow) .|| (distance .== 0).expandedDimensions(axes: [0, 1])
++        return (
++            irodoriModernBertAdditiveMask(globalBool, dtype: dtype),
++            irodoriModernBertAdditiveMask(localBool, dtype: dtype)
++        )
++    }
++
++    func callAsFunction(_ inputIDs: MLXArray, mask: MLXArray?) -> MLXArray {
++        var x = embeddings(inputIDs)
++        let seqLen = inputIDs.shape[1]
++        let global = irodoriModernBertRopeCosSin(
++            headDim: config.headDim, seqLen: seqLen, theta: config.globalRopeTheta)
++        let local = irodoriModernBertRopeCosSin(
++            headDim: config.headDim, seqLen: seqLen, theta: config.localRopeTheta)
++        let (globalMask, localMask) = attentionMasks(mask, seqLen: seqLen, dtype: x.dtype)
++
++        for (i, layer) in layers.enumerated() {
++            if config.isGlobalLayer(i) {
++                x = layer(x, cos: global.cos, sin: global.sin, mask: globalMask)
++            } else {
++                x = layer(x, cos: local.cos, sin: local.sin, mask: localMask)
++            }
++        }
++        return finalNorm(x)
++    }
++}
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSConfig.swift b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSConfig.swift
+index 22af48b..fb7e2f2 100644
+--- a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSConfig.swift
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSConfig.swift
+@@ -4,6 +4,11 @@ import Foundation
+ /// over continuous Semantic-DACVAE latents (48 kHz).
+ /// Mirrors `mlx_audio/tts/models/irodori_tts/config.py`.
+ public struct IrodoriDiTConfig: Codable {
++    // Flow parameterization: "rf_velocity" (standard RF, 40-step default) or
++    // "meanflow" (MeanFlow distillation target, 4-step default). MeanFlow
++    // checkpoints add a delta_cond_module conditioned on the interval length (t - r).
++    public var flowParameterization: String = "rf_velocity"
++
+     // Audio latent dimensions (v2/v3: 32-dim Semantic-DACVAE, v1: 128-dim DACVAE)
+     public var latentDim: Int = 32
+     public var latentPatchSize: Int = 1
+@@ -24,6 +29,15 @@ public struct IrodoriDiTConfig: Codable {
+     public var textLayers: Int = 10
+     public var textHeads: Int = 8
+ 
++    // Pretrained text encoder (v4): a shared ModernBERT backbone feeds separate
++    // text/caption projectors instead of the two scratch-trained encoders.
++    public var textEncoderType: String = "scratch"
++    public var textEncoderRevision: String? = nil
++    public var textEncoderConfig: IrodoriModernBertConfig? = nil
++    public var pretrainedProjectorType: String = "linear"
++    public var pretrainedProjectorHiddenRatio: Float = 2.0
++    public var pretrainedProjectorDropout: Float = 0.0
++
+     // Speaker (reference latent) encoder
+     public var speakerDim: Int = 768
+     public var speakerLayers: Int = 8
+@@ -63,6 +77,13 @@ public struct IrodoriDiTConfig: Codable {
+ 
+     // MARK: - Resolved properties (mirror config.py)
+ 
++    public var usePretrainedTextEncoder: Bool {
++        textEncoderType.trimmingCharacters(in: .whitespaces).lowercased() == "pretrained"
++    }
++    public var useMeanflow: Bool {
++        flowParameterization.trimmingCharacters(in: .whitespaces).lowercased() == "meanflow"
++    }
++
+     public var useSpeakerConditionResolved: Bool {
+         useSpeakerCondition ?? !useCaptionCondition
+     }
+@@ -79,6 +100,7 @@ public struct IrodoriDiTConfig: Codable {
+     public var speakerMlpRatioResolved: Float { speakerMlpRatio ?? mlpRatio }
+ 
+     enum CodingKeys: String, CodingKey {
++        case flowParameterization = "flow_parameterization"
+         case latentDim = "latent_dim"
+         case latentPatchSize = "latent_patch_size"
+         case modelDim = "model_dim"
+@@ -93,6 +115,12 @@ public struct IrodoriDiTConfig: Codable {
+         case textDim = "text_dim"
+         case textLayers = "text_layers"
+         case textHeads = "text_heads"
++        case textEncoderType = "text_encoder_type"
++        case textEncoderRevision = "text_encoder_revision"
++        case textEncoderConfig = "text_encoder_config"
++        case pretrainedProjectorType = "pretrained_projector_type"
++        case pretrainedProjectorHiddenRatio = "pretrained_projector_hidden_ratio"
++        case pretrainedProjectorDropout = "pretrained_projector_dropout"
+         case speakerDim = "speaker_dim"
+         case speakerLayers = "speaker_layers"
+         case speakerHeads = "speaker_heads"
+@@ -124,6 +152,7 @@ public struct IrodoriDiTConfig: Codable {
+ 
+     public init(from decoder: Decoder) throws {
+         let c = try decoder.container(keyedBy: CodingKeys.self)
++        flowParameterization = try c.decodeIfPresent(String.self, forKey: .flowParameterization) ?? "rf_velocity"
+         latentDim = try c.decodeIfPresent(Int.self, forKey: .latentDim) ?? 32
+         latentPatchSize = try c.decodeIfPresent(Int.self, forKey: .latentPatchSize) ?? 1
+         modelDim = try c.decodeIfPresent(Int.self, forKey: .modelDim) ?? 1280
+@@ -138,6 +167,12 @@ public struct IrodoriDiTConfig: Codable {
+         textDim = try c.decodeIfPresent(Int.self, forKey: .textDim) ?? 512
+         textLayers = try c.decodeIfPresent(Int.self, forKey: .textLayers) ?? 10
+         textHeads = try c.decodeIfPresent(Int.self, forKey: .textHeads) ?? 8
++        textEncoderType = try c.decodeIfPresent(String.self, forKey: .textEncoderType) ?? "scratch"
++        textEncoderRevision = try c.decodeIfPresent(String.self, forKey: .textEncoderRevision)
++        textEncoderConfig = try c.decodeIfPresent(IrodoriModernBertConfig.self, forKey: .textEncoderConfig)
++        pretrainedProjectorType = try c.decodeIfPresent(String.self, forKey: .pretrainedProjectorType) ?? "linear"
++        pretrainedProjectorHiddenRatio = try c.decodeIfPresent(Float.self, forKey: .pretrainedProjectorHiddenRatio) ?? 2.0
++        pretrainedProjectorDropout = try c.decodeIfPresent(Float.self, forKey: .pretrainedProjectorDropout) ?? 0.0
+         speakerDim = try c.decodeIfPresent(Int.self, forKey: .speakerDim) ?? 768
+         speakerLayers = try c.decodeIfPresent(Int.self, forKey: .speakerLayers) ?? 8
+         speakerHeads = try c.decodeIfPresent(Int.self, forKey: .speakerHeads) ?? 12
+@@ -251,6 +286,10 @@ public struct IrodoriTTSConfig: Codable {
+     public var maxTextLength: Int = 256
+     public var maxCaptionLength: Int = 512
+     public var maxSpeakerLatentLength: Int = 6_400
++    /// Cap on total reference audio duration. v4 checkpoints set 120 s (trained with up
++    /// to 120 s of reference). When absent (v1–v3) only `maxSpeakerLatentLength` applies,
++    /// as before; upstream Python would default to 30 s there.
++    public var refMaxSeconds: Float? = nil
+     /// DACVAE hop_length = 2*8*10*12 = 1920 (48 kHz)
+     public var audioDownsampleFactor: Int = 1920
+     public var dacvaeRepo: String = "Aratako/Semantic-DACVAE-Japanese-32dim"
+@@ -266,6 +305,7 @@ public struct IrodoriTTSConfig: Codable {
+         case maxTextLength = "max_text_length"
+         case maxCaptionLength = "max_caption_length"
+         case maxSpeakerLatentLength = "max_speaker_latent_length"
++        case refMaxSeconds = "ref_max_seconds"
+         case audioDownsampleFactor = "audio_downsample_factor"
+         case dacvaeRepo = "dacvae_repo"
+         case modelPath = "model_path"
+@@ -280,6 +320,7 @@ public struct IrodoriTTSConfig: Codable {
+         maxTextLength = try c.decodeIfPresent(Int.self, forKey: .maxTextLength) ?? 256
+         maxCaptionLength = try c.decodeIfPresent(Int.self, forKey: .maxCaptionLength) ?? 512
+         maxSpeakerLatentLength = try c.decodeIfPresent(Int.self, forKey: .maxSpeakerLatentLength) ?? 6_400
++        refMaxSeconds = try c.decodeIfPresent(Float.self, forKey: .refMaxSeconds)
+         audioDownsampleFactor = try c.decodeIfPresent(Int.self, forKey: .audioDownsampleFactor) ?? 1920
+         dacvaeRepo = try c.decodeIfPresent(String.self, forKey: .dacvaeRepo) ?? "Aratako/Semantic-DACVAE-Japanese-32dim"
+         modelPath = try c.decodeIfPresent(String.self, forKey: .modelPath)
+@@ -287,3 +328,115 @@ public struct IrodoriTTSConfig: Codable {
+         sampler = try c.decodeIfPresent(IrodoriSamplerConfig.self, forKey: .sampler) ?? IrodoriSamplerConfig()
+     }
+ }
++
++/// Configuration of the pretrained ModernBERT text encoder embedded in v4
++/// checkpoints (`dit.text_encoder_config`, a HuggingFace `ModernBertConfig`).
++/// Mirrors `mlx_audio/tts/models/irodori_tts/modernbert.py` `ModernBertConfig`.
++public struct IrodoriModernBertConfig: Codable {
++    public var modelType: String = "modernbert"
++    public var vocabSize: Int = 102_400
++    public var hiddenSize: Int = 768
++    public var intermediateSize: Int = 3072
++    public var numHiddenLayers: Int = 25
++    public var numAttentionHeads: Int = 12
++    public var hiddenActivation: String = "gelu"
++    public var normEps: Float = 1e-5
++    public var normBias: Bool = false
++    public var attentionBias: Bool = false
++    public var mlpBias: Bool = false
++    public var globalAttnEveryNLayers: Int = 3
++    public var localAttention: Int = 128
++    public var globalRopeTheta: Float = 160_000
++    public var localRopeTheta: Float = 10_000
++    public var maxPositionEmbeddings: Int = 8192
++    public var padTokenId: Int = 3
++    public var bosTokenId: Int = 1
++    public var eosTokenId: Int = 2
++
++    public init() {}
++
++    public var headDim: Int { hiddenSize / numAttentionHeads }
++
++    public func isGlobalLayer(_ layerIdx: Int) -> Bool {
++        globalAttnEveryNLayers == 0 || layerIdx % globalAttnEveryNLayers == 0
++    }
++
++    enum CodingKeys: String, CodingKey {
++        case modelType = "model_type"
++        case vocabSize = "vocab_size"
++        case hiddenSize = "hidden_size"
++        case intermediateSize = "intermediate_size"
++        case numHiddenLayers = "num_hidden_layers"
++        case numAttentionHeads = "num_attention_heads"
++        case hiddenActivation = "hidden_activation"
++        case normEps = "norm_eps"
++        case normBias = "norm_bias"
++        case attentionBias = "attention_bias"
++        case mlpBias = "mlp_bias"
++        case globalAttnEveryNLayers = "global_attn_every_n_layers"
++        case localAttention = "local_attention"
++        case globalRopeTheta = "global_rope_theta"
++        case localRopeTheta = "local_rope_theta"
++        case ropeParameters = "rope_parameters"
++        case maxPositionEmbeddings = "max_position_embeddings"
++        case padTokenId = "pad_token_id"
++        case bosTokenId = "bos_token_id"
++        case eosTokenId = "eos_token_id"
++    }
++
++    private struct RopeParameters: Codable {
++        let ropeTheta: Float?
++        enum CodingKeys: String, CodingKey { case ropeTheta = "rope_theta" }
++    }
++
++    public init(from decoder: Decoder) throws {
++        let c = try decoder.container(keyedBy: CodingKeys.self)
++        modelType = try c.decodeIfPresent(String.self, forKey: .modelType) ?? "modernbert"
++        vocabSize = try c.decodeIfPresent(Int.self, forKey: .vocabSize) ?? 102_400
++        hiddenSize = try c.decodeIfPresent(Int.self, forKey: .hiddenSize) ?? 768
++        intermediateSize = try c.decodeIfPresent(Int.self, forKey: .intermediateSize) ?? 3072
++        numHiddenLayers = try c.decodeIfPresent(Int.self, forKey: .numHiddenLayers) ?? 25
++        numAttentionHeads = try c.decodeIfPresent(Int.self, forKey: .numAttentionHeads) ?? 12
++        hiddenActivation = try c.decodeIfPresent(String.self, forKey: .hiddenActivation) ?? "gelu"
++        normEps = try c.decodeIfPresent(Float.self, forKey: .normEps) ?? 1e-5
++        normBias = try c.decodeIfPresent(Bool.self, forKey: .normBias) ?? false
++        attentionBias = try c.decodeIfPresent(Bool.self, forKey: .attentionBias) ?? false
++        mlpBias = try c.decodeIfPresent(Bool.self, forKey: .mlpBias) ?? false
++        globalAttnEveryNLayers = try c.decodeIfPresent(Int.self, forKey: .globalAttnEveryNLayers) ?? 3
++        localAttention = try c.decodeIfPresent(Int.self, forKey: .localAttention) ?? 128
++        maxPositionEmbeddings = try c.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 8192
++        padTokenId = try c.decodeIfPresent(Int.self, forKey: .padTokenId) ?? 3
++        bosTokenId = try c.decodeIfPresent(Int.self, forKey: .bosTokenId) ?? 1
++        eosTokenId = try c.decodeIfPresent(Int.self, forKey: .eosTokenId) ?? 2
++        // transformers >= 5 nests the per-layer-type RoPE settings; earlier
++        // releases exposed flat global_/local_rope_theta keys.
++        let rope = try? c.decodeIfPresent([String: RopeParameters].self, forKey: .ropeParameters)
++        globalRopeTheta = try c.decodeIfPresent(Float.self, forKey: .globalRopeTheta)
++            ?? rope?["full_attention"]?.ropeTheta ?? 160_000
++        localRopeTheta = try c.decodeIfPresent(Float.self, forKey: .localRopeTheta)
++            ?? rope?["sliding_attention"]?.ropeTheta ?? 10_000
++    }
++
++    public func encode(to encoder: Encoder) throws {
++        var c = encoder.container(keyedBy: CodingKeys.self)
++        try c.encode(modelType, forKey: .modelType)
++        try c.encode(vocabSize, forKey: .vocabSize)
++        try c.encode(hiddenSize, forKey: .hiddenSize)
++        try c.encode(intermediateSize, forKey: .intermediateSize)
++        try c.encode(numHiddenLayers, forKey: .numHiddenLayers)
++        try c.encode(numAttentionHeads, forKey: .numAttentionHeads)
++        try c.encode(hiddenActivation, forKey: .hiddenActivation)
++        try c.encode(normEps, forKey: .normEps)
++        try c.encode(normBias, forKey: .normBias)
++        try c.encode(attentionBias, forKey: .attentionBias)
++        try c.encode(mlpBias, forKey: .mlpBias)
++        try c.encode(globalAttnEveryNLayers, forKey: .globalAttnEveryNLayers)
++        try c.encode(localAttention, forKey: .localAttention)
++        try c.encode(globalRopeTheta, forKey: .globalRopeTheta)
++        try c.encode(localRopeTheta, forKey: .localRopeTheta)
++        try c.encode(maxPositionEmbeddings, forKey: .maxPositionEmbeddings)
++        try c.encode(padTokenId, forKey: .padTokenId)
++        try c.encode(bosTokenId, forKey: .bosTokenId)
++        try c.encode(eosTokenId, forKey: .eosTokenId)
++    }
++}
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSModel.swift b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSModel.swift
+index 98c0f38..3ca9494 100644
+--- a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSModel.swift
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSModel.swift
+@@ -1,3 +1,4 @@
++import CryptoKit
+ import Foundation
+ import HuggingFace
+ @preconcurrency import MLX
+@@ -22,6 +23,9 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+     var tokenizer: Tokenizers.Tokenizer?
+     var captionTokenizer: Tokenizers.Tokenizer?
+ 
++    /// Wall-clock phase timings of the most recent generation.
++    public private(set) var lastTimings: IrodoriTTSTimings?
++
+     /// Default VoiceDesign caption used when no `voice` is supplied.
+     static let defaultCaption = "落ち着いた自然な声で、はっきりと読み上げてください。"
+ 
+@@ -60,7 +64,7 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+         for (rawKey, v) in weights {
+             var bareKey = rawKey.hasPrefix("model.") ? String(rawKey.dropFirst("model.".count)) : rawKey
+             // PyTorch Sequential integer keys → MLX nn.Sequential "layers.N"
+-            if bareKey.hasPrefix("cond_module.") {
++            if bareKey.hasPrefix("cond_module.") || bareKey.hasPrefix("delta_cond_module.") {
+                 var parts = bareKey.split(separator: ".").map(String.init)
+                 if parts.count > 1, Int(parts[1]) != nil {
+                     parts.insert("layers", at: 1)
+@@ -79,20 +83,44 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+ 
+     // MARK: - Text / caption preparation
+ 
++    /// v4 checkpoints use the upstream normaliser; v1–v3 keep the original Swift
++    /// port's normaliser so their output stays unchanged.
++    func normalizeText(_ text: String) -> String {
++        config.dit.usePretrainedTextEncoder
++            ? irodoriNormalizeTextUpstream(text).irodoriPythonStripped()
++            : irodoriNormalizeText(text)
++    }
++
+     func prepareText(_ text: String) throws -> (ids: MLXArray, mask: MLXArray) {
+         guard let tokenizer else { throw IrodoriTTSError.tokenizer("Text tokenizer not loaded") }
+-        let normalized = irodoriNormalizeText(text)
+-        return try irodoriEncodeText(
+-            normalized, tokenizer: tokenizer,
++        let encoded = try irodoriEncodeText(
++            normalizeText(text), tokenizer: tokenizer,
+             maxLength: config.maxTextLength, addBos: config.dit.textAddBos)
++        return trimForPretrainedEncoder(encoded)
+     }
+ 
+     func prepareCaption(_ caption: String) throws -> (ids: MLXArray, mask: MLXArray) {
+         let tok = captionTokenizer ?? tokenizer
+         guard let tok else { throw IrodoriTTSError.tokenizer("Caption tokenizer not loaded") }
+-        return try irodoriEncodeText(
++        var encoded = try irodoriEncodeText(
+             caption, tokenizer: tok,
+             maxLength: config.maxCaptionLength, addBos: config.dit.captionAddBosResolved)
++        if caption.isEmpty {
++            // An empty caption still tokenizes to a BOS token. Leaving it unmasked would
++            // present it as a real caption to the DiT and the duration predictor.
++            encoded.mask = MLXArray.zeros(like: encoded.mask)
++        }
++        return trimForPretrainedEncoder(encoded)
++    }
++
++    /// v4: drop the right padding. Every consumer masks padded keys out (attention,
++    /// duration token sum, caption mean), so the result is unchanged while the
++    /// ModernBERT backbone and the DiT's context attention run on the real tokens only.
++    private func trimForPretrainedEncoder(_ encoded: (ids: MLXArray, mask: MLXArray)) -> (ids: MLXArray, mask: MLXArray) {
++        guard config.dit.usePretrainedTextEncoder else { return encoded }
++        // An all-masked (empty) caption keeps its BOS slot so the sequence is non-empty.
++        let length = max(1, encoded.mask.asType(.int32).sum().item(Int.self))
++        return (encoded.ids[0..., 0 ..< length], encoded.mask[0..., 0 ..< length])
+     }
+ 
+     // MARK: - Reference-audio encoding (optional voice clone)
+@@ -103,7 +131,12 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+         if audio.ndim == 1 { audio = audio.expandedDimensions(axis: 0) }
+         else if audio.ndim == 2 && audio.shape[0] > 1 { audio = mean(audio, axis: 0, keepDims: true) }
+ 
+-        let maxSamples = config.maxSpeakerLatentLength * config.audioDownsampleFactor
++        var maxSteps = config.maxSpeakerLatentLength
++        if let refMaxSeconds = config.refMaxSeconds, refMaxSeconds > 0 {
++            let steps = Int(refMaxSeconds * Float(config.sampleRate) / Float(config.audioDownsampleFactor))
++            maxSteps = min(maxSteps, max(1, steps))
++        }
++        let maxSamples = maxSteps * config.audioDownsampleFactor
+         if audio.shape[1] > maxSamples { audio = audio[0..., 0..<maxSamples] }
+ 
+         // DACVAE.encode expects (B, L, 1) → returns (B, 128, T) channels-first
+@@ -125,16 +158,21 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+         return (latent, mask)
+     }
+ 
++    /// Placeholder reference latent used when no reference audio is given (masked out).
++    /// It spans one full speaker patch, otherwise patching yields an empty sequence
++    /// (v4 uses speaker_patch_size = 4).
++    func zeroReferenceLatent() -> MLXArray {
++        MLXArray.zeros([1, config.dit.speakerPatchSize, config.dit.latentDim])
++    }
++
+     // MARK: - Duration → latent step count
+ 
+     private func computeLatentSteps(
+         text: String,
+         textMask: MLXArray,
+-        textInputIDs: MLXArray,
+-        refLatent: MLXArray?,
+         refMask: MLXArray?,
+-        captionInputIDs: MLXArray?,
+         captionMask: MLXArray?,
++        encoded enc: IrodoriEncodedConditions,
+         secondsOverride: Float?
+     ) throws -> Int {
+         let dsr = Float(config.sampleRate) / Float(config.audioDownsampleFactor)
+@@ -149,7 +187,7 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+             return config.sampler.sequenceLength  // fallback
+         }
+ 
+-        let normalized = irodoriNormalizeText(text)
++        let normalized = normalizeText(text)
+         let tokenCount = textMask.sum().item(Int.self)
+         let hasSpeaker = refMask.map { $0.any().item(Bool.self) } ?? false
+ 
+@@ -157,11 +195,6 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+             texts: [normalized], tokenCounts: [tokenCount],
+             maxTextLen: config.maxTextLength, hasSpeaker: [hasSpeaker])
+ 
+-        let enc = model.encodeConditionsFull(
+-            textInputIDs: textInputIDs, textMask: textMask,
+-            refLatent: refLatent, refMask: refMask,
+-            captionInputIDs: captionInputIDs, captionMask: captionMask)
+-
+         let hasCaption = (captionMask?.any().item(Bool.self)) ?? false
+         let predLog = try model.predictDurationLogFrames(
+             textState: enc.textState, textMask: enc.textMask,
+@@ -180,7 +213,9 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+ 
+     // MARK: - Generate (latent → waveform)
+ 
+-    func generateWaveform(
++    /// AudioSmith: public, so the engine runs a take in the job's task with
++    /// the job's seed (the protocol conformances below always pass 0).
++    public func generateWaveform(
+         text: String,
+         caption: String?,
+         refAudio: sending MLXArray?,
+@@ -191,12 +226,21 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+             throw AudioGenerationError.modelNotInitialized("Irodori-TTS requires DACVAE to be loaded")
+         }
+ 
++        var timings = IrodoriTTSTimings()
++        var clock = CFAbsoluteTimeGetCurrent()
++        func lap() -> Double {
++            let now = CFAbsoluteTimeGetCurrent()
++            defer { clock = now }
++            return now - clock
++        }
++
+         let (textIDs, textMask) = try prepareText(text)
+ 
+         var captionIDs: MLXArray?
+         var captionMask: MLXArray?
+         if config.dit.useCaptionCondition {
+-            let cap = caption ?? Self.defaultCaption
++            // Upstream strips the caption but does not normalise it.
++            let cap = (caption ?? Self.defaultCaption).trimmingCharacters(in: .whitespacesAndNewlines)
+             let c = try prepareCaption(cap)
+             captionIDs = c.ids
+             captionMask = c.mask
+@@ -211,15 +255,24 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+         }
+         // Zero speaker context when needed (matches Python defaults)
+         if config.dit.useSpeakerConditionResolved || !config.dit.useCaptionCondition {
+-            if refLatent == nil { refLatent = MLXArray.zeros([1, 1, config.dit.latentDim]) }
++            if refLatent == nil { refLatent = zeroReferenceLatent() }
+             if refMask == nil { refMask = MLXArray.zeros([1, refLatent!.shape[1]], dtype: .bool) }
+         }
+ 
+-        let latentSteps = try computeLatentSteps(
+-            text: text, textMask: textMask, textInputIDs: textIDs,
++        // Encode once: duration prediction and the sampler share these states.
++        let encoded = model.encodeConditionsFull(
++            textInputIDs: textIDs, textMask: textMask,
+             refLatent: refLatent, refMask: refMask,
+-            captionInputIDs: captionIDs, captionMask: captionMask,
++            captionInputIDs: captionIDs, captionMask: captionMask)
++        eval([encoded.textState, encoded.speakerState, encoded.captionState].compactMap { $0 })
++        timings.encode = lap()
++
++        let latentSteps = try computeLatentSteps(
++            text: text, textMask: textMask,
++            refMask: refMask, captionMask: captionMask,
++            encoded: encoded,
+             secondsOverride: secondsOverride)
++        timings.duration = lap()
+ 
+         let patchedSteps = Int(ceil(Double(latentSteps) / Double(config.dit.latentPatchSize)))
+ 
+@@ -242,14 +295,26 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+         params.tScheduleMode = s.tScheduleMode
+         params.swayCoeff = s.swayCoeff
+ 
+-        let latentOut = try irodoriSampleEulerCFG(
+-            model: model,
+-            textInputIDs: textIDs, textMask: textMask,
+-            refLatent: refLatent, refMask: refMask,
+-            captionInputIDs: captionIDs, captionMask: captionMask,
+-            latentDim: config.dit.patchedLatentDim,
+-            sequenceLength: patchedSteps,
+-            rngSeed: rngSeed, params: params)
++        let latentOut: MLXArray
++        if config.dit.useMeanflow {
++            // MeanFlow bakes CFG into distillation: RF-only knobs above do not apply.
++            latentOut = try irodoriSampleEulerMeanFlow(
++                model: model, encoded: encoded,
++                latentDim: config.dit.patchedLatentDim,
++                sequenceLength: patchedSteps,
++                rngSeed: rngSeed, numSteps: s.numSteps)
++        } else {
++            latentOut = try irodoriSampleEulerCFG(
++                model: model,
++                textInputIDs: textIDs, textMask: textMask,
++                refLatent: refLatent, refMask: refMask,
++                captionInputIDs: captionIDs, captionMask: captionMask,
++                latentDim: config.dit.patchedLatentDim,
++                sequenceLength: patchedSteps,
++                rngSeed: rngSeed, params: params,
++                encoded: encoded)
++        }
++        timings.sampler = lap()
+ 
+         // Decode latent → waveform. (1, T, latentDim) → (1, latentDim, T)
+         let latentForDecode = latentOut.transposed(0, 2, 1)
+@@ -268,6 +333,9 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+ 
+         let waveform = audioOut[0]
+         eval(waveform)
++        timings.decode = lap()
++        timings.latentFrames = latentSteps
++        lastTimings = timings
+         return waveform
+     }
+ 
+@@ -284,7 +352,7 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+         let modelDir = try await ModelUtils.resolveOrDownloadModel(
+             repoID: repoID,
+             requiredExtension: ".safetensors",
+-            additionalMatchingPatterns: ["dacvae/*"],
++            additionalMatchingPatterns: ["dacvae/*", "tokenizer/*"],
+             cache: cache)
+         return try await fromModelDirectory(modelDir, cache: cache)
+     }
+@@ -331,9 +399,18 @@ public final class IrodoriTTSModel: Module, @unchecked Sendable {
+             model.dacvae = try await DACVAE.fromPretrained(config.dacvaeRepo, cache: cache)
+         }
+ 
+-        // Tokenizer (separate repo — not bundled with the model).
++        // Prefer a tokenizer bundled with the converted weights (v4 ships one) so
++        // inference does not depend on the upstream repo staying available.
+         let tokRepo = config.dit.textTokenizerRepo
+-        if let tokRepoID = Repo.ID(rawValue: tokRepo) {
++        let bundledTokenizer = modelDir.appendingPathComponent("tokenizer")
++        if FileManager.default.fileExists(atPath: bundledTokenizer.appendingPathComponent("tokenizer_config.json").path) {
++            let tokDir = try irodoriSanitizedTokenizerCopy(of: bundledTokenizer)
++            model.tokenizer = try await AutoTokenizer.from(modelFolder: tokDir)
++            if config.dit.captionTokenizerRepoResolved == tokRepo {
++                model.captionTokenizer = model.tokenizer
++            }
++        }
++        if model.tokenizer == nil, let tokRepoID = Repo.ID(rawValue: tokRepo) {
+             let tokDir = try await ModelUtils.resolveOrDownloadModel(
+                 repoID: tokRepoID, requiredExtension: ".json", cache: cache)
+             // swift-transformers' tokenizer loader crashes on llm-jp's config; strip the
+@@ -455,34 +532,84 @@ func irodoriFindSilencePoint(_ latent: MLXArray, windowSize: Int = 20, stdThresh
+ /// strip the unused `post_processor`/`decoder` (we add BOS manually, encode-only,
+ /// matching the Python's `add_special_tokens=False`). Best-effort; no-op on failure.
+ func irodoriSanitizeTokenizerFiles(in dir: URL) {
+-    func loadJSON(_ name: String) -> (url: URL, obj: [String: Any])? {
++    for name in ["tokenizer.json", "tokenizer_config.json"] {
+         let url = dir.appendingPathComponent(name)
+         guard let data = try? Data(contentsOf: url),
+-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+-        else { return nil }
+-        return (url, obj)
+-    }
+-    func write(_ url: URL, _ obj: [String: Any]) {
+-        if let data = try? JSONSerialization.data(withJSONObject: obj, options: []) {
+-            try? data.write(to: url)
+-        }
++              let sanitized = try? irodoriSanitizedTokenizerData(data, name: name)
++        else { continue }
++        try? sanitized.write(to: url, options: .atomic)
+     }
++}
+ 
+-    if let (url, loadedTokenizer) = loadJSON("tokenizer.json") {
+-        var tok = loadedTokenizer
+-        tok["post_processor"] = NSNull()
+-        tok["decoder"] = NSNull()
+-        write(url, tok)
++private func irodoriSanitizedTokenizerData(_ data: Data, name: String) throws -> Data {
++    guard var json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
++        throw IrodoriTTSError.tokenizer("Expected a JSON object in \(name)")
+     }
+-    if let (url, loadedConfig) = loadJSON("tokenizer_config.json") {
+-        var cfg = loadedConfig
++    if name == "tokenizer.json" {
++        json["post_processor"] = NSNull()
++        json["decoder"] = NSNull()
++    } else {
+         // Force swift-transformers to instantiate UnigramTokenizer (not BPE).
+-        cfg["tokenizer_class"] = "XLMRobertaTokenizer"
+-        if let mml = cfg["model_max_length"] as? NSNumber, mml.doubleValue > 1_000_000 {
+-            cfg["model_max_length"] = 4096
++        json["tokenizer_class"] = "XLMRobertaTokenizer"
++        if let mml = json["model_max_length"] as? NSNumber, mml.doubleValue > 1_000_000 {
++            json["model_max_length"] = 4096
+         }
+-        write(url, cfg)
+     }
++    return try JSONSerialization.data(withJSONObject: json)
++}
++
++/// Write sanitized copies of a bundled tokenizer's JSON files into the user
++/// cache, leaving the downloaded files (often symlinks into a shared HF blob
++/// store) untouched.
++/// Each content version is immutable and published only after both files are
++/// sanitized, so concurrent callers (including other processes) cannot see a
++/// partially prepared tokenizer or modify one another's copy.
++func irodoriSanitizedTokenizerCopy(of source: URL, cacheDirectory: URL? = nil) throws -> URL {
++    let fm = FileManager.default
++    let names = ["tokenizer.json", "tokenizer_config.json"]
++    let files = try names.map { name in
++        (name: name, data: try Data(contentsOf: source.appendingPathComponent(name)))
++    }
++    var hash = SHA256()
++    for file in files {
++        hash.update(data: Data(SHA256.hash(data: file.data)))
++    }
++    let key = hash.finalize().map { String(format: "%02x", $0) }.joined()
++    let caches = try cacheDirectory ?? fm.url(
++        for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
++    let root = caches.appendingPathComponent("mlx-audio/irodori-tokenizer", isDirectory: true)
++    // Version the sanitization scheme as well as the source contents.
++    let dest = root.appendingPathComponent("v2-\(key)", isDirectory: true)
++    if fm.fileExists(atPath: dest.path) { return dest }
++
++    try fm.createDirectory(at: root, withIntermediateDirectories: true)
++    let staging = root.appendingPathComponent(".\(UUID().uuidString)", isDirectory: true)
++    try fm.createDirectory(at: staging, withIntermediateDirectories: false)
++    defer { try? fm.removeItem(at: staging) }
++    for file in files {
++        let data = try irodoriSanitizedTokenizerData(file.data, name: file.name)
++        try data.write(to: staging.appendingPathComponent(file.name), options: .atomic)
++    }
++    do {
++        // A rename within the same directory publishes both files atomically.
++        try fm.moveItem(at: staging, to: dest)
++    } catch {
++        // Another caller may have published this exact content while we prepared it.
++        guard fm.fileExists(atPath: dest.path) else { throw error }
++    }
++    return dest
++}
++
++/// Wall-clock phase timings of one Irodori-TTS generation, in seconds.
++public struct IrodoriTTSTimings: Sendable {
++    /// Text + caption (+ reference) condition encoding, run once per utterance.
++    public var encode: Double = 0
++    public var duration: Double = 0
++    public var sampler: Double = 0
++    /// DACVAE decode plus silence trimming.
++    public var decode: Double = 0
++    /// Latent frames requested from the sampler (predicted or manual duration).
++    public var latentFrames: Int = 0
+ }
+ 
+ /// Minimal quantization spec read straight from config.json.
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSSampling.swift b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSSampling.swift
+index d6431e1..64f4d3e 100644
+--- a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSSampling.swift
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSSampling.swift
+@@ -99,6 +99,9 @@ private func irodoriTSchedule(numSteps: Int, initScale: Float, mode: String, swa
+ 
+ /// Euler sampler for the Rectified-Flow ODE with CFG.
+ /// Returns latent of shape (batch, sequenceLength, latentDim).
++/// `encoded` reuses conditions already encoded for duration prediction instead of
++/// running the text/caption encoders a second time; `initialNoise` replaces the
++/// seeded noise (parity testing).
+ func irodoriSampleEulerCFG(
+     model: IrodoriDiT,
+     textInputIDs: MLXArray,
+@@ -110,7 +113,9 @@ func irodoriSampleEulerCFG(
+     latentDim: Int,
+     sequenceLength: Int,
+     rngSeed: Int,
+-    params: IrodoriSamplerParams
++    params: IrodoriSamplerParams,
++    encoded: IrodoriEncodedConditions? = nil,
++    initialNoise: MLXArray? = nil
+ ) throws -> MLXArray {
+     let useSpk = model.cfg.useSpeakerConditionResolved
+     let useCap = model.cfg.useCaptionCondition
+@@ -128,11 +133,14 @@ func irodoriSampleEulerCFG(
+     let batchSize = textInputIDs.shape[0]
+     let hasTextCfg = cfgScaleText > 0
+     let hasSpeakerCfg = cfgScaleSpeaker > 0 && useSpk
++    // A fully masked caption makes the caption-uncond bundle identical to the
++    // conditional one, so its guidance term is zero: skip it as upstream does.
+     let hasCaptionCfg = cfgScaleCaption > 0 && useCap
++        && (captionMask?.any().item(Bool.self) ?? false)
+     let hasContextCfg = isDual ? false : (cfgScaleContext > 0)
+ 
+     // ---- encode all conditions ----
+-    let enc = model.encodeConditionsFull(
++    let enc = encoded ?? model.encodeConditionsFull(
+         textInputIDs: textInputIDs,
+         textMask: textMask,
+         refLatent: refLatent,
+@@ -257,7 +265,7 @@ func irodoriSampleEulerCFG(
+     // ---- initial noise ----
+     MLXRandom.seed(UInt64(rngSeed))
+     let initScale: Float = 0.999
+-    var xT = MLXRandom.normal([batchSize, sequenceLength, latentDim])
++    var xT = initialNoise ?? MLXRandom.normal([batchSize, sequenceLength, latentDim])
+     if let tf = params.truncationFactor { xT = xT * tf }
+ 
+     let tSchedule = irodoriTSchedule(
+@@ -271,7 +279,7 @@ func irodoriSampleEulerCFG(
+         let t = tSchedule[i]
+         let tNext = tSchedule[i + 1]
+         let tArr = MLX.full([batchSize], values: t)
+-        let useCfg = (hasTextCfg || hasSpeakerCfg) && (params.cfgMinT <= t && t <= params.cfgMaxT)
++        let useCfg = (hasTextCfg || hasSpeakerCfg || hasCaptionCfg) && (params.cfgMinT <= t && t <= params.cfgMaxT)
+ 
+         var vPred: MLXArray
+ 
+@@ -438,6 +446,66 @@ func irodoriSampleEulerCFG(
+     return xT
+ }
+ 
++// MARK: - MeanFlow sampler (v4.1 MF)
++
++/// Linear Euler sampler for a MeanFlow-distilled model (default: 4 NFE).
++///
++/// MeanFlow checkpoints bake classifier-free guidance into distillation, so unlike
++/// `irodoriSampleEulerCFG` this runs a single conditional branch per step and
++/// conditions on the interval length `delta_t = t - t_next`.
++/// Returns latent of shape (batch, sequenceLength, latentDim).
++func irodoriSampleEulerMeanFlow(
++    model: IrodoriDiT,
++    encoded enc: IrodoriEncodedConditions,
++    latentDim: Int,
++    sequenceLength: Int,
++    rngSeed: Int,
++    numSteps: Int,
++    initialNoise: MLXArray? = nil,
++    onStep: ((Int, MLXArray) -> Void)? = nil
++) throws -> MLXArray {
++    guard model.cfg.useMeanflow else {
++        throw IrodoriTTSError.generation("irodoriSampleEulerMeanFlow requires a MeanFlow model.")
++    }
++    guard numSteps > 0 else {
++        throw IrodoriTTSError.generation("MeanFlow numSteps must be positive, got \(numSteps).")
++    }
++    let batchSize = enc.textMask.shape[0]
++
++    eval(enc.textState)
++    if let s = enc.speakerState { eval(s) }
++    if let c = enc.captionState { eval(c) }
++
++    let kv = try model.buildKVCache(
++        textState: enc.textState, speakerState: enc.speakerState, captionState: enc.captionState)
++    for kvs in [kv.kvText, kv.kvSpeaker, kv.kvCaption] {
++        for layer in kvs ?? [] { eval(layer.keys, layer.values) }
++    }
++
++    MLXRandom.seed(UInt64(rngSeed))
++    var xT = initialNoise ?? MLXRandom.normal([batchSize, sequenceLength, latentDim])
++
++    // linspace(1, 0, numSteps + 1)
++    let tSchedule = (0 ... numSteps).map { 1.0 - Float($0) / Float(numSteps) }
++    for i in 0 ..< numSteps {
++        let t = tSchedule[i]
++        let tNext = tSchedule[i + 1]
++        let velocity = try model.forwardWithConditions(
++            xT: xT,
++            t: MLX.full([batchSize], values: t),
++            textState: enc.textState, textMask: enc.textMask,
++            speakerState: enc.speakerState, speakerMask: enc.speakerMask,
++            kvText: kv.kvText, kvSpeaker: kv.kvSpeaker,
++            captionState: enc.captionState, captionMask: enc.captionMask,
++            kvCaption: kv.kvCaption,
++            deltaT: MLX.full([batchSize], values: t - tNext))
++        xT = xT + velocity * (tNext - t)
++        eval(xT)
++        onStep?(i, xT)
++    }
++    return xT
++}
++
+ /// Concatenate a list of optional MLXArrays along batch axis; nil if all nil.
+ private func irodoriConcatOpt(_ arrays: [MLXArray?]) -> MLXArray? {
+     let present = arrays.compactMap { $0 }
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSText.swift b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSText.swift
+index dec7c30..989fac4 100644
+--- a/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSText.swift
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/IrodoriTTSText.swift
+@@ -78,6 +78,103 @@ func irodoriNormalizeText(_ input: String) -> String {
+     return text
+ }
+ 
++// MARK: - Upstream text normalisation (v4)
++// Exact port of the current mlx_audio text.py `normalize_text`, which mirrors
++// Irodori-TTS/irodori_tts/text_normalization.py step for step (keeps 。/、, folds
++// "..", NFKC, depth-aware outer-bracket stripping). v1–v3 keep `irodoriNormalizeText`
++// above so their output does not change.
++
++private let irodoriUpstreamSimpleReplacements: [(String, String)] = [
++    ("\t", ""),
++    ("[n]", ""),
++    ("\\[n\\]", ""),
++    ("\u{3000}", ""),  // ideographic space
++    ("？", "?"),
++    ("！", "!"),
++    ("♥", "♡"),
++    ("●", "○"),
++    ("◯", "○"),
++    ("〇", "○"),
++]
++
++private let irodoriUpstreamRegexReplacements: [(NSRegularExpression, String)] = [
++    ("[;▼♀♂《》≪≫①②③④⑤⑥]", ""),
++    ("[\u{02d7}\u{2010}-\u{2015}\u{2043}\u{2212}\u{23af}\u{23e4}\u{2500}\u{2501}\u{2e3a}\u{2e3b}]", ""),
++    ("[\u{ff5e}\u{301C}]", "ー"),
++    ("…{3,}", "……"),
++].map { (try! NSRegularExpression(pattern: $0.0), $0.1) }
++
++private let irodoriBracketPairs: [Unicode.Scalar: Unicode.Scalar] = [
++    "「": "」", "『": "』", "（": "）", "【": "】", "(": ")",
++]
++
++/// Remove bracket pairs that enclose the whole string, repeatedly. Depth tracking
++/// matters: in 「前半」と「後半」 the leading 「 closes before the end, so nothing is stripped.
++/// Works on Unicode scalars, like Python's code-point string indexing.
++func irodoriStripOuterBrackets(_ input: String) -> String {
++    var text = Array(input.unicodeScalars)
++    while text.count >= 2, let close = irodoriBracketPairs[text[0]], close == text[text.count - 1] {
++        let open = text[0]
++        var depth = 0
++        var enclosesAll = true
++        for (i, c) in text.enumerated() {
++            if c == open { depth += 1 } else if c == close { depth -= 1 }
++            if depth == 0 && i < text.count - 1 {
++                enclosesAll = false
++                break
++            }
++        }
++        guard enclosesAll && depth == 0 else { break }
++        text = Array(text[1 ..< text.count - 1])
++    }
++    var view = String.UnicodeScalarView()
++    view.append(contentsOf: text)
++    return String(view)
++}
++
++/// Normalise Japanese text for v4 TTS input (callers strip the result, as upstream does).
++func irodoriNormalizeTextUpstream(_ input: String) -> String {
++    var text = input
++    for (old, new) in irodoriUpstreamSimpleReplacements {
++        text = text.replacingOccurrences(of: old, with: new, options: .literal)
++    }
++    for (regex, replacement) in irodoriUpstreamRegexReplacements {
++        let range = NSRange(text.startIndex..., in: text)
++        text = regex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
++    }
++    text = irodoriStripOuterBrackets(text)
++    // NFKC as NFKD + NFC: Foundation's one-step NFKC leaves halfwidth voiced kana
++    // (ｷﾞ) decomposed, while Python's unicodedata composes them (ギ).
++    text = text.decomposedStringWithCompatibilityMapping.precomposedStringWithCanonicalMapping
++    text = text.replacingOccurrences(of: "...", with: "…", options: .literal)
++    text = text.replacingOccurrences(of: "..", with: "…", options: .literal)
++    return text
++}
++
++/// Python's `str.isspace()` set (Foundation's whitespace set lacks U+001C–U+001F).
++private let irodoriPythonWhitespace: Set<Unicode.Scalar> = {
++    var set = Set<Unicode.Scalar>()
++    for v: UInt32 in [0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x85, 0xA0, 0x1680,
++                      0x2028, 0x2029, 0x202F, 0x205F, 0x3000] {
++        set.insert(Unicode.Scalar(v)!)
++    }
++    for v: UInt32 in 0x2000 ... 0x200A { set.insert(Unicode.Scalar(v)!) }
++    return set
++}()
++
++extension String {
++    /// Python `str.strip()` with no arguments.
++    func irodoriPythonStripped() -> String {
++        let scalars = Array(unicodeScalars)
++        guard let first = scalars.firstIndex(where: { !irodoriPythonWhitespace.contains($0) }),
++              let last = scalars.lastIndex(where: { !irodoriPythonWhitespace.contains($0) })
++        else { return "" }
++        var view = String.UnicodeScalarView()
++        view.append(contentsOf: scalars[first ... last])
++        return String(view)
++    }
++}
++
+ // MARK: - Tokenisation
+ 
+ /// Tokenise a single string with an HF tokenizer, mirroring Irodori's
+diff --git a/Sources/MLXAudioTTS/Models/IrodoriTTS/README.md b/Sources/MLXAudioTTS/Models/IrodoriTTS/README.md
+index 63884a4..93bc4aa 100644
+--- a/Sources/MLXAudioTTS/Models/IrodoriTTS/README.md
++++ b/Sources/MLXAudioTTS/Models/IrodoriTTS/README.md
+@@ -1,19 +1,34 @@
+ # Irodori TTS
+ 
+-Japanese flow-matching text-to-speech (Echo-TTS family): a Rectified-Flow DiT over
+-continuous `Semantic-DACVAE-Japanese-32dim` latents at 48 kHz, with v3 automatic
+-duration prediction and **VoiceDesign** — the voice is described by a Japanese
+-caption rather than a reference clip.
++Japanese flow-matching text-to-speech (Echo-TTS family): a DiT over continuous
++`Semantic-DACVAE-Japanese-32dim` latents at 48 kHz, with automatic duration
++prediction and **VoiceDesign**: the voice is described by a Japanese caption
++rather than a reference clip.
+ 
+-[Hugging Face Model Repo](https://huggingface.co/mlx-community/Irodori-TTS-600M-v3-VoiceDesign-8bit)
++## Supported checkpoints
++
++| Version | Model repo | Text encoder | Sampler |
++|---|---|---|---|
++| v3 VoiceDesign | [mlx-community/Irodori-TTS-600M-v3-VoiceDesign-8bit](https://huggingface.co/mlx-community/Irodori-TTS-600M-v3-VoiceDesign-8bit) | scratch-trained, `llm-jp/llm-jp-3-150m` tokenizer | 40-step Euler + CFG |
++| v4.1 | [mlx-community/Irodori-TTS-v4.1-Small-8bit](https://huggingface.co/mlx-community/Irodori-TTS-v4.1-Small-8bit) | pretrained ModernBERT-ja-310m (bundled) | 40-step Euler + CFG |
++| v4.1-MF | [mlx-community/Irodori-TTS-v4.1-Small-MF-8bit](https://huggingface.co/mlx-community/Irodori-TTS-v4.1-Small-MF-8bit) | pretrained ModernBERT-ja-310m (bundled) | 4-step MeanFlow, no CFG |
++
++All versions use `model_type: irodori_tts`; the loader picks the architecture from
++`config.json` (`text_encoder_type`, `flow_parameterization`). v4-Large (T5Gemma2
++text encoder) is not supported.
++
++v4.1-MF is a MeanFlow distillation of v4.1. Classifier-free guidance is baked in,
++so it runs one forward pass per step for 4 steps instead of up to 3 batched passes
++for 40 steps. On an M-series Mac its sampler takes ~0.15–0.2 s per sentence versus
++~3.5–5 s for v3, which leaves the DACVAE decode as the largest cost.
+ 
+ ## CLI Example
+ 
+ ```bash
+ mlx-audio-swift-tts \
+-  --model mlx-community/Irodori-TTS-600M-v3-VoiceDesign-8bit \
++  --model mlx-community/Irodori-TTS-v4.1-Small-MF-8bit \
+   --text "こんにちは。今日はいい天気ですね。" \
+-  --voice "落ち着いた自然な女性の声で、はっきりと読み上げてください。"
++  --voice "落ち着いた自然な女性の声"
+ ```
+ 
+ ## Swift Example
+@@ -23,34 +38,46 @@ import Foundation
+ import MLXAudioCore
+ import MLXAudioTTS
+ 
+-let model = try await IrodoriTTSModel.fromPretrained(
+-    "mlx-community/Irodori-TTS-600M-v3-VoiceDesign-8bit"
+-)
++let model = try await TTS.loadModel(modelRepo: "mlx-community/Irodori-TTS-v4.1-Small-MF-8bit")
+ 
+-// `voice` is a Japanese VoiceDesign caption describing the speaker.
++// `voice` is a Japanese VoiceDesign caption describing the speaker; no reference audio needed.
+ let audio = try await model.generate(
+     text: "こんにちは。今日はいい天気ですね。",
+-    voice: "落ち着いた自然な女性の声で、はっきりと読み上げてください。",
++    voice: "落ち着いた自然な女性の声",
+     refAudio: nil,
+     refText: nil,
+     language: nil
+ )
+ ```
+ 
+-If `voice` is `nil`, a neutral default caption is used. The model is
+-Japanese-only — pass Japanese text directly (no `language` argument needed).
++The same call works for every version above (`IrodoriTTSModel.fromPretrained(_:)`
++loads them too). If `voice` is `nil`, a neutral default caption is used; an empty
++caption is masked out. The model is Japanese-only, so no `language` argument is
++needed. `refAudio` (mono, 48 kHz) adds speaker conditioning; v4 caps it at the
++checkpoint's `ref_max_seconds` (120 s).
+ 
+ ## Notes
+ 
+-- The tokenizer is `llm-jp/llm-jp-3-150m` (SentencePiece Unigram), downloaded
+-  separately on first load. It is **not** bundled with the model weights.
++- v3: the tokenizer is `llm-jp/llm-jp-3-150m` (SentencePiece Unigram), downloaded
++  separately on first load.
++- v4: the ModernBERT-ja tokenizer ships in the model repo under `tokenizer/`. A
++  sanitized copy is written to the user Caches directory so swift-transformers can
++  load it; the downloaded files are left untouched. Runs of several consecutive
++  ASCII spaces can tokenize differently from Python (rare in Japanese text).
++- v4 drops the token padding before the text encoder. Every consumer masks padding
++  out, so the ModernBERT encoder and the DiT's context attention only see real tokens.
++- v4 uses the upstream text normaliser (keeps 。/、, NFKC). v3 keeps the original
++  Swift normaliser, so its output is unchanged.
++- Without reference audio, v4 over-predicts duration for very short texts (a few
++  tokens) and may repeat the sentence; this is upstream model behaviour.
+ - The DACVAE codec ships in the model repo under `dacvae/` and is loaded
+   automatically.
+-- On memory-constrained devices, lower `sampler.sequence_length` and/or use
+-  `cfg_guidance_mode: "alternating"` to reduce peak memory.
++- On memory-constrained devices running a CFG checkpoint (v3, v4.1), lower
++  `sampler.sequence_length` and/or use `cfg_guidance_mode: "alternating"` to reduce
++  peak memory.
+ 
+ ## License
+ 
+-See the [Irodori-TTS model repository](https://huggingface.co/mlx-community/Irodori-TTS-600M-v3-VoiceDesign-8bit)
+-and the upstream [Aratako/Irodori-TTS](https://huggingface.co/Aratako) project for
+-model weight licensing.
++See the model repositories above and the upstream
++[Aratako/Irodori-TTS](https://huggingface.co/Aratako) project for model weight
++licensing.
+diff --git a/Tests/IrodoriTTSTests.swift b/Tests/IrodoriTTSTests.swift
+new file mode 100644
+index 0000000..87a7eaa
+--- /dev/null
++++ b/Tests/IrodoriTTSTests.swift
+@@ -0,0 +1,286 @@
++import Foundation
++import MLX
++import MLXNN
++import Testing
++
++@testable import MLXAudioTTS
++
++// Goldens come from the Python mlx-audio implementation (irodori_tts) run on the same
++// tiny configurations. Parameters are filled by shape-only deterministic rules
++// so both sides agree without a key mapping.
++
++/// scale·(0.05·sin(0.37·i + 0.13·(n mod 97)) + 0.02·cos(0.11·i)) over the flattened parameter.
++private func irodoriTestFill(_ module: Module, scale: Float = 1) {
++    let filled = module.parameters().flattened().map { key, p -> (String, MLXArray) in
++        let n = p.size
++        let i = MLXArray(0 ..< n).asType(.float32)
++        let v = 0.05 * MLX.sin(i * 0.37 + Float(n % 97) * 0.13) + 0.02 * MLX.cos(i * 0.11)
++        return (key, (scale * v).reshaped(p.shape))
++    }
++    module.update(parameters: ModuleParameters.unflattened(filled))
++}
++
++private func irodoriTestDecode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
++    try JSONDecoder().decode(type, from: Data(json.utf8))
++}
++
++private let tinyModernBertJSON = """
++    {"model_type": "modernbert", "vocab_size": 32, "hidden_size": 16, "intermediate_size": 24,
++     "num_hidden_layers": 4, "num_attention_heads": 2, "global_attn_every_n_layers": 3,
++     "local_attention": 4, "norm_bias": false, "attention_bias": false, "mlp_bias": false,
++     "rope_parameters": {"full_attention": {"rope_type": "default", "rope_theta": 160000.0},
++                         "sliding_attention": {"rope_type": "default", "rope_theta": 10000.0}}}
++    """
++
++/// Tiny v4.1-MF DiT: pretrained (ModernBERT) text/caption encoder, residual_mlp
++/// projectors, speaker patch size 4, MeanFlow delta conditioning.
++private func tinyMeanFlowDiTConfig() throws -> IrodoriDiTConfig {
++    var cfg = IrodoriDiTConfig()
++    cfg.flowParameterization = "meanflow"
++    cfg.latentDim = 4
++    cfg.modelDim = 32
++    cfg.numLayers = 2
++    cfg.numHeads = 4
++    cfg.mlpRatio = 2
++    cfg.textMlpRatio = 2
++    cfg.speakerMlpRatio = 2
++    cfg.textVocabSize = 32
++    cfg.textDim = 16
++    cfg.textLayers = 1
++    cfg.textHeads = 2
++    cfg.textEncoderType = "pretrained"
++    cfg.textEncoderConfig = try irodoriTestDecode(IrodoriModernBertConfig.self, tinyModernBertJSON)
++    cfg.pretrainedProjectorType = "residual_mlp"
++    cfg.speakerDim = 16
++    cfg.speakerLayers = 1
++    cfg.speakerHeads = 2
++    cfg.speakerPatchSize = 4
++    cfg.timestepEmbedDim = 16
++    cfg.adalnRank = 4
++    cfg.useCaptionCondition = true
++    cfg.useSpeakerCondition = true
++    cfg.captionVocabSize = 32
++    cfg.captionDim = 16
++    cfg.useDurationPredictor = false
++    return cfg
++}
++
++private func expectClose(_ got: MLXArray, _ want: [Float], atol: Float = 1e-4) {
++    let values = got.asType(.float32).asArray(Float.self)
++    #expect(values.count == want.count)
++    let maxDiff = zip(values, want).map { abs($0 - $1) }.max() ?? .infinity
++    #expect(maxDiff <= atol, "max |Δ| = \(maxDiff)")
++}
++
++@Suite("Irodori-TTS v4", .serialized)
++struct IrodoriTTSV4Tests {
++    @Test func configDecodesV41MeanFlowAndKeepsV3Defaults() throws {
++        let v41mf = try irodoriTestDecode(IrodoriTTSConfig.self, """
++            {"model_type": "irodori_tts", "max_text_length": 256, "ref_max_seconds": 120.0,
++             "dit": {"flow_parameterization": "meanflow", "text_vocab_size": 102400,
++                     "text_tokenizer_repo": "sbintuitions/modernbert-ja-310m",
++                     "text_encoder_type": "pretrained",
++                     "text_encoder_config": {"model_type": "modernbert", "hidden_size": 768,
++                        "num_hidden_layers": 25, "num_attention_heads": 12, "local_attention": 128,
++                        "rope_parameters": {"full_attention": {"rope_theta": 50000.0},
++                                            "sliding_attention": {"rope_theta": 2500.0}}},
++                     "pretrained_projector_type": "residual_mlp",
++                     "pretrained_projector_hidden_ratio": 2.0, "speaker_patch_size": 4,
++                     "use_caption_condition": true, "use_speaker_condition": true,
++                     "caption_layers": null, "caption_heads": null, "caption_mlp_ratio": null},
++             "sampler": {"num_steps": 4, "min_seconds": 0.5, "max_seconds": 30.0}}
++            """)
++        #expect(v41mf.dit.useMeanflow)
++        #expect(v41mf.dit.usePretrainedTextEncoder)
++        #expect(v41mf.dit.pretrainedProjectorType == "residual_mlp")
++        #expect(v41mf.dit.speakerPatchSize == 4)
++        #expect(v41mf.refMaxSeconds == 120)
++        #expect(v41mf.sampler.numSteps == 4)
++        let bert = try #require(v41mf.dit.textEncoderConfig)
++        #expect(bert.numHiddenLayers == 25 && bert.localAttention == 128)
++        // transformers >= 5 nests the per-layer-type RoPE thetas
++        #expect(bert.globalRopeTheta == 50_000 && bert.localRopeTheta == 2_500)
++
++        let v3 = try irodoriTestDecode(IrodoriTTSConfig.self, """
++            {"model_type": "irodori_tts", "dit": {"text_vocab_size": 99574, "speaker_patch_size": 1,
++             "use_caption_condition": true, "caption_layers": 10}, "sampler": {"num_steps": 40}}
++            """)
++        #expect(!v3.dit.useMeanflow)
++        #expect(!v3.dit.usePretrainedTextEncoder)
++        #expect(v3.dit.textEncoderConfig == nil)
++        #expect(v3.refMaxSeconds == nil)
++        #expect(v3.dit.captionLayersResolved == 10)
++    }
++
++    @Test func modernBertMatchesPython() throws {
++        let config = try irodoriTestDecode(IrodoriModernBertConfig.self, tinyModernBertJSON)
++        func output(on device: Device) throws -> MLXArray {
++            try Device.withDefaultDevice(device) {
++                let encoder = try IrodoriModernBertEncoder(config: config)
++                // Python: [((i * 37 + n % 97) % 127 - 63) / 128 for i in range(n)].
++                // Exact binary fractions avoid GPU-dependent sin/cos rounding in the weights.
++                let filled = encoder.parameters().flattened().map { key, p -> (String, MLXArray) in
++                    let values = (0 ..< p.size).map {
++                        Float(($0 * 37 + p.size % 97) % 127 - 63) / 128
++                    }
++                    return (key, MLXArray(values).reshaped(p.shape))
++                }
++                encoder.update(parameters: ModuleParameters.unflattened(filled))
++                // 7 real tokens + 1 pad: exercises the key mask and the sliding window.
++                let ids = MLXArray([1, 5, 9, 13, 17, 21, 25, 3] as [Int32]).reshaped(1, 8)
++                let mask = MLXArray([true, true, true, true, true, true, true, false]).reshaped(1, 8)
++                let out = encoder(ids, mask: mask)
++                eval(out)
++                return out
++            }
++        }
++        // Check the Python CPU reference tightly, then allow GPU matmul rounding
++        // (including TF32 on M5) without weakening the architecture parity check.
++        let out = try output(on: .cpu)
++        #expect(out.shape == [1, 8, 16])
++        expectClose(out[0, 0 ..< 7, 0 ..< 4], [
++            -0.113666, 0.006570, -0.191245, 0.020891, -0.104138, -0.021803, -0.303784,
++            -0.187375, -0.428746, 0.088533, -0.216628, -0.953275, -0.222690, -0.020359,
++            -0.103560, -0.199524, -0.094686, -0.033718, -0.360255, -0.215894, -0.490636,
++            0.069345, -0.066360, 1.472535, -0.218640, -0.096001, 0.110103, -0.240162,
++        ])
++        #expect(abs(out[0, 0 ..< 7].sum().item(Float.self) - 0.300031) < 1e-3)
++        let gpuOut = try output(on: .gpu)
++        #expect(MLX.abs(gpuOut - out).max().item(Float.self) < 3e-3)
++    }
++
++    @Test func bundledTokenizerCachePublishesCompleteCopiesConcurrently() async throws {
++        let fm = FileManager.default
++        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
++        defer { try? fm.removeItem(at: root) }
++        let source = root.appendingPathComponent("source")
++        let cache = root.appendingPathComponent("cache")
++        try fm.createDirectory(at: source, withIntermediateDirectories: true)
++        let tokenizer = Data("""
++            {"model":{"type":"Unigram"},"post_processor":{"type":"TemplateProcessing"},
++             "decoder":{"type":"Sequence"}}
++            """.utf8)
++        let config = Data("""
++            {"tokenizer_class":"PreTrainedTokenizerFast","model_max_length":99999999}
++            """.utf8)
++        try tokenizer.write(to: source.appendingPathComponent("tokenizer.json"))
++        try config.write(to: source.appendingPathComponent("tokenizer_config.json"))
++
++        let copies = try await withThrowingTaskGroup(of: URL.self) { group in
++            for _ in 0 ..< 16 {
++                group.addTask {
++                    let copy = try irodoriSanitizedTokenizerCopy(of: source, cacheDirectory: cache)
++                    let tok = try JSONSerialization.jsonObject(
++                        with: Data(contentsOf: copy.appendingPathComponent("tokenizer.json"))) as! [String: Any]
++                    let cfg = try JSONSerialization.jsonObject(
++                        with: Data(contentsOf: copy.appendingPathComponent("tokenizer_config.json"))) as! [String: Any]
++                    #expect(tok["post_processor"] is NSNull)
++                    #expect(tok["decoder"] is NSNull)
++                    #expect(cfg["tokenizer_class"] as? String == "XLMRobertaTokenizer")
++                    #expect(cfg["model_max_length"] as? Int == 4096)
++                    return copy
++                }
++            }
++            var copies = [URL]()
++            for try await copy in group { copies.append(copy) }
++            return copies
++        }
++        #expect(copies.count == 16)
++        #expect(Set(copies).count == 1)
++        #expect(try Data(contentsOf: source.appendingPathComponent("tokenizer.json")) == tokenizer)
++        #expect(try Data(contentsOf: source.appendingPathComponent("tokenizer_config.json")) == config)
++        let cacheRoot = try #require(copies.first).deletingLastPathComponent()
++        #expect(try fm.contentsOfDirectory(atPath: cacheRoot.path).count == 1)
++    }
++
++    @Test func bundledTokenizerCacheTracksContentsAndRejectsInvalidJSON() throws {
++        let fm = FileManager.default
++        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
++        defer { try? fm.removeItem(at: root) }
++        let source = root.appendingPathComponent("source")
++        let cache = root.appendingPathComponent("cache")
++        try fm.createDirectory(at: source, withIntermediateDirectories: true)
++        let tokenizerURL = source.appendingPathComponent("tokenizer.json")
++        let configURL = source.appendingPathComponent("tokenizer_config.json")
++        try Data("{}".utf8).write(to: tokenizerURL)
++        try Data("{\"revision\":1}".utf8).write(to: configURL)
++        let originalDate = try configURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
++        let first = try irodoriSanitizedTokenizerCopy(of: source, cacheDirectory: cache)
++
++        try Data("{\"revision\":2}".utf8).write(to: configURL)
++        try fm.setAttributes([.modificationDate: try #require(originalDate)], ofItemAtPath: configURL.path)
++        let second = try irodoriSanitizedTokenizerCopy(of: source, cacheDirectory: cache)
++        #expect(first != second)
++        for (copy, revision) in [(first, 1), (second, 2)] {
++            let cfg = try JSONSerialization.jsonObject(
++                with: Data(contentsOf: copy.appendingPathComponent("tokenizer_config.json"))) as! [String: Any]
++            #expect(cfg["revision"] as? Int == revision)
++        }
++
++        try Data("invalid JSON".utf8).write(to: tokenizerURL)
++        #expect(throws: (any Error).self) {
++            try irodoriSanitizedTokenizerCopy(of: source, cacheDirectory: cache)
++        }
++        // Failed sanitization must leave neither a published cache nor a staging directory.
++        #expect(try fm.contentsOfDirectory(atPath: first.deletingLastPathComponent().path).count == 2)
++    }
++
++    @Test func meanFlowSamplerMatchesPython() throws {
++        let dit = try IrodoriDiT(cfg: try tinyMeanFlowDiTConfig())
++        // Large enough weights that the delta_t conditioning visibly moves the output.
++        irodoriTestFill(dit, scale: 4)
++        let enc = dit.encodeConditionsFull(
++            textInputIDs: MLXArray([1, 4, 8, 15, 16, 23] as [Int32]).reshaped(1, 6),
++            textMask: MLXArray.ones([1, 6], dtype: .bool),
++            refLatent: MLXArray.zeros([1, 4, 4]),
++            refMask: MLXArray.zeros([1, 4], dtype: .bool),
++            captionInputIDs: MLXArray([1, 7, 11] as [Int32]).reshaped(1, 3),
++            captionMask: MLXArray.ones([1, 3], dtype: .bool))
++        // Python: mx.random.seed(0); mx.random.normal((1, 5, 4))
++        let noise = MLXArray([
++            0.519983, -0.273471, 0.311575, 0.730221, 2.001783, 0.492771, 0.452304, 0.884373,
++            0.000688, -0.732530, 0.833127, -0.526324, -0.339867, -0.426560, 0.667879, -1.136015,
++            -0.305548, -1.919324, -2.106826, 0.579773,
++        ] as [Float]).reshaped(1, 5, 4)
++        let out = try irodoriSampleEulerMeanFlow(
++            model: dit, encoded: enc, latentDim: 4, sequenceLength: 5, rngSeed: 0, numSteps: 4,
++            initialNoise: noise)
++        // Python: sample_euler_meanflow(..., sequence_length=5, num_steps=4)
++        expectClose(out, [
++            0.194378, -0.669000, 0.023873, 0.463021, 1.744015, 0.082289, 0.201642, 0.560532,
++            -0.336010, -1.091838, 0.554811, -0.766227, -0.680117, -0.762569, 0.400826, -1.372530,
++            -0.595871, -2.154732, -2.358053, 0.335465,
++        ], atol: 1e-3)
++    }
++
++    @Test func zeroReferenceSpansOneSpeakerPatch() throws {
++        var config = IrodoriTTSConfig()
++        config.dit = try tinyMeanFlowDiTConfig()
++        let model = try IrodoriTTSModel(config: config)
++        let latent = model.zeroReferenceLatent()
++        let enc = model.model.encodeConditionsFull(
++            textInputIDs: MLXArray([1, 4] as [Int32]).reshaped(1, 2),
++            textMask: MLXArray.ones([1, 2], dtype: .bool),
++            refLatent: latent,
++            refMask: MLXArray.zeros([1, latent.shape[1]], dtype: .bool),
++            captionInputIDs: nil, captionMask: nil)
++        // speaker_patch_size 4: a shorter placeholder would patch to an empty sequence.
++        #expect(enc.speakerState?.shape == [1, 1, 16])
++        #expect(enc.speakerMask?.shape == [1, 1])
++    }
++
++    @Test func upstreamNormalizerMatchesPython() {
++        let cases: [(String, String)] = [
++            ("「前半」と「後半」", "「前半」と「後半」"),
++            ("（(x)）", "x"),
++            ("ｷﾞｭｳﾆｭｳ。", "ギュウニュウ。"),
++            ("えっと...そう..です、はい。", "えっと…そう…です、はい。"),
++            ("Ｈｅｌｌｏ\u{3000}Ｗｏｒｌｄ！", "HelloWorld!"),
++            ("わ〜い♥ ㈱Ⅲ", "わーい♡ (株)III"),
++        ]
++        for (input, want) in cases {
++            let got = irodoriNormalizeTextUpstream(input).irodoriPythonStripped()
++            #expect(Array(got.unicodeScalars) == Array(want.unicodeScalars), "\(input) -> \(got)")
++        }
++    }
++}
