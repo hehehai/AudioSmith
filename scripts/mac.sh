@@ -7,11 +7,11 @@
 #   scripts/mac.sh go tool mygo build
 #   scripts/mac.sh --pull resources/darwin-arm64   # copy a path back
 #
-# MAC_HOST (default mac-air) and MAC_DIR (default code/AudioSmith) pick the
+# MAC_HOST (default mac-mini; mac-air is the spare) and MAC_DIR (default code/AudioSmith) pick the
 # target; MAC_GOPROXY its Go module proxy (proxy.golang.org times out there).
 set -euo pipefail
 
-HOST="${MAC_HOST:-mac-air}"
+HOST="${MAC_HOST:-mac-mini}"
 GOPROXY_MAC="${MAC_GOPROXY:-https://goproxy.cn,direct}"
 DIR="${MAC_DIR:-code/AudioSmith}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

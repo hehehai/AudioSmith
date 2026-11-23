@@ -16,7 +16,7 @@
 # holds the shared GPU lock /tmp/as-gpu.lock and plays nothing.
 set -euo pipefail
 
-HOST="${MAC_HOST:-mac-air}"
+HOST="${MAC_HOST:-mac-mini}"
 export MAC_DIR="${MAC_DIR:-code/AudioSmith-vp}"
 TMP="${PREVIEW_TMP:-/tmp/as-voice-previews-$USER}"
 REMOTE=/tmp/as-vp

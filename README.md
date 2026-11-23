@@ -246,7 +246,7 @@ go tool mygo build              # build/darwin-arm64/AudioSmith.app and a DMG
 ```
 
 - The UI is Go with [MyGo](https://github.com/egoist/mygo), in `app/` (`go run ./app` runs it without bundling); the files it embeds are in `assets/`. The models run in a Swift helper, `audiosmith-engine`, on [mlx-audio-swift](https://github.com/Blaizzy/mlx-audio-swift) and mlx-swift.
-- `CGO_ENABLED=0 go test ./...` runs the whole UI headless on any OS, with the engine faked; `scripts/mac.sh` builds and tests on a Mac from Linux.
+- `CGO_ENABLED=0 go test ./...` runs the whole UI headless on any OS, with the engine faked; `scripts/mac.sh` builds and tests on a Mac from Linux (`MAC_HOST`, default `mac-mini`, `mac-air` the spare).
 - More: [architecture](docs/architecture.md), [engine protocol](docs/protocol-v2.md), [Local API and MCP](docs/local-api.md), [releasing](docs/release.md).
 
 ## Known limits

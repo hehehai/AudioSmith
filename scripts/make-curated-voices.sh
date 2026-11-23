@@ -23,7 +23,7 @@
 # cache; here: ffmpeg with libvorbis.
 set -euo pipefail
 
-HOST="${MAC_HOST:-mac-air}"
+HOST="${MAC_HOST:-mac-mini}"
 export MAC_DIR="${MAC_DIR:-code/AudioSmith-c94}"
 ENGINE_FROM="${ENGINE_FROM:-code/AudioSmith-v/resources/darwin-arm64/engine}"
 TMP="${CURATE_TMP:-/tmp/as-curate-$USER}"
