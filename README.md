@@ -54,7 +54,7 @@ AudioSmith turns text into speech, clones and designs voices, gives a story a ca
 |---|---|
 | <img src="docs/images/discover.webp" alt="Voices, Discover: chosen voices with filters and previews"> | <img src="docs/images/voices.webp" alt="Voices, Mine: saved, designed and cloned voices"> |
 
-- **Discover** 37 chosen voices, mostly Chinese and English: designed voices whose reference ships with the app, ready to speak at once, and the best built-in speakers. Filter by language, gender, age and use; ▶ plays one in its row, and its details offer Try a line, Use in Text to speech, Use as a story character, Narrate an audiobook and Save to My voices.
+- **Discover** 45 chosen voices, mostly Chinese, English and Japanese: designed voices whose reference ships with the app, ready to speak at once, and the best built-in speakers. Filter by language, gender, age and use; ▶ plays one in its row, and its details offer Try a line, Use in Text to speech, Use as a story character, Narrate an audiobook and Save to My voices.
 - **Mine** lists your voices (cloned, designed, saved); rename, duplicate, export or delete them, with Undo.
 
 <img src="docs/images/newvoice.webp" alt="New voice: Quick clone or Design a voice" width="100%">
@@ -150,7 +150,7 @@ The full reference is [docs/local-api.md](docs/local-api.md), and `/docs` in the
 - **Tools** (Developers → Tools): compare voices A/B, speak a recording again in another voice, fit text to a duration, probe a file, check a watermark.
 - **Invisible watermark:** generated audio carries an AudioSeal mark, on by default (Settings → Privacy), and Tools can detect it.
 - **Calls:** an AI phone agent on your own Twilio account. It always says it is an AI, and uses only designed or consented voices. Off until you set it up.
-- **The app:** each page has its own header with its tools; ⌘1–8 open Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories and Audiobook, ⌘[ and ⌘] go back and forward. The bell beside Settings lists tasks and notifications; one job queue resumes after a restart. Light and dark themes, English and 简体中文.
+- **The app:** each page has its own header with its tools; ⌘1–8 open Home, Text to speech, Voices, Projects, Dub, Speech to text, Stories and Audiobook, ⌘[ and ⌘] go back and forward. The bell beside Settings lists tasks and notifications; one job queue resumes after a restart. Light and dark themes; English, 简体中文 and 日本語 (follows macOS, or pick one in Settings → General).
 - **Memory:** models you have not used for 30 minutes are unloaded (Settings → Models & network → Memory) and load again when needed.
 
 ## Install
@@ -198,6 +198,8 @@ AudioSmith names models for what they do. Their technical names, sizes and licen
 | **English clone** | Chatterbox Turbo | fast English cloning | MIT |
 | **Multilingual all-rounder** | OmniVoice | 600+ languages, cloning, design, exact durations | **CC BY-NC 4.0: non-commercial**; asks you to accept it first |
 | **Expressive clone · 48 kHz** | VoxCPM2 2B | clones you can direct ("a little faster, cheerful"), voice design, 30 languages and Chinese dialects, 48 kHz; optional | Apache-2.0 |
+| **Japanese · Natural** | Irodori-TTS v4.1 Small | Japanese that reads kanji, numbers and names well; clones a clip, designs from a Japanese description, laughs and sighs; 48 kHz, 1.4 GB; optional | MIT (the author asks: no impersonation or deepfakes) |
+| **Japanese character voices** | VOICEVOX / AivisSpeech (you install them) | their characters and styles, with speed, pitch and intonation; every take carries the character's credit | each character's own terms |
 | **English · Realtime** | VibeVoice Realtime 0.5B | 7 preset English voices, streamed; 1.2 GB; optional | MIT |
 | **Chinese & English transcription** | Qwen3-ASR 0.6B | transcription and dictation, 30 languages | Apache-2.0 |
 | **Multilingual transcription** | Whisper large-v3 turbo | other languages; speech into English | MIT |
@@ -254,7 +256,7 @@ go tool mygo build              # build/darwin-arm64/AudioSmith.app and a DMG
 - **Dictation** types the text when you stop, not word by word. The first dictation after a long pause can take about a second longer while its model loads.
 - **Dialogue models** are evaluated for Chinese and English only; other languages are read line by line. Dub's conversations use *Dialogue · Light* only, and *Dialogue · One take* needs 24 GB of memory.
 - **Links that need a sign-in** (such as X or Douyin) need a cookies.txt export from your browser.
-- **The interface** is in English and Simplified Chinese.
+- **The interface** is in English, Simplified Chinese and Japanese.
 - **The watermark** does not survive time-stretching beyond about ±5 %, so dubs are marked after fitting.
 - **Calls** need your own Twilio account and a public tunnel.
 - Builds you make yourself are ad-hoc signed: they don't update themselves, macOS forgets their Accessibility permission after each rebuild, and dictation plays the system sounds (the ActNow sound library ships only with releases).

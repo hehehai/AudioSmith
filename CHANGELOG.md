@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.5.0-beta.5 — 2026-11-23
+
+### Added
+- **Japanese interface**: AudioSmith speaks 日本語 as well as English and 简体中文. It follows macOS's language, or pick it in Settings → General. Model names, Discover voices and the samples are translated too; menus, panels and the microphone prompt follow the app's language.
+- **Japanese · Natural** (Irodori-TTS v4.1, optional, 1.4 GB, MIT with its author's terms: no cloning or impersonating anyone without consent): Japanese that reads kanji, numbers and names well, at 48 kHz. It clones a short clip without a transcript, designs a voice from a Japanese description and laughs, sighs and breathes. In our tests on 40 Japanese sentences it misread about 3.5 % of the kana (Qwen3-TTS 4.3 %, VoxCPM2 5.2 %) and 2.3 % on hard kanji readings (7.2 % and 9.8 %). Text to speech, Stories and Audiobook recommend it for Japanese text; Dub does not yet, and no default changes.
+- **Japanese character voices (VOICEVOX / AivisSpeech)**: when the VOICEVOX app or engine or AivisSpeech runs on your Mac (you install it; AudioSmith bundles nothing of theirs), its characters and styles appear in Text to speech, Stories and Audiobook, with a preview, speed, pitch and intonation. Every take records the character's credit (for example 「VOICEVOX:ずんだもん」), shown on the take, written into exported files and credits.txt, and returned by the Local API and MCP; characters with stricter terms say so and ask before first use. Each character's own terms apply. Addresses in Settings → Models & network.
+- **Discover voices**: 9 Japanese voices instead of 1 — seven new designed voices (a calm novel narrator, a grandmother telling folk tales, an evening news anchor, a cheerful student, a little girl, a cool villainess and a bedtime-story reader) and Qwen3's Japanese speaker Anna.
+- Already in 0.5.0-beta.4 but not announced; optional and never a default: **Expressive clone · 48 kHz** (VoxCPM2: clones you can direct, voice design, 30 languages and Chinese dialects), **English · Realtime** (VibeVoice Realtime 0.5B) and **Dialogue · Long-form** (VibeVoice 1.5B, up to 4 speakers in one take for Stories and Audiobook).
 
 ### Changed
 - Settings → Models & network: models other ActNow apps use too say “Shared across ActNow” instead of naming the apps; so do the shared API keys and the storage page.
