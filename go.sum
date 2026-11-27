@@ -18,8 +18,8 @@ github.com/google/jsonschema-go v0.4.3 h1:/DBOLZTfDow7pe2GmaJNhltueGTtDKICi8V8p+
 github.com/google/jsonschema-go v0.4.3/go.mod h1:r5quNTdLOYEz95Ru18zA0ydNbBuYoo9tgaYcxEYhJVE=
 github.com/hehehai/actnowkit v0.22.2 h1:qaFRVXY/CNNVvflvCioUNLLI3IOG8PWJtkQp1Q7Tw60=
 github.com/hehehai/actnowkit v0.22.2/go.mod h1:ifUdyrbLMzvXGYNIE/MRBSWMLQ4WxR89UmE3IXMkZQI=
-github.com/hehehai/actnowkit/feedbackui v0.22.0 h1:09d65QBlMCecLOfKdF0laf+OKfMfipr4z7z048baltA=
-github.com/hehehai/actnowkit/feedbackui v0.22.0/go.mod h1:EJ/j4OecWToqfeLTUChlT4dfO0XgW13u6YJ27htxmgM=
+github.com/hehehai/actnowkit/feedbackui v0.22.1 h1:oI/+SSwc7lsJ6JhK6XYvN2MK0byEy9zMSM9S8+48rD4=
+github.com/hehehai/actnowkit/feedbackui v0.22.1/go.mod h1:EJ/j4OecWToqfeLTUChlT4dfO0XgW13u6YJ27htxmgM=
 github.com/hehehai/mygo v0.10.0-actnow.4 h1:hz9JAdC5ReFWS6fKKCBD/R51jE8Iea0cbe8qW2ETuJI=
 github.com/hehehai/mygo v0.10.0-actnow.4/go.mod h1:Hw9sxdSQ4tHuehHw5Q6alR1qTS8kgv3oSFxEejg+7qo=
 github.com/jfreymuth/oggvorbis v1.0.5 h1:u+Ck+R0eLSRhgq8WTmffYnrVtSztJcYrl588DM4e3kQ=
