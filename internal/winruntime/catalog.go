@@ -47,6 +47,7 @@ type Spec struct {
 func DefaultCatalog() map[Name]Spec {
 	const onnxVer = "1.24.4"
 	const onnxURL = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/" + onnxVer
+	const onnxSHA256 = "57e9f11b73437bef7a309496135d4c1f96b1a8e9ddba60013fa27bfc1d788681"
 
 	return map[Name]Spec{
 		RuntimeONNX: {
@@ -57,16 +58,18 @@ func DefaultCatalog() map[Name]Spec {
 			Aliases:       []string{"onnxruntime"},
 			Assets: map[string]Asset{
 				"amd64": {
-					URL:  onnxURL,
-					Size: 55 << 20,
+					URL:    onnxURL,
+					SHA256: onnxSHA256,
+					Size:   55 << 20,
 					Extract: []ExtractSpec{
 						{ArchivePath: "runtimes/win-x64/native/onnxruntime.dll", DestName: "onnxruntime.dll"},
 						{ArchivePath: "runtimes/win-x64/native/DirectML.dll", DestName: "DirectML.dll", Optional: true},
 					},
 				},
 				"arm64": {
-					URL:  onnxURL,
-					Size: 55 << 20,
+					URL:    onnxURL,
+					SHA256: onnxSHA256,
+					Size:   55 << 20,
 					Extract: []ExtractSpec{
 						{ArchivePath: "runtimes/win-arm64/native/onnxruntime.dll", DestName: "onnxruntime.dll"},
 						{ArchivePath: "runtimes/win-arm64/native/DirectML.dll", DestName: "DirectML.dll", Optional: true},
