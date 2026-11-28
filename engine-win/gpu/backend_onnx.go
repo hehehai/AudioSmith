@@ -21,6 +21,8 @@ type onnxModelEntry struct {
 	session   onnx.Session
 	vad       *onnx.SileroVAD
 	kokoro    *onnx.KokoroTTS
+	denoise   *onnx.DeepFilterNet
+	provider  string
 	bytes     int64
 }
 
@@ -125,14 +127,21 @@ func (b *ONNXBackend) Load(_ context.Context, p proto.LoadParams) (proto.LoadRes
 	if err != nil {
 		return proto.LoadResult{}, err
 	}
-	b.provider = entry.session.Provider()
+	if entry.provider != "" {
+		b.provider = entry.provider
+	} else if entry.session != nil {
+		b.provider = entry.session.Provider()
+	}
 	sr := 16000
 	var caps []string
 	var langs []string
-	if entry.task == "tts" {
+	switch entry.task {
+	case "tts":
 		sr = 24000
 		caps = []string{"stream", "speed"}
 		langs = []string{"en"}
+	case "enhance":
+		sr = 48000
 	}
 	return proto.LoadResult{
 		Model:        p.Model,
@@ -147,9 +156,13 @@ func (b *ONNXBackend) Load(_ context.Context, p proto.LoadParams) (proto.LoadRes
 
 func (b *ONNXBackend) getOrLoad(model, task, modelPath string) (*onnxModelEntry, float64, error) {
 	if task == "" {
-		if strings.Contains(strings.ToLower(model), "vad") || strings.Contains(strings.ToLower(model), "silero") {
+		low := strings.ToLower(model)
+		switch {
+		case strings.Contains(low, "vad") || strings.Contains(low, "silero"):
 			task = "vad"
-		} else {
+		case strings.Contains(low, "deepfilter") || strings.Contains(low, "denoise"):
+			task = "enhance"
+		default:
 			task = "tts"
 		}
 	}
@@ -164,6 +177,29 @@ func (b *ONNXBackend) getOrLoad(model, task, modelPath string) (*onnxModelEntry,
 	rt, err := b.ensureRuntime()
 	if err != nil {
 		return nil, 0, err
+	}
+
+	if task == "enhance" {
+		start := time.Now()
+		df, sz, prov, err := onnx.OpenDeepFilterNet(rt, modelPath, b.sessionOpts())
+		if err != nil {
+			return nil, 0, err
+		}
+		secs := time.Since(start).Seconds()
+		entry := &onnxModelEntry{
+			task:      task,
+			modelPath: modelPath,
+			denoise:   df,
+			provider:  prov,
+			bytes:     sz,
+		}
+		b.mu.Lock()
+		if prev, ok := b.models[model]; ok {
+			closeEntry(prev)
+		}
+		b.models[model] = entry
+		b.mu.Unlock()
+		return entry, secs, nil
 	}
 
 	var preferred []string
@@ -201,6 +237,7 @@ func (b *ONNXBackend) getOrLoad(model, task, modelPath string) (*onnxModelEntry,
 		task:      task,
 		modelPath: onnxFile,
 		session:   sess,
+		provider:  sess.Provider(),
 		bytes:     sz,
 	}
 	switch task {
@@ -212,11 +249,20 @@ func (b *ONNXBackend) getOrLoad(model, task, modelPath string) (*onnxModelEntry,
 
 	b.mu.Lock()
 	if prev, ok := b.models[model]; ok {
-		_ = prev.session.Close()
+		closeEntry(prev)
 	}
 	b.models[model] = entry
 	b.mu.Unlock()
 	return entry, secs, nil
+}
+
+func closeEntry(e *onnxModelEntry) {
+	if e.denoise != nil {
+		_ = e.denoise.Close()
+	}
+	if e.session != nil {
+		_ = e.session.Close()
+	}
 }
 
 func (b *ONNXBackend) Unload(_ context.Context, model string) error {
@@ -224,13 +270,13 @@ func (b *ONNXBackend) Unload(_ context.Context, model string) error {
 	defer b.mu.Unlock()
 	if model == "" {
 		for id, e := range b.models {
-			_ = e.session.Close()
+			closeEntry(e)
 			delete(b.models, id)
 		}
 		return nil
 	}
 	if e, ok := b.models[model]; ok {
-		_ = e.session.Close()
+		closeEntry(e)
 		delete(b.models, model)
 	}
 	return nil
@@ -278,8 +324,15 @@ func (b *ONNXBackend) Transcribe(_ context.Context, _ string, _ proto.Transcribe
 func (b *ONNXBackend) Align(_ context.Context, _ string, _ proto.AlignParams, _ server.Notifier) (proto.AlignResult, error) {
 	return proto.AlignResult{}, b.notReady("align")
 }
-func (b *ONNXBackend) Enhance(_ context.Context, _ string, _ proto.EnhanceParams, _ server.Notifier) (proto.EnhanceResult, error) {
-	return proto.EnhanceResult{}, b.notReady("enhance")
+func (b *ONNXBackend) Enhance(ctx context.Context, jobID string, p proto.EnhanceParams, n server.Notifier) (proto.EnhanceResult, error) {
+	entry, _, err := b.getOrLoad(p.Model, "enhance", p.ModelPath)
+	if err != nil {
+		return proto.EnhanceResult{}, err
+	}
+	if entry.denoise == nil {
+		return proto.EnhanceResult{}, b.notReady("enhance")
+	}
+	return entry.denoise.Enhance(ctx, jobID, p, n)
 }
 func (b *ONNXBackend) Separate(_ context.Context, _ string, _ proto.SeparateParams, _ server.Notifier) (proto.SeparateResult, error) {
 	return proto.SeparateResult{}, b.notReady("separate")

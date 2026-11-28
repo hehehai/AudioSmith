@@ -15,6 +15,7 @@ import (
 
 	"github.com/hehehai/AudioSmith/engine-win/gpu"
 	"github.com/hehehai/AudioSmith/engine-win/hw"
+	"github.com/hehehai/AudioSmith/engine-win/internal/onnx"
 	"github.com/hehehai/AudioSmith/engine-win/listen"
 	"github.com/hehehai/AudioSmith/engine-win/media"
 	"github.com/hehehai/AudioSmith/engine-win/server"
@@ -77,7 +78,9 @@ func main() {
 	case proto.RoleMedia:
 		cfg.Hooks = server.RoleHooks{Concurrency: 2}
 		srv = server.New(cfg)
-		media.New(hwInfo, *ffmpegPath, nil).Register(srv)
+		wm := onnx.NewAudioSealBackend(nil, hwInfo)
+		defer wm.Close()
+		media.New(hwInfo, *ffmpegPath, wm).Register(srv)
 	case proto.RoleListen:
 		cfg.Hooks = server.RoleHooks{Concurrency: 1}
 		srv = server.New(cfg)
