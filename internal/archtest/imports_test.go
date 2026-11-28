@@ -32,10 +32,11 @@ var uiPackages = []string{"icons", "widgets", "pages/**"}
 
 // mygoOther are the internal packages that use one of MyGo's other
 // packages, and which.
-var mygoOther = map[string]string{
-	"audio":             "github.com/egoist/mygo/audio",
-	"dictation":         "github.com/egoist/mygo/transfer",
-	"store/sqlitestore": "github.com/egoist/mygo/plugins/sqlite",
+var mygoOther = map[string][]string{
+	"audio":             {"github.com/egoist/mygo/audio"},
+	"dictation":         {"github.com/egoist/mygo/transfer"},
+	"hub":               {"github.com/egoist/mygo", "github.com/egoist/mygo/netproxy"},
+	"store/sqlitestore": {"github.com/egoist/mygo/plugins/sqlite"},
 }
 
 // forbidden are imports that break the layering, and why.
@@ -154,7 +155,7 @@ func TestImports(t *testing.T) {
 				continue
 			}
 			if strings.HasPrefix(path, "github.com/egoist/mygo") && from != "main" {
-				if want, ok := mygoOther[from]; !ok || want != path {
+				if allowed, ok := mygoOther[from]; !ok || !slices.Contains(allowed, path) {
 					failf("%s imports %s (%s): internal packages use MyGo's packages only as listed in mygoOther (internal/archtest/imports_test.go); "+
 						"add it there if this one should, in its own commit.", from, path, f.path)
 				}
