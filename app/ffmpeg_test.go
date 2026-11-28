@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hehehai/AudioSmith/internal/core"
@@ -121,19 +122,84 @@ func TestAudioToolsPage(t *testing.T) {
 	}
 }
 
+var (
+	fakeFFmpegExeOnce  sync.Once
+	fakeFFmpegExeBytes []byte
+	fakeFFmpegExeErr   error
+)
+
+// fakeFFmpegExe returns executable bytes for a tiny fake ffmpeg/ffprobe
+// binary on Windows so TestFFmpegDownload installs real .exe names that
+// ffmpeg.Remove deletes.
+func fakeFFmpegExe(t *testing.T) []byte {
+	t.Helper()
+	fakeFFmpegExeOnce.Do(func() {
+		tmp, err := os.MkdirTemp("", "fake-ffmpeg-exe-*")
+		if err != nil {
+			fakeFFmpegExeErr = err
+			return
+		}
+		defer os.RemoveAll(tmp)
+		const src = `package main
+
+import (
+	"fmt"
+	"os"
+	"slices"
+)
+
+func main() {
+	switch {
+	case slices.Contains(os.Args[1:], "-version"):
+		fmt.Println("ffmpeg version n8.1.2-fake Copyright")
+		fmt.Println("configuration: --enable-gpl --enable-libmp3lame")
+	case slices.Contains(os.Args[1:], "-encoders"):
+		fmt.Println(" A....D = Audio")
+		fmt.Println(" ------")
+		fmt.Println(" A....D libmp3lame  MP3")
+		fmt.Println(" A....D libopus  Opus")
+		fmt.Println(" A....D flac  FLAC")
+		fmt.Println(" A....D aac  AAC")
+	case slices.Contains(os.Args[1:], "-filters"):
+		fmt.Println(" TSC overlay VV->V Overlay")
+	}
+}
+`
+		mainGo := filepath.Join(tmp, "main.go")
+		if err := os.WriteFile(mainGo, []byte(src), 0o600); err != nil {
+			fakeFFmpegExeErr = err
+			return
+		}
+		out := filepath.Join(tmp, "ffmpeg.exe")
+		cmd := exec.Command("go", "build", "-o", out, mainGo)
+		cmd.Dir = tmp
+		if b, err := cmd.CombinedOutput(); err != nil {
+			fakeFFmpegExeErr = errors.New(string(b) + ": " + err.Error())
+			return
+		}
+		fakeFFmpegExeBytes, fakeFFmpegExeErr = os.ReadFile(out)
+	})
+	if fakeFFmpegExeErr != nil {
+		t.Fatalf("build fake ffmpeg.exe: %v", fakeFFmpegExeErr)
+	}
+	return fakeFFmpegExeBytes
+}
+
 func TestFFmpegDownload(t *testing.T) {
 	a, _, tt := newTestApp(t)
-	fake := fakeFFmpeg(t)
+	var data []byte
+	ext := ""
+	if runtime.GOOS == "windows" {
+		data = fakeFFmpegExe(t)
+		ext = ".exe"
+	} else {
+		data, _ = os.ReadFile(fakeFFmpeg(t))
+	}
 	var gotDir string
 	ffmpegInstall = func(ctx context.Context, _ *mirror.Client, dir string, b ffmpeg.Build, progress func(int64, int64)) (string, error) {
 		gotDir = dir
 		progress(b.Size()/2, b.Size())
 		os.MkdirAll(dir, 0o755)
-		data, _ := os.ReadFile(fake)
-		ext := ""
-		if runtime.GOOS == "windows" {
-			ext = ".cmd"
-		}
 		for _, n := range []string{"ffmpeg" + ext, "ffprobe" + ext} {
 			os.WriteFile(filepath.Join(dir, n), data, 0o755)
 		}

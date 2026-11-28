@@ -148,3 +148,16 @@ func mcpHandshakeWin(p promptEnv, client string) string {
 	b.WriteString("Invoke-RestMethod -Method Delete -Uri $url -Headers $h | Out-Null\n")
 	return b.String()
 }
+
+// isAbsIntegPath reports whether p is an absolute path for the target
+// integration OS (integOS), so darwin-targeted prompts/skills formatted
+// on Windows (and vice versa) still recognize their output folder.
+func isAbsIntegPath(p string) bool {
+	if filepath.IsAbs(p) {
+		return true
+	}
+	if integOS != "windows" {
+		return strings.HasPrefix(p, "/")
+	}
+	return len(p) >= 3 && ((p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= 'a' && p[0] <= 'z')) && p[1] == ':' && (p[2] == '\\' || p[2] == '/')
+}

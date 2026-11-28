@@ -3,7 +3,6 @@ package sqlitestore
 import (
 	"encoding/json"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -85,7 +84,9 @@ func TestUsageAndRewritePaths(t *testing.T) {
 	}
 	// The original is untouched.
 	got, _, _ = s.Documents().Get(ctx, "settings:app")
-	if !strings.Contains(string(got), dir) {
+	var orig map[string]string
+	json.Unmarshal(got, &orig)
+	if orig["ytdlp"] != filepath.Join(dir, "tools", "yt-dlp") || orig["other"] != "/elsewhere/x" {
 		t.Errorf("the original changed: %s", got)
 	}
 	if _, err := RewritePaths(ctx, copyPath, dir, dir); err == nil {

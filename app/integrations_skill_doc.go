@@ -136,7 +136,7 @@ func agentSkill(slug string, p promptEnv) string {
 	if v := p.Bindings[ag.Client]; v != "" && ag.Client != "" {
 		item(i18n.T("Your own voice: %s. generate_speech uses it when you give no voice.", promptName(v)))
 	}
-	if filepath.IsAbs(p.Dir) {
+	if isAbsIntegPath(p.Dir) {
 		item(i18n.T("The agents' folder, where your files go unless you give a directory: %s.", p.Dir))
 	}
 	if p.NeedKey {

@@ -11,7 +11,6 @@ package main
 import (
 	"fmt"
 	"net/url"
-	"path/filepath"
 	"strings"
 
 	"github.com/hehehai/AudioSmith/internal/api"
@@ -202,7 +201,7 @@ func agentPrompt(slug string, p promptEnv) string {
 	if v := p.Bindings[ag.Client]; v != "" && ag.Client != "" {
 		item(i18n.T("Your own voice (Settings → Integrations → Each agent's voice): %s. generate_speech uses it when no voice is given.", promptName(v)))
 	}
-	if filepath.IsAbs(p.Dir) {
+	if isAbsIntegPath(p.Dir) {
 		item(i18n.T("generate_speech saves its WAV files in %s.", p.Dir))
 	}
 

@@ -238,7 +238,15 @@ func TestInfoWithoutFFmpeg(t *testing.T) {
 	args := filepath.Join(t.TempDir(), "args")
 	bin := scriptYtDlp(t,
 		`printf '%s\n' "$@" > "`+args+`"; echo '{"id":"x","title":"T","format_id":"137+140","requested_formats":[{"vcodec":"avc1"},{"acodec":"mp4a"}]}'`,
-		"@echo off\r\necho %* > \""+args+"\"\r\necho {\"id\":\"x\",\"title\":\"T\",\"format_id\":\"137+140\",\"requested_formats\":[{\"vcodec\":\"avc1\"},{\"acodec\":\"mp4a\"}]}\r\n",
+		"@echo off\r\n"+
+			"if exist \""+args+"\" del /q \""+args+"\"\r\n"+
+			":loop\r\n"+
+			"if \"%~1\"==\"\" goto done\r\n"+
+			"echo \"%~1\">>\""+args+"\"\r\n"+
+			"shift\r\n"+
+			"goto loop\r\n"+
+			":done\r\n"+
+			"echo {\"id\":\"x\",\"title\":\"T\",\"format_id\":\"137+140\",\"requested_formats\":[{\"vcodec\":\"avc1\"},{\"acodec\":\"mp4a\"}]}\r\n",
 	)
 	for _, ff := range []string{"", "/opt/ffmpeg"} {
 		info, err := YtDlp{Path: bin, FFmpeg: ff}.Info(context.Background(), "https://example.com/v")
