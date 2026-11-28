@@ -20,7 +20,7 @@ const mygoUI = "github.com/egoist/mygo/ui"
 
 // leaves import no internal package: the bottom layer.
 var leaves = []string{"core", "jobs", "settings", "i18n", "lang", "audio", "ffmpeg", "torchpt", "icons",
-	"dictation", "engine/proto", "text", "dsp", "doc/textenc", "volume"}
+	"dictation", "engine/proto", "text", "dsp", "doc/textenc", "volume", "sysinfo"}
 
 // families import only their own packages: the DSP and text libraries.
 var families = []string{"dsp", "text"}
