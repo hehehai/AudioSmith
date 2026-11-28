@@ -35,6 +35,7 @@ func (t *Tool) runIn(ctx context.Context, dir string, args []string, out string,
 	full := append([]string{"-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-nostats", "-progress", "pipe:1"}, args...)
 	full = append(full, tmp)
 	cmd := command(ctx, t.FFmpeg, full...)
+	hideWindow(cmd)
 	cmd.Dir = dir
 	var errb tailBuffer
 	cmd.Stderr = &errb

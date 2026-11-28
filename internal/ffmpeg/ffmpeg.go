@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -113,6 +114,7 @@ func Inspect(ctx context.Context, path string) (*Tool, error) {
 
 func output(ctx context.Context, path string, args ...string) (string, error) {
 	cmd := command(ctx, path, args...)
+	hideWindow(cmd)
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	if err := cmd.Run(); err != nil {
@@ -261,7 +263,10 @@ func (t *Tool) CanBurn() bool { return t.HasFilter("subtitles") || t.HasFilter("
 // get the shell's PATH, so these are checked first.
 var SystemPaths = []string{"/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/local/bin/ffmpeg"}
 
-// FindSystem lists the ffmpeg executables on this Mac outside the app.
+// findOS controls platform discovery in FindSystem (tests may override).
+var findOS = runtime.GOOS
+
+// FindSystem lists the ffmpeg executables on this machine outside the app.
 func FindSystem() []string {
 	var out []string
 	add := func(p string) {
@@ -275,9 +280,26 @@ func FindSystem() []string {
 				}
 			}
 		}
-		if fi, err := os.Stat(p); err == nil && !fi.IsDir() && fi.Mode()&0o111 != 0 {
-			out = append(out, p)
+		fi, err := os.Stat(p)
+		if err != nil || fi.IsDir() {
+			return
 		}
+		if findOS != "windows" && fi.Mode()&0o111 == 0 {
+			return
+		}
+		out = append(out, p)
+	}
+	if findOS == "windows" {
+		for _, p := range windowsCandidates("ffmpeg.exe") {
+			add(p)
+		}
+		if p, err := exec.LookPath("ffmpeg.exe"); err == nil {
+			add(p)
+		}
+		if p, err := exec.LookPath("ffmpeg"); err == nil {
+			add(p)
+		}
+		return out
 	}
 	for _, p := range SystemPaths {
 		add(p)
@@ -285,6 +307,39 @@ func FindSystem() []string {
 	if p, err := exec.LookPath("ffmpeg"); err == nil {
 		add(p)
 	}
+	return out
+}
+
+// windowsCandidates returns standard Windows locations for an external
+// tool executable (app resources dir, WinGet, Scoop, Chocolatey, Program
+// Files).
+func windowsCandidates(exe string) []string {
+	var out []string
+	if self, err := os.Executable(); err == nil {
+		dir := filepath.Dir(self)
+		out = append(out,
+			filepath.Join(dir, exe),
+			filepath.Join(dir, "resources", exe),
+			filepath.Join(dir, "bin", exe),
+		)
+	}
+	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+		out = append(out, filepath.Join(local, "Microsoft", "WinGet", "Links", exe))
+		if matches, err := filepath.Glob(filepath.Join(local, "Microsoft", "WinGet", "Packages", "*", "*", "bin", exe)); err == nil {
+			out = append(out, matches...)
+		}
+	}
+	if scoop := os.Getenv("SCOOP"); scoop != "" {
+		out = append(out, filepath.Join(scoop, "shims", exe))
+	}
+	if profile := os.Getenv("USERPROFILE"); profile != "" {
+		out = append(out, filepath.Join(profile, "scoop", "shims", exe))
+	}
+	out = append(out, filepath.Join(`C:\ProgramData\chocolatey\bin`, exe))
+	if pf := os.Getenv("ProgramFiles"); pf != "" {
+		out = append(out, filepath.Join(pf, "ffmpeg", "bin", exe))
+	}
+	out = append(out, filepath.Join(`C:\ffmpeg\bin`, exe))
 	return out
 }
 
