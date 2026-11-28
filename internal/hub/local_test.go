@@ -26,12 +26,12 @@ func TestStatusOfOtherToolsCache(t *testing.T) {
 	os.WriteFile(filepath.Join(repo, "refs", "main"), []byte(testCommit), 0o644)
 	os.WriteFile(filepath.Join(repo, "blobs", "abc"), []byte("{}"), 0o644)
 	os.Symlink("../../blobs/abc", filepath.Join(repo, "snapshots", testCommit, "config.json"))
-	if l, _ := Status(dir, e); l.State != Partial {
+	if l, _ := StatusFor(dir, "darwin", e); l.State != Partial {
 		t.Errorf("config only: %+v", l)
 	}
 	os.WriteFile(filepath.Join(repo, "blobs", "w"), []byte("weights"), 0o644)
 	os.Symlink("../../blobs/w", filepath.Join(repo, "snapshots", testCommit, "model.safetensors"))
-	if l, _ := Status(dir, e); l.State != Downloaded || l.Bytes != 9 {
+	if l, _ := StatusFor(dir, "darwin", e); l.State != Downloaded || l.Bytes != 9 {
 		t.Errorf("with weights: %+v", l)
 	}
 }
@@ -78,7 +78,7 @@ func TestAuxSnapshots(t *testing.T) {
 	os.MkdirAll(filepath.Join(RepoDir(cache, g2p), "refs"), 0o755)
 	os.WriteFile(filepath.Join(RepoDir(cache, g2p), "refs", "main"), []byte(other), 0o644)
 	e := catalog.Entry{Repo: "acme/m", Aux: []catalog.Aux{{Repo: g2p, Revision: pinned}, {Repo: tok, Revision: pinned}}}
-	got := AuxSnapshots(cache, e)
+	got := AuxSnapshotsInFor([]string{cache}, "darwin", e)
 	if len(got) != 1 || got[g2p] != filepath.Join(RepoDir(cache, g2p), "snapshots", pinned) {
 		t.Errorf("aux snapshots %v", got)
 	}
@@ -104,18 +104,18 @@ func TestStatusInAcrossFolders(t *testing.T) {
 	e := catalog.Entry{Repo: "acme/m", Aux: []catalog.Aux{{Repo: "acme/g2p"}}}
 	put(to, "acme/m", true)      // moved
 	put(from, "acme/g2p", false) // not yet
-	if l, _ := Status(from, e); l.State == Downloaded {
+	if l, _ := StatusFor(from, "darwin", e); l.State == Downloaded {
 		t.Fatal("the old folder alone has the whole model")
 	}
-	l, err := StatusIn([]string{from, to}, e)
+	l, err := StatusInFor([]string{from, to}, "darwin", e)
 	if err != nil || l.State != Downloaded || !strings.HasPrefix(l.Snapshot, to) {
 		t.Fatalf("across folders: %+v %v", l, err)
 	}
-	aux := AuxSnapshotsIn([]string{from, to}, e)
+	aux := AuxSnapshotsInFor([]string{from, to}, "darwin", e)
 	if !strings.HasPrefix(aux["acme/g2p"], from) {
 		t.Errorf("aux %v", aux)
 	}
-	c := New(Options{CacheDir: from, AlsoIn: []string{to}})
+	c := New(Options{CacheDir: from, AlsoIn: []string{to}, GOOS: "darwin"})
 	if l, _ := c.Status(t.Context(), e); l.State != Downloaded {
 		t.Errorf("client: %+v", l)
 	}

@@ -238,7 +238,7 @@ func (h *fakeHub) entry() catalog.Entry {
 
 func (h *fakeHub) client(t *testing.T, mod func(*Options)) *Client {
 	t.Helper()
-	o := Options{CacheDir: t.TempDir(), Endpoints: []string{h.srv.URL}, Official: h.srv.URL, ChunkSize: 1024, ReserveBytes: -1}
+	o := Options{CacheDir: t.TempDir(), Endpoints: []string{h.srv.URL}, Official: h.srv.URL, ChunkSize: 1024, ReserveBytes: -1, GOOS: "darwin"}
 	if mod != nil {
 		mod(&o)
 	}
