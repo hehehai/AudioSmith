@@ -3131,6 +3131,7 @@
   "Type the Hugging Face repo of the model to use.": "请填写要用的模型的 Hugging Face 仓库。",
   "Type, paste or import a script.": "输入、粘贴或导入脚本。",
   "Typing into the app failed: paste it there.": "输入到应用失败：请在那里粘贴。",
+  "Cannot type into an elevated (Administrator) window: copied to the clipboard.": "无法向管理员权限窗口直接输入：已复制到剪贴板。",
   "Typing needs Accessibility (Settings → Dictation): until then the text is copied.": "直接输入需要辅助功能权限（设置 → 听写）：在此之前文字会被复制。",
   "Typing uses the clipboard and ⌘V, then puts back what you had copied. It needs Accessibility.": "直接输入借助剪贴板和 ⌘V，之后会恢复你原来复制的内容。需要辅助功能权限。",
   "Typing uses the clipboard and Ctrl+V, then puts back what you had copied. Elevated (Administrator) windows fall back to the clipboard.": "直接输入借助剪贴板和 Ctrl+V，之后会恢复你原来复制的内容。管理员权限窗口会自动回退到剪贴板。",

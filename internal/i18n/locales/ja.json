@@ -3131,6 +3131,7 @@
   "Type the Hugging Face repo of the model to use.": "使用するモデルのHugging Faceリポジトリを入力してください。",
   "Type, paste or import a script.": "台本を入力、ペースト、または読み込んでください。",
   "Typing into the app failed: paste it there.": "アプリへの入力に失敗しました：そこにペーストしてください。",
+  "Cannot type into an elevated (Administrator) window: copied to the clipboard.": "管理者権限のウィンドウには直接入力できません：クリップボードにコピーしました。",
   "Typing needs Accessibility (Settings → Dictation): until then the text is copied.": "入力するにはアクセシビリティの許可が必要です（「設定」→「音声入力」）。それまではテキストがコピーされます。",
   "Typing uses the clipboard and ⌘V, then puts back what you had copied. It needs Accessibility.": "入力はクリップボードと⌘Vを使い、その後コピーしていた内容を元に戻します。アクセシビリティの許可が必要です。",
   "Typing uses the clipboard and Ctrl+V, then puts back what you had copied. Elevated (Administrator) windows fall back to the clipboard.": "入力はクリップボードと Ctrl+V を使い、その後コピーしていた内容を元に戻します。管理者権限のウィンドウではクリップボードにフォールバックします。",

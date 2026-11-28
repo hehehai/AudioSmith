@@ -365,6 +365,9 @@ func copiedReason(r dictation.Result) string {
 	case dictation.ReasonNotActivated:
 		return i18n.T("The app did not come back to the front: paste it there.")
 	case dictation.ReasonPasteFailed:
+		if errors.Is(r.Err, dictation.ErrElevatedTarget) {
+			return i18n.T("Cannot type into an elevated (Administrator) window: copied to the clipboard.")
+		}
 		return i18n.T("Typing into the app failed: paste it there.")
 	case dictation.ReasonClipboardError:
 		return i18n.T("The clipboard could not be written.")

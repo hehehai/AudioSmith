@@ -61,6 +61,11 @@ func onMain(fn func()) {
 // ErrUnsupported: the platform cannot do it (Linux, tests).
 var ErrUnsupported = errors.New("dictation: not supported on this system")
 
+// ErrElevatedTarget: on Windows, UIPI blocks synthetic input to a higher-
+// privilege (Administrator) foreground window. Insert falls back to the
+// clipboard.
+var ErrElevatedTarget = errors.New("dictation: target window is elevated (UIPI)")
+
 // System is what dictation needs of the OS. Methods are safe from any
 // goroutine unless they say otherwise.
 type System interface {
