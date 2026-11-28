@@ -355,6 +355,99 @@ func TestReleasePublish(t *testing.T) {
 	}
 }
 
+// TestReleasePublishWindows verifies Windows installer and manifest discovery
+// (--include-windows and --windows-dir) without breaking the macOS flow or
+// touching the vendored actnow-publish.sh.
+func TestReleasePublishWindows(t *testing.T) {
+	needTools(t)
+	log := filepath.Join(t.TempDir(), "calls.log")
+	s := newSite(t, log)
+	root, _ := publishRoot(t, s.srv.URL, "")
+	base := s.srv.URL + "/updates/audiosmith/beta/"
+	publish := func(root, log string, env []string, args ...string) (string, string, error) {
+		env = append([]string{
+			"PATH=" + filepath.Join(root, "bin") + ":" + os.Getenv("PATH"), "LOG=" + log, "ACTNOW_URL=" + s.srv.URL,
+		}, env...)
+		return run(t, root, env, "bash", append([]string{"scripts/release-publish.sh"}, args...)...)
+	}
+
+	winDir := filepath.Join(root, "build/windows-amd64")
+	if err := os.MkdirAll(winDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	winManifest, _ := json.Marshal(map[string]any{
+		"version": "0.4.0-beta.5", "notes": "- Five.",
+		"url": base + "audiosmith-0.4.0-beta.5-windows-amd64.tar.gz", "size": 9, "signature": "wsig",
+	})
+	for name, content := range map[string]string{
+		"audiosmith-setup-0.4.0-beta.5-amd64.exe":      "nsis installer",
+		"audiosmith-0.4.0-beta.5-windows-amd64.tar.gz": "win archive",
+		"update-windows-amd64.json":                    string(winManifest),
+	} {
+		if err := os.WriteFile(filepath.Join(winDir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Dry run with --include-windows stages both macOS and Windows artifacts
+	// and mentions Windows in github-notes.md.
+	out, stderr, err := publish(root, log, nil, "--dry-run", "--include-windows")
+	if err != nil {
+		t.Fatalf("dry-run --include-windows: %v\n%s%s", err, out, stderr)
+	}
+	if !strings.Contains(out, "audiosmith-setup-0.4.0-beta.5-amd64.exe") || !strings.Contains(out, "update-windows-amd64.json") {
+		t.Errorf("dry-run missing Windows artifacts:\n%s", out)
+	}
+	notes, err := os.ReadFile(filepath.Join(root, "build/github-notes.md"))
+	if err != nil || !strings.Contains(string(notes), "audiosmith-setup-0.4.0-beta.5-amd64.exe") {
+		t.Errorf("github-notes.md missing Windows installer: %v\n%s", err, notes)
+	}
+
+	// Windows-only GitHub upload (--skip-website --windows-dir) works without
+	// build/darwin-arm64 and uploads manifests last.
+	winOnlyRoot := fakeRoot(t, []string{"actnow.sh", "actnow-publish.sh", "release-publish.sh"}, map[string]string{
+		"mygo.json":    `{"name": "AudioSmith", "version": "0.4.0-beta.5", "updates": {"publicKey": "k", "url": "` + s.srv.URL + `/updates/audiosmith"}}`,
+		"CHANGELOG.md": "# Changelog\n\n## 0.4.0-beta.5\n\n- Five.\n",
+		"build/windows-amd64/audiosmith-setup-0.4.0-beta.5-amd64.exe":      "nsis installer",
+		"build/windows-amd64/audiosmith-0.4.0-beta.5-windows-amd64.tar.gz": "win archive",
+		"build/windows-amd64/update-windows-amd64.json":                    string(winManifest),
+		"bin/gh": "#!/usr/bin/env bash\n" +
+			"set -euo pipefail\n" +
+			"echo \"gh $*\" >> \"$LOG\"\n" +
+			"if [[ \"$1 $2\" == \"release view\" ]]; then exit 0; fi\n",
+	})
+	os.Remove(log)
+	s.reset()
+	if out, stderr, err := publish(winOnlyRoot, log, nil, "--skip-website", "--windows-dir", "build/windows-amd64"); err != nil {
+		t.Fatalf("windows-only publish: %v\n%s%s", err, out, stderr)
+	}
+	if s.calls != 0 {
+		t.Errorf("windows-only touched website: %d calls", s.calls)
+	}
+	if want := []string{
+		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
+		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/audiosmith-setup-0.4.0-beta.5-amd64.exe",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-windows-amd64.json",
+	}; !slices.Equal(readLog(log), want) {
+		t.Errorf("windows-only calls:\n%s\nwant:\n%s", strings.Join(readLog(log), "\n"), strings.Join(want, "\n"))
+	}
+
+	// Bad Windows manifest URL is rejected before anything is sent.
+	badManifest, _ := json.Marshal(map[string]any{
+		"version": "0.4.0-beta.5",
+		"url":     s.srv.URL + "/updates/audiosmith/audiosmith-0.4.0-beta.5-windows-amd64.tar.gz",
+	})
+	if err := os.WriteFile(filepath.Join(winDir, "update-windows-amd64.json"), badManifest, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(log)
+	_, stderr, err = publish(root, log, nil, "--skip-website", "--windows-dir", "build/windows-amd64")
+	if err == nil || !strings.Contains(stderr, "/updates/audiosmith/beta/: build with") || readLog(log) != nil {
+		t.Errorf("bad windows manifest: err=%v stderr=%s calls=%v", err, stderr, readLog(log))
+	}
+}
+
 // TestActnowPublishVendored checks that scripts/actnow-publish.sh is the
 // site's script, untouched (refresh it with scripts/vendor-actnow-publish.sh,
 // never by hand): the sha256 below changes only with such a refresh.

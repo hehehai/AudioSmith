@@ -118,6 +118,12 @@ func TestReleaseConfig(t *testing.T) {
 	if _, err := config("MYGO_UPDATER_PUBLIC_KEY=bm90IGEga2V5"); err == nil {
 		t.Errorf("not a key: no error")
 	}
+	// Windows signing command is injected into windows.signCommand.
+	c, err = config("WINDOWS_SIGN_COMMAND=signtool sign /fd SHA256 %1")
+	win, _ := json.Marshal(c["windows"])
+	if err != nil || string(win) != `{"signCommand":"signtool sign /fd SHA256 %1"}` {
+		t.Errorf("windows signCommand: %s, %v", win, err)
+	}
 	// --print changes nothing.
 	if b, _ := os.ReadFile(filepath.Join(root, "mygo.json")); string(b) != testConfig {
 		t.Errorf("mygo.json changed: %s", b)
