@@ -98,14 +98,18 @@ if $include_windows; then
   done
 fi
 
-# Discover Windows installers and update manifests when requested.
+# Discover Windows installers, portable archives, checksums, and update manifests.
 win_installers=()
+win_checksums=()
 win_manifests=()
 for wdir in ${win_dirs[@]+"${win_dirs[@]}"}; do
   [[ -d "$wdir" ]] || fail "no Windows build directory $wdir"
   while IFS= read -r f; do
     [[ -n "$f" ]] && win_installers+=("$f")
-  done < <(find "$wdir" -maxdepth 1 -type f \( -name "*-setup-$version-*.exe" -o -name "AudioSmith-$version-windows-*.exe" \) | sort)
+  done < <(find "$wdir" -maxdepth 1 -type f \( -name "*-setup-$version-*.exe" -o -name "AudioSmith-$version-windows-*.exe" -o -name "AudioSmith-$version-windows-*-portable.zip" \) | sort)
+  while IFS= read -r f; do
+    [[ -n "$f" ]] && win_checksums+=("$f")
+  done < <(find "$wdir" -maxdepth 1 -type f -name 'SHA256SUMS-windows*.txt' | sort)
   while IFS= read -r f; do
     [[ -n "$f" ]] && win_manifests+=("$f")
   done < <(find "$wdir" -maxdepth 1 -type f -name 'update-windows-*.json' | sort)
@@ -211,6 +215,11 @@ if $github; then
   for wi in ${win_installers[@]+"${win_installers[@]}"}; do
     local_name="$(basename "$wi")"
     cp "$wi" "$gh_dir/$local_name"
+    gh_files+=("$gh_dir/$local_name")
+  done
+  for wc in ${win_checksums[@]+"${win_checksums[@]}"}; do
+    local_name="$(basename "$wc")"
+    cp "$wc" "$gh_dir/$local_name"
     gh_files+=("$gh_dir/$local_name")
   done
   if [[ -f "$manifest" ]]; then

@@ -23,17 +23,20 @@ AudioSmith builds for **Windows 10/11 x64 (`amd64`)** and **Windows 11 ARM64 (`a
 You can compile both `audiosmith-engine.exe` and the full portable `AudioSmith.exe` bundle (including `Sqlitecore.dll` and resources) directly from Linux or macOS with `CGO_ENABLED=0`:
 
 ```bash
-# Portable amd64 build (stages engine + builds build/windows-amd64/)
-scripts/build-win.sh --arch amd64 --skip-installer
+# Portable amd64 ZIP + SHA256SUMS-windows.txt (skips NSIS installer automatically)
+scripts/build-win.sh --arch amd64 --portable
 
-# Portable arm64 build (stages engine + builds build/windows-arm64/)
-scripts/build-win.sh --arch arm64 --skip-installer
+# Portable arm64 ZIP + SHA256SUMS-windows.txt
+scripts/build-win.sh --arch arm64 --portable
+
+# Portable directory only (no ZIP, no NSIS installer)
+scripts/build-win.sh --arch amd64 --skip-installer
 
 # Engine binary only (staged to resources/windows-<arch>/engine/audiosmith-engine.exe)
 scripts/build-win.sh --arch amd64 --engine-only
 ```
 
-If `makensis` is installed on Linux/macOS (`apt install nsis` / `brew install makensis`), omit `--skip-installer` to also produce `build/windows-<arch>/audiosmith-setup-<version>-<arch>.exe`.
+If `makensis` is installed on Linux/macOS (`apt install nsis` / `brew install makensis`), pass `--installer` (optionally combined with `--portable`) to also produce `build/windows-<arch>/AudioSmith-<version>-windows-<arch>-setup.exe` and `SHA256SUMS-windows.txt`.
 
 ### Cross-platform `go vet` & compile checks
 
@@ -66,8 +69,11 @@ On Windows 10/11 (PowerShell 5.1+ or PowerShell 7+):
 # Default: unsigned amd64 build + NSIS installer
 .\scripts\build-win.ps1
 
-# ARM64 portable directory only (no NSIS installer)
-.\scripts\build-win.ps1 -Arch arm64 -SkipInstaller
+# Release packaging: NSIS installer + self-contained portable ZIP + SHA256SUMS-windows.txt
+.\scripts\build-win.ps1 -Arch amd64 -Installer -Portable
+
+# ARM64 portable ZIP + SHA256SUMS-windows.txt (skips NSIS installer automatically)
+.\scripts\build-win.ps1 -Arch arm64 -Portable
 
 # Build and stage audiosmith-engine.exe only
 .\scripts\build-win.ps1 -EngineOnly
@@ -77,7 +83,9 @@ Outputs are written to `build\windows-<arch>\`:
 - `AudioSmith.exe` — main desktop application
 - `engine\audiosmith-engine.exe` — staged Windows hybrid engine
 - `Sqlitecore.dll` — SQLite native plugin library
-- `audiosmith-setup-<version>-<arch>.exe` — per-user NSIS installer (`%LOCALAPPDATA%\Programs\AudioSmith`, registers `.asvoice` / `.ovsvoice` and `audiosmith://` under `HKCU`, no UAC required)
+- `AudioSmith-<version>-windows-<arch>-setup.exe` — per-user NSIS installer (`%LOCALAPPDATA%\Programs\AudioSmith`, registers `.asvoice` / `.ovsvoice` and `audiosmith://` under `HKCU`, no UAC required)
+- `AudioSmith-<version>-windows-<arch>-portable.zip` — self-contained portable archive (when `-Portable` is passed)
+- `SHA256SUMS-windows.txt` — SHA-256 checksums for the installer and/or portable ZIP (automatic with `-Installer` or `-Portable`, or pass `-Checksum`)
 
 ### `Sqlitecore.dll`: Prebuilt Cache vs. Building with Zig
 
@@ -163,9 +171,12 @@ signtool verify /pa /v build\windows-amd64\audiosmith-setup-*-amd64.exe
 
 ## 6. Release & Publishing Notes
 
+For the full Windows release runbook (GitHub Actions `.github/workflows/release-windows.yml`, Azure Trusted Signing setup & secrets, dry-run/SmartScreen testing, and the `actnow.dev` ingest checklist), see [`docs/release-windows.zh-CN.md`](release-windows.zh-CN.md).
+
+- **Windows Release workflow (`.github/workflows/release-windows.yml`)**: runs independently from macOS `.github/workflows/release.yml`, builds `AudioSmith-<version>-windows-amd64-setup.exe`, `AudioSmith-<version>-windows-amd64-portable.zip`, `AudioSmith-<version>-windows-arm64-portable.zip`, `SHA256SUMS-windows.txt`, and `update-windows-amd64.json` (when updater keys are configured). Falls back cleanly to an unsigned build if Azure Trusted Signing secrets are absent.
 - **Update feed config (`scripts/release-config.sh`)**: setting `MYGO_UPDATER_PUBLIC_KEY` writes the cross-platform `updates` block (`https://actnow.dev/updates/audiosmith` with `prereleases: true`). Setting `WINDOWS_SIGN_COMMAND` writes `windows.signCommand` into `mygo.json` for CI builds.
 - **Staging Windows release artifacts (`scripts/release-publish.sh`)**:
   - `--include-windows` auto-discovers `build/windows-amd64` and `build/windows-arm64` if present.
-  - `--windows-dir <dir>` (repeatable) explicitly includes Windows build directories.
+  - `--windows-dir <dir>` (repeatable) explicitly includes Windows build directories (`.exe`, `-portable.zip`, `SHA256SUMS-windows*.txt`, and `update-windows-*.json`).
   - Combine with `--skip-website` on a Windows runner to attach Windows installers and `update-windows-*.json` manifests to an existing draft GitHub release without needing `build/darwin-arm64`.
 - **`actnow.dev` website ingest (`scripts/actnow-publish.sh`)**: `scripts/actnow-publish.sh` is vendored verbatim from `actnow.dev` (SHA-256 pinned by `TestActnowPublishVendored`). Until `actnow.dev` enables Windows `.exe` ingest and `scripts/vendor-actnow-publish.sh` is refreshed, Windows installers and manifests are published via GitHub releases while macOS continues publishing to both `actnow.dev` and GitHub.
