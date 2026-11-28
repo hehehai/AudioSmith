@@ -18,13 +18,13 @@ var (
 )
 
 const (
-	replacefileIgnoreMergeErrors  = 0x2
-	replacefileIgnoreACLErrors    = 0x4
-	errUnableToRemoveReplaced     = syscall.Errno(1175)
-	errUnableToMoveReplacement    = syscall.Errno(1176)
-	errUnableToMoveReplacement2   = syscall.Errno(1177)
-	errSharingViolation           = syscall.Errno(32)
-	errLockViolation              = syscall.Errno(33)
+	replacefileIgnoreMergeErrors = 0x2
+	replacefileIgnoreACLErrors   = 0x4
+	errUnableToRemoveReplaced    = syscall.Errno(1175)
+	errUnableToMoveReplacement   = syscall.Errno(1176)
+	errUnableToMoveReplacement2  = syscall.Errno(1177)
+	errSharingViolation          = syscall.Errno(32)
+	errLockViolation             = syscall.Errno(33)
 )
 
 // ReplaceFile replaces dst with src on Windows, using ReplaceFileW when dst

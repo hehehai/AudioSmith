@@ -15,8 +15,8 @@ var (
 	kernel32               = windows.NewLazySystemDLL("kernel32.dll")
 	procGlobalMemoryStatus = kernel32.NewProc("GlobalMemoryStatusEx")
 
-	dxgiDLL                  = windows.NewLazySystemDLL("dxgi.dll")
-	procCreateDXGIFactory1   = dxgiDLL.NewProc("CreateDXGIFactory1")
+	dxgiDLL                = windows.NewLazySystemDLL("dxgi.dll")
+	procCreateDXGIFactory1 = dxgiDLL.NewProc("CreateDXGIFactory1")
 )
 
 type memoryStatusEx struct {
@@ -75,11 +75,11 @@ var iidIDXGIFactory1 = windows.GUID{
 }
 
 const (
-	dxgiErrorNotFound      = 0x887A0002
-	dxgiAdapterFlagSoft    = 0x2
-	vtableRelease          = 2  // IUnknown::Release
-	vtableEnumAdapters1    = 12 // IDXGIFactory1::EnumAdapters1
-	vtableAdapterGetDesc1  = 10 // IDXGIAdapter1::GetDesc1
+	dxgiErrorNotFound     = 0x887A0002
+	dxgiAdapterFlagSoft   = 0x2
+	vtableRelease         = 2  // IUnknown::Release
+	vtableEnumAdapters1   = 12 // IDXGIFactory1::EnumAdapters1
+	vtableAdapterGetDesc1 = 10 // IDXGIAdapter1::GetDesc1
 )
 
 type dxgiAdapterDesc1 struct {

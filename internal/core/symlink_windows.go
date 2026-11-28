@@ -57,10 +57,10 @@ func createDirLink(target, link string) error {
 	binary.LittleEndian.PutUint32(buf[0:4], ioReparseTagMountPoint)
 	binary.LittleEndian.PutUint16(buf[4:6], uint16(dataLen))
 	// buf[6:8] reserved = 0
-	binary.LittleEndian.PutUint16(buf[8:10], 0)                      // SubstituteNameOffset
-	binary.LittleEndian.PutUint16(buf[10:12], uint16(subBytes))      // SubstituteNameLength
-	binary.LittleEndian.PutUint16(buf[12:14], uint16(subBytes+2))    // PrintNameOffset
-	binary.LittleEndian.PutUint16(buf[14:16], uint16(printBytes))    // PrintNameLength
+	binary.LittleEndian.PutUint16(buf[8:10], 0)                   // SubstituteNameOffset
+	binary.LittleEndian.PutUint16(buf[10:12], uint16(subBytes))   // SubstituteNameLength
+	binary.LittleEndian.PutUint16(buf[12:14], uint16(subBytes+2)) // PrintNameOffset
+	binary.LittleEndian.PutUint16(buf[14:16], uint16(printBytes)) // PrintNameLength
 	off := 16
 	for _, r := range subName {
 		binary.LittleEndian.PutUint16(buf[off:off+2], r)
