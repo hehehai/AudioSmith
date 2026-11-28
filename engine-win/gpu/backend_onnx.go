@@ -2,26 +2,44 @@ package gpu
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/hehehai/AudioSmith/engine-win/hw"
+	"github.com/hehehai/AudioSmith/engine-win/internal/onnx"
 	"github.com/hehehai/AudioSmith/engine-win/server"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 )
 
+type onnxModelEntry struct {
+	task      string
+	modelPath string
+	session   onnx.Session
+	vad       *onnx.SileroVAD
+	kokoro    *onnx.KokoroTTS
+	bytes     int64
+}
+
 // ONNXBackend adapts native ONNX Runtime (DirectML on Windows x64/ARM64 iGPU,
-// CPU fallback) for lightweight models (Kokoro, Silero VAD, DeepFilterNet3,
-// Whisper ONNX, HTDemucs ONNX).
+// CPU fallback) for lightweight models (Silero VAD, Kokoro 82M TTS, and future
+// ONNX models) with zero CGO.
 type ONNXBackend struct {
 	hw       hw.Info
 	libPath  string
 	provider string
+
+	mu       sync.Mutex
+	rt       onnx.Runtime
+	injected bool
+	models   map[string]*onnxModelEntry
 }
 
-// NewONNXBackend discovers an installed ONNX Runtime library and picks the
-// DirectML execution provider on iGPU/GPU Windows hosts, else CPU.
+// NewONNXBackend discovers an installed ONNX Runtime library and prefers
+// DirectML on iGPU/GPU Windows hosts, falling back cleanly to CPU EP.
 func NewONNXBackend(hwInfo hw.Info) *ONNXBackend {
 	provider := "cpu"
 	if hwInfo.GPUTier == hw.TierDirectML || hwInfo.GPUTier == hw.TierCUDA {
@@ -29,67 +47,225 @@ func NewONNXBackend(hwInfo hw.Info) *ONNXBackend {
 	}
 	return &ONNXBackend{
 		hw:       hwInfo,
-		libPath:  findONNXRuntime(),
+		libPath:  onnx.DiscoverDLL(),
 		provider: provider,
+		models:   map[string]*onnxModelEntry{},
 	}
 }
 
-func findONNXRuntime() string {
-	if p := os.Getenv("AUDIOSMITH_ONNXRUNTIME"); p != "" {
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
-	}
-	if exe, err := os.Executable(); err == nil {
-		for _, name := range []string{"onnxruntime.dll", "libonnxruntime.so", "libonnxruntime.dylib"} {
-			cand := filepath.Join(filepath.Dir(exe), name)
-			if _, err := os.Stat(cand); err == nil {
-				return cand
-			}
-		}
-	}
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
-		cand := filepath.Join(local, "ActNow", "runtimes", "onnx", "onnxruntime.dll")
-		if _, err := os.Stat(cand); err == nil {
-			return cand
-		}
-	}
-	return ""
+// NewONNXBackendWithRuntime creates an ONNXBackend backed by an explicit
+// onnx.Runtime (used by unit and integration tests on Linux/macOS).
+func NewONNXBackendWithRuntime(hwInfo hw.Info, rt onnx.Runtime) *ONNXBackend {
+	b := NewONNXBackend(hwInfo)
+	b.rt = rt
+	b.injected = true
+	return b
 }
 
 func (b *ONNXBackend) Name() string     { return "onnx" }
 func (b *ONNXBackend) Provider() string { return b.provider }
-func (b *ONNXBackend) Available() bool  { return b.libPath != "" }
+func (b *ONNXBackend) Available() bool  { return b.injected || b.libPath != "" }
 
 func (b *ONNXBackend) Supports(task, model, modelPath string) bool {
-	if hasFileWithExt(modelPath, ".onnx") {
+	if onnx.ResolveModelFile(modelPath) != "" || hasFileWithExt(modelPath, ".onnx") {
 		return true
 	}
 	low := strings.ToLower(model)
 	switch task {
-	case "vad", "enhance":
+	case "vad":
 		return true
 	case "tts":
 		return strings.Contains(low, "kokoro") || strings.Contains(low, "onnx")
+	case "enhance":
+		return strings.Contains(low, "onnx") || strings.Contains(low, "deepfilter")
 	case "stt":
 		return strings.Contains(low, "onnx")
 	}
 	return false
 }
 
-func (b *ONNXBackend) notReady(capName string) error {
-	return unsupportedBackendError(b.Name(), b.provider, capName, "ONNX Runtime execution binding is scheduled for Phase 1.5")
+func (b *ONNXBackend) ensureRuntime() (onnx.Runtime, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.rt != nil {
+		return b.rt, nil
+	}
+	if b.libPath == "" {
+		b.libPath = onnx.DiscoverDLL()
+	}
+	if b.libPath == "" {
+		return nil, unsupportedBackendError(b.Name(), b.provider, "runtime", "onnxruntime.dll not found")
+	}
+	rt, err := onnx.Open(b.libPath)
+	if err != nil {
+		return nil, fmt.Errorf("onnx open runtime: %w", err)
+	}
+	b.rt = rt
+	return rt, nil
+}
+
+func (b *ONNXBackend) sessionOpts() onnx.SessionOptions {
+	threads := b.hw.NumCPU
+	if threads > 4 {
+		threads = 4
+	}
+	if threads < 1 {
+		threads = 1
+	}
+	return onnx.SessionOptions{
+		PreferDirectML: b.provider == "directml",
+		DeviceID:       0,
+		IntraOpThreads: threads,
+		InterOpThreads: 1,
+	}
 }
 
 func (b *ONNXBackend) Load(_ context.Context, p proto.LoadParams) (proto.LoadResult, error) {
-	return proto.LoadResult{}, b.notReady("models.load:" + p.Model)
+	entry, secs, err := b.getOrLoad(p.Model, p.Task, p.Path)
+	if err != nil {
+		return proto.LoadResult{}, err
+	}
+	b.provider = entry.session.Provider()
+	sr := 16000
+	var caps []string
+	var langs []string
+	if entry.task == "tts" {
+		sr = 24000
+		caps = []string{"stream", "speed"}
+		langs = []string{"en"}
+	}
+	return proto.LoadResult{
+		Model:        p.Model,
+		Task:         entry.task,
+		SampleRate:   sr,
+		Seconds:      secs,
+		Bytes:        entry.bytes,
+		Languages:    langs,
+		Capabilities: caps,
+	}, nil
 }
 
-func (b *ONNXBackend) Unload(_ context.Context, _ string) error { return nil }
+func (b *ONNXBackend) getOrLoad(model, task, modelPath string) (*onnxModelEntry, float64, error) {
+	if task == "" {
+		if strings.Contains(strings.ToLower(model), "vad") || strings.Contains(strings.ToLower(model), "silero") {
+			task = "vad"
+		} else {
+			task = "tts"
+		}
+	}
 
-func (b *ONNXBackend) Synthesize(_ context.Context, _ string, _ proto.SynthesizeParams, _ server.Notifier) (proto.SynthesizeResult, error) {
-	return proto.SynthesizeResult{}, b.notReady("tts")
+	b.mu.Lock()
+	if e, ok := b.models[model]; ok {
+		b.mu.Unlock()
+		return e, 0, nil
+	}
+	b.mu.Unlock()
+
+	rt, err := b.ensureRuntime()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var preferred []string
+	if task == "vad" {
+		preferred = []string{"silero_vad.onnx", "model.onnx"}
+	} else {
+		preferred = []string{"kokoro-v1.0.onnx", "model_quantized.onnx", "model.onnx"}
+	}
+	onnxFile := onnx.ResolveModelFile(modelPath, preferred...)
+	if onnxFile == "" {
+		if b.injected && modelPath != "" {
+			onnxFile = modelPath
+		} else {
+			return nil, 0, proto.Errorf(proto.CodeFileNotFound, "onnx: no .onnx model file found at %q", modelPath)
+		}
+	}
+
+	start := time.Now()
+	sess, err := rt.NewSession(onnxFile, b.sessionOpts())
+	if err != nil {
+		return nil, 0, fmt.Errorf("onnx: load %q: %w", onnxFile, err)
+	}
+	secs := time.Since(start).Seconds()
+
+	var sz int64
+	if fi, err := os.Stat(onnxFile); err == nil {
+		sz = fi.Size()
+	}
+	modelDir := modelPath
+	if fi, err := os.Stat(modelPath); err == nil && !fi.IsDir() {
+		modelDir = filepath.Dir(modelPath)
+	}
+
+	entry := &onnxModelEntry{
+		task:      task,
+		modelPath: onnxFile,
+		session:   sess,
+		bytes:     sz,
+	}
+	switch task {
+	case "vad":
+		entry.vad = onnx.NewSileroVAD(sess)
+	case "tts":
+		entry.kokoro = onnx.NewKokoroTTS(sess, modelDir)
+	}
+
+	b.mu.Lock()
+	if prev, ok := b.models[model]; ok {
+		_ = prev.session.Close()
+	}
+	b.models[model] = entry
+	b.mu.Unlock()
+	return entry, secs, nil
 }
+
+func (b *ONNXBackend) Unload(_ context.Context, model string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if model == "" {
+		for id, e := range b.models {
+			_ = e.session.Close()
+			delete(b.models, id)
+		}
+		return nil
+	}
+	if e, ok := b.models[model]; ok {
+		_ = e.session.Close()
+		delete(b.models, model)
+	}
+	return nil
+}
+
+func (b *ONNXBackend) VAD(ctx context.Context, _ string, p proto.VADParams, _ server.Notifier) (proto.VADResult, error) {
+	entry, _, err := b.getOrLoad(p.Model, "vad", p.ModelPath)
+	if err != nil {
+		return proto.VADResult{}, err
+	}
+	if entry.vad == nil {
+		entry.vad = onnx.NewSileroVAD(entry.session)
+	}
+	return entry.vad.Detect(ctx, p)
+}
+
+func (b *ONNXBackend) Synthesize(ctx context.Context, jobID string, p proto.SynthesizeParams, n server.Notifier) (proto.SynthesizeResult, error) {
+	entry, _, err := b.getOrLoad(p.Model, "tts", p.ModelPath)
+	if err != nil {
+		return proto.SynthesizeResult{}, err
+	}
+	if entry.kokoro == nil {
+		dir := p.ModelPath
+		if fi, err := os.Stat(dir); err == nil && !fi.IsDir() {
+			dir = filepath.Dir(dir)
+		}
+		entry.kokoro = onnx.NewKokoroTTS(entry.session, dir)
+	}
+	return entry.kokoro.Synthesize(ctx, jobID, p, n)
+}
+
+func (b *ONNXBackend) notReady(capName string) error {
+	return unsupportedBackendError(b.Name(), b.provider, capName, "ONNX runner for this task is not implemented yet")
+}
+
 func (b *ONNXBackend) EncodeVoice(_ context.Context, _ string, _ proto.EncodeVoiceParams, _ server.Notifier) (proto.EncodeVoiceResult, error) {
 	return proto.EncodeVoiceResult{}, b.notReady("voicePrompt")
 }
@@ -101,9 +277,6 @@ func (b *ONNXBackend) Transcribe(_ context.Context, _ string, _ proto.Transcribe
 }
 func (b *ONNXBackend) Align(_ context.Context, _ string, _ proto.AlignParams, _ server.Notifier) (proto.AlignResult, error) {
 	return proto.AlignResult{}, b.notReady("align")
-}
-func (b *ONNXBackend) VAD(_ context.Context, _ string, _ proto.VADParams, _ server.Notifier) (proto.VADResult, error) {
-	return proto.VADResult{}, b.notReady("vad")
 }
 func (b *ONNXBackend) Enhance(_ context.Context, _ string, _ proto.EnhanceParams, _ server.Notifier) (proto.EnhanceResult, error) {
 	return proto.EnhanceResult{}, b.notReady("enhance")
