@@ -139,6 +139,10 @@ type Options struct {
 	// Backup reports the family's models.backup when a download finishes:
 	// false (and nil) leaves the repo out of Time Machine (spec §7.12).
 	Backup func() bool
+	// GOOS selects the platform source when resolving catalogue entries
+	// (catalog.Entry.EffectiveRepo/Revision/Files). Empty defaults to
+	// runtime.GOOS; unit tests set "windows" or "darwin".
+	GOOS string
 }
 
 // Finished is a repo a download finished, for Options.Claimed.

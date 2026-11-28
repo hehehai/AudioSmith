@@ -185,7 +185,7 @@ func capNames(e catalog.Entry) []string {
 func modelInfo(repo string) services.ModelInfo {
 	e := entryFor(repo)
 	caps := capNames(e)
-	info := services.ModelInfo{Traits: services.TraitsFor(e.Family, caps).WithCatalog(e.MaxChars, e.NonVerbal), Revision: e.Revision,
+	info := services.ModelInfo{Traits: services.TraitsFor(e.Family, caps).WithCatalog(e.MaxChars, e.NonVerbal), Revision: e.EffectiveRevision(currentOS()),
 		Languages: map[string]string{}, VoiceLanguages: map[string]string{}}
 	info.NeedsReference = e.NeedsReference
 	if e.ID != "custom" {
@@ -267,7 +267,7 @@ func (l *library) hub() *hub.Client {
 	if l.hubCli == nil {
 		s := l.settings.Get()
 		m := s.Models
-		o := hub.Options{CacheDir: modelCache(s), AlsoIn: modelCaches(s)[1:], Endpoints: downloadEndpoints(s), Proxy: m.Proxy, Token: func() string { return hubToken(l.sharedHFToken()) }}
+		o := hub.Options{CacheDir: modelCache(s), AlsoIn: modelCaches(s)[1:], Endpoints: downloadEndpoints(s), Proxy: m.Proxy, Token: func() string { return hubToken(l.sharedHFToken()) }, GOOS: currentOS()}
 		l.familyOptions(&o)
 		l.hubCli = hub.New(o)
 	}
@@ -285,7 +285,7 @@ func (l *library) resetHub() {
 // entryFor is the catalogue entry of a repo (a removed model's
 // replacement: models_removed.go), or a custom entry for it.
 func entryFor(repo string) catalog.Entry {
-	if e, ok := catalog.Builtin().ByRepo(repo); ok {
+	if e, ok := catalog.Builtin().ByEffectiveRepo(currentOS(), repo); ok {
 		return e
 	}
 	if e, _, ok := replaceRemovedAny(repo); ok {
@@ -302,7 +302,7 @@ func (l *library) modelSnapshot(ctx context.Context, repo string) (string, error
 	if entryFor(repo).IsExternal() {
 		return "", nil // nothing on disk: an engine the user runs
 	}
-	loc, err := hub.StatusIn(modelCaches(l.settings.Get()), entryFor(repo))
+	loc, err := hub.StatusInFor(modelCaches(l.settings.Get()), currentOS(), entryFor(repo))
 	if err != nil {
 		return "", err
 	}

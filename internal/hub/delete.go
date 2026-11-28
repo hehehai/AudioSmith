@@ -38,8 +38,12 @@ type Removal struct {
 // *models.BusyError (see Holder). Without a Decider, e's snapshot goes
 // and its auxiliary repos stay.
 func (c *Client) Remove(ctx context.Context, e catalog.Entry, scope models.Scope) (Removal, error) {
-	defer c.lockRepo(e.Repo)()
-	return Remove(ctx, c.opts.CacheDir, e, c.opts.Family, scope)
+	re, err := ResolveEntry(e, c.targetOS())
+	if err != nil {
+		return Removal{}, err
+	}
+	defer c.lockRepo(re.Repo)()
+	return RemoveFor(ctx, c.opts.CacheDir, c.targetOS(), e, c.opts.Family, scope)
 }
 
 // Delete is Remove from AudioSmith, without its report.
@@ -51,12 +55,16 @@ func (c *Client) Delete(ctx context.Context, e catalog.Entry) error {
 // Decide says who else uses e's snapshot (its main repo), for the delete
 // dialog; ok is false without a Decider or a snapshot.
 func (c *Client) Decide(e catalog.Entry) (d models.Decision, ok bool, err error) {
-	cache, dec := c.opts.CacheDir, c.opts.Family.Decider
-	commit := commitOf(RepoDir(cache, e.Repo), e)
-	if dec == nil || !hasSnapshot(cache, e.Repo, commit) {
+	re, rerr := ResolveEntry(e, c.targetOS())
+	if rerr != nil {
 		return models.Decision{}, false, nil
 	}
-	d, err = dec.Decide(models.Ref{Repo: e.Repo, Revision: commit})
+	cache, dec := c.opts.CacheDir, c.opts.Family.Decider
+	commit := commitOf(RepoDir(cache, re.Repo), re)
+	if dec == nil || !hasSnapshot(cache, re.Repo, commit) {
+		return models.Decision{}, false, nil
+	}
+	d, err = dec.Decide(models.Ref{Repo: re.Repo, Revision: commit})
 	return d, err == nil, err
 }
 
@@ -66,29 +74,38 @@ func hasSnapshot(cacheDir, repo, commit string) bool {
 
 // Remove is Client.Remove for a cache directory.
 func Remove(ctx context.Context, cacheDir string, e catalog.Entry, fam Family, scope models.Scope) (Removal, error) {
-	commit := commitOf(RepoDir(cacheDir, e.Repo), e)
+	return RemoveFor(ctx, cacheDir, "", e, fam, scope)
+}
+
+// RemoveFor is Remove for a specific target OS ("windows", "darwin", …).
+func RemoveFor(ctx context.Context, cacheDir, goos string, e catalog.Entry, fam Family, scope models.Scope) (Removal, error) {
+	re, err := ResolveEntry(e, goos)
+	if err != nil {
+		return Removal{}, err
+	}
+	commit := commitOf(RepoDir(cacheDir, re.Repo), re)
 	d := fam.Decider
-	if d == nil || !hasSnapshot(cacheDir, e.Repo, commit) {
+	if d == nil || !hasSnapshot(cacheDir, re.Repo, commit) {
 		if commit == "" {
 			commit = noSnapshot // partial downloads only
 		}
-		freed, err := deleteRepo(cacheDir, e.Repo, commit, fam)
+		freed, err := deleteRepo(cacheDir, re.Repo, commit, fam)
 		return Removal{Freed: freed, Deleted: err == nil}, err
 	}
-	res, err := d.DeleteModel(ctx, models.Ref{Repo: e.Repo, Revision: commit}, e, scope)
+	res, err := d.DeleteModel(ctx, models.Ref{Repo: re.Repo, Revision: commit}, e, scope)
 	out := Removal{Decision: res.Decision, Deleted: res.Deleted, Tombstoned: res.Tombstoned, Freed: res.Freed}
 	if err != nil {
 		return out, err
 	}
 	if !res.Deleted {
 		out.Kept = res.Decision.UserNames()
-	} else if err := dropOrphanCopy(cacheDir, e.Repo); err != nil {
+	} else if err := dropOrphanCopy(cacheDir, re.Repo); err != nil {
 		return out, err
 	}
 	// The auxiliary repos: AudioSmith no longer needs them for e, kept
 	// files or not. One another process holds stays.
-	for _, a := range e.Aux {
-		rev := commitOf(RepoDir(cacheDir, a.Repo), auxEntry(e, a))
+	for _, a := range re.Aux {
+		rev := commitOf(RepoDir(cacheDir, a.Repo), auxEntry(re, a))
 		if !hasSnapshot(cacheDir, a.Repo, rev) {
 			continue
 		}

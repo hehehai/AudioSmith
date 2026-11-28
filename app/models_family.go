@@ -39,10 +39,16 @@ func busyText(holder string) string {
 // catalogRepos are the repos of the catalogue's models and their
 // auxiliary repos.
 func catalogRepos() []string {
+	goos := currentOS()
 	var out []string
 	for _, e := range catalog.Builtin().Entries {
-		for _, r := range append([]string{e.Repo}, auxRepos(e)...) {
-			if !slices.Contains(out, r) {
+		repos := []string{e.Repo}
+		if eff := e.EffectiveRepo(goos); eff != "" && eff != e.Repo {
+			repos = append(repos, eff)
+		}
+		repos = append(repos, auxRepos(e)...)
+		for _, r := range repos {
+			if r != "" && !slices.Contains(out, r) {
 				out = append(out, r)
 			}
 		}
