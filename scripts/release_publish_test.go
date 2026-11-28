@@ -552,6 +552,9 @@ exit 1
 	}
 	var gotFiles []string
 	for _, f := range zr.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
 		gotFiles = append(gotFiles, f.Name)
 	}
 	zr.Close()

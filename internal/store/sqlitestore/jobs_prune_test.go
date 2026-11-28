@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -190,8 +191,13 @@ func TestPruneJobsCost(t *testing.T) {
 	if err != nil || n != 20000-3 {
 		t.Fatalf("removed %d: %v", n, err)
 	}
-	if took > 5*time.Second {
-		t.Errorf("took %v", took)
+	limit := 5 * time.Second
+	if runtime.GOOS == "windows" {
+		// Hosted Windows runners have slower virtual disk fsync for 20k deletes (~7s).
+		limit = 15 * time.Second
+	}
+	if took > limit {
+		t.Errorf("took %v (limit %v)", took, limit)
 	}
 }
 

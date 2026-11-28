@@ -20,8 +20,9 @@ import (
 // Hugging Face reachable.
 func stubMachine(t *testing.T, memGB int64, hfOK bool) {
 	t.Helper()
-	savedSys, savedReach := readSysInfo, reach
-	t.Cleanup(func() { readSysInfo, reach = savedSys, savedReach })
+	savedSys, savedReach, savedOS := readSysInfo, reach, currentOS
+	t.Cleanup(func() { readSysInfo, reach, currentOS = savedSys, savedReach, savedOS })
+	currentOS = func() string { return "darwin" }
 	readSysInfo = func() sysInfo {
 		return sysInfo{OS: "macOS 15.4", Chip: "Apple M4", Memory: memGB << 30, Cores: 10, Arch: "arm64"}
 	}
