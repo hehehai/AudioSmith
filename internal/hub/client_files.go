@@ -45,6 +45,11 @@ func (c *Client) finishFile(ctx context.Context, fs *fileState) error {
 	if err := fs.f.Sync(); err != nil {
 		return err
 	}
+	// Close the handle before removing or renaming the .incomplete file:
+	// Windows rejects Rename/Remove while any handle to the file is open.
+	if err := fs.f.Close(); err != nil {
+		return err
+	}
 	ok, err := checkBlob(ctx, fs.path, fs.remoteFile)
 	if err != nil {
 		return err

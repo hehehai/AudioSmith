@@ -21,7 +21,7 @@ Components (51)
    [3] github.com/egoist/mygo v0.10.0-actnow.4 — MIT
    [4] github.com/go-text/typesetting v0.3.5 — Unlicense OR BSD-3-Clause
    [5] github.com/google/jsonschema-go v0.4.3 — MIT
-   [6] github.com/hehehai/actnowkit v0.22.2 — Apache-2.0
+   [6] github.com/hehehai/actnowkit v0.23.4 — Apache-2.0
    [7] github.com/hehehai/actnowkit/feedbackui v0.22.1 — Apache-2.0
    [8] github.com/jfreymuth/oggvorbis v1.0.5 — MIT
    [9] github.com/jfreymuth/vorbis v1.0.2 — MIT
@@ -473,7 +473,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-[6] github.com/hehehai/actnowkit v0.22.2
+[6] github.com/hehehai/actnowkit v0.23.4
     Source:  https://github.com/hehehai/actnowkit
     Licence: Apache-2.0
 --------------------------------------------------------------------------------
