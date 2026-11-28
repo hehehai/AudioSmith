@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hehehai/AudioSmith/internal/core"
 	"github.com/hehehai/AudioSmith/internal/store/sqlitestore"
 )
 
@@ -165,7 +166,7 @@ func copyTree(ctx context.Context, src, dst string, skip func(rel string) bool, 
 			if err != nil {
 				return err
 			}
-			return os.Symlink(link, target)
+			return core.SymlinkOrFallback(link, target)
 		case !d.Type().IsRegular():
 			return nil
 		}

@@ -15,6 +15,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/hehehai/AudioSmith/internal/core"
 )
 
 // taskDone records a finished task and finishes its file after the last.
@@ -52,7 +54,7 @@ func (c *Client) finishFile(ctx context.Context, fs *fileState) error {
 		os.Remove(fs.path + ".parts")
 		return fmt.Errorf("%s: %w", fs.Path, ErrChecksum)
 	}
-	if err := os.Rename(fs.path, strings.TrimSuffix(fs.path, ".incomplete")); err != nil {
+	if err := core.ReplaceFile(fs.path, strings.TrimSuffix(fs.path, ".incomplete")); err != nil {
 		return err
 	}
 	os.Remove(fs.path + ".parts")
@@ -128,7 +130,7 @@ func writeAtomic(path string, data []byte) error {
 		os.Remove(tmp.Name())
 		return err
 	}
-	return os.Rename(tmp.Name(), path)
+	return core.ReplaceFile(tmp.Name(), path)
 }
 
 // linkSnapshot makes snapshots/<commit>/<path> → ../../blobs/<blob> for
@@ -156,7 +158,7 @@ func linkSnapshot(repoDir, commit string, files []remoteFile) error {
 			continue
 		}
 		os.Remove(link)
-		if err := os.Symlink(target, link); err != nil {
+		if err := core.SymlinkOrFallback(target, link); err != nil {
 			return err
 		}
 	}

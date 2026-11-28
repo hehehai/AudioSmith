@@ -99,6 +99,7 @@ engine                   logs
 engine/enginetest        engine/proto
 
 family                   catalog
+family                   core
 family                   engine/proto
 family                   logs
 family                   settings
@@ -109,6 +110,7 @@ gallery/persona          lang
 gallery/persona          voicedesign
 
 hub                      catalog
+hub                      core
 hub                      jobs
 hub                      logs
 hub                      volume
