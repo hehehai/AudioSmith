@@ -86,7 +86,7 @@ func (a *app) transcriptSegments(c *ui.Context, tr *core.Transcript) {
 							a.saveSegmentEdit()
 						}
 						ui.Row(c).Gap(px(t, 6)).Children(func() {
-							if ui.Button(c.Key("edit-save"), i18n.T("Save")).Tooltip("⌘↩").Clicked() {
+							if ui.Button(c.Key("edit-save"), i18n.T("Save")).Tooltip(shortcutLabel("⌘↩")).Clicked() {
 								a.saveSegmentEdit()
 							}
 							if ghostButton(c.Key("edit-cancel"), i18n.T("Cancel")).Tooltip("Esc").Clicked() {

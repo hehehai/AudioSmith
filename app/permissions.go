@@ -94,7 +94,7 @@ func (a *app) permissionsSettings(c *ui.Context) {
 		if accOK {
 			accText = i18n.T("Allowed")
 		}
-		settingRow(c, "perm-access", i18n.T("Accessibility"), i18n.T("Lets dictation type the text into other apps (⌘V). Without it the text is copied and you paste it."), func() {
+		settingRow(c, "perm-access", i18n.T("Accessibility"), shortcutLabel(i18n.T("Lets dictation type the text into other apps (⌘V). Without it the text is copied and you paste it.")), func() {
 			badge(accText, accOK)
 			if !accOK {
 				if ghostButton(c.Key("perm-access-ask"), i18n.T("Ask")).Tooltip(i18n.T("Adds AudioSmith to the list in System Settings")).Clicked() {

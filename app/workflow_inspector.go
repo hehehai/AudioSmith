@@ -109,7 +109,7 @@ func (a *app) wfWorkflowDetails(c *ui.Context) {
 	}
 	a.wfDiagnostics(c, general)
 	ui.Text(c, i18n.T("Select a step to set it up.")).TextColor(t.TextMuted)
-	ui.Text(c, i18n.T("Drag from a step's right-hand port to another step to link them. Arrow keys move the selected step; Delete removes it. ⌘-scroll zooms, scroll or drag the background to move around.")).
+	ui.Text(c, shortcutLabel(i18n.T("Drag from a step's right-hand port to another step to link them. Arrow keys move the selected step; Delete removes it. ⌘-scroll zooms, scroll or drag the background to move around."))).
 		FontSize(px(t, 12)).TextColor(t.TextMuted)
 }
 

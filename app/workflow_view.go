@@ -394,16 +394,16 @@ func (a *app) wfToolbar(c *ui.Context, left, right float32) {
 			Tooltip(i18n.T("Remove the selected step or link (Delete)")).Clicked() {
 			a.wfRemoveSelected()
 		}
-		if iconButton(c.Key("wf-zoom-out"), icons.MagnifierZoomOut, i18n.T("Zoom out")).Tooltip(i18n.T("Zoom out (⌘−)")).Clicked() {
+		if iconButton(c.Key("wf-zoom-out"), icons.MagnifierZoomOut, i18n.T("Zoom out")).Tooltip(shortcutLabel(i18n.T("Zoom out (⌘−)"))).Clicked() {
 			a.wfZoom(1 / 1.2)
 		}
 		zoom := itoa(int(a.wf.View.Zoom*100+0.5)) + "%"
-		zb := ghostBase(c.Key("wf-zoom-reset")).Padding(px(t, 4), px(t, 6)).Label(i18n.T("Actual size")).Tooltip(i18n.T("Actual size (⌘0)"))
+		zb := ghostBase(c.Key("wf-zoom-reset")).Padding(px(t, 4), px(t, 6)).Label(i18n.T("Actual size")).Tooltip(shortcutLabel(i18n.T("Actual size (⌘0)")))
 		zb.Children(func() { ui.Text(c, zoom).FontSize(px(t, fsCaption)).TextColor(tok(t).Text2).SingleLine() })
 		if zb.Clicked() {
 			a.wfResetZoom()
 		}
-		if iconButton(c.Key("wf-zoom-in"), icons.MagnifierZoomIn, i18n.T("Zoom in")).Tooltip(i18n.T("Zoom in (⌘=)")).Clicked() {
+		if iconButton(c.Key("wf-zoom-in"), icons.MagnifierZoomIn, i18n.T("Zoom in")).Tooltip(shortcutLabel(i18n.T("Zoom in (⌘=)"))).Clicked() {
 			a.wfZoom(1.2)
 		}
 		if iconButton(c.Key("wf-fit"), icons.FullScreenSquare, i18n.T("Fit")).Tooltip(i18n.T("Show every step")).Clicked() {
