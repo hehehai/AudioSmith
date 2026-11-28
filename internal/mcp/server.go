@@ -252,7 +252,11 @@ func (s *Server) readable(c caller, path string) (string, error) {
 // inside reports whether path is in dir (or is dir).
 func inside(dir, path string) bool {
 	rel, err := filepath.Rel(dir, path)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, "../")
+	if err != nil {
+		return false
+	}
+	rel = filepath.ToSlash(rel)
+	return rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // inputFile is a tool's audio input: a path, or base64 written to a
