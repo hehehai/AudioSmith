@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -67,13 +68,17 @@ func TestInstallYtDlpGitHubDown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if from != mirrorSrc.URL || path != filepath.Join(dir, "yt-dlp") {
+	wantName := "yt-dlp"
+	if runtime.GOOS == "windows" {
+		wantName = "yt-dlp.exe"
+	}
+	if from != mirrorSrc.URL || path != filepath.Join(dir, wantName) {
 		t.Errorf("from %s path %s", from, path)
 	}
 	if last != int64(len(body)) || total != int64(len(body)) {
 		t.Errorf("progress %d/%d", last, total)
 	}
-	if fi, err := os.Stat(path); err != nil || fi.Mode()&0o111 == 0 {
+	if fi, err := os.Stat(path); err != nil || (runtime.GOOS != "windows" && fi.Mode()&0o111 == 0) {
 		t.Errorf("not executable: %v %v", fi, err)
 	}
 	if data, _ := os.ReadFile(path); string(data) != string(body) {

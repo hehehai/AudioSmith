@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -133,7 +134,7 @@ func TestSiteName(t *testing.T) {
 // TestInfoErrors: yt-dlp's last error line (recorded on the Mac) comes
 // back as the detail, without "ERROR: [site] id:".
 func TestInfoErrors(t *testing.T) {
-	bin := scriptYtDlp(t, `cat "$AS_ERR" >&2; exit 1`)
+	bin := scriptYtDlp(t, `cat "$AS_ERR" >&2; exit 1`, "@echo off\r\ntype \"%AS_ERR%\" 1>&2\r\nexit /b 1\r\n")
 	for name, want := range map[string]string{
 		"vimeo": "The web client only works when logged-in", "twitter": "No video could be found in this tweet",
 		"douyin": "Fresh cookies", "private": "This video is unavailable", "unsupported": "Unsupported URL: https://example.com/",
@@ -159,11 +160,18 @@ func mustAbs(t *testing.T, p string) string {
 	return a
 }
 
-// scriptYtDlp writes a shell script standing for yt-dlp.
-func scriptYtDlp(t *testing.T, body string) string {
+// scriptYtDlp writes a shell/batch script standing for yt-dlp.
+func scriptYtDlp(t *testing.T, shBody, winBody string) string {
 	t.Helper()
+	if runtime.GOOS == "windows" {
+		bin := filepath.Join(t.TempDir(), "yt-dlp.cmd")
+		if err := os.WriteFile(bin, []byte(winBody), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return bin
+	}
 	bin := filepath.Join(t.TempDir(), "yt-dlp")
-	if err := os.WriteFile(bin, []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\n"+shBody+"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return bin
@@ -228,14 +236,17 @@ func TestFetchThumbnail(t *testing.T) {
 // streams (YouTube), and says the download needs ffmpeg.
 func TestInfoWithoutFFmpeg(t *testing.T) {
 	args := filepath.Join(t.TempDir(), "args")
-	bin := scriptYtDlp(t, `printf '%s\n' "$@" > "`+args+`"; echo '{"id":"x","title":"T","format_id":"137+140","requested_formats":[{"vcodec":"avc1"},{"acodec":"mp4a"}]}'`)
+	bin := scriptYtDlp(t,
+		`printf '%s\n' "$@" > "`+args+`"; echo '{"id":"x","title":"T","format_id":"137+140","requested_formats":[{"vcodec":"avc1"},{"acodec":"mp4a"}]}'`,
+		"@echo off\r\necho %* > \""+args+"\"\r\necho {\"id\":\"x\",\"title\":\"T\",\"format_id\":\"137+140\",\"requested_formats\":[{\"vcodec\":\"avc1\"},{\"acodec\":\"mp4a\"}]}\r\n",
+	)
 	for _, ff := range []string{"", "/opt/ffmpeg"} {
 		info, err := YtDlp{Path: bin, FFmpeg: ff}.Info(context.Background(), "https://example.com/v")
 		if err != nil {
 			t.Fatal(err)
 		}
 		b, _ := os.ReadFile(args)
-		fallback := strings.Contains(string(b), "/bv*+ba/bv*/ba\n")
+		fallback := strings.Contains(string(b), "/bv*+ba/bv*/ba")
 		if info.Meta.NeedsFFmpeg != (ff == "") || fallback != (ff == "") {
 			t.Errorf("ffmpeg %q: needs %v, fallback %v", ff, info.Meta.NeedsFFmpeg, fallback)
 		}
