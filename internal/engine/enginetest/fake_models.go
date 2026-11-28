@@ -14,14 +14,22 @@ import (
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
 )
 
+func (f *fakeEngine) idleLocked(used time.Time) float64 {
+	if len(f.running) > 0 {
+		return 0 // simplification: everything counts as in use while a job runs
+	}
+	if d := time.Since(used).Seconds(); d > 0 {
+		return d
+	}
+	// Windows clock ticks can be coarser than back-to-back load + stats
+	// RPCs; a model with no running job is still idle (> 0).
+	return 1e-6
+}
+
 func (f *fakeEngine) loadedLocked() []proto.LoadedModel {
 	out := []proto.LoadedModel{}
 	for model, used := range f.models {
-		idle := time.Since(used).Seconds()
-		if len(f.running) > 0 {
-			idle = 0 // simplification: everything counts as in use while a job runs
-		}
-		out = append(out, proto.LoadedModel{Model: model, Task: taskOf(model), SampleRate: 24000, Bytes: 100, IdleSeconds: idle})
+		out = append(out, proto.LoadedModel{Model: model, Task: taskOf(model), SampleRate: 24000, Bytes: 100, IdleSeconds: f.idleLocked(used)})
 	}
 	slices.SortFunc(out, func(a, b proto.LoadedModel) int { return strings.Compare(a.Model, b.Model) })
 	return out

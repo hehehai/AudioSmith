@@ -263,7 +263,7 @@ func (f *fakeEngine) handle(m proto.Message) {
 		f.mu.Lock()
 		res := proto.UnloadResult{Unloaded: []string{}}
 		for model, used := range f.models {
-			if p.IdleAtLeast > 0 && (len(f.running) > 0 || time.Since(used).Seconds() < p.IdleAtLeast) {
+			if p.IdleAtLeast > 0 && f.idleLocked(used) < p.IdleAtLeast {
 				continue // in use, or used since (as the engine's ModelStore)
 			}
 			if p.Model == "" || p.Model == model {

@@ -73,6 +73,15 @@ func (g *Service) Register(s *server.Server) {
 	s.Handle(proto.MethodLLMGenerate, g.handleLLMGenerate)
 }
 
+func idleSeconds(now, lastUse time.Time) float64 {
+	if d := now.Sub(lastUse).Seconds(); d > 0 {
+		return d
+	}
+	// Windows clock ticks can read 0 for back-to-back load + stats RPCs;
+	// supervisor treats IdleSeconds > 0 as idle.
+	return 1e-6
+}
+
 func (g *Service) stats() (proto.Memory, []proto.LoadedModel) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -81,7 +90,7 @@ func (g *Service) stats() (proto.Memory, []proto.LoadedModel) {
 	out := make([]proto.LoadedModel, 0, len(g.models))
 	for _, e := range g.models {
 		m := e.info
-		m.IdleSeconds = now.Sub(e.lastUse).Seconds()
+		m.IdleSeconds = idleSeconds(now, e.lastUse)
 		active += m.Bytes
 		out = append(out, m)
 	}
@@ -217,7 +226,7 @@ func (g *Service) handleUnload(ctx context.Context, _ string, raw json.RawMessag
 		if p.Model != "" && id != p.Model {
 			continue
 		}
-		if p.IdleAtLeast > 0 && now.Sub(e.lastUse).Seconds() < p.IdleAtLeast {
+		if p.IdleAtLeast > 0 && idleSeconds(now, e.lastUse) < p.IdleAtLeast {
 			continue
 		}
 		victims = append(victims, e)
