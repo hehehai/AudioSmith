@@ -4157,5 +4157,16 @@
   "Public: anyone can read it. Settings → Advanced → Report a bug fills in the diagnostics.": "公開されます：誰でも読めます。「設定」→「詳細」→「バグを報告」で診断情報が入力されます。",
   "Send Feedback": "フィードバックを送信",
   "Send feedback on the web": "Webでフィードバックを送信",
-  "Your feedback": "フィードバック"
+  "Your feedback": "フィードバック",
+  "Graphics card detected (%s).": "グラフィックカード（%s）を検出しました。",
+  "Graphics card detected (%s, %d GB VRAM).": "グラフィックカード（%s、VRAM %d GB）を検出しました。",
+  "Integrated graphics (%s) — lightweight models like Kokoro, Whisper, Qwen3 4B, and VOICEVOX run smoothly.": "内蔵GPU（%s）を検出しました — Kokoro、Whisper、Qwen3 4B、VOICEVOXなどの軽量モデルが快適に動作します。",
+  "Integrated graphics detected — lightweight models like Kokoro, Whisper, Qwen3 4B, and VOICEVOX run smoothly.": "内蔵GPUを検出しました — Kokoro、Whisper、Qwen3 4B、VOICEVOXなどの軽量モデルが快適に動作します。",
+  "Needs %g GB of memory; this PC has %d GB": "%gGBのメモリが必要です（このPCは%dGB）",
+  "Needs a GPU with %g GB of video memory": "VRAM %gGB以上のGPUが必要です",
+  "Needs a dedicated GPU": "専用GPUが必要です",
+  "Not yet available on Windows": "Windowsではまだ利用できません",
+  "Running on CPU — lightweight models like Kokoro, Silero VAD, DeepFilterNet, and VOICEVOX work out of the box.": "CPUモードで動作中 — Kokoro、Silero VAD、DeepFilterNet、VOICEVOXなどの軽量モデルはそのまま利用できます。",
+  "Runs on CPU (slower without GPU acceleration)": "CPUで動作します（GPUアクセラレーションなしでは遅くなります）",
+  "Windows planned": "Windows対応予定"
 }

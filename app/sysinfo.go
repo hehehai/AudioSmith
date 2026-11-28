@@ -42,6 +42,20 @@ var readSysInfo = func() sysInfo {
 // MemoryGB is the memory in whole GB (as Apple sells it).
 func (s sysInfo) MemoryGB() int { return int((s.Memory + (1 << 29)) >> 30) }
 
+// toCatalogHW converts app's sysInfo into sysinfo.Info for catalog.Entry.HardwareFit.
+func (s sysInfo) toCatalogHW() sysinfo.Info {
+	return sysinfo.Info{
+		OS:          s.OS,
+		Chip:        s.Chip,
+		Memory:      s.Memory,
+		AvailMemory: s.AvailMemory,
+		Cores:       s.Cores,
+		Arch:        s.Arch,
+		GPUs:        s.GPUs,
+		GPUClass:    s.GPUClass,
+	}
+}
+
 // macOSMajor is the macOS major version, 0 when unknown.
 func (s sysInfo) macOSMajor() int {
 	v, ok := strings.CutPrefix(s.OS, "macOS ")

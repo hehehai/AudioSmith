@@ -157,6 +157,16 @@ func (a *app) modelPicker(c *ui.Context, key string, w catalog.Workflow, cur cat
 			return !slices.ContainsFunc(o.Only, func(x catalog.Entry) bool { return x.ID == e.ID })
 		})
 	}
+	if a.platformOS() == "windows" {
+		recs = slices.DeleteFunc(recs, func(e catalog.Entry) bool { return !a.modelAvailable(e) })
+		if len(recs) == 0 && o.Only == nil {
+			for _, e := range catalog.Builtin().ForTaskOn(catalog.TaskTTS, "windows") {
+				if whyNotFor(e, w) == "" {
+					recs = append(recs, e)
+				}
+			}
+		}
+	}
 	isRec := func(e catalog.Entry) bool {
 		return slices.ContainsFunc(recs, func(x catalog.Entry) bool { return x.ID == e.ID })
 	}
@@ -213,7 +223,7 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 			set(e)
 		}
 	}
-	others := pickerOthers(w, recs, o)
+	others := a.pickerOthers(w, recs, o)
 	_, h := c.Size()
 	find := a.pickerFind[key]
 	ui.Row(c.Key(key+"-find")).Width(px(t, 340)).Shrink(0).Padding(px(t, 6), px(t, 6), 0).Children(func() {
@@ -252,7 +262,7 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 				}
 				ui.Text(c, head).FontSize(px(t, fsMicro)).FontWeight(600).TextColor(k.Text3).Padding(px(t, 4), px(t, sp2), px(t, 2))
 				for _, e := range recs {
-					a.pickerRow(c, e, cur, e.Description(), "", true, pick)
+					a.pickerRow(c, e, cur, e.Description(), a.modelFitNote(e), a.modelAvailable(e), pick)
 				}
 			}
 			if o.Dialogue != nil {
@@ -285,8 +295,8 @@ func (a *app) pickerList(c *ui.Context, key string, w catalog.Workflow, cur cata
 }
 
 // pickerOthers are the picker's models besides recs (o.Only, else every
-// TTS model; Design: only those that design), those that can do w first.
-func pickerOthers(w catalog.Workflow, recs []catalog.Entry, o pickerOpts) []catalog.Entry {
+// TTS model; Design: only those that design), available and usable ones first.
+func (a *app) pickerOthers(w catalog.Workflow, recs []catalog.Entry, o pickerOpts) []catalog.Entry {
 	others := o.Only
 	if others == nil {
 		others = catalog.Builtin().ForTask(catalog.TaskTTS)
@@ -298,8 +308,15 @@ func pickerOthers(w catalog.Workflow, recs []catalog.Entry, o pickerOpts) []cata
 		// Design lists only what designs.
 		others = slices.DeleteFunc(others, func(e catalog.Entry) bool { return whyNotFor(e, w) != "" })
 	}
-	// The ones that can do the job first.
+	// Available on this OS first, then the ones that can do the job.
 	slices.SortStableFunc(others, func(x, y catalog.Entry) int {
+		xa, ya := a.modelAvailable(x), a.modelAvailable(y)
+		if xa != ya {
+			if xa {
+				return -1
+			}
+			return 1
+		}
 		xn, yn := whyNotFor(x, w) != "", whyNotFor(y, w) != ""
 		switch {
 		case xn == yn:
@@ -312,13 +329,17 @@ func pickerOthers(w catalog.Workflow, recs []catalog.Entry, o pickerOpts) []cata
 	return others
 }
 
-// pickerEntryRow is model e's row for workflow w: why it can't do w, or
-// a note on its languages.
+// pickerEntryRow is model e's row for workflow w: platform availability,
+// why it can't do w, or a hardware/language note.
 func (a *app) pickerEntryRow(c *ui.Context, e, cur catalog.Entry, w catalog.Workflow, pick func(catalog.Entry)) {
+	if !a.modelAvailable(e) {
+		a.pickerRow(c, e, cur, e.Description(), a.modelFitNote(e), false, pick)
+		return
+	}
 	why := whyNotFor(e, w)
 	note := ""
 	if why == "" {
-		note = languageNote(e)
+		note = firstOf(a.modelFitNote(e), languageNote(e))
 	}
 	a.pickerRow(c, e, cur, e.Description(), firstOf(why, note), why == "", pick)
 }
@@ -408,9 +429,11 @@ func (a *app) pickerRowX(c *ui.Context, e catalog.Entry, chosen bool, about, not
 		case chosen:
 			iconMark(c, icons.CheckCircle, k.AccentInk, i18n.T("Chosen"))
 		case e.ID != "custom":
-			if ready, known := a.modelOnDisk(e); known && !ready {
-				ui.Text(c, catalog.HumanSize(e.Size)).FontSize(px(t, fsMicro)).TextColor(k.Text3).SingleLine().Shrink(0).
-					Tooltip(i18n.T("Not downloaded yet"))
+			if sz := a.effectiveModelSize(e); sz > 0 {
+				if ready, known := a.modelOnDisk(e); known && !ready {
+					ui.Text(c, catalog.HumanSize(sz)).FontSize(px(t, fsMicro)).TextColor(k.Text3).SingleLine().Shrink(0).
+						Tooltip(i18n.T("Not downloaded yet"))
+				}
 			}
 		}
 	})

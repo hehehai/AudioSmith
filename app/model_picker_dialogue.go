@@ -79,6 +79,9 @@ func (a *app) pickerDialogueRows(c *ui.Context, key string, dl *pickerDialogue, 
 	}
 	for _, e := range shown {
 		why := dl.Why(e)
+		if !a.modelAvailable(e) {
+			why = a.modelFitNote(e)
+		}
 		facts := i18n.T("Needs %g GB of memory", e.MinMemoryGB) + " · " + e.Label
 		if why != "" {
 			facts = e.Label // the reason says what it needs

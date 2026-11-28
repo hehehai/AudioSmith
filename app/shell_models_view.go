@@ -62,6 +62,7 @@ func (a *app) modelsList(c *ui.Context) {
 	ui.Column(c.Key("models-list-" + itoa(a.modelsKind))).Gap(px(t, sp2)).Children(func() {
 		find := strings.TrimSpace(a.modelsFind)
 		if find == "" {
+			a.windowsHardwareBanner(c)
 			a.moveModelsBanner(c) // family_shared_view.go: the family's model folder
 		}
 		if find == "" && a.removedShows(a.modelsKind) {
@@ -70,8 +71,22 @@ func (a *app) modelsList(c *ui.Context) {
 		if (a.modelsKind == 0 || a.modelsKind == 1) && (find == "" || charactersEntry().Matches(find)) {
 			a.charactersSettings(c) // voicevox_view.go: VOICEVOX / AivisSpeech
 		}
+		ordered := entries
+		if a.platformOS() == "windows" {
+			ordered = slices.Clone(entries)
+			slices.SortStableFunc(ordered, func(x, y catalog.Entry) int {
+				xa, ya := a.modelAvailable(x), a.modelAvailable(y)
+				if xa == ya {
+					return 0
+				}
+				if xa {
+					return -1
+				}
+				return 1
+			})
+		}
 		n := 0
-		for _, e := range entries {
+		for _, e := range ordered {
 			if (a.modelsKind == 0 || modelKindOf(e) == a.modelsKind) && e.Matches(find) {
 				a.modelCard(c, e)
 				n++
@@ -188,6 +203,9 @@ func (a *app) modelInfo(c *ui.Context, e catalog.Entry, m *modelState, loaded bo
 		if e.Hidden {
 			tagChip(c, i18n.T("Preview"))
 		}
+		if !a.modelAvailable(e) {
+			tagChip(c, i18n.T("Windows planned"))
+		}
 		if e.NeedsReference {
 			tagChip(c, i18n.T("Needs a reference clip"))
 		}
@@ -207,13 +225,18 @@ func (a *app) modelInfo(c *ui.Context, e catalog.Entry, m *modelState, loaded bo
 	if n := len(e.VoiceIDs()); n > 0 {
 		facts = append(facts, i18n.N(n, "%d voice", "%d voices", n))
 	}
-	if s := catalog.HumanSize(e.Size); s != "" {
+	if s := catalog.HumanSize(a.effectiveModelSize(e)); s != "" {
 		facts = append(facts, i18n.T("%s download", s))
 	}
-	if e.MinMemoryGB > 0 {
-		facts = append(facts, i18n.T("needs %g GB of memory", e.MinMemoryGB))
+	if e.MinMemoryGB > 0 && a.modelAvailable(e) {
+		facts = append(facts, i18n.T("needs %g GB of memory", e.EffectiveMinRAMGB(a.platformOS())))
 	}
 	truncText(c, strings.Join(facts, " · ")).FontSize(px(t, fsMicro)).TextColor(k.Text3)
+	if a.modelAvailable(e) {
+		if note := a.modelFitNote(e); note != "" {
+			truncText(c, note).FontSize(px(t, fsMicro)).TextColor(t.Warning)
+		}
+	}
 	if line := a.familyLine(e, m); line != "" {
 		truncText(c, line).FontSize(px(t, fsMicro)).TextColor(k.Text2) // family_reuse.go
 	}
@@ -277,9 +300,14 @@ func (a *app) modelDetails(c *ui.Context, e catalog.Entry) {
 	if e.Quantization != "" {
 		rows = append(rows, [2]string{i18n.T("Quantisation"), e.Quantization})
 	}
-	rows = append(rows, [2]string{i18n.T("Download size"), catalog.HumanSize(e.Size)}, [2]string{i18n.T("Repository"), e.Repo})
-	if e.Revision != "" {
-		rows = append(rows, [2]string{i18n.T("Revision"), e.Revision[:min(len(e.Revision), 12)]})
+	if s := catalog.HumanSize(a.effectiveModelSize(e)); s != "" {
+		rows = append(rows, [2]string{i18n.T("Download size"), s})
+	}
+	if repo := a.effectiveModelRepo(e); repo != "" {
+		rows = append(rows, [2]string{i18n.T("Repository"), repo})
+	}
+	if rev := a.effectiveModelRevision(e); rev != "" {
+		rows = append(rows, [2]string{i18n.T("Revision"), rev[:min(len(rev), 12)]})
 	}
 	rows = append(rows, [2]string{i18n.T("Licence"), lic})
 	if e.Summary != "" && e.About != "" {
@@ -297,6 +325,9 @@ func (a *app) modelDetails(c *ui.Context, e catalog.Entry) {
 // Resume), Cancel while it downloads, and the ⋯ menu (Verify, Show in
 // Finder, Delete) once there are files.
 func (a *app) modelActions(c *ui.Context, e catalog.Entry, m *modelState, loaded bool) {
+	if !a.modelAvailable(e) {
+		return
+	}
 	st := m.local.State
 	switch {
 	case m.downloading:
@@ -342,6 +373,9 @@ func (a *app) modelActions(c *ui.Context, e catalog.Entry, m *modelState, loaded
 
 // modelStateText says what of an entry is on disk.
 func (a *app) modelStateText(e catalog.Entry, m *modelState) string {
+	if !a.modelAvailable(e) {
+		return i18n.T("Not yet available on Windows")
+	}
 	switch {
 	case m.downloading && m.progress.Waiting:
 		return waitingText(m.progress) // models_family.go

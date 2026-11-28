@@ -133,6 +133,9 @@ func (a *app) setLocal(e catalog.Entry, l hub.Local, err error) {
 // download queues the download of e, asking for its licence first when it
 // needs one.
 func (a *app) download(e catalog.Entry) {
+	if !a.modelAvailable(e) {
+		return
+	}
 	m := a.model(e)
 	if m.downloading {
 		return

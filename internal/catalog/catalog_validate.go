@@ -72,6 +72,9 @@ func (c *Catalog) Validate() error {
 				return fmt.Errorf("%s: unknown language code %q", e.ID, l.Code)
 			}
 		}
+		if err := validatePlatformSource(e, "windows", e.Windows); err != nil {
+			return err
+		}
 	}
 	for _, r := range c.Removed {
 		if r.ID == "" || r.Repo == "" || r.Label == "" {
@@ -119,3 +122,27 @@ func (c *Catalog) UsesRepo(repo string) bool {
 
 var knownCaps = []Capability{CapSpeed, CapSampling, CapClone, CapVoiceStyle, CapLanguage, CapInstruct, CapDesign, CapSeed, CapDuration, CapStream, CapWordTimes,
 	CapVoicePrompt, CapSteps, CapGuidance, CapNonVerbal, CapTranslate, CapSpeakers, CapDialogue, CapCloneAudioOnly}
+
+func validatePlatformSource(e Entry, platform string, ps *PlatformSource) error {
+	if ps == nil {
+		return nil
+	}
+	if ps.MinVRAMGB < 0 || ps.MinRAMGB < 0 {
+		return fmt.Errorf("%s (%s): negative memory requirement", e.ID, platform)
+	}
+	if !ps.Available {
+		return nil
+	}
+	if !slices.Contains(knownBackends, ps.Backend) {
+		return fmt.Errorf("%s (%s): unknown backend %q", e.ID, platform, ps.Backend)
+	}
+	if !e.IsExternal() && ps.Backend != BackendExternal {
+		if ps.Repo == "" {
+			return fmt.Errorf("%s (%s): available source needs a repo", e.ID, platform)
+		}
+		if ps.Size <= 0 && len(ps.Files) == 0 {
+			return fmt.Errorf("%s (%s): available source needs a size or files", e.ID, platform)
+		}
+	}
+	return nil
+}

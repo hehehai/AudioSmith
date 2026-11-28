@@ -4157,5 +4157,16 @@
   "Public: anyone can read it. Settings → Advanced → Report a bug fills in the diagnostics.": "公开可见，任何人都能看到。设置 → 高级 → 报告问题会自动填好诊断信息。",
   "Send Feedback": "发送反馈",
   "Send feedback on the web": "在网页上反馈",
-  "Your feedback": "我的反馈"
+  "Your feedback": "我的反馈",
+  "Graphics card detected (%s).": "已检测到显卡（%s）。",
+  "Graphics card detected (%s, %d GB VRAM).": "已检测到显卡（%s，%d GB 显存）。",
+  "Integrated graphics (%s) — lightweight models like Kokoro, Whisper, Qwen3 4B, and VOICEVOX run smoothly.": "已检测到核显（%s）— Kokoro、Whisper、Qwen3 4B 和 VOICEVOX 等轻量模型可流畅运行。",
+  "Integrated graphics detected — lightweight models like Kokoro, Whisper, Qwen3 4B, and VOICEVOX run smoothly.": "已检测到核显 — Kokoro、Whisper、Qwen3 4B 和 VOICEVOX 等轻量模型可流畅运行。",
+  "Needs %g GB of memory; this PC has %d GB": "需要 %g GB 内存；这台电脑有 %d GB",
+  "Needs a GPU with %g GB of video memory": "需要具备 %g GB 显存的显卡",
+  "Needs a dedicated GPU": "需要独立显卡",
+  "Not yet available on Windows": "暂未支持 Windows",
+  "Running on CPU — lightweight models like Kokoro, Silero VAD, DeepFilterNet, and VOICEVOX work out of the box.": "当前以 CPU 运行 — Kokoro、Silero VAD、DeepFilterNet 和 VOICEVOX 等轻量模型开箱即用。",
+  "Runs on CPU (slower without GPU acceleration)": "可在 CPU 上运行（无 GPU 加速时速度较慢）",
+  "Windows planned": "计划支持 Windows"
 }
