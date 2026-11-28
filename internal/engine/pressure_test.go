@@ -46,7 +46,16 @@ func TestMemoryPressureUnloadsOtherWorkersIdleModels(t *testing.T) {
 	}
 	waitStats(t, s, proto.RoleListen, 2)
 	release := s.HoldModels(proto.RoleListen, asr)
-	time.Sleep(30 * time.Millisecond) // idle a while, as the stats will say
+	sup := s.(*supervisor)
+	eventually(t, "other idle in stats", func() bool {
+		_, idle := sup.resident()
+		for _, c := range idle {
+			if c.role == proto.RoleListen && c.m.Model == other {
+				return true
+			}
+		}
+		return false
+	})
 
 	notify := func(m proto.Message) {
 		if m.Method == proto.MethodEngineMemory {

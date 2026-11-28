@@ -3,6 +3,7 @@ package dictation
 import (
 	"context"
 	"errors"
+	"runtime"
 	"testing"
 	"time"
 
@@ -95,11 +96,15 @@ func TestParseShortcut(t *testing.T) {
 			t.Errorf("%q: %v, want %v", in, err, want)
 		}
 	}
-	if g := GlyphsOf("CmdOrCtrl+Shift+Space"); g != "⇧⌘Space" {
-		t.Errorf("glyphs %q", g)
+	wantSpace, wantLeft := "⇧⌘Space", "⌃⌥←"
+	if runtime.GOOS == "windows" {
+		wantSpace, wantLeft = "Ctrl+Shift+Space", "Ctrl+Alt+Left"
 	}
-	if g := GlyphsOf("Ctrl+Alt+Left"); g != "⌃⌥←" {
-		t.Errorf("glyphs %q", g)
+	if g := GlyphsOf("CmdOrCtrl+Shift+Space"); g != wantSpace {
+		t.Errorf("glyphs %q, want %q", g, wantSpace)
+	}
+	if g := GlyphsOf("Ctrl+Alt+Left"); g != wantLeft {
+		t.Errorf("glyphs %q, want %q", g, wantLeft)
 	}
 }
 

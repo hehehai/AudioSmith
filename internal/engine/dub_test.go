@@ -85,8 +85,11 @@ func TestM4Executors(t *testing.T) {
 	}
 	if f, err := os.Open(poster); err != nil {
 		t.Fatal(err)
-	} else if cfg, _, err := image.DecodeConfig(f); err != nil || cfg.Width != 320 {
-		t.Errorf("poster %+v %v", cfg, err)
+	} else {
+		defer f.Close()
+		if cfg, _, err := image.DecodeConfig(f); err != nil || cfg.Width != 320 {
+			t.Errorf("poster %+v %v", cfg, err)
+		}
 	}
 
 	var tc proto.TranscodeResult

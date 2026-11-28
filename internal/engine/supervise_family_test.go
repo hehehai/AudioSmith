@@ -148,8 +148,11 @@ func TestSupervisorMakesRoomBeforeLoading(t *testing.T) {
 	s, w := newTestSup(t, "", func(c *Config) { c.Family = fam })
 	w.until(t, "ready", ready)
 	loadWith(t, s, w, "a/one", weightsDir(t, 100))
-	time.Sleep(20 * time.Millisecond) // a/one is idle
 	sup := s.(*supervisor)
+	eventually(t, "a/one idle in stats", func() bool {
+		_, idle := sup.resident()
+		return len(idle) > 0
+	})
 	// b/two's 100 bytes and a/one's would take 200 of 150: a/one is
 	// unloaded before b/two loads (not after, as the budget alone does).
 	sup.makeRoom(context.Background(), proto.RoleGPU, proto.LoadParams{Model: "b/two", Path: weightsDir(t, 100)})
