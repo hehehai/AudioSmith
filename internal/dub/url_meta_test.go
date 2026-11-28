@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"image/gif"
@@ -12,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -236,18 +238,16 @@ func TestFetchThumbnail(t *testing.T) {
 // streams (YouTube), and says the download needs ffmpeg.
 func TestInfoWithoutFFmpeg(t *testing.T) {
 	args := filepath.Join(t.TempDir(), "args")
-	bin := scriptYtDlp(t,
-		`printf '%s\n' "$@" > "`+args+`"; echo '{"id":"x","title":"T","format_id":"137+140","requested_formats":[{"vcodec":"avc1"},{"acodec":"mp4a"}]}'`,
-		"@echo off\r\n"+
-			"if exist \""+args+"\" del /q \""+args+"\"\r\n"+
-			":loop\r\n"+
-			"if \"%~1\"==\"\" goto done\r\n"+
-			"echo \"%~1\">>\""+args+"\"\r\n"+
-			"shift\r\n"+
-			"goto loop\r\n"+
-			":done\r\n"+
-			"echo {\"id\":\"x\",\"title\":\"T\",\"format_id\":\"137+140\",\"requested_formats\":[{\"vcodec\":\"avc1\"},{\"acodec\":\"mp4a\"}]}\r\n",
-	)
+	const jsonOut = `{"id":"x","title":"T","format_id":"137+140","requested_formats":[{"vcodec":"avc1"},{"acodec":"mp4a"}]}`
+	var bin string
+	if runtime.GOOS == "windows" {
+		// Build a real .exe instead of a .cmd: cmd.exe treats "<" inside
+		// yt-dlp's format selector (e.g. best[height<=1080]) as input
+		// redirection and fails before the batch script even runs.
+		bin = buildFakeYtDlpExe(t, args, jsonOut)
+	} else {
+		bin = scriptYtDlp(t, `printf '%s\n' "$@" > "`+args+`"; echo '`+jsonOut+`'`, "")
+	}
 	for _, ff := range []string{"", "/opt/ffmpeg"} {
 		info, err := YtDlp{Path: bin, FFmpeg: ff}.Info(context.Background(), "https://example.com/v")
 		if err != nil {
@@ -259,4 +259,32 @@ func TestInfoWithoutFFmpeg(t *testing.T) {
 			t.Errorf("ffmpeg %q: needs %v, fallback %v", ff, info.Meta.NeedsFFmpeg, fallback)
 		}
 	}
+}
+
+func buildFakeYtDlpExe(t *testing.T, argsPath, stdout string) string {
+	t.Helper()
+	dir := t.TempDir()
+	src := filepath.Join(dir, "main.go")
+	bin := filepath.Join(dir, "yt-dlp.exe")
+	code := fmt.Sprintf(`package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+)
+
+func main() {
+	_ = os.WriteFile(%q, []byte(strings.Join(os.Args[1:], "\n")+"\n"), 0o600)
+	fmt.Println(%q)
+}
+`, argsPath, stdout)
+	if err := os.WriteFile(src, []byte(code), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("go", "build", "-o", bin, src)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build fake yt-dlp.exe: %v\n%s", err, out)
+	}
+	return bin
 }
