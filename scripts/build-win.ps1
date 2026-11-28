@@ -7,44 +7,79 @@
        resources\windows-<arch>\engine\audiosmith-engine.exe (matching
        internal/engine/find.go and MyGo's platform resource layout).
     2. Runs `go tool mygo build -platform windows/<arch>` to produce the
-       portable build directory (build\windows-<arch>\) and NSIS installer
-       (unless -SkipInstaller is specified).
-    3. Supports optional Azure Trusted Signing (signtool.exe +
+       app directory (build\windows-<arch>\) and optional NSIS installer.
+    3. With -Installer, requires and normalizes the NSIS installer to
+       AudioSmith-<version>-windows-<arch>-setup.exe.
+    4. With -Portable, packages a clean self-contained portable archive
+       AudioSmith-<version>-windows-<arch>-portable.zip containing
+       AudioSmith.exe, Sqlitecore.dll, engine\audiosmith-engine.exe,
+       LICENSE, NOTICE, and THIRD-PARTY-NOTICES.txt.
+    5. Generates build\windows-<arch>\SHA256SUMS-windows.txt for packaged
+       release artifacts (automatic with -Installer or -Portable, or pass
+       -Checksum).
+    6. Supports optional Azure Trusted Signing (signtool.exe +
        Azure.CodeSigning.Dlib.dll) when AZURE_SIGNING_* environment variables
        are set, or a custom WINDOWS_SIGN_COMMAND. When unset (or -NoSign),
-       produces a clean unsigned dev build without modifying mygo.json.
+       produces a clean unsigned build without modifying mygo.json.
 
 .PARAMETER Arch
     Target architecture: amd64 (default, or $env:GOARCH) or arm64.
 
+.PARAMETER Installer
+    Require NSIS installer generation and normalize its filename to
+    AudioSmith-<version>-windows-<arch>-setup.exe.
+
+.PARAMETER Portable
+    Package a self-contained AudioSmith-<version>-windows-<arch>-portable.zip.
+    When used without -Installer, automatically skips NSIS installer generation.
+
 .PARAMETER SkipInstaller
-    Skip NSIS installer generation (portable directory only).
+    Skip NSIS installer generation (mutually exclusive with -Installer).
+
+.PARAMETER Checksum
+    Generate build\windows-<arch>\SHA256SUMS-windows.txt (automatic when
+    -Installer or -Portable is set).
 
 .PARAMETER EngineOnly
     Build and stage audiosmith-engine.exe only.
 
 .PARAMETER NoSign
-    Force an unsigned dev build even if signing environment variables are set.
+    Force an unsigned build even if signing environment variables are set.
 
 .PARAMETER Version
-    Version string stamped into audiosmith-engine.exe (default: mygo.json version).
+    Version string stamped into audiosmith-engine.exe and artifact filenames
+    (default: $env:AUDIOSMITH_ENGINE_VERSION or mygo.json version).
 
 .EXAMPLE
     .\scripts\build-win.ps1
-    .\scripts\build-win.ps1 -Arch arm64 -SkipInstaller
+    .\scripts\build-win.ps1 -Arch amd64 -Installer -Portable
+    .\scripts\build-win.ps1 -Arch arm64 -Portable
     .\scripts\build-win.ps1 -EngineOnly
 #>
 [CmdletBinding()]
 param(
     [ValidateSet("amd64", "arm64")]
     [string]$Arch = "",
+    [switch]$Installer,
+    [switch]$Portable,
     [switch]$SkipInstaller,
+    [switch]$Checksum,
     [switch]$EngineOnly,
     [switch]$NoSign,
     [string]$Version = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($Installer -and $SkipInstaller) {
+    throw "-Installer and -SkipInstaller cannot be used together"
+}
+if ($Portable -and -not $Installer) {
+    $SkipInstaller = $true
+}
+if ($Installer -or $Portable) {
+    $Checksum = $true
+}
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $MygoConfigPath = Join-Path $Root "mygo.json"
@@ -196,7 +231,7 @@ try {
         $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $MygoConfigPath -Encoding utf8
         Write-Host "build-win: signing enabled via windows.signCommand (mygo.json will be restored on exit)"
     } else {
-        Write-Host "build-win: unsigned dev build"
+        Write-Host "build-win: unsigned build"
     }
 
     # 3. Build AudioSmith app bundle (+ NSIS installer unless -SkipInstaller).
@@ -219,6 +254,85 @@ try {
         }
     } finally {
         Pop-Location
+    }
+
+    $OutDir = Join-Path $Root "build\windows-$Arch"
+    if (-not (Test-Path $OutDir)) {
+        throw "expected build output directory $($OutDir.Substring($Root.Length + 1))"
+    }
+
+    # 4. Normalize NSIS installer filename.
+    $MygoInstaller = Join-Path $OutDir "audiosmith-setup-$Version-$Arch.exe"
+    $NormInstaller = Join-Path $OutDir "AudioSmith-$Version-windows-$Arch-setup.exe"
+    if (Test-Path $MygoInstaller) {
+        Move-Item -Path $MygoInstaller -Destination $NormInstaller -Force
+        Write-Host ("build-win: installer {0}" -f $NormInstaller.Substring($Root.Length + 1))
+    } elseif ($Installer -and -not (Test-Path $NormInstaller)) {
+        throw "NSIS installer was not produced in $($OutDir.Substring($Root.Length + 1))"
+    }
+
+    # 5. Package clean self-contained portable .zip when -Portable is set.
+    $PortableZip = Join-Path $OutDir "AudioSmith-$Version-windows-$Arch-portable.zip"
+    if ($Portable) {
+        $AppExe = Join-Path $OutDir "AudioSmith.exe"
+        $SqliteDll = Join-Path $OutDir "Sqlitecore.dll"
+        if (-not (Test-Path $AppExe)) { throw "missing $($AppExe.Substring($Root.Length + 1))" }
+        if (-not (Test-Path $SqliteDll)) { throw "missing $($SqliteDll.Substring($Root.Length + 1))" }
+
+        if (-not $TempDir) {
+            $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("audiosmith-win-" + [System.Guid]::NewGuid().ToString("N"))
+            New-Item -ItemType Directory -Force -Path $TempDir | Out-Null
+        }
+        $PortableStage = Join-Path $TempDir "portable"
+        $PortableEngineDir = Join-Path $PortableStage "engine"
+        New-Item -ItemType Directory -Force -Path $PortableEngineDir | Out-Null
+
+        Copy-Item $AppExe (Join-Path $PortableStage "AudioSmith.exe") -Force
+        Copy-Item $SqliteDll (Join-Path $PortableStage "Sqlitecore.dll") -Force
+
+        $BuiltEngine = Join-Path $OutDir "engine\audiosmith-engine.exe"
+        if (Test-Path $BuiltEngine) {
+            Copy-Item $BuiltEngine (Join-Path $PortableEngineDir "audiosmith-engine.exe") -Force
+        } elseif (Test-Path $EngineOut) {
+            Copy-Item $EngineOut (Join-Path $PortableEngineDir "audiosmith-engine.exe") -Force
+        } else {
+            throw "missing audiosmith-engine.exe for portable archive"
+        }
+
+        foreach ($doc in @("LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.txt")) {
+            $fromOut = Join-Path $OutDir $doc
+            $fromRoot = Join-Path $Root $doc
+            if (Test-Path $fromOut) {
+                Copy-Item $fromOut (Join-Path $PortableStage $doc) -Force
+            } elseif (Test-Path $fromRoot) {
+                Copy-Item $fromRoot (Join-Path $PortableStage $doc) -Force
+            }
+        }
+
+        if (Test-Path $PortableZip) {
+            Remove-Item $PortableZip -Force
+        }
+        Compress-Archive -Path (Join-Path $PortableStage "*") -DestinationPath $PortableZip -Force
+        Write-Host ("build-win: portable {0}" -f $PortableZip.Substring($Root.Length + 1))
+    }
+
+    # 6. Generate SHA256SUMS-windows.txt (LF line endings, UTF-8 without BOM).
+    if ($Checksum) {
+        $Targets = @()
+        foreach ($candidate in @($NormInstaller, $PortableZip)) {
+            if (Test-Path $candidate) { $Targets += $candidate }
+        }
+        if ($Targets.Count -gt 0) {
+            $SumsFile = Join-Path $OutDir "SHA256SUMS-windows.txt"
+            $Lines = foreach ($f in $Targets) {
+                $hash = (Get-FileHash -Algorithm SHA256 -Path $f).Hash.ToLowerInvariant()
+                "$hash  $(Split-Path -Leaf $f)"
+            }
+            $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($SumsFile, (($Lines -join "`n") + "`n"), $Utf8NoBom)
+            Write-Host ("build-win: checksums {0}" -f $SumsFile.Substring($Root.Length + 1))
+            Get-Content $SumsFile
+        }
     }
 } finally {
     if ($MygoBackup -and (Test-Path $MygoBackup)) {
