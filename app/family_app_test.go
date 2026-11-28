@@ -116,7 +116,7 @@ func TestDeleteSharedModel(t *testing.T) {
 	}
 	a.deleteAsk = false
 	a.deleteModel(e, models.ThisApp)
-	if l, _ := hub.Status(modelCache(a.prefs), e); l.State != hub.Downloaded || tf.Claimed(family.ReleaseBundleID, ref) {
+	if l, _ := hub.StatusFor(modelCache(a.prefs), "darwin", e); l.State != hub.Downloaded || tf.Claimed(family.ReleaseBundleID, ref) {
 		t.Errorf("remove from AudioSmith: %v, still claimed %v", l.State, tf.Claimed(family.ReleaseBundleID, ref))
 	}
 	if !slices.ContainsFunc(a.toasts, func(s string) bool { return strings.HasPrefix(s, "Dicta also uses this model") }) {
@@ -131,7 +131,7 @@ func TestDeleteSharedModel(t *testing.T) {
 	}
 	a.deleteAsk, a.deleteAllAsk = false, false
 	a.deleteModel(e, models.AllApps)
-	if l, _ := hub.Status(modelCache(a.prefs), e); l.State != hub.Missing {
+	if l, _ := hub.StatusFor(modelCache(a.prefs), "darwin", e); l.State != hub.Missing {
 		t.Errorf("delete for all apps: %v", l.State)
 	}
 	ts, _ := models.ReadTombstones(tf.Family)
@@ -157,7 +157,7 @@ func TestDeleteDevOnly(t *testing.T) {
 	}
 	a.deleteAsk = false
 	a.deleteModel(e, models.ThisApp)
-	if l, _ := hub.Status(modelCache(a.prefs), e); l.State != hub.Downloaded {
+	if l, _ := hub.StatusFor(modelCache(a.prefs), "darwin", e); l.State != hub.Downloaded {
 		t.Errorf("a dev build's model went: %v", l.State)
 	}
 	if !slices.Contains(a.toasts, "Removed “Fast English voices”") {

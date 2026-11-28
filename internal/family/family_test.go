@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -134,7 +135,7 @@ func TestStartWritesManifestAndMigratedClaims(t *testing.T) {
 	s := m.Services[0]
 	if s.ID != "audiosmith.api" || s.Kind != "openai-audio" || s.URL != "http://127.0.0.1:3901/v1" ||
 		s.Auth == nil || s.Auth.Type != "bearer" || s.Auth.Keychain == nil || *s.Auth.Keychain != (registry.KeychainRef{Service: "AudioSmith", Account: "api.key"}) ||
-		s.PortFile != "/Users/u/Library/Application Support/AudioSmith/api.json" || !slices.Contains(s.Endpoints, "/audio/speech") {
+		filepath.ToSlash(s.PortFile) != "/Users/u/Library/Application Support/AudioSmith/api.json" || !slices.Contains(s.Endpoints, "/audio/speech") {
 		t.Errorf("service %+v", s)
 	}
 
@@ -255,16 +256,33 @@ func keys(m map[string]string) []string {
 // protecting AudioSmith's models by its pins table), nor any claim; the
 // next launch migrates and registers.
 func TestMigrateFailureWritesNoManifest(t *testing.T) {
-	if os.Geteuid() == 0 {
+	if runtime.GOOS != "windows" && os.Geteuid() == 0 {
 		t.Skip("root writes into read-only directories")
 	}
 	fx := conformance.New(t)
 	install(fx, refA, refG, refB)
 	claims := fx.Family.ClaimsDir()
-	if err := os.Chmod(claims, 0o500); err != nil {
+	restoreClaims := func() {
+		if runtime.GOOS == "windows" {
+			_ = os.Remove(claims)
+			_ = os.MkdirAll(claims, 0o700)
+			return
+		}
+		_ = os.Chmod(claims, 0o700)
+	}
+	if runtime.GOOS == "windows" {
+		// NTFS ignores read-only mode bits on directories; replacing the
+		// empty claims directory with a regular file makes writes fail.
+		if err := os.Remove(claims); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(claims, []byte("block"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	} else if err := os.Chmod(claims, 0o500); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(claims, 0o700) })
+	t.Cleanup(restoreClaims)
 	f := newFamily(t, fx, "")
 	ctx := context.Background()
 	if err := f.Start(ctx, inputs(fx.Hub), wantedOf()); err == nil {
@@ -276,7 +294,7 @@ func TestMigrateFailureWritesNoManifest(t *testing.T) {
 	if f.Ready() {
 		t.Error("ready after a failed migration")
 	}
-	os.Chmod(claims, 0o700)
+	restoreClaims()
 	// The rest of this launch writes no claims (the next one migrates).
 	f.Claimed(ctx, fx.Hub, ClaimOf(testCatalog[1], refB.Repo, revB, nil, false, ""))
 	if _, err := os.Stat(fx.Family.ClaimsFile(ReleaseBundleID)); !os.IsNotExist(err) {

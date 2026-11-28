@@ -259,7 +259,7 @@ func checkSnapshot(t *testing.T, c *Client, h *fakeHub) {
 			t.Errorf("%s: %d bytes, %v", path, len(got), err)
 		}
 		link, _ := os.Readlink(filepath.Join(l.Snapshot, filepath.FromSlash(path)))
-		if !strings.HasPrefix(link, "../") || filepath.IsAbs(link) {
+		if !strings.HasPrefix(filepath.ToSlash(link), "../") || filepath.IsAbs(link) {
 			t.Errorf("%s links to %q, want a relative link", path, link)
 		}
 	}

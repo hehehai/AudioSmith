@@ -63,7 +63,7 @@ func TestClaimedInsideTheExclusiveLock(t *testing.T) {
 		return store.ClaimLocked(ctx, models.Claim{Repo: d.Repo, Revision: d.Commit, Model: d.Entry.ID, Files: d.Files, Aux: d.Aux,
 			Origin: models.OriginDownloaded})
 	}
-	c := New(Options{CacheDir: cache, Endpoints: []string{both.URL}, Official: both.URL, ChunkSize: 1024, ReserveBytes: -1,
+	c := New(Options{CacheDir: cache, Endpoints: []string{both.URL}, Official: both.URL, ChunkSize: 1024, ReserveBytes: -1, GOOS: "darwin",
 		Claimed: claimed})
 	c.progressEvery = 0
 	e := h.entry()
@@ -98,7 +98,7 @@ func TestClaimedInsideTheExclusiveLock(t *testing.T) {
 	l.Release()
 
 	// A failing claim does not fail the download.
-	c = New(Options{CacheDir: t.TempDir(), Endpoints: []string{both.URL}, Official: both.URL, ChunkSize: 1024, ReserveBytes: -1,
+	c = New(Options{CacheDir: t.TempDir(), Endpoints: []string{both.URL}, Official: both.URL, ChunkSize: 1024, ReserveBytes: -1, GOOS: "darwin",
 		Claimed: func(context.Context, string, Finished) error { return errors.New("disk full") }})
 	if err := c.Download(context.Background(), h.entry(), nil); err != nil {
 		t.Errorf("download failed with its claim: %v", err)
