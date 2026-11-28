@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -129,7 +130,8 @@ func CheckFile(ctx context.Context, path string) (int, error) {
 // own files. Full-text indexes follow through their triggers. It
 // returns how many rows changed.
 func RewritePaths(ctx context.Context, path, oldDir, newDir string) (int64, error) {
-	oldDir, newDir = strings.TrimRight(oldDir, "/"), strings.TrimRight(newDir, "/")
+	oldDir = strings.TrimRight(oldDir, "/\\")
+	newDir = strings.TrimRight(newDir, "/\\")
 	if oldDir == "" || newDir == "" || oldDir == newDir {
 		return 0, errors.New("sqlitestore: RewritePaths needs two different folders")
 	}
@@ -144,14 +146,26 @@ func RewritePaths(ctx context.Context, path, oldDir, newDir string) (int64, erro
 		return 0, err
 	}
 	// The forms a folder takes in the database: as it is, and escaped
-	// in JSON (Go escapes <, > and &; "/" stays as it is).
+	// in JSON (Go escapes <, >, & and \ on Windows).
 	jsonForm := func(s string) string {
 		b, _ := json.Marshal(s)
 		return string(b[1 : len(b)-1])
 	}
-	pairs := [][2]string{{oldDir + "/", newDir + "/"}}
-	if j, k := jsonForm(oldDir), jsonForm(newDir); j != oldDir || k != newDir {
-		pairs = append(pairs, [2]string{j + "/", k + "/"})
+	var pairs [][2]string
+	addPair := func(a, b string) {
+		for _, p := range pairs {
+			if p[0] == a && p[1] == b {
+				return
+			}
+		}
+		pairs = append(pairs, [2]string{a, b})
+	}
+	sep := string(os.PathSeparator)
+	addPair(oldDir+sep, newDir+sep)
+	addPair(jsonForm(oldDir+sep), jsonForm(newDir+sep))
+	if sep != "/" {
+		addPair(oldDir+"/", newDir+"/")
+		addPair(jsonForm(oldDir+"/"), jsonForm(newDir+"/"))
 	}
 	var stmts []sqlite.Statement
 	for _, t := range tables.Values {

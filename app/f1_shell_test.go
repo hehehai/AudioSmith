@@ -55,12 +55,13 @@ func TestHomeStart(t *testing.T) {
 // Text goes to Text to speech's script; a link and a video to Dub; an
 // audio file to Speech to text; a text file to Audiobook.
 func TestHomeRouting(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	a.navigate("/home")
 	tt.Frame()
 	a.homeUI.text = "Welcome to the spring sale."
 	tt.Frame()
-	if err := tt.Click("Start (↩)"); err != nil {
+	if err := tt.Click(shortcutLabel("Start (↩)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

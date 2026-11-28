@@ -54,7 +54,7 @@ func headerFixture(t *testing.T) (*dubTest, []headerPage) {
 		{"voices-new", func(a *app) { a.navigate("/voices/new") }, []string{"My voices ›"}},
 		{"clone", func(a *app) { a.startClone("") }, []string{"Cancel"}},
 		{"design", func(a *app) { a.startDesign() }, []string{"New design", "Discover voices"}},
-		{"projects", func(a *app) { a.navigate("/projects") }, []string{"Search projects", "Type", "List (⌥1)", "Cards (⌥2)", "New"}},
+		{"projects", func(a *app) { a.navigate("/projects") }, []string{"Search projects", "Type", shortcutLabel("List (⌥1)"), shortcutLabel("Cards (⌥2)"), "New"}},
 		{"assets", func(a *app) { a.navigate("/assets") }, []string{"Search assets", "Type", "Source", "Open folder"}},
 		{"dub-list", func(a *app) { a.navigate("/dub") }, []string{"Search dubs", "Status", "Languages"}},
 		{"dub-editor", func(a *app) { a.openDub(a.dubList[0].ID) }, []string{"Show the step settings|Hide the step settings", "More actions"}},

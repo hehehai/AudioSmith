@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -284,7 +283,9 @@ func (v *v02) crashFlow(t *testing.T) string {
 	}
 	v.restarting = true
 	defer func() { v.restarting = false }()
-	syscall.Kill(pid, syscall.SIGKILL)
+	if proc, err := os.FindProcess(pid); err == nil {
+		_ = proc.Kill()
+	}
 	killed := time.Now()
 	v.wait(t, "after the crash", 15*time.Minute, func() bool { return a.job == nil && a.awaitTake == "" })
 	outcome := "retried: take made"

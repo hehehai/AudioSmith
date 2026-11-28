@@ -1,6 +1,7 @@
 package scripts
 
 import (
+	"archive/zip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -352,6 +353,273 @@ func TestReleasePublish(t *testing.T) {
 		if err == nil || !strings.Contains(stderr, c.says) || readLog(log) != nil || s.calls != 0 {
 			t.Errorf("%s: %v, %s, calls %v", c.name, err, stderr, readLog(log))
 		}
+	}
+}
+
+// TestReleasePublishWindows verifies Windows installer and manifest discovery
+// (--include-windows and --windows-dir) without breaking the macOS flow or
+// touching the vendored actnow-publish.sh.
+func TestReleasePublishWindows(t *testing.T) {
+	needTools(t)
+	log := filepath.Join(t.TempDir(), "calls.log")
+	s := newSite(t, log)
+	root, _ := publishRoot(t, s.srv.URL, "")
+	base := s.srv.URL + "/updates/audiosmith/beta/"
+	publish := func(root, log string, env []string, args ...string) (string, string, error) {
+		env = append([]string{
+			"PATH=" + filepath.Join(root, "bin") + ":" + os.Getenv("PATH"), "LOG=" + log, "ACTNOW_URL=" + s.srv.URL,
+		}, env...)
+		return run(t, root, env, "bash", append([]string{"scripts/release-publish.sh"}, args...)...)
+	}
+
+	winDir := filepath.Join(root, "build/windows-amd64")
+	if err := os.MkdirAll(winDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	winManifest, _ := json.Marshal(map[string]any{
+		"version": "0.4.0-beta.5", "notes": "- Five.",
+		"url": base + "audiosmith-0.4.0-beta.5-windows-amd64.tar.gz", "size": 9, "signature": "wsig",
+	})
+	for name, content := range map[string]string{
+		"audiosmith-setup-0.4.0-beta.5-amd64.exe":      "nsis installer",
+		"audiosmith-0.4.0-beta.5-windows-amd64.tar.gz": "win archive",
+		"update-windows-amd64.json":                    string(winManifest),
+	} {
+		if err := os.WriteFile(filepath.Join(winDir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Dry run with --include-windows stages both macOS and Windows artifacts
+	// and mentions Windows in github-notes.md.
+	out, stderr, err := publish(root, log, nil, "--dry-run", "--include-windows")
+	if err != nil {
+		t.Fatalf("dry-run --include-windows: %v\n%s%s", err, out, stderr)
+	}
+	if !strings.Contains(out, "audiosmith-setup-0.4.0-beta.5-amd64.exe") || !strings.Contains(out, "update-windows-amd64.json") {
+		t.Errorf("dry-run missing Windows artifacts:\n%s", out)
+	}
+	notes, err := os.ReadFile(filepath.Join(root, "build/github-notes.md"))
+	if err != nil || !strings.Contains(string(notes), "audiosmith-setup-0.4.0-beta.5-amd64.exe") {
+		t.Errorf("github-notes.md missing Windows installer: %v\n%s", err, notes)
+	}
+
+	// Windows-only GitHub upload (--skip-website --windows-dir) works without
+	// build/darwin-arm64 and uploads manifests last.
+	winOnlyRoot := fakeRoot(t, []string{"actnow.sh", "actnow-publish.sh", "release-publish.sh"}, map[string]string{
+		"mygo.json":    `{"name": "AudioSmith", "version": "0.4.0-beta.5", "updates": {"publicKey": "k", "url": "` + s.srv.URL + `/updates/audiosmith"}}`,
+		"CHANGELOG.md": "# Changelog\n\n## 0.4.0-beta.5\n\n- Five.\n",
+		"build/windows-amd64/audiosmith-setup-0.4.0-beta.5-amd64.exe":      "nsis installer",
+		"build/windows-amd64/audiosmith-0.4.0-beta.5-windows-amd64.tar.gz": "win archive",
+		"build/windows-amd64/update-windows-amd64.json":                    string(winManifest),
+		"bin/gh": "#!/usr/bin/env bash\n" +
+			"set -euo pipefail\n" +
+			"echo \"gh $*\" >> \"$LOG\"\n" +
+			"if [[ \"$1 $2\" == \"release view\" ]]; then exit 0; fi\n",
+	})
+	os.Remove(log)
+	s.reset()
+	if out, stderr, err := publish(winOnlyRoot, log, nil, "--skip-website", "--windows-dir", "build/windows-amd64"); err != nil {
+		t.Fatalf("windows-only publish: %v\n%s%s", err, out, stderr)
+	}
+	if s.calls != 0 {
+		t.Errorf("windows-only touched website: %d calls", s.calls)
+	}
+	if want := []string{
+		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
+		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/audiosmith-setup-0.4.0-beta.5-amd64.exe",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-windows-amd64.json",
+	}; !slices.Equal(readLog(log), want) {
+		t.Errorf("windows-only calls:\n%s\nwant:\n%s", strings.Join(readLog(log), "\n"), strings.Join(want, "\n"))
+	}
+
+	// Portable ZIPs + SHA256SUMS-windows.txt are also discovered and uploaded
+	// before manifests.
+	winBundleRoot := fakeRoot(t, []string{"actnow.sh", "actnow-publish.sh", "release-publish.sh"}, map[string]string{
+		"mygo.json":    `{"name": "AudioSmith", "version": "0.4.0-beta.5", "updates": {"publicKey": "k", "url": "` + s.srv.URL + `/updates/audiosmith"}}`,
+		"CHANGELOG.md": "# Changelog\n\n## 0.4.0-beta.5\n\n- Five.\n",
+		"build/windows-release/AudioSmith-0.4.0-beta.5-windows-amd64-setup.exe":    "nsis installer",
+		"build/windows-release/AudioSmith-0.4.0-beta.5-windows-amd64-portable.zip": "amd64 zip",
+		"build/windows-release/AudioSmith-0.4.0-beta.5-windows-arm64-portable.zip": "arm64 zip",
+		"build/windows-release/SHA256SUMS-windows.txt":                             "deadbeef  AudioSmith-0.4.0-beta.5-windows-amd64-setup.exe\n",
+		"build/windows-release/update-windows-amd64.json":                          string(winManifest),
+		"bin/gh": "#!/usr/bin/env bash\n" +
+			"set -euo pipefail\n" +
+			"echo \"gh $*\" >> \"$LOG\"\n" +
+			"if [[ \"$1 $2\" == \"release view\" ]]; then exit 0; fi\n",
+	})
+	os.Remove(log)
+	s.reset()
+	if out, stderr, err := publish(winBundleRoot, log, nil, "--skip-website", "--windows-dir", "build/windows-release"); err != nil {
+		t.Fatalf("windows bundle publish: %v\n%s%s", err, out, stderr)
+	}
+	if want := []string{
+		"gh release view v0.4.0-beta.5 --repo hehehai/AudioSmith",
+		"gh release edit v0.4.0-beta.5 --repo hehehai/AudioSmith --prerelease --latest=false",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/AudioSmith-0.4.0-beta.5-windows-amd64-portable.zip build/github/AudioSmith-0.4.0-beta.5-windows-amd64-setup.exe build/github/AudioSmith-0.4.0-beta.5-windows-arm64-portable.zip build/github/SHA256SUMS-windows.txt",
+		"gh release upload v0.4.0-beta.5 --repo hehehai/AudioSmith --clobber build/github/update-windows-amd64.json",
+	}; !slices.Equal(readLog(log), want) {
+		t.Errorf("windows bundle calls:\n%s\nwant:\n%s", strings.Join(readLog(log), "\n"), strings.Join(want, "\n"))
+	}
+
+	// Bad Windows manifest URL is rejected before anything is sent.
+	badManifest, _ := json.Marshal(map[string]any{
+		"version": "0.4.0-beta.5",
+		"url":     s.srv.URL + "/updates/audiosmith/audiosmith-0.4.0-beta.5-windows-amd64.tar.gz",
+	})
+	if err := os.WriteFile(filepath.Join(winDir, "update-windows-amd64.json"), badManifest, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(log)
+	_, stderr, err = publish(root, log, nil, "--skip-website", "--windows-dir", "build/windows-amd64")
+	if err == nil || !strings.Contains(stderr, "/updates/audiosmith/beta/: build with") || readLog(log) != nil {
+		t.Errorf("bad windows manifest: err=%v stderr=%s calls=%v", err, stderr, readLog(log))
+	}
+}
+
+// TestBuildWinPackaging tests scripts/build-win.sh's --portable, --installer,
+// installer filename normalization, and SHA256SUMS-windows.txt generation
+// against a fake go binary so it runs fast and offline.
+func TestBuildWinPackaging(t *testing.T) {
+	needTools(t)
+	fakeGo := `#!/usr/bin/env bash
+set -euo pipefail
+echo "go $*" >> "$GO_LOG"
+if [[ "$1" == "build" ]]; then
+  out=""
+  for ((i=1; i<=$#; i++)); do
+    if [[ "${!i}" == "-o" ]]; then
+      j=$((i+1))
+      out="${!j}"
+    fi
+  done
+  mkdir -p "$(dirname "$out")"
+  printf 'fake-engine-%s' "${GOARCH:-amd64}" > "$out"
+  exit 0
+fi
+if [[ "$1 $2 $3" == "tool mygo build" ]]; then
+  arch="amd64"
+  skip_inst=false
+  for ((i=1; i<=$#; i++)); do
+    if [[ "${!i}" == "-platform" ]]; then
+      j=$((i+1))
+      arch="${!j#windows/}"
+    elif [[ "${!i}" == "-skip-installer" ]]; then
+      skip_inst=true
+    fi
+  done
+  out="build/windows-${arch}"
+  mkdir -p "$out/engine"
+  printf 'fake-app-%s' "$arch" > "$out/AudioSmith.exe"
+  printf 'fake-sqlite-%s' "$arch" > "$out/Sqlitecore.dll"
+  cp "resources/windows-${arch}/engine/audiosmith-engine.exe" "$out/engine/audiosmith-engine.exe"
+  cp LICENSE NOTICE THIRD-PARTY-NOTICES.txt "$out/"
+  if ! $skip_inst && [[ "${FAKE_NO_INSTALLER:-}" != "1" ]]; then
+    ver="$(jq -r .version mygo.json)"
+    printf 'fake-nsis-%s-%s' "$ver" "$arch" > "$out/audiosmith-setup-${ver}-${arch}.exe"
+  fi
+  exit 0
+fi
+echo "unexpected go invocation: $*" >&2
+exit 1
+`
+	root := fakeRoot(t, []string{"build-win.sh"}, map[string]string{
+		"mygo.json":               `{"name":"AudioSmith","version":"0.5.0-beta.5"}`,
+		"LICENSE":                 "AGPL-3.0\n",
+		"NOTICE":                  "AudioSmith notice\n",
+		"THIRD-PARTY-NOTICES.txt": "Third party notices\n",
+		"bin/go":                  fakeGo,
+	})
+	goLog := filepath.Join(t.TempDir(), "go.log")
+	runBuild := func(extraEnv []string, args ...string) (string, string, error) {
+		env := append([]string{
+			"PATH=" + filepath.Join(root, "bin") + ":" + os.Getenv("PATH"),
+			"GO_LOG=" + goLog,
+		}, extraEnv...)
+		return run(t, root, env, "bash", append([]string{"scripts/build-win.sh"}, args...)...)
+	}
+
+	// 1. --portable alone implies -skip-installer and builds a clean ZIP + SHA256SUMS.
+	out, stderr, err := runBuild(nil, "--arch", "arm64", "--portable")
+	if err != nil {
+		t.Fatalf("--portable arm64 failed: %v\n%s%s", err, out, stderr)
+	}
+	armZip := filepath.Join(root, "build/windows-arm64/AudioSmith-0.5.0-beta.5-windows-arm64-portable.zip")
+	zr, err := zip.OpenReader(armZip)
+	if err != nil {
+		t.Fatalf("open arm64 portable zip: %v", err)
+	}
+	var gotFiles []string
+	for _, f := range zr.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		gotFiles = append(gotFiles, f.Name)
+	}
+	zr.Close()
+	slices.Sort(gotFiles)
+	wantFiles := []string{
+		"AudioSmith.exe",
+		"LICENSE",
+		"NOTICE",
+		"Sqlitecore.dll",
+		"THIRD-PARTY-NOTICES.txt",
+		"engine/audiosmith-engine.exe",
+	}
+	if !slices.Equal(gotFiles, wantFiles) {
+		t.Errorf("arm64 portable zip entries = %v, want %v", gotFiles, wantFiles)
+	}
+	logLines := readLog(goLog)
+	if len(logLines) < 2 || !strings.Contains(logLines[1], "-skip-installer") {
+		t.Errorf("--portable without --installer should pass -skip-installer, got: %v", logLines)
+	}
+	armSums, err := os.ReadFile(filepath.Join(root, "build/windows-arm64/SHA256SUMS-windows.txt"))
+	if err != nil {
+		t.Fatalf("read arm64 SHA256SUMS: %v", err)
+	}
+	zipBytes, _ := os.ReadFile(armZip)
+	wantArmSum := sum(string(zipBytes)) + "  AudioSmith-0.5.0-beta.5-windows-arm64-portable.zip\n"
+	if string(armSums) != wantArmSum {
+		t.Errorf("arm64 SHA256SUMS =\n%s\nwant:\n%s", armSums, wantArmSum)
+	}
+
+	// 2. --installer --portable normalizes NSIS installer name, builds ZIP, and hashes both.
+	os.Remove(goLog)
+	out, stderr, err = runBuild(nil, "--arch", "amd64", "--installer", "--portable")
+	if err != nil {
+		t.Fatalf("--installer --portable amd64 failed: %v\n%s%s", err, out, stderr)
+	}
+	instPath := filepath.Join(root, "build/windows-amd64/AudioSmith-0.5.0-beta.5-windows-amd64-setup.exe")
+	amdZip := filepath.Join(root, "build/windows-amd64/AudioSmith-0.5.0-beta.5-windows-amd64-portable.zip")
+	instBytes, err := os.ReadFile(instPath)
+	if err != nil {
+		t.Fatalf("normalized installer missing: %v", err)
+	}
+	amdZipBytes, err := os.ReadFile(amdZip)
+	if err != nil {
+		t.Fatalf("amd64 portable zip missing: %v", err)
+	}
+	amdSums, err := os.ReadFile(filepath.Join(root, "build/windows-amd64/SHA256SUMS-windows.txt"))
+	if err != nil {
+		t.Fatalf("read amd64 SHA256SUMS: %v", err)
+	}
+	wantAmdSums := sum(string(instBytes)) + "  AudioSmith-0.5.0-beta.5-windows-amd64-setup.exe\n" +
+		sum(string(amdZipBytes)) + "  AudioSmith-0.5.0-beta.5-windows-amd64-portable.zip\n"
+	if string(amdSums) != wantAmdSums {
+		t.Errorf("amd64 SHA256SUMS =\n%s\nwant:\n%s", amdSums, wantAmdSums)
+	}
+
+	// 3. Error cases: mutually exclusive flags, invalid arch, missing installer.
+	if _, stderr, err := runBuild(nil, "--installer", "--skip-installer"); err == nil || !strings.Contains(stderr, "cannot be used together") {
+		t.Errorf("--installer --skip-installer: err=%v stderr=%s", err, stderr)
+	}
+	if _, stderr, err := runBuild(nil, "--arch", "386"); err == nil || !strings.Contains(stderr, "unsupported arch") {
+		t.Errorf("--arch 386: err=%v stderr=%s", err, stderr)
+	}
+	os.Remove(instPath)
+	if _, stderr, err := runBuild([]string{"FAKE_NO_INSTALLER=1"}, "--arch", "amd64", "--installer"); err == nil || !strings.Contains(stderr, "NSIS installer was not produced") {
+		t.Errorf("missing installer with --installer: err=%v stderr=%s", err, stderr)
 	}
 }
 

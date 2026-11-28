@@ -2,6 +2,7 @@ package dictation
 
 import (
 	"errors"
+	"runtime"
 	"slices"
 	"strings"
 )
@@ -125,8 +126,27 @@ var keyGlyphs = map[string]string{
 	"Left": "←", "Right": "→", "Up": "↑", "Down": "↓", "PageUp": "⇞", "PageDown": "⇟", "Home": "↖", "End": "↘",
 }
 
-// Glyphs shows the shortcut as macOS menus do: "⌃⌥⇧⌘Space".
+// glyphsOS controls how Shortcut.Glyphs formats accelerators.
+// Defaults to runtime.GOOS; tests may override it temporarily.
+var glyphsOS = runtime.GOOS
+
+// Glyphs shows the shortcut as platform menus do: "⌃⌥⇧⌘Space" on macOS,
+// "Ctrl+Alt+Shift+Space" on Windows.
 func (s Shortcut) Glyphs() string {
+	if glyphsOS == "windows" {
+		var parts []string
+		if s.Cmd || s.Ctrl {
+			parts = append(parts, "Ctrl")
+		}
+		if s.Alt {
+			parts = append(parts, "Alt")
+		}
+		if s.Shift {
+			parts = append(parts, "Shift")
+		}
+		parts = append(parts, s.Key)
+		return strings.Join(parts, "+")
+	}
 	var b strings.Builder
 	if s.Ctrl {
 		b.WriteString("⌃")

@@ -23,7 +23,7 @@ func TestProjectLicence(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return string(data)
+		return strings.ReplaceAll(string(data), "\r\n", "\n")
 	}
 	if lic := read("LICENSE"); !strings.HasPrefix(strings.TrimSpace(lic), "GNU AFFERO GENERAL PUBLIC LICENSE\n                       Version 3, 19 November 2007") {
 		t.Errorf("LICENSE is not the GNU AGPL version 3")

@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/hehehai/AudioSmith/internal/core"
@@ -222,7 +221,7 @@ func (s *Server) Close(ctx context.Context) {
 	s.w.close()
 }
 
-func isAddrInUse(err error) bool { return errors.Is(err, syscall.EADDRINUSE) }
+func isAddrInUse(err error) bool { return core.IsAddrInUse(err) }
 
 // --- LAN sharing ----------------------------------------------------------
 

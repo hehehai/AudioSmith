@@ -62,7 +62,7 @@ func (l *library) synthExecutor() jobs.Executor {
 // auxSnapshots are the snapshot directories of the auxiliary repos of a
 // model (engine.ExecutorOptions.AuxPaths).
 func (l *library) auxSnapshots(ctx context.Context, repo string) map[string]string {
-	return hub.AuxSnapshotsIn(modelCaches(l.settings.Get()), entryFor(repo))
+	return hub.AuxSnapshotsInFor(modelCaches(l.settings.Get()), currentOS(), entryFor(repo))
 }
 
 // modelReady is services.Config.Ready: the model is downloaded, or its

@@ -42,7 +42,7 @@ func TestDubComposerFlow(t *testing.T) {
 	if !tt.HasText("Interview.wav") {
 		t.Fatalf("file chip: %q", tt.Texts())
 	}
-	d.click(t, "Dub (↩)")
+	d.click(t, shortcutLabel("Dub (↩)"))
 	if p := a.router.Path(); p != "/dub" {
 		t.Fatalf("left the list: %s", p)
 	}
@@ -103,7 +103,7 @@ func TestDubComposerLink(t *testing.T) {
 	a, tt := d.a, d.tt
 	a.dubURL = "not a link"
 	tt.Frame()
-	d.click(t, "Dub (↩)")
+	d.click(t, shortcutLabel("Dub (↩)"))
 	if a.dubErr == "" || len(a.dubList) != 0 {
 		t.Fatalf("bad link: %q %d", a.dubErr, len(a.dubList))
 	}
@@ -126,7 +126,7 @@ func TestTranscribeComposerFlow(t *testing.T) {
 	os.WriteFile(src, []byte("m4a"), 0o644)
 	a.trPend = src
 	tt.Frame()
-	if err := tt.Click("Transcribe (↩)"); err != nil {
+	if err := tt.Click(shortcutLabel("Transcribe (↩)")); err != nil {
 		t.Fatalf("%v: %q", err, tt.Texts())
 	}
 	r, req := transcribeReq(t, eng)
@@ -203,6 +203,7 @@ func isoTest(t *testing.T) (*app, *fakeEngine, *ui.Tester, *[]string) {
 // Voice isolator: submit → a job → the stems listed; play, save, the
 // hand-offs; delete.
 func TestIsolateFlow(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt, calls := isoTest(t)
 	a.navigate("/isolate")
 	tt.Frame()
@@ -213,7 +214,7 @@ func TestIsolateFlow(t *testing.T) {
 	os.WriteFile(src, []byte("video"), 0o644)
 	a.isoPend = src
 	tt.Frame()
-	if err := tt.Click("Isolate voices (↩)"); err != nil {
+	if err := tt.Click(shortcutLabel("Isolate voices (↩)")); err != nil {
 		t.Fatalf("%v: %q", err, tt.Texts())
 	}
 	tt.Frame()
@@ -308,6 +309,7 @@ func containsKey(items []homeItem, key string) bool {
 // Without the separation model the composer says what to download, and
 // submit is off; the download starts from there.
 func TestIsolateMissingModel(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt, _ := isoTest(t)
 	sep := removeModel(t, a, isoSeparator().ID)
 	a.navigate("/isolate")

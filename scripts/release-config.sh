@@ -26,6 +26,8 @@
 #                            its SHA-1: macos.signingIdentity
 #   NOTARY_PROFILE           a notarytool keychain profile: macos.notarize
 #   NOTARY_KEYCHAIN          the keychain holding it (CI's temporary one)
+#   WINDOWS_SIGN_COMMAND     Authenticode sign command with %1 placeholder
+#                            (e.g. Azure Trusted Signing): windows.signCommand
 #
 # GITHUB_FEED (release.yml's transition toggle) changes nothing here: the
 # app always reads the website; release-publish.sh puts a copy of the
@@ -56,13 +58,15 @@ result="$(jq \
   --arg url "$ACTNOW_UPDATES_URL" \
   --arg identity "${MACOS_SIGNING_IDENTITY:-}" \
   --arg profile "${NOTARY_PROFILE:-}" \
-  --arg keychain "${NOTARY_KEYCHAIN:-}" '
+  --arg keychain "${NOTARY_KEYCHAIN:-}" \
+  --arg winSign "${WINDOWS_SIGN_COMMAND:-}" '
   (if $key == "" then .
     else .updates = ((.updates // {}) | del(.github, .tagPrefix, .s3)) + {publicKey: $key, url: $url, prereleases: true}
     end)
   | (if $identity != "" then .macos.signingIdentity = $identity else . end)
   | (if $profile != "" then .macos.notarize = ({keychainProfile: $profile}
       + (if $keychain != "" then {keychain: $keychain} else {} end)) else . end)
+  | (if $winSign != "" then .windows = ((.windows // {}) + {signCommand: $winSign}) else . end)
 ' "$CONFIG")"
 
 if [[ "${1:-}" == "--print" ]]; then

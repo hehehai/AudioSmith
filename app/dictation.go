@@ -363,6 +363,9 @@ func (s *dictSession) status() string {
 func shortcutErrorText(err error) string {
 	switch {
 	case errors.Is(err, dictation.ErrNoModifier):
+		if isWindowsShortcuts() {
+			return i18n.T("Add a modifier: Ctrl or Alt with another key.")
+		}
 		return i18n.T("Add a modifier: ⌘, ⌃ or ⌥ with another key.")
 	case errors.Is(err, dictation.ErrEmpty):
 		return i18n.T("No shortcut is set.")

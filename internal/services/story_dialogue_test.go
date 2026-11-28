@@ -161,7 +161,7 @@ func TestDialogueRender(t *testing.T) {
 		t.Fatalf("calls %d, result %+v", len(fd.calls), res)
 	}
 	first, redo := fd.calls[0], fd.calls[1]
-	if len(first.Speakers) != 2 || !strings.Contains(first.Speakers[1].RefAudio, "/longform-chunks/ref-") || first.Speakers[0].RefText != PortableLine("zh") || len(first.Turns) != 4 {
+	if len(first.Speakers) != 2 || !strings.Contains(filepath.ToSlash(first.Speakers[1].RefAudio), "/longform-chunks/ref-") || first.Speakers[0].RefText != PortableLine("zh") || len(first.Turns) != 4 {
 		t.Errorf("first call %+v", first)
 	}
 	// The clone's clip is tidied: evened out to −18 LUFS like the others.

@@ -39,7 +39,7 @@ func render(name string, data any) (string, error) {
 	if err := prompts().ExecuteTemplate(&b, name, data); err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(b.String()), nil
+	return strings.TrimSpace(strings.ReplaceAll(b.String(), "\r\n", "\n")), nil
 }
 
 // has reports whether a template is defined.

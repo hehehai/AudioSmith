@@ -66,7 +66,11 @@ func TestPathsAndNames(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "a.wav")
 	os.WriteFile(file, []byte("x"), 0o644)
-	if p, err := InputFile("path", file); err != nil || p != file {
+	wantFile, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p, err := InputFile("path", file); err != nil || p != wantFile {
 		t.Fatal(p, err)
 	}
 	for _, bad := range []string{"", "a.wav", dir, filepath.Join(dir, "none.wav")} {

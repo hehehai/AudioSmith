@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -38,6 +39,35 @@ func fakeFFmpegLog(t *testing.T) (path, log string) {
 	t.Helper()
 	dir := t.TempDir()
 	log = filepath.Join(dir, "args.log")
+	if runtime.GOOS == "windows" {
+		script := "@echo off\r\n" +
+			"if \"%2\"==\"-version\" (\r\n" +
+			"  echo ffmpeg version n8.1.2-fake Copyright\r\n" +
+			"  exit /b 0\r\n" +
+			")\r\n" +
+			"if \"%2\"==\"-encoders\" (\r\n" +
+			"  echo  A....D = Audio\r\n" +
+			"  echo  ------\r\n" +
+			"  echo  A....D libmp3lame  MP3\r\n" +
+			"  echo  A....D libopus  Opus\r\n" +
+			"  echo  A....D flac  FLAC\r\n" +
+			"  exit /b 0\r\n" +
+			")\r\n" +
+			"if \"%2\"==\"-filters\" exit /b 0\r\n" +
+			"echo %* >> \"" + log + "\"\r\n" +
+			":loop\r\n" +
+			"if \"%~2\"==\"\" goto done\r\n" +
+			"shift\r\n" +
+			"goto loop\r\n" +
+			":done\r\n" +
+			"echo fake > \"%~1\"\r\n"
+		for _, n := range []string{"ffmpeg.cmd", "ffprobe.cmd"} {
+			if err := os.WriteFile(filepath.Join(dir, n), []byte(script), 0o755); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return filepath.Join(dir, "ffmpeg.cmd"), log
+	}
 	script := `#!/bin/sh
 case "$*" in
 *-version*) echo "ffmpeg version n8.1.2-fake Copyright"; exit 0;;

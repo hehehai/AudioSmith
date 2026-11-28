@@ -24,12 +24,13 @@ const OwnerPrefix = "model:"
 
 // Job error codes of downloads (jobs.Error.Code).
 const (
-	CodeGated     = "gated"      // needs a token and the accepted terms
-	CodeDiskSpace = "disk_space" // not enough free space
-	CodeOffline   = "offline"    // no endpoint answered (retryable)
-	CodeChecksum  = "checksum"   // a file arrived damaged (retryable)
-	CodeNotFound  = "not_found"  // no such repo or revision
-	CodeFailed    = "download_failed"
+	CodeGated               = "gated"                // needs a token and the accepted terms
+	CodeDiskSpace           = "disk_space"           // not enough free space
+	CodeOffline             = "offline"              // no endpoint answered (retryable)
+	CodeChecksum            = "checksum"             // a file arrived damaged (retryable)
+	CodeNotFound            = "not_found"            // no such repo or revision
+	CodeUnsupportedPlatform = "unsupported_platform" // model not available on this OS
+	CodeFailed              = "download_failed"
 )
 
 // DownloadParams are a download job's params.
@@ -146,6 +147,8 @@ func downloadJobError(err error) *jobs.Error {
 		je.Code, je.Retryable = CodeChecksum, true
 	case errors.Is(err, ErrNotFound):
 		je.Code = CodeNotFound
+	case errors.Is(err, ErrUnsupportedPlatform):
+		je.Code = CodeUnsupportedPlatform
 	}
 	return je
 }

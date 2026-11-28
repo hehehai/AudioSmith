@@ -14,6 +14,7 @@ import (
 // others come with "Show all models"; picking one applies it; removed
 // models are never offered.
 func TestModelPicker(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	tt.Frame()
 	a.pickerOpen = map[string]bool{"model": true}

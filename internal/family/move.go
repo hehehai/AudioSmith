@@ -33,6 +33,8 @@ import (
 
 	actnow "github.com/hehehai/actnowkit/family"
 	"github.com/hehehai/actnowkit/models"
+
+	"github.com/hehehai/AudioSmith/internal/core"
 )
 
 // OpMove names the move in lock owner files.
@@ -310,7 +312,7 @@ func copySnapshot(ctx context.Context, from, to string, c models.Claim, bundleID
 				if err != nil {
 					return err
 				}
-				return os.Symlink(rl, target)
+				return core.SymlinkOrFallback(rl, target)
 			}
 			return transferFile(ctx, abs, target, copied) // a link elsewhere: its content
 		case d.Type().IsRegular():

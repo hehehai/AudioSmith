@@ -21,3 +21,6 @@ mygo_windows_*.syso
 *.p12
 *.p8
 mygo-update.key
+
+# Staged Windows engine binaries (scripts/build-win.*)
+/resources/windows-*/engine/

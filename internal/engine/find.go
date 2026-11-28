@@ -10,6 +10,14 @@ import (
 	"runtime"
 )
 
+// engineBinaryName returns the engine executable name for goos.
+func engineBinaryName(goos string) string {
+	if goos == "windows" {
+		return "audiosmith-engine.exe"
+	}
+	return "audiosmith-engine"
+}
+
 // Find looks for audiosmith-engine: $AUDIOSMITH_ENGINE, then the app's
 // resources (packaged, mygo dev, or go run from the project). It returns
 // an absolute path, or "" when there is none.
@@ -20,9 +28,10 @@ func Find(resources string) string {
 		}
 		return p
 	}
+	bin := engineBinaryName(runtime.GOOS)
 	candidates := []string{
-		filepath.Join(resources, "engine", "audiosmith-engine"),
-		filepath.Join(resources, runtime.GOOS+"-"+runtime.GOARCH, "engine", "audiosmith-engine"),
+		filepath.Join(resources, "engine", bin),
+		filepath.Join(resources, runtime.GOOS+"-"+runtime.GOARCH, "engine", bin),
 	}
 	for _, p := range candidates {
 		if st, err := os.Stat(p); err == nil && !st.IsDir() {

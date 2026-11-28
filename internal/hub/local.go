@@ -31,14 +31,19 @@ func commitOf(repoDir string, e catalog.Entry) string {
 
 // Status reports what of e is on disk, from the files alone (no network).
 func (c *Client) Status(ctx context.Context, e catalog.Entry) (Local, error) {
-	return StatusIn(append([]string{c.opts.CacheDir}, c.opts.AlsoIn...), e)
+	return StatusInFor(append([]string{c.opts.CacheDir}, c.opts.AlsoIn...), c.targetOS(), e)
 }
 
 // Status is Client.Status for a cache directory. An entry whose
 // auxiliary repos are not all there is Partial, and its Missing lists
 // them as "<repo>:".
 func Status(cacheDir string, e catalog.Entry) (Local, error) {
-	return StatusIn([]string{cacheDir}, e)
+	return StatusInFor([]string{cacheDir}, "", e)
+}
+
+// StatusFor is Status for a specific target OS ("windows", "darwin", …).
+func StatusFor(cacheDir, goos string, e catalog.Entry) (Local, error) {
+	return StatusInFor([]string{cacheDir}, goos, e)
 }
 
 // StatusIn is Status across folders, the first one first: a move of the
@@ -46,6 +51,16 @@ func Status(cacheDir string, e catalog.Entry) (Local, error) {
 // (#101 M2). Each repo counts from the first folder that has it
 // downloaded, else from the first folder.
 func StatusIn(dirs []string, e catalog.Entry) (Local, error) {
+	return StatusInFor(dirs, "", e)
+}
+
+// StatusInFor is StatusIn for a specific target OS ("windows", "darwin", …).
+// Entries unavailable on goos report Missing without inspecting MLX repos.
+func StatusInFor(dirs []string, goos string, e catalog.Entry) (Local, error) {
+	re, err := ResolveEntry(e, goos)
+	if err != nil {
+		return Local{State: Missing}, nil
+	}
 	one := func(e catalog.Entry, weights bool) (Local, error) {
 		var first Local
 		for i, d := range dirs {
@@ -62,12 +77,12 @@ func StatusIn(dirs []string, e catalog.Entry) (Local, error) {
 		}
 		return first, nil
 	}
-	l, err := one(e, true)
+	l, err := one(re, true)
 	if err != nil {
 		return l, err
 	}
-	for _, a := range e.Aux {
-		al, err := one(auxEntry(e, a), false)
+	for _, a := range re.Aux {
+		al, err := one(auxEntry(re, a), false)
 		if err != nil {
 			return l, err
 		}
@@ -86,16 +101,25 @@ func StatusIn(dirs []string, e catalog.Entry) (Local, error) {
 // cacheDir at their pinned commits (repo id → directory), those that are
 // there: the engine loads them from these (proto.ParamAuxPaths).
 func AuxSnapshots(cacheDir string, e catalog.Entry) map[string]string {
-	return AuxSnapshotsIn([]string{cacheDir}, e)
+	return AuxSnapshotsInFor([]string{cacheDir}, "", e)
 }
 
 // AuxSnapshotsIn is AuxSnapshots across folders (StatusIn), the first one
 // first.
 func AuxSnapshotsIn(dirs []string, e catalog.Entry) map[string]string {
+	return AuxSnapshotsInFor(dirs, "", e)
+}
+
+// AuxSnapshotsInFor is AuxSnapshotsIn for a specific target OS.
+func AuxSnapshotsInFor(dirs []string, goos string, e catalog.Entry) map[string]string {
 	out := map[string]string{}
-	for _, a := range e.Aux {
+	re, err := ResolveEntry(e, goos)
+	if err != nil {
+		return out
+	}
+	for _, a := range re.Aux {
 		for _, d := range dirs {
-			rev := commitOf(RepoDir(d, a.Repo), auxEntry(e, a))
+			rev := commitOf(RepoDir(d, a.Repo), auxEntry(re, a))
 			if hasSnapshot(d, a.Repo, rev) {
 				out[a.Repo] = filepath.Join(RepoDir(d, a.Repo), "snapshots", rev)
 				break
@@ -159,18 +183,22 @@ func isDir(p string) bool {
 // bad blobs are removed, so that Download fetches them again. Files of
 // auxiliary repos are named "<repo>:<path>".
 func (c *Client) Verify(ctx context.Context, e catalog.Entry) ([]string, error) {
-	defer c.lockRepo(e.Repo)()
-	bad, err := c.verifyOne(ctx, e)
+	re, err := ResolveEntry(e, c.targetOS())
 	if err != nil {
 		return nil, err
 	}
-	for _, a := range e.Aux {
-		if commitOf(RepoDir(c.opts.CacheDir, a.Repo), auxEntry(e, a)) == "" {
+	defer c.lockRepo(re.Repo)()
+	bad, err := c.verifyOne(ctx, re)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range re.Aux {
+		if commitOf(RepoDir(c.opts.CacheDir, a.Repo), auxEntry(re, a)) == "" {
 			bad = append(bad, a.Repo+":")
 			continue
 		}
 		unlock := c.lockRepo(a.Repo)
-		ab, err := c.verifyOne(ctx, auxEntry(e, a))
+		ab, err := c.verifyOne(ctx, auxEntry(re, a))
 		unlock()
 		if err != nil {
 			return nil, err

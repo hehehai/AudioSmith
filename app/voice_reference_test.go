@@ -66,6 +66,7 @@ func finishWith(t *testing.T, eng *fakeEngine, r sentReq, write func(path string
 // (approximate)" that the models that clone can speak with; the
 // candidates' takes are gone.
 func TestPortableSpeaker(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	cv := entry(t, "qwen3-tts-0.6b-customvoice-8bit")
 	from := len(eng.sent)
@@ -195,6 +196,7 @@ func answerRefCandidates(t *testing.T, eng *fakeEngine, from int, f0s ...float64
 // sample; the voice then clones from it, and Stories' whole dialogue
 // gets it on a model that designs.
 func TestDesignedReference(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -259,6 +261,7 @@ func TestDesignedReference(t *testing.T) {
 // before a story with whole dialogue renders; "Make reference" is in its
 // menu.
 func TestLazyReference(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, _ := newTestApp(t)
 	eng.ready()

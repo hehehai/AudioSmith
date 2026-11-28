@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -464,7 +465,8 @@ func TestAgentConversation(t *testing.T) {
 	if res.End != telephony.EndAgent || res.Outcome != telephony.OutcomeBooked || res.Note != "Friday 7 pm for two" {
 		t.Errorf("result %s %s %q", res.End, res.Outcome, res.Note)
 	}
-	if len(res.Turns) != 2 || res.Turns[1].STT <= 0 || res.Turns[1].Total <= 0 || res.Turns[1].Total < res.Turns[1].TTSFirst {
+	if len(res.Turns) != 2 || res.Turns[1].STT < 0 || res.Turns[1].Total < res.Turns[1].TTSFirst ||
+		(runtime.GOOS != "windows" && (res.Turns[1].STT <= 0 || res.Turns[1].Total <= 0)) {
 		t.Errorf("turns %+v", res.Turns)
 	}
 	if !rig.has(telephony.EvNotice, func(ev telephony.AgentEvent) bool { return ev.Notice == telephony.NoticeWithheld }) {

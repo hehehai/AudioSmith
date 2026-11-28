@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -49,8 +51,14 @@ func TestLANSecurity1102(t *testing.T) {
 		t.Errorf("local history://recent: %v", err)
 	}
 
+	outside := t.TempDir()
+	existing := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(existing, []byte("secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	missing := filepath.Join(outside, "does-not-exist-xyz")
 	var answers []string
-	for _, p := range []string{"/etc/passwd", "/etc/does-not-exist-xyz", "/etc"} {
+	for _, p := range []string{existing, missing, outside} {
 		r := call(t, cs, "transcribe", map[string]any{"path": p})
 		txt := textOf(r)
 		if !r.IsError || !strings.HasPrefix(txt, api.CodePathNotAllowed+":") {
@@ -61,7 +69,7 @@ func TestLANSecurity1102(t *testing.T) {
 	if answers[0] != answers[1] || answers[1] != answers[2] {
 		t.Errorf("LAN answers tell paths apart: %q", answers)
 	}
-	if r := call(t, local, "transcribe", map[string]any{"path": "/etc/does-not-exist-xyz"}); !strings.Contains(textOf(r), "cannot read") {
+	if r := call(t, local, "transcribe", map[string]any{"path": missing}); !strings.Contains(textOf(r), "cannot read") {
 		t.Errorf("local transcribe of a missing file: %s", textOf(r))
 	}
 

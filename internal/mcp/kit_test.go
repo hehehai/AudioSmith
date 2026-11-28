@@ -348,7 +348,7 @@ func TestKitLibraryAndVoices(t *testing.T) {
 	if rc.Grade != "good" {
 		t.Fatalf("check %+v", rc)
 	}
-	failsWith(t, cs, "check_reference", map[string]any{"path": "/no/such/ref.wav"}, api.CodeNotFound)
+	failsWith(t, cs, "check_reference", map[string]any{"path": filepath.Join(t.TempDir(), "no-such-ref.wav")}, api.CodeNotFound)
 
 	var draft api.StoryDraftJSON
 	succeeds(t, cs, "write_story", map[string]any{"description": "Two friends in the rain"}, &draft)
@@ -413,7 +413,7 @@ func TestKitSmallTools(t *testing.T) {
 	succeeds(t, cs, "detect_watermark", map[string]any{"path": src}, nil)
 	failsWith(t, cs, "detect_watermark", map[string]any{"path": "rel.wav"}, api.CodeInvalid)
 	succeeds(t, cs, "probe_media", map[string]any{"path": src}, nil)
-	failsWith(t, cs, "probe_media", map[string]any{"path": "/no/such.mp4"}, api.CodeNotFound)
+	failsWith(t, cs, "probe_media", map[string]any{"path": filepath.Join(t.TempDir(), "no-such.mp4")}, api.CodeNotFound)
 	var d map[string]any
 	succeeds(t, cs, "direct_performance", map[string]any{"note": "whispered, getting angry"}, &d)
 	failsWith(t, cs, "direct_performance", map[string]any{"note": " "}, api.CodeInvalid)

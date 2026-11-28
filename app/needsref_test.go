@@ -53,6 +53,7 @@ func cloneOnly(t *testing.T, a *app) catalog.Entry {
 }
 
 func TestStudioNeedsReference(t *testing.T) {
+	simulateDarwin(t)
 	moss := cloneOnly(t, nil)
 	a, eng, tt := newTestApp(t)
 	a.text = "Hello there."
@@ -98,6 +99,7 @@ func TestStudioNeedsReference(t *testing.T) {
 }
 
 func TestStudioNeedsReferenceSavedVoice(t *testing.T) {
+	simulateDarwin(t)
 	moss := cloneOnly(t, nil)
 	a, eng, tt := newTestApp(t)
 	clone := addVoice(t, a, core.Voice{Name: "Clone", Kind: core.VoiceCloned, RefText: "Words."}, 4)
@@ -146,6 +148,7 @@ func TestStudioNeedsReferenceSavedVoice(t *testing.T) {
 // which wraps ErrInvalid: the Local API's 400), and a render job of one
 // (Dub, Workflows and Calls render through it) fails with needs_reference.
 func TestServicesNeedReference(t *testing.T) {
+	simulateDarwin(t)
 	moss := cloneOnly(t, nil)
 	a, eng, _ := newTestApp(t)
 	_, err := a.lib.svc.Takes.Generate(context.Background(), core.TakeRequest{Recipe: core.Take{Text: "Hi", Model: moss.Repo}})

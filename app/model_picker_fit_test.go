@@ -57,6 +57,7 @@ func TestModelPickerFitsWindow(t *testing.T) {
 // off goes back. A Mac with too little memory sees them greyed out with
 // the reason; the Studio's and the audiobook's pickers have no section.
 func TestModelPickerDialogue(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	tt.SetSize(1100, 1000)
 	a.sys = &sysInfo{Memory: 24 << 30}

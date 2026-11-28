@@ -77,8 +77,15 @@ func (a *app) devSnippet(which int) (code, how string) {
 	case devMCP:
 		conf := obj{{"mcpServers", obj{{"audiosmith", obj{{"type", "http"}, {"url", e.mcpURL()},
 			{"headers", e.headersObj("<your-agent>", "${"+integKeyEnv+"}")}}}}}}
+		if isWindowsInteg() {
+			return jsonText(conf), i18n.T("Add this server to your MCP client's configuration (Claude Desktop: %s; Codex: %s; WorkBuddy: %s).",
+				mcpClientConfigPath("claude-desktop"), mcpClientConfigPath("codex"), mcpClientConfigPath("workbuddy"))
+		}
 		return jsonText(conf), i18n.T("Add this server to your MCP client's configuration (Claude Desktop, Cursor, any client).")
 	case devCurl:
+		if isWindowsInteg() {
+			return devCurlTextWin(e.integEnv), i18n.T("Run it in PowerShell: AudioSmith speaks the line with its default voice and saves hello.wav.")
+		}
 		return devCurlText(e.integEnv), i18n.T("Run it in Terminal: AudioSmith speaks the line with its default voice and saves hello.wav.")
 	}
 	return agentPrompt("mcp", e), i18n.T("Paste this into your coding agent (Claude Code, Codex, Cursor…): it connects AudioSmith and installs its skill.")

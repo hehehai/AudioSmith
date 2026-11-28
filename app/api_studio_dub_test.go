@@ -141,7 +141,7 @@ func TestStudioBatch(t *testing.T) {
 	if status, body := e.rest(t, "GET", "/api/batch", nil); status != 200 || !strings.Contains(string(body), `"watch_folder"`) {
 		t.Fatalf("GET /api/batch %d %s", status, body)
 	}
-	if status, body := e.rest(t, "POST", "/api/batch", map[string]any{"folder": "/no/such/folder"}); status != 404 {
+	if status, body := e.rest(t, "POST", "/api/batch", map[string]any{"folder": filepath.Join(t.TempDir(), "no-such-folder")}); status != 404 {
 		t.Fatalf("POST /api/batch %d %s", status, body)
 	}
 }

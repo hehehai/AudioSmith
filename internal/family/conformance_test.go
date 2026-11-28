@@ -105,7 +105,7 @@ func (a *adapter) Remove(ctx context.Context, ref models.Ref, allApps bool) erro
 	if allApps {
 		scope = models.AllApps
 	}
-	_, err := hub.Remove(ctx, a.hub, catalog.Entry{ID: "model", Repo: ref.Repo, Revision: ref.Revision}, a.family(), scope)
+	_, err := hub.RemoveFor(ctx, a.hub, "darwin", catalog.Entry{ID: "model", Repo: ref.Repo, Revision: ref.Revision}, a.family(), scope)
 	return err
 }
 
@@ -118,12 +118,12 @@ func (a *adapter) RemoveModel(ctx context.Context, model string, refs ...models.
 	for _, r := range refs[1:] {
 		e.Aux = append(e.Aux, catalog.Aux{Repo: r.Repo, Revision: r.Revision})
 	}
-	_, err := hub.Remove(ctx, a.hub, e, a.family(), models.ThisApp)
+	_, err := hub.RemoveFor(ctx, a.hub, "darwin", e, a.family(), models.ThisApp)
 	return err
 }
 
 func (a *adapter) Download(ctx context.Context, endpoint string, ref models.Ref) error {
-	c := hub.New(hub.Options{CacheDir: a.hub, Endpoints: []string{endpoint}, Official: endpoint, ReserveBytes: -1, Family: a.family(),
+	c := hub.New(hub.Options{CacheDir: a.hub, Endpoints: []string{endpoint}, Official: endpoint, ReserveBytes: -1, GOOS: "darwin", Family: a.family(),
 		Claimed: func(ctx context.Context, dir string, d hub.Finished) error {
 			return a.f.Claimed(ctx, dir, ClaimOf(d.Entry, d.Repo, d.Commit, d.Files, d.Aux, models.OriginDownloaded))
 		}})

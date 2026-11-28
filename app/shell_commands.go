@@ -210,7 +210,7 @@ func commandIcon(id string) *icons.Icon {
 func kbd(c *ui.Context, keys string) ui.Element {
 	t := c.Theme()
 	k := tok(t)
-	return ui.Text(c, keys).FontSize(px(t, fsMicro)).TextColor(k.Text2).Padding(px(t, 1), px(t, 5)).Radius(px(t, 4)).
+	return ui.Text(c, shortcutLabel(keys)).FontSize(px(t, fsMicro)).TextColor(k.Text2).Padding(px(t, 1), px(t, 5)).Radius(px(t, 4)).
 		Background(k.Subtle).Border(1, k.Line).SingleLine().Shrink(0)
 }
 
@@ -243,10 +243,14 @@ func (a *app) shortcutSheet(c *ui.Context) {
 				{"⌘↩", i18n.T("Generate")},
 			}},
 		}
+		keyColW := float32(90)
+		if isWindowsShortcuts() {
+			keyColW = 128
+		}
 		ui.Column(c).Gap(px(t, sp3)).Width(px(t, 420)).MaxWidth(px(t, 420)).Children(func() {
 			for _, g := range groups {
 				sectionTitle(c, g.title)
-				ui.Grid(c).ColumnTracks(ui.Fixed(px(t, 90)), ui.Fr(1)).GapX(px(t, sp3)).GapY(px(t, 6)).AlignItems(ui.Center).Children(func() {
+				ui.Grid(c).ColumnTracks(ui.Fixed(px(t, keyColW)), ui.Fr(1)).GapX(px(t, sp3)).GapY(px(t, 6)).AlignItems(ui.Center).Children(func() {
 					for _, r := range g.rows {
 						ui.Row(c).Children(func() { kbd(c, r[0]) })
 						ui.Text(c, r[1])
@@ -282,7 +286,8 @@ func (a *app) buildMenu() {
 		for _, p := range g.pages {
 			acc := ""
 			if k := pageKeys(p.path); k != "" {
-				acc = "CmdOrCtrl+" + k[len("⌘"):]
+				n := strings.TrimPrefix(strings.TrimPrefix(k, "⌘"), "Ctrl+")
+				acc = "CmdOrCtrl+" + n
 			}
 			goItems = append(goItems, &mygo.MenuItem{Label: pageTitle(p.path), Accelerator: acc, Click: act(func() { a.openPage(p.path) })})
 		}

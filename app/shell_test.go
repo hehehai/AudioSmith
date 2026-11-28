@@ -266,7 +266,7 @@ func TestShortcutSheet(t *testing.T) {
 	a.navigate("/history")
 	tt.Frame()
 	tt.Key(ui.Shift, ui.KeySlash)
-	if !a.sheetOpen || !tt.HasText("Keyboard shortcuts") || !tt.HasText("⌘K") {
+	if !a.sheetOpen || !tt.HasText("Keyboard shortcuts") || !tt.HasText(shortcutLabel("⌘K")) {
 		t.Fatalf("sheet: %v %q", a.sheetOpen, tt.Texts())
 	}
 	tt.Click("Close")

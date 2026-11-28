@@ -3,6 +3,7 @@ package family
 import (
 	"context"
 	"os"
+	"os/exec"
 	"slices"
 	"testing"
 	"time"
@@ -95,13 +96,17 @@ func TestRuntimeBudget(t *testing.T) {
 // deadPID is the pid of a process that ended.
 func deadPID(t *testing.T) int {
 	t.Helper()
-	exe, _ := os.Executable()
-	p, err := os.StartProcess(exe, []string{exe, "-test.run=^$"}, &os.ProcAttr{})
+	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.Wait()
-	return p.Pid
+	cmd := exec.Command(exe, "-test.run=^$")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	pid := cmd.Process.Pid
+	_ = cmd.Wait()
+	return pid
 }
 
 func TestRuntimePublishAndClose(t *testing.T) {

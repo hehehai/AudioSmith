@@ -12,8 +12,9 @@ import (
 )
 
 func TestToken(t *testing.T) {
-	saved := security
-	defer func() { security = saved }()
+	saved, savedStore := security, platformSecrets
+	defer func() { security, platformSecrets = saved, savedStore }()
+	platformSecrets = nil
 	var stdin string
 	var args []string
 	security = func(in string, a ...string) ([]byte, error) {
@@ -56,8 +57,9 @@ func TestToken(t *testing.T) {
 // Every secret is an AudioSmith item with its own account and label; the
 // HF token keeps the account it always had.
 func TestSecrets(t *testing.T) {
-	saved := security
-	defer func() { security = saved }()
+	saved, savedStore := security, platformSecrets
+	defer func() { security, platformSecrets = saved, savedStore }()
+	platformSecrets = nil
 	var stdin string
 	security = func(in string, a ...string) ([]byte, error) { stdin = in; return nil, nil }
 	if DefaultKeychain.Service != "AudioSmith" || DefaultKeychain.Account != "huggingface-token" {
@@ -79,8 +81,9 @@ func TestSecrets(t *testing.T) {
 // own item, the token file; a shared token that cannot be read counts as
 // none.
 func TestTokenOrder(t *testing.T) {
-	saved := security
-	defer func() { security = saved }()
+	saved, savedStore := security, platformSecrets
+	defer func() { security, platformSecrets = saved, savedStore }()
+	platformSecrets = nil
 	own := ""
 	security = func(_ string, a ...string) ([]byte, error) {
 		if a[0] == "find-generic-password" && own != "" {
@@ -112,5 +115,49 @@ func TestTokenOrder(t *testing.T) {
 		if tok, src := TokenFrom(c.shared, k); tok != c.want || src != c.src {
 			t.Errorf("%+v: %q %q", c, tok, src)
 		}
+	}
+}
+
+type memSecretStore struct {
+	data map[string]string
+}
+
+func (m *memSecretStore) Get(service, account string) (string, error) {
+	return m.data[service+"/"+account], nil
+}
+
+func (m *memSecretStore) Set(service, account, value string) error {
+	m.data[service+"/"+account] = value
+	return nil
+}
+
+func (m *memSecretStore) Delete(service, account string) error {
+	delete(m.data, service+"/"+account)
+	return nil
+}
+
+func TestPlatformSecretStore(t *testing.T) {
+	saved := platformSecrets
+	defer func() { platformSecrets = saved }()
+	platformSecrets = &memSecretStore{data: map[string]string{}}
+
+	k := Secret("llm.openai", "AudioSmith OpenAI API key")
+	if err := k.Set("  sk-test-123  "); err != nil {
+		t.Fatal(err)
+	}
+	got, err := k.Get()
+	if err != nil || got != "sk-test-123" {
+		t.Fatalf("Get = %q, %v", got, err)
+	}
+	t.Setenv("HF_TOKEN", "")
+	t.Setenv("HF_TOKEN_PATH", filepath.Join(t.TempDir(), "missing"))
+	if tok, src := Token(k); tok != "sk-test-123" || src != TokenKeychain {
+		t.Fatalf("Token = %q %q", tok, src)
+	}
+	if err := k.Set(""); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := k.Get(); err != nil || got != "" {
+		t.Fatalf("after delete: %q, %v", got, err)
 	}
 }

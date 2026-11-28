@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 // CodeDiskFull is the error code of a job or request refused or failed
@@ -55,16 +54,18 @@ type DiskFullData struct {
 // Chinese) and ErrDiskFull's.
 var noSpaceText = []string{
 	"no space left on device", "isn’t enough space", "isn't enough space", "not enough free disk space",
+	"there is not enough space on the disk",
 	"没有足够的空间", "磁盘空间不足",
 }
 
 // NoSpace reports whether err says the disk is full: it wraps
-// ErrDiskFull or ENOSPC, or its text says so (an engine error).
+// ErrDiskFull or an OS disk-full errno (ENOSPC / ERROR_DISK_FULL),
+// or its text says so (an engine error).
 func NoSpace(err error) bool {
 	if err == nil {
 		return false
 	}
-	if errors.Is(err, ErrDiskFull) || errors.Is(err, syscall.ENOSPC) {
+	if errors.Is(err, ErrDiskFull) || isOSSpaceErr(err) {
 		return true
 	}
 	return NoSpaceText(err.Error())

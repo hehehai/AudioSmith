@@ -89,11 +89,11 @@ var sidebarPages = func() []navPage {
 // pages are every page: the sidebar's, then the others.
 var pages = append(slices.Clone(sidebarPages), otherPages...)
 
-// pageKeys is the shortcut of a page ("⌘1"), "" when it has none.
+// pageKeys is the shortcut of a page ("⌘1" on macOS, "Ctrl+1" on Windows), "" when it has none.
 func pageKeys(path string) string {
 	for i, p := range shortcutPages {
 		if p == path {
-			return "⌘" + itoa(i+1)
+			return shortcutLabel("⌘" + itoa(i+1))
 		}
 	}
 	return ""

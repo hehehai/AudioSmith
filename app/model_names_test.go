@@ -129,6 +129,7 @@ func technicalIn(texts []string) []string {
 // names only, in English and Chinese; the technical ones are in the
 // tooltip and the card's Details.
 func TestModelNamesInUI(t *testing.T) {
+	simulateDarwin(t)
 	t.Cleanup(func() { i18n.SetLocale("en") })
 	for _, loc := range []string{"en", "zh-Hans", "ja"} {
 		a, _, tt := newTestApp(t)

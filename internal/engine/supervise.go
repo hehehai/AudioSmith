@@ -115,6 +115,7 @@ type proc struct {
 	failErr    string
 	noRestart  bool
 	pollNow    chan struct{}
+	osProc
 }
 
 type call struct {

@@ -84,6 +84,7 @@ func voiceWithSample(t *testing.T, a *app, name string, sample bool) core.Voice 
 }
 
 func TestStudioDefaultVoiceHint(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	base := entryByID(t, "qwen3-tts-1.7b-base-8bit")
 	wenqing := voiceWithSample(t, a, "温晴", true)

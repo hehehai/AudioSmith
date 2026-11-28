@@ -209,6 +209,11 @@ type Entry struct {
 	// ("voicevox": VOICEVOX ENGINE or AivisSpeech Engine over HTTP); ""
 	// for the models of the app's own engine.
 	Runtime string `json:"runtime,omitempty"`
+
+	// Windows holds optional Windows weight source and hardware metadata.
+	// Nil (or Available == false) marks the entry as macOS/MLX-only so
+	// Windows never downloads unusable MLX weights.
+	Windows *PlatformSource `json:"windows,omitempty"`
 }
 
 // IsExternal reports whether the model runs in an engine the user

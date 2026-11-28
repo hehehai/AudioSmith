@@ -183,7 +183,7 @@ func (a *app) homeComposer(c *ui.Context) {
 				caption(c, i18n.T("Choosing a tool…")).SingleLine()
 			}
 			if strings.TrimSpace(hp.text) != "" && !hp.routing {
-				ui.Text(c, i18n.T("↩ send · ⇧↩ new line")).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(1).MinWidth(0)
+				ui.Text(c, shortcutLabel(i18n.T("↩ send · ⇧↩ new line"))).FontSize(px(t, fsCaption)).TextColor(k.Text3).SingleLine().Shrink(1).MinWidth(0)
 			}
 			if iconButton(c.Key("home-mic"), micIcon, i18n.T("Dictate into the box")).Clicked() {
 				hp.focus = true // the text goes where the focus is

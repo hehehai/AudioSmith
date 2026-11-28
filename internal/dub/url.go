@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -123,9 +124,82 @@ const (
 	YtDlpVersion = "2026.08.19"
 	YtDlpSHA256  = "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202"
 	YtDlpPath    = "/yt-dlp/yt-dlp/releases/download/" + YtDlpVersion + "/yt-dlp_macos"
+	YtDlpWinPath = "/yt-dlp/yt-dlp/releases/download/" + YtDlpVersion + "/yt-dlp.exe"
 	YtDlpURL     = mirror.GitHub + YtDlpPath
 	YtDlpSize    = 37146048
 )
+
+// ytdlpOS controls platform naming/discovery for yt-dlp (tests may override).
+var ytdlpOS = runtime.GOOS
+
+// ytDlpBinName returns the installed binary filename ("yt-dlp.exe" on
+// Windows, "yt-dlp" elsewhere).
+func ytDlpBinName() string {
+	if ytdlpOS == "windows" {
+		return "yt-dlp.exe"
+	}
+	return "yt-dlp"
+}
+
+// FindSystemYtDlp lists yt-dlp executables found in standard system
+// locations (PATH, WinGet, Scoop, Chocolatey, app resources dir on
+// Windows; Homebrew and PATH on macOS).
+func FindSystemYtDlp() []string {
+	var out []string
+	add := func(p string) {
+		if p == "" {
+			return
+		}
+		if r, err := filepath.EvalSymlinks(p); err == nil {
+			for _, o := range out {
+				if r2, _ := filepath.EvalSymlinks(o); r2 == r {
+					return
+				}
+			}
+		}
+		fi, err := os.Stat(p)
+		if err != nil || fi.IsDir() {
+			return
+		}
+		if ytdlpOS != "windows" && fi.Mode()&0o111 == 0 {
+			return
+		}
+		out = append(out, p)
+	}
+	if ytdlpOS == "windows" {
+		const exe = "yt-dlp.exe"
+		if self, err := os.Executable(); err == nil {
+			dir := filepath.Dir(self)
+			add(filepath.Join(dir, exe))
+			add(filepath.Join(dir, "resources", exe))
+			add(filepath.Join(dir, "bin", exe))
+		}
+		if local := os.Getenv("LOCALAPPDATA"); local != "" {
+			add(filepath.Join(local, "Microsoft", "WinGet", "Links", exe))
+		}
+		if scoop := os.Getenv("SCOOP"); scoop != "" {
+			add(filepath.Join(scoop, "shims", exe))
+		}
+		if profile := os.Getenv("USERPROFILE"); profile != "" {
+			add(filepath.Join(profile, "scoop", "shims", exe))
+		}
+		add(filepath.Join(`C:\ProgramData\chocolatey\bin`, exe))
+		if p, err := exec.LookPath(exe); err == nil {
+			add(p)
+		}
+		if p, err := exec.LookPath("yt-dlp"); err == nil {
+			add(p)
+		}
+		return out
+	}
+	for _, p := range []string{"/opt/homebrew/bin/yt-dlp", "/usr/local/bin/yt-dlp"} {
+		add(p)
+	}
+	if p, err := exec.LookPath("yt-dlp"); err == nil {
+		add(p)
+	}
+	return out
+}
 
 // YtDlp runs yt-dlp.
 type YtDlp struct {
@@ -177,7 +251,7 @@ func installYtDlp(ctx context.Context, src *mirror.Client, dir string, pin ytdlp
 		return "", "", fmt.Errorf("yt-dlp: download: %w", err)
 	}
 	defer os.Remove(tmp) // after the rename: nothing
-	dst := filepath.Join(dir, "yt-dlp")
+	dst := filepath.Join(dir, ytDlpBinName())
 	if err := os.Chmod(tmp, 0o755); err != nil {
 		return "", "", err
 	}

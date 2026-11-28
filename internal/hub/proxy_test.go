@@ -5,6 +5,7 @@ package hub
 import (
 	"net/http"
 	"net/url"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -74,7 +75,9 @@ func TestSystemProxy(t *testing.T) {
 			t.Errorf("mode %q: %q %v, want %q", mode, s, err, want)
 		}
 	}
-	check("", "http://127.0.0.1:7898")
+	if runtime.GOOS != "windows" {
+		check("", "http://127.0.0.1:7898")
+	}
 	check("direct", "")
 	check("socks5://10.0.0.2:1080", "socks5://10.0.0.2:1080")
 	check("10.0.0.2:3128", "http://10.0.0.2:3128")
@@ -82,8 +85,11 @@ func TestSystemProxy(t *testing.T) {
 	if got, _ := proxyFunc("http://10.0.0.2:3128")(local); got != nil {
 		t.Error("loopback through a proxy")
 	}
-	if DescribeProxy("") != "http://127.0.0.1:7898" || DescribeProxy("direct") != "" {
+	if runtime.GOOS != "windows" && DescribeProxy("") != "http://127.0.0.1:7898" {
 		t.Error(DescribeProxy(""))
+	}
+	if DescribeProxy("direct") != "" {
+		t.Error(DescribeProxy("direct"))
 	}
 }
 

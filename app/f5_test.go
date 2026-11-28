@@ -119,7 +119,7 @@ func TestProjectsListFlow(t *testing.T) {
 	}
 	a.projects.filter = 0
 	// Cards.
-	if err := tt.Click("Cards (⌥2)"); err != nil {
+	if err := tt.Click(shortcutLabel("Cards (⌥2)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -135,7 +135,7 @@ func TestProjectsListFlow(t *testing.T) {
 	}
 	a.navigate("/projects")
 	tt.Frame()
-	if err := tt.Click("List (⌥1)"); err != nil {
+	if err := tt.Click(shortcutLabel("List (⌥1)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -175,6 +175,7 @@ func TestProjectsListFlow(t *testing.T) {
 // Assets: takes, stems, the recording transcribed; the type filter, ▶,
 // send to a tool's composer, the read-aloud of a take's script.
 func TestAssetsFlow(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt, _ := isoTest(t)
 	tt.SetSize(1200, 900)
 	addTake(t, a, core.Take{ID: "T1", CreatedAt: time.Now().Add(-time.Hour), Text: "The quick brown fox.", Model: kokoro, Voice: "af_heart", AudioSeconds: 1}, 0.3)

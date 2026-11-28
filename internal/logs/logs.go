@@ -229,9 +229,9 @@ func (r *Ring) writeFiles(queue <-chan core.LogEntry) {
 func rotate(path string, keep int) {
 	os.Remove(fmt.Sprintf("%s.%d", path, keep))
 	for i := keep - 1; i >= 1; i-- {
-		os.Rename(fmt.Sprintf("%s.%d", path, i), fmt.Sprintf("%s.%d", path, i+1))
+		_ = core.ReplaceFile(fmt.Sprintf("%s.%d", path, i), fmt.Sprintf("%s.%d", path, i+1))
 	}
-	os.Rename(path, path+".1")
+	_ = core.ReplaceFile(path, path+".1")
 }
 
 // Writer returns an io.Writer that appends each line written to it, as a

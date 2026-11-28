@@ -284,7 +284,7 @@ func timelineLane(c *ui.Context, key string, s *timelineState, m tlModel, ev tlE
 	k := tok(t)
 	if s.edit {
 		ui.Row(c.Key(key + "-edit")).Shrink(0).Children(func() {
-			tagChip(c, i18n.T("Precise editing: ←/→ nudge · ⇧ end · ⌥ move · S snap · Esc")).Shrink(1).MinWidth(0).Ellipsis("…")
+			tagChip(c, shortcutLabel(i18n.T("Precise editing: ←/→ nudge · ⇧ end · ⌥ move · S snap · Esc"))).Shrink(1).MinWidth(0).Ellipsis("…")
 		})
 	}
 	if s.zoom > 1 {
@@ -310,7 +310,7 @@ func timelineZoomTools(c *ui.Context, s *timelineState, m tlModel, fit bool) {
 		s.zoomKey(0.5, m)
 	}
 	level := ui.Box(c.Key("zoom-level")).Shrink(0).Padding(0, px(t, 2)).Label(i18n.T("Zoom")).
-		Tooltip(tlRange(s, d) + "\n" + i18n.T("⌘+scroll or pinch to zoom · ⇧+scroll or swipe sideways to pan · double-click to fit (⌘0)"))
+		Tooltip(tlRange(s, d) + "\n" + shortcutLabel(i18n.T("⌘+scroll or pinch to zoom · ⇧+scroll or swipe sideways to pan · double-click to fit (⌘0)")))
 	level.Children(func() {
 		ui.Text(c, tlZoomLabel(s.zoom)).Font(monoFont).FontSize(px(t, fsMicro)).TextColor(k.Text2).SingleLine()
 	})

@@ -11,6 +11,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
 	"github.com/hehehai/AudioSmith/internal/settings"
+	"github.com/hehehai/AudioSmith/internal/sysinfo"
 )
 
 // onboarding is the wizard, over the window: step breadcrumbs with a thin
@@ -57,7 +58,11 @@ func (a *app) onboarding(c *ui.Context) {
 
 // obSteps are the steps' titles.
 func obSteps() []string {
-	return []string{i18n.T("This Mac"), i18n.T("Models"), i18n.T("Privacy"), i18n.T("Dictation")}
+	first := i18n.T("This Mac")
+	if isWindows() {
+		first = i18n.T("This PC")
+	}
+	return []string{first, i18n.T("Models"), i18n.T("Privacy"), i18n.T("Dictation")}
 }
 
 // obHeader is the steps as breadcrumbs (done ones with a check), the
@@ -117,11 +122,19 @@ func (a *app) obTitle(c *ui.Context) {
 	switch a.obStep {
 	case 0:
 		title = i18n.T("Welcome to AudioSmith")
-		sub = i18n.T("Speech, voices and dubbing, made on this Mac. Four short steps; everything can be changed later in Settings.")
+		if isWindows() {
+			sub = i18n.T("Speech, voices and dubbing, made on this PC. Four short steps; everything can be changed later in Settings.")
+		} else {
+			sub = i18n.T("Speech, voices and dubbing, made on this Mac. Four short steps; everything can be changed later in Settings.")
+		}
 	case 1:
 		sub = i18n.T("Choose what to download now. Each model downloads once, resumes if interrupted, and can be added or removed later in Models.")
 	case 3:
-		sub = i18n.T("Dictate into any app: press the shortcut, speak, and the text is typed where your cursor is. Speech stays on this Mac.")
+		if isWindows() {
+			sub = i18n.T("Dictate into any app: press the shortcut, speak, and the text is typed where your cursor is. Speech stays on this PC.")
+		} else {
+			sub = i18n.T("Dictate into any app: press the shortcut, speak, and the text is typed where your cursor is. Speech stays on this Mac.")
+		}
 	}
 	ui.Column(c).Gap(px(t, sp1)).Margin(px(t, sp3), 0, px(t, sp2)).Children(func() {
 		ui.Text(c, title).FontSize(px(t, fsTitle)).FontWeight(600)
@@ -183,15 +196,41 @@ func obCheckRow(c *ui.Context, key, status, title, detail string, action func())
 	})
 }
 
-// obSystem is step 1: this Mac.
+// obSystem is step 1: this Mac / this PC.
 func (a *app) obSystem(c *ui.Context) {
 	if !a.obChecked {
 		a.runSystemCheck()
 	}
-	caption(c, i18n.T("AudioSmith needs no other software: the models run on the Mac's GPU with MLX."))
+	win := isWindows()
+	if win {
+		caption(c, i18n.T("AudioSmith runs models locally with ONNX Runtime (DirectML / CPU) and llama.cpp."))
+	} else {
+		caption(c, i18n.T("AudioSmith needs no other software: the models run on the Mac's GPU with MLX."))
+	}
 	s := a.sys
 	if s == nil {
-		obCheckRow(c, "ob-sys", "wait", i18n.T("Looking at this Mac…"), "", nil)
+		wait := i18n.T("Looking at this Mac…")
+		if win {
+			wait = i18n.T("Looking at this PC…")
+		}
+		obCheckRow(c, "ob-sys", "wait", wait, "", nil)
+	} else if win {
+		obCheckRow(c, "ob-os", "pass", orDash(s.OS), i18n.T("AudioSmith runs on Windows 10 or 11."), nil)
+		chipDetail := i18n.T("Runs locally on CPU with ONNX Runtime and llama.cpp.")
+		if gpu, ok := s.toCatalogHW().BestGPU(); ok && gpu.Name != "" {
+			if s.GPUClass == sysinfo.GPUClassDiscrete {
+				chipDetail = i18n.T("GPU: %s (DirectML / Vulkan acceleration).", gpu.Name)
+			} else {
+				chipDetail = i18n.T("Integrated GPU: %s (DirectML / CPU).", gpu.Name)
+			}
+		}
+		obCheckRow(c, "ob-chip", "pass", orDash(s.Chip), chipDetail, nil)
+		st, detail := "pass", i18n.T("The %s pack suits this PC.", packTitle(recommendPack(s.MemoryGB())))
+		if s.MemoryGB() < 16 {
+			st = "warn"
+			detail = i18n.T("Small models suit this PC best; large ones may be slow.")
+		}
+		obCheckRow(c, "ob-mem", st, i18n.T("%d GB of memory", s.MemoryGB()), detail, nil)
 	} else {
 		st := "pass"
 		if major := s.macOSMajor(); major > 0 && major < 15 {
@@ -313,7 +352,11 @@ func (a *app) obModels(c *ui.Context) {
 				ui.Row(c).Gap(px(t, sp2)).AlignItems(ui.Center).Wrap().Children(func() {
 					ui.Text(c, packTitle(p.id)).FontWeight(600)
 					if p.id == rec {
-						tagChip(c, i18n.T("Recommended for this Mac")).TextColor(k.AccentInk).Background(k.AccentSoft)
+						recLabel := i18n.T("Recommended for this Mac")
+						if isWindows() {
+							recLabel = i18n.T("Recommended for this PC")
+						}
+						tagChip(c, recLabel).TextColor(k.AccentInk).Background(k.AccentSoft)
 					}
 					ui.Spacer(c)
 					size := humanBytes(total)
@@ -371,10 +414,16 @@ func joinNames(names []string) string { return strings.Join(names, " · ") }
 // obPrivacy is step 3.
 func (a *app) obPrivacy(c *ui.Context) {
 	t := c.Theme()
-	banner(c, icons.ShieldCheck, t.Success, i18n.T("Everything you write, record and generate stays on this Mac. AudioSmith has no analytics and no account."), nil)
+	privBanner := i18n.T("Everything you write, record and generate stays on this Mac. AudioSmith has no analytics and no account.")
+	keepLabel := i18n.T("Keep text on this Mac")
+	if isWindows() {
+		privBanner = i18n.T("Everything you write, record and generate stays on this PC. AudioSmith has no analytics and no account.")
+		keepLabel = i18n.T("Keep text on this PC")
+	}
+	banner(c, icons.ShieldCheck, t.Success, privBanner, nil)
 	local := a.prefs.Privacy.LocalOnlyLLM
 	settingRowNote(c, "ob-local", i18n.T("Local language models only"), i18n.T("Writing help and translation never use a cloud provider, even one you add later."), func() {
-		if ui.Switch(c.Key("ob-local"), &local).Label(i18n.T("Keep text on this Mac")).Changed() {
+		if ui.Switch(c.Key("ob-local"), &local).Label(keepLabel).Changed() {
 			on := local
 			a.updateSettings(func(s *settings.Settings) { s.Privacy.LocalOnlyLLM = on })
 		}

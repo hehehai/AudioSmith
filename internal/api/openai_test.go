@@ -46,8 +46,9 @@ func golden(t *testing.T, name string, got []byte) {
 	if err != nil {
 		t.Fatalf("%s: %v (run with -update)", name, err)
 	}
-	if strings.TrimSpace(string(want)) != strings.TrimSpace(string(norm)) {
-		t.Fatalf("%s differs:\n got %s\nwant %s", name, norm, want)
+	wantStr := strings.ReplaceAll(string(want), "\r\n", "\n")
+	if strings.TrimSpace(wantStr) != strings.TrimSpace(string(norm)) {
+		t.Fatalf("%s differs:\n got %s\nwant %s", name, norm, wantStr)
 	}
 }
 

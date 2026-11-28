@@ -28,8 +28,9 @@ func (s *supervisor) startProcess(w *worker, bin string) (*proc, error) {
 	cmd := exec.Command(bin, "--role", string(w.role))
 	cmd.Dir = filepath.Dir(bin)
 	cmd.Env = append(os.Environ(), s.cfg.Env...)
-	// stdin is our own pipe, not StdinPipe's wrapper: its *os.File takes
-	// write deadlines (write).
+	configureEngineCmd(cmd)
+	// stdin is our own pipe, not StdinPipe's wrapper: on Unix its *os.File
+	// takes write deadlines (writePipe); on Windows writePipe uses writeAsync.
 	stdinR, stdin, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -55,6 +56,7 @@ func (s *supervisor) startProcess(w *worker, bin string) (*proc, error) {
 	}
 	p := &proc{s: s, w: w, cmd: cmd, stdin: stdin, tail: newLineTail(40), exited: make(chan struct{}),
 		pending: map[string]*call{}, pollNow: make(chan struct{}, 1), writeSem: make(chan struct{}, 1)}
+	p.attachOS(cmd)
 	var logFile *rotatingLog
 	if s.cfg.LogDir != "" {
 		logFile = openLog(filepath.Join(s.cfg.LogDir, "engine-"+string(w.role)+".log"), 0)
@@ -79,6 +81,7 @@ func (s *supervisor) startProcess(w *worker, bin string) (*proc, error) {
 		p.read(stdout)
 		<-stderrDone
 		err := cmd.Wait()
+		p.cleanupOS()
 		if logFile != nil {
 			logFile.Close()
 		}
@@ -311,9 +314,7 @@ func (p *proc) killFor(reason FailReason, msg string, noRestart bool) {
 }
 
 func (p *proc) kill() {
-	if p.cmd.Process != nil {
-		p.cmd.Process.Kill()
-	}
+	p.killOS()
 }
 
 // write sends one request line. It heeds ctx while it waits for the
@@ -339,26 +340,10 @@ func (p *proc) write(ctx context.Context, m proto.Message) error {
 		return ErrWorkerExited
 	}
 	defer func() { <-p.writeSem }()
-	f, ok := p.stdin.(interface{ SetWriteDeadline(time.Time) error })
-	if !ok {
-		if _, err := p.stdin.Write(line); err != nil {
-			return fmt.Errorf("writing to the engine: %v: %w", err, ErrWorkerExited)
-		}
-		return nil
+	if err := ctx.Err(); err != nil {
+		return err
 	}
-	dl := time.Now().Add(p.s.cfg.WriteTimeout)
-	f.SetWriteDeadline(dl)
-	// ctx ending stops the write at once; wait for that to be done
-	// before the next write sets its own deadline.
-	expired := make(chan struct{})
-	stop := context.AfterFunc(ctx, func() {
-		defer close(expired)
-		f.SetWriteDeadline(time.Now())
-	})
-	n, err := p.stdin.Write(line)
-	if !stop() {
-		<-expired
-	}
+	n, err := p.writePipe(ctx, line)
 	if err == nil {
 		return nil
 	}
@@ -378,6 +363,51 @@ func (p *proc) write(ctx context.Context, m proto.Message) error {
 		return ctx.Err()
 	}
 	return fmt.Errorf("writing to the engine: %s: %w", msg, ErrWorkerExited)
+}
+
+// writeAsync writes line to w with a wall-clock timeout and context
+// cancellation, for pipes that do not support SetWriteDeadline (such as
+// Windows anonymous pipes). On timeout or cancellation it closes w to
+// unblock the writer goroutine and returns os.ErrDeadlineExceeded with
+// n >= 1 so the caller treats the stream as unusable and restarts the worker.
+func writeAsync(ctx context.Context, w io.WriteCloser, line []byte, timeout time.Duration) (int, error) {
+	type res struct {
+		n   int
+		err error
+	}
+	done := make(chan res, 1)
+	go func() {
+		n, err := w.Write(line)
+		done <- res{n, err}
+	}()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case r := <-done:
+		return r.n, r.err
+	case <-ctx.Done():
+		_ = w.Close()
+		select {
+		case r := <-done:
+			if r.err == nil {
+				return r.n, nil
+			}
+			return max(r.n, 1), os.ErrDeadlineExceeded
+		case <-time.After(200 * time.Millisecond):
+			return 1, os.ErrDeadlineExceeded
+		}
+	case <-timer.C:
+		_ = w.Close()
+		select {
+		case r := <-done:
+			if r.err == nil {
+				return r.n, nil
+			}
+			return max(r.n, 1), os.ErrDeadlineExceeded
+		case <-time.After(200 * time.Millisecond):
+			return 1, os.ErrDeadlineExceeded
+		}
+	}
 }
 
 // call sends a request and waits for its response (see Supervisor.Call).

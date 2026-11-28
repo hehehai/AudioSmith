@@ -27,6 +27,7 @@ func TestNoticesCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v: run %s", err, regenerate)
 	}
+	old = bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n"))
 	if !bytes.Equal(old, data) {
 		got, want := strings.Split(string(old), "\n"), strings.Split(string(data), "\n")
 		i := 0

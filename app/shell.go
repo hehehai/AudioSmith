@@ -377,7 +377,7 @@ func (a *app) toastsView(c *ui.Context) {
 			vp.Justify(ui.End).Padding(0, px(t, sp4), (h-dh)/2+px(t, sp4))
 		case a.toastsTop():
 			// In the page's header, at the window's top.
-			vp.Justify(ui.Start).Padding(max(px(t, 4), (titleBarHeight-px(t, 36))/2), px(t, sp4), 0, w-page+px(t, sp4))
+			vp.Justify(ui.Start).Padding(max(px(t, 4), (titleBarHeight-px(t, 36))/2), px(t, sp4)+headerRightInset(c), 0, w-page+px(t, sp4))
 		default:
 			vp.Justify(ui.End).Padding(0, px(t, sp4), px(t, sp6), w-page+px(t, sp4))
 		}

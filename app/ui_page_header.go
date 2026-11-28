@@ -12,6 +12,8 @@ package main
 // marks as less needed go into a ⋯ menu.
 
 import (
+	"runtime"
+
 	"github.com/egoist/mygo/ui"
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/icons"
@@ -144,6 +146,26 @@ func gutterR(t *ui.Theme) float32 { return px(t, sp4) } // 16 | 16 (user, 11-01:
 // controls: set each frame by sidebarFrame, non-zero beside the icon rail.
 var headerInset float32
 
+// winCaptionInset is the standard width of the three Win32 caption
+// buttons (Minimize, Maximize, Close) in DIPs at 100 % (3 × 46).
+const winCaptionInset = 138
+
+// headerRightInset is the room a top-edge header leaves on its right for
+// window controls (Windows Minimize/Maximize/Close). MyGo reports
+// TitleBar().Right on Windows (~138 DIPs; 0 in fullscreen and on macOS).
+// On Windows, if a hidden-inset title bar reports Height > 0 without
+// Right, fall back to winCaptionInset.
+func headerRightInset(c *ui.Context) float32 {
+	bar := c.TitleBar()
+	if bar.Right > 0 {
+		return bar.Right
+	}
+	if runtime.GOOS == "windows" && bar.Height > 0 && bar.Left == 0 {
+		return winCaptionInset
+	}
+	return 0
+}
+
 // headSearchOpen holds which narrow headers' search fields are open, by
 // key; headSearchFocus those that take the keyboard at their next build.
 var headSearchOpen, headSearchFocus = map[string]bool{}, map[string]bool{}
@@ -160,7 +182,7 @@ func pageNarrow(c *ui.Context) bool {
 	if headerNav.pageW != nil {
 		w = headerNav.pageW(c)
 	}
-	return w < px(t, headerNarrowW)
+	return w-headerRightInset(c) < px(t, headerNarrowW)
 }
 
 // pageHeader is a page's header with its title and tools (trailing,
@@ -192,7 +214,7 @@ func pageHeaderBar(c *ui.Context, h pageHead) {
 	}()
 	narrow := pageNarrow(c)
 	head := ui.Row(c.Key("page-header"))
-	head.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, gutterR(t), 0, gutterL(t)).
+	head.Height(titleBarHeight).Shrink(0).AlignItems(ui.Center).Padding(0, gutterR(t)+headerRightInset(c), 0, gutterL(t)).
 		Gap(px(t, sp2)).DragWindow().Role(ui.RoleGroup).Label(i18n.T("Page header")).Children(func() {
 		left := ui.Row(c.Key("head-left"))
 		if hosted {

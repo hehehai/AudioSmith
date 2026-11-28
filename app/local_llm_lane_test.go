@@ -37,14 +37,20 @@ func newLaneTest(t *testing.T) *laneTest {
 	lib := openTestLibrary(t)
 	cache := useLocalModels(t, lib)
 	e, _ := catalog.Builtin().ByID(catalog.DefaultLLM)
-	for _, f := range e.Files { // every file the language model lists
-		p := filepath.Join(hub.RepoDir(cache, e.Repo), "snapshots", e.Revision, f.Path)
-		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-			t.Fatal(err)
+	seed := func(repo, rev string, files []catalog.File) {
+		for _, f := range files {
+			p := filepath.Join(hub.RepoDir(cache, repo), "snapshots", rev, filepath.FromSlash(f.Path))
+			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(p, []byte("{}"), 0o644); err != nil {
+				t.Fatal(err)
+			}
 		}
-		if err := os.WriteFile(p, []byte("{}"), 0o644); err != nil {
-			t.Fatal(err)
-		}
+	}
+	seed(e.Repo, e.Revision, e.Files)
+	if e.Windows != nil && e.Windows.Repo != "" {
+		seed(e.Windows.Repo, e.Windows.Revision, e.Windows.Files)
 	}
 	bin, err := os.Executable()
 	if err != nil {

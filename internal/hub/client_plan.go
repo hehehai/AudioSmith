@@ -40,13 +40,17 @@ type plan struct {
 // Plan lists the files of e at its revision and checks the disk. Files
 // are e's own; the byte counts include its auxiliary repos.
 func (c *Client) Plan(ctx context.Context, e catalog.Entry) (Plan, error) {
-	_, p, err := c.planAll(ctx, e)
+	re, err := ResolveEntry(e, c.targetOS())
+	if err != nil {
+		return Plan{}, err
+	}
+	_, p, err := c.planAll(ctx, e, re)
 	if err != nil {
 		return p, err
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return p, c.checkDiskLocked(e.Repo, p)
+	return p, c.checkDiskLocked(re.Repo, p)
 }
 
 func (c *Client) plan(ctx context.Context, e catalog.Entry) (*plan, error) {
@@ -101,26 +105,27 @@ func auxEntry(e catalog.Entry, a catalog.Aux) catalog.Entry {
 	return catalog.Entry{ID: e.ID + "+" + a.Repo, Repo: a.Repo, Revision: a.Revision, Files: a.Files}
 }
 
-// planAll plans e's auxiliary repos and e (last) and adds them up; the
-// disk is checked by the caller (checkDisk, reserve).
-func (c *Client) planAll(ctx context.Context, e catalog.Entry) ([]*plan, Plan, error) {
+// planAll plans re's auxiliary repos and re (last) and adds them up;
+// orig is recorded as the claim owner. The disk is checked by the
+// caller (checkDisk, reserve).
+func (c *Client) planAll(ctx context.Context, orig, re catalog.Entry) ([]*plan, Plan, error) {
 	var plans []*plan
 	var sum Plan
-	for _, a := range e.Aux {
-		p, err := c.plan(ctx, auxEntry(e, a))
+	for _, a := range re.Aux {
+		p, err := c.plan(ctx, auxEntry(re, a))
 		if err != nil {
 			return nil, Plan{}, err
 		}
-		p.owner, p.aux, p.only = e, true, filePaths(a.Files)
+		p.owner, p.aux, p.only = orig, true, filePaths(a.Files)
 		plans = append(plans, p)
 		sum.TotalBytes += p.TotalBytes
 		sum.Bytes += p.Bytes
 	}
-	p, err := c.plan(ctx, e)
+	p, err := c.plan(ctx, re)
 	if err != nil {
 		return nil, Plan{}, err
 	}
-	p.owner, p.only = e, filePaths(e.Files)
+	p.owner, p.only = orig, filePaths(re.Files)
 	plans = append(plans, p)
 	sum.Revision, sum.Files, sum.Endpoint, sum.Gated = p.Revision, p.Files, p.Endpoint, p.Gated
 	sum.TotalBytes += p.TotalBytes

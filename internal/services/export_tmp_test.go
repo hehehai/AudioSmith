@@ -3,6 +3,7 @@ package services
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hehehai/AudioSmith/internal/dub"
@@ -35,7 +36,7 @@ func TestExportTmpNoSymlink(t *testing.T) {
 	}
 	for _, p := range []string{srt, zip} {
 		fi, err := os.Lstat(p)
-		if err != nil || !fi.Mode().IsRegular() || fi.Mode().Perm() != 0o644 {
+		if err != nil || !fi.Mode().IsRegular() || (runtime.GOOS != "windows" && fi.Mode().Perm() != 0o644) {
 			t.Errorf("%s: %v %v", p, fi, err)
 		}
 	}

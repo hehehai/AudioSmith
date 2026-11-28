@@ -35,7 +35,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"syscall"
 	"testing"
 	"testing/cryptotest"
 	"testing/synctest"
@@ -146,12 +145,7 @@ func lockSnapRoot(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) != nil {
-		t.Logf("waiting for another snapshot run to release %s.lock", root)
-		if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
-			t.Fatal(err)
-		}
-	}
+	lockSnapFile(t, lock, root)
 	empty := func() {
 		if err := os.RemoveAll(root); err != nil {
 			t.Fatal(err)

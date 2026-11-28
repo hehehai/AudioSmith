@@ -23,6 +23,7 @@ import (
 // the transcript shows its speakers, renames one, and exports and copies
 // with names.
 func TestTranscribeSpeakersOption(t *testing.T) {
+	simulateDarwin(t)
 	m := newM2Test(t)
 	a, eng, tt := m.a, m.eng, m.tt
 	moss, ok := catalog.Builtin().SpeakersModel()
@@ -105,6 +106,7 @@ func TestTranscribeSpeakersOption(t *testing.T) {
 // downloaded the transcript stage labels the lines with it, without
 // Sortformer.
 func TestDubSpeakersModelApp(t *testing.T) {
+	simulateDarwin(t)
 	d := newDubTest(t, 6)
 	a, tt := d.a, d.tt
 	moss, _ := catalog.Builtin().SpeakersModel()

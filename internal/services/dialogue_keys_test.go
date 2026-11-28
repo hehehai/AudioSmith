@@ -43,7 +43,7 @@ func dialogueKeyChapter(model string, tags bool) ChapterParams {
 
 // dialogueFixture is a clip of testdata/dialogue, dated 2026-10-18.
 func dialogueFixture(name string) string {
-	p := filepath.Join("testdata", "dialogue", name)
+	p := "testdata/dialogue/" + name
 	at := time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC)
 	if err := os.Chtimes(p, at, at); err != nil {
 		panic(err)

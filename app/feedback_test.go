@@ -290,6 +290,7 @@ var fbFailures = []fbFailure{
 // Every failure point shows "Report this problem"; a click opens the
 // window filled with its report, without the user's words.
 func TestFailuresShowReportLink(t *testing.T) {
+	simulateDarwin(t)
 	for _, fl := range fbFailures {
 		t.Run(fl.name, func(t *testing.T) {
 			f := newFeedbackTest(t)

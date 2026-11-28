@@ -13,6 +13,7 @@ import (
 // 1.5 and 32 steps (16 for dubbing); what the recipe sets wins; models
 // without a preset (Kokoro's sampling) get nothing.
 func TestPresetDefaults(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, _ := newTestApp(t)
 	acceptLicences(t, a)
 	gen := func(id string, edit func(*core.Take)) core.Take {

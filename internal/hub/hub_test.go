@@ -13,7 +13,7 @@ func TestCacheDir(t *testing.T) {
 	if got := CacheDir(); got != filepath.Join("/fam", "models", "hub") {
 		t.Errorf("CacheDir %q", got)
 	}
-	if got := RepoDir("/cache", "mlx-community/Kokoro-82M-bf16"); got != "/cache/models--mlx-community--Kokoro-82M-bf16" {
+	if got := RepoDir("/cache", "mlx-community/Kokoro-82M-bf16"); got != filepath.Join("/cache", "models--mlx-community--Kokoro-82M-bf16") {
 		t.Errorf("RepoDir %q", got)
 	}
 }

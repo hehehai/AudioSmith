@@ -234,7 +234,7 @@ func TestAuxRepos(t *testing.T) {
 		}
 	}))
 	defer both.Close()
-	c := New(Options{CacheDir: t.TempDir(), Endpoints: []string{both.URL}, Official: both.URL, ChunkSize: 1024, ReserveBytes: -1})
+	c := New(Options{CacheDir: t.TempDir(), Endpoints: []string{both.URL}, Official: both.URL, ChunkSize: 1024, ReserveBytes: -1, GOOS: "darwin"})
 	c.progressEvery = 0
 	e := h.entry()
 	e.Aux = []catalog.Aux{{Repo: "acme/g2p"}}

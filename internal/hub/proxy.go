@@ -196,7 +196,7 @@ func proxyFunc(mode string) func(*http.Request) (*url.URL, error) {
 		if u, err := http.ProxyFromEnvironment(req); u != nil || err != nil {
 			return u, err
 		}
-		return currentSystemProxy().forURL(req.URL), nil
+		return systemProxyForRequest(req)
 	}
 }
 

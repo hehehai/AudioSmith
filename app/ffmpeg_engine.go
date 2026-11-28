@@ -422,7 +422,7 @@ func (m *mediaSup) burn(ctx context.Context, id string, p BurnParams, notify fun
 	}
 	_, cues, _ := subtitle.Parse(string(data))
 	o := ffmpeg.BurnOptions{Video: p.Video, Audio: p.Audio, Subtitles: p.Subtitles, Output: p.Output.Path, Duration: src.Duration,
-		Width: src.Video[0].Width, Height: src.Video[0].Height, Fonts: ffmpeg.MacFonts}
+		Width: src.Video[0].Width, Height: src.Video[0].Height, Fonts: ffmpeg.DefaultFonts()}
 	for _, c := range cues {
 		o.Cues = append(o.Cues, ffmpeg.Cue{Start: c.Start.Seconds(), End: c.End.Seconds(), Text: c.Text})
 	}

@@ -55,10 +55,10 @@ func (a *app) dubToolbar(c *ui.Context) {
 				a.dubPaste.parsed = ""
 			}
 		}
-		if iconButton(c.Key("dub-undo"), icons.UndoLeft, i18n.T("Undo")).Tooltip(i18n.T("Undo (⌘Z)")).Disabled(locked || !a.dubHist.CanUndo()).Clicked() {
+		if iconButton(c.Key("dub-undo"), icons.UndoLeft, i18n.T("Undo")).Tooltip(shortcutLabel(i18n.T("Undo (⌘Z)"))).Disabled(locked || !a.dubHist.CanUndo()).Clicked() {
 			a.dubUndo()
 		}
-		if iconButton(c.Key("dub-redo"), icons.UndoRight, i18n.T("Redo")).Tooltip(i18n.T("Redo (⇧⌘Z)")).Disabled(locked || !a.dubHist.CanRedo()).Clicked() {
+		if iconButton(c.Key("dub-redo"), icons.UndoRight, i18n.T("Redo")).Tooltip(shortcutLabel(i18n.T("Redo (⇧⌘Z)"))).Disabled(locked || !a.dubHist.CanRedo()).Clicked() {
 			a.dubRedo()
 		}
 		ui.Spacer(c)
@@ -267,7 +267,7 @@ func (a *app) dubLineText(c *ui.Context, s dub.Segment, locked bool, after *func
 			*after = func() { a.dubSplit(id, -1) }
 		}
 		ui.Row(c).Gap(px(t, 6)).Children(func() {
-			if ui.Button(c.Key("edit-ok"), i18n.T("Done")).Tooltip("⌘↩").Clicked() {
+			if ui.Button(c.Key("edit-ok"), i18n.T("Done")).Tooltip(shortcutLabel("⌘↩")).Clicked() {
 				*after = commit
 			}
 			if ghostButton(c.Key("edit-cancel"), i18n.T("Cancel")).Tooltip("Esc").Clicked() {

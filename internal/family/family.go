@@ -29,6 +29,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -55,11 +56,22 @@ const (
 // be written): AudioSmith reads what it understands and writes nothing.
 var ErrReadOnly = errors.New("family directory is read only")
 
+// runningBundlePath returns the enclosing macOS .app bundle path.
+// On non-macOS platforms there are no .app bundles, and calling
+// actnowkit/registry.BundlePath on Windows loops infinitely at C:\
+// because filepath.Dir("C:\\") == "C:\\".
+func runningBundlePath() string {
+	if runtime.GOOS != "darwin" {
+		return ""
+	}
+	return registry.BundlePath()
+}
+
 // RunningBundleID is the bundle id of the running app: its Info.plist's
 // when it runs from an AudioSmith .app (the release id, or a test
 // variant such as ….updtest), else DevBundleID.
 func RunningBundleID() string {
-	if p := registry.BundlePath(); p != "" {
+	if p := runningBundlePath(); p != "" {
 		if id, err := registry.BundleIDAt(p); err == nil {
 			if a, _, err := actnow.ParseBundleID(id); err == nil && a.ID == AppID {
 				return id
@@ -144,7 +156,7 @@ func New(o Options) *Family {
 		f.sys = registry.DefaultSystem
 	}
 	if f.appPath == "" {
-		f.appPath = registry.BundlePath()
+		f.appPath = runningBundlePath()
 	}
 	if f.appPath == "" {
 		f.appPath, _ = os.Executable()

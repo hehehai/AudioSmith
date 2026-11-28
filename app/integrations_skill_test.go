@@ -66,7 +66,9 @@ var skillNameRE = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 // and folder, every MCP tool with exactly its schema's arguments, and
 // never the key; it is in the UI's language.
 func TestAgentSkill(t *testing.T) {
-	t.Cleanup(func() { i18n.SetLocale("en") })
+	prev := integOS
+	integOS = "darwin"
+	t.Cleanup(func() { integOS = prev; i18n.SetLocale("en") })
 	e := newAPIEnv(t)
 	// The MCP server's tools and their arguments, as an agent sees them.
 	c := sdk.NewClient(&sdk.Implementation{Name: "skill-test", Version: "1"}, nil)

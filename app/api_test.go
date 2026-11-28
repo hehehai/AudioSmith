@@ -90,6 +90,9 @@ func useAllModelFiles(t *testing.T, cache string) {
 		for _, x := range e.Aux {
 			put(x.Repo, x.Revision, x.Files)
 		}
+		if e.Windows != nil && e.Windows.Repo != "" {
+			put(e.Windows.Repo, e.Windows.Revision, e.Windows.Files)
+		}
 	}
 }
 
@@ -106,6 +109,7 @@ type apiEnv struct {
 
 func newAPIEnv(t *testing.T) *apiEnv {
 	t.Helper()
+	simulateDarwin(t)
 	dir := t.TempDir()
 	lib := openTestLibraryWith(t, dir, libraryOptions{})
 	useAllModelFiles(t, useLocalModels(t, lib))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -80,6 +81,11 @@ func TestSnapshotFollowsEvents(t *testing.T) {
 	}
 
 	a.play(a.findTake("A"))
+	if runtime.GOOS == "windows" {
+		// Windows rejects os.Remove while the streaming player holds A.wav open;
+		// the UI's deleteClip stops playback before deleting.
+		a.pl.Stop()
+	}
 	if err := takes.Delete(ctx, "A"); err != nil {
 		t.Fatal(err)
 	}

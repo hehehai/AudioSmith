@@ -375,6 +375,7 @@ func TestWorkflowsLibrary(t *testing.T) {
 }
 
 func TestWorkflowsConditionAndTranslate(t *testing.T) {
+	simulateDarwin(t)
 	d := newWfTest(t)
 	a, tt := d.a, d.tt
 	a.wfNew("translate-narrate")

@@ -25,6 +25,7 @@ import (
 
 // The form's output options, seed and steps go into the recipe.
 func TestRecipeCarriesOutputOptions(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	tt.Frame()
 	tt.Click("Generate")

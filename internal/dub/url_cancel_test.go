@@ -1,3 +1,5 @@
+//go:build unix
+
 package dub
 
 import (
@@ -5,7 +7,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -19,9 +20,6 @@ import (
 // child writes its pid to pidFile.
 func fakeLauncher(t *testing.T) (path, pidFile string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("shell script")
-	}
 	dir := t.TempDir()
 	pidFile = filepath.Join(dir, "child.pid")
 	path = filepath.Join(dir, "yt-dlp")

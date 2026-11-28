@@ -161,6 +161,7 @@ func TestDefaultASR(t *testing.T) {
 // shown by name: there is nothing to choose), the Models page, ⌘E and the
 // onboarding packs.
 func TestTrimNotOffered(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	removed := []string{"Parakeet", "European transcription", "Mel-RoFormer", "Fine voice separation", "Gemma", "Qwen3 1.7B",
 		"Writing assistant · Light", "Writing assistant · Mini", "Writing assistant · Multilingual"}

@@ -45,7 +45,7 @@ func (a *app) sideSearch(c *ui.Context) {
 	ui.Row(c.Key("side-search")).Padding(0, px(t, 10), px(t, sp2)).Shrink(0).Children(func() {
 		box := ui.Row(c.Key("side-search-box")).Grow(1).MinWidth(0).AlignItems(ui.Stretch)
 		box.Children(func() {
-			in := ui.TextInput(c.Key("side-search-in"), &a.sideQuery).Placeholder(i18n.T("Search")+"  ⌘F").Label(label).Grow(1).MinWidth(0).
+			in := ui.TextInput(c.Key("side-search-in"), &a.sideQuery).Placeholder(i18n.T("Search")+"  "+shortcutLabel("⌘F")).Label(label).Grow(1).MinWidth(0).
 				Padding(t.Space(1.5), px(t, 34), t.Space(1.5), px(t, 28))
 			if a.sideFocus {
 				in.Focus()

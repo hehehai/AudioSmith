@@ -56,6 +56,7 @@ func TestToolsAB(t *testing.T) {
 }
 
 func TestToolsConvert(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	a.navigate("/tools")
 	a.toolTab = 1
@@ -100,6 +101,7 @@ func TestToolsConvert(t *testing.T) {
 }
 
 func TestToolsRateFitDirectionProbe(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	a.navigate("/tools")
 	a.toolTab = 2

@@ -62,7 +62,24 @@
       "aux": [
         {"repo": "beshkenadze/kitten-tts-g2p", "revision": "9c692b92682d959d9013a9cfe6a49541997add18", "licence": "mit"},
         {"repo": "beshkenadze/g2p-multilingual-byT5-tiny-mlx", "revision": "1388486ea7ddcd1806f0179bb6ae55119d9d1d45", "licence": "mit"}
-      ]
+      ],
+      "windows": {
+        "available": true,
+        "backend": "onnx_directml",
+        "repo": "onnx-community/Kokoro-82M-v1.0-ONNX",
+        "revision": "1939ad2a8e416c0acfeecc08a694d14ef25f2231",
+        "size": 325535886,
+        "files": [
+          {"path": "onnx/model.onnx", "size": 325532232, "sha256": "8fbea51ea711f2af382e88c833d9e288c6dc82ce5e98421ea61c058ce21a34cb"},
+          {"path": "config.json", "size": 44},
+          {"path": "tokenizer.json", "size": 3497},
+          {"path": "tokenizer_config.json", "size": 113}
+        ],
+        "minRAMGB": 2,
+        "runsOnIGPU": true,
+        "runsOnCPU": true,
+        "notes": "ONNX Runtime (DirectML on iGPU/GPU, fast on CPU)"
+      }
     },
     {
       "id": "qwen3-tts-0.6b-customvoice-8bit",
@@ -104,7 +121,19 @@
       "size": 1973575388,
       "minMemoryGB": 4,
       "quantization": "8bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "commercial": true, "verified": true},
+      "windows": {
+        "available": true,
+        "backend": "pytorch",
+        "optionalRuntime": "python",
+        "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+        "size": 1840000000,
+        "minVRAMGB": 4,
+        "minRAMGB": 8,
+        "runsOnIGPU": false,
+        "runsOnCPU": true,
+        "notes": "Optional Python/PyTorch worker (CUDA recommended; runs slowly on CPU/iGPU)"
+      }
     },
     {
       "id": "qwen3-tts-0.6b-base-8bit",
@@ -136,7 +165,8 @@
       "size": 1991299138,
       "minMemoryGB": 4,
       "quantization": "8bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "omnivoice-bf16",
@@ -157,7 +187,8 @@
       "size": 1639492513,
       "minMemoryGB": 8,
       "quantization": "bf16",
-      "licence": {"id": "cc-by-nc-4.0", "name": "CC BY-NC 4.0", "url": "https://huggingface.co/k2-fsa/OmniVoice", "commercial": false, "requiresAcceptance": true, "verified": true}
+      "licence": {"id": "cc-by-nc-4.0", "name": "CC BY-NC 4.0", "url": "https://huggingface.co/k2-fsa/OmniVoice", "commercial": false, "requiresAcceptance": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "qwen3-tts-1.7b-voicedesign-4bit",
@@ -189,7 +220,8 @@
       "size": 2312058795,
       "minMemoryGB": 6,
       "quantization": "4bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "qwen3-tts-1.7b-base-8bit",
@@ -221,7 +253,19 @@
       "size": 3104158788,
       "minMemoryGB": 6,
       "quantization": "8bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base", "commercial": true, "verified": true},
+      "windows": {
+        "available": true,
+        "backend": "pytorch",
+        "optionalRuntime": "python",
+        "repo": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+        "size": 4300000000,
+        "minVRAMGB": 6,
+        "minRAMGB": 12,
+        "runsOnIGPU": false,
+        "runsOnCPU": true,
+        "notes": "Optional Python/PyTorch worker (CUDA recommended; runs slowly on CPU/iGPU)"
+      }
     },
     {
       "id": "chatterbox-turbo-8bit",
@@ -247,7 +291,8 @@
       "licence": {"id": "mit", "name": "MIT", "url": "https://huggingface.co/ResembleAI/chatterbox-turbo", "commercial": true, "verified": true},
       "aux": [
         {"repo": "mlx-community/S3TokenizerV2", "revision": "e0c9886f0e1c35ae85b1f27277416fb19fc72bec", "licence": "apache-2.0"}
-      ]
+      ],
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "voxcpm2-8bit",
@@ -307,7 +352,8 @@
       ],
       "minMemoryGB": 10,
       "quantization": "8bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/openbmb/VoxCPM2", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/openbmb/VoxCPM2", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "soulx-podcast-1.7b-8bit",
@@ -359,7 +405,8 @@
       },
       "aux": [
         {"repo": "mlx-community/S3TokenizerV2", "revision": "e0c9886f0e1c35ae85b1f27277416fb19fc72bec", "licence": "apache-2.0"}
-      ]
+      ],
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "moss-ttsd-v1.0-8bit",
@@ -410,7 +457,8 @@
         "commercial": true,
         "verified": true,
         "note": "OpenMOSS-Team/MOSS-TTSD-v1.0 (revision c7cd852) and OpenMOSS-Team/MOSS-Audio-Tokenizer (revision 3cd226b) model cards, checked 2026-10-18: Apache-2.0; OpenMOSS/MOSS-TTS's code is Apache-2.0 too. The language model is a fine-tune of Qwen3-8B (Apache-2.0). actnowai's repo is AudioSmith's conversion (scripts/mossttsd/convert.py: 8-bit language model and codec) with LICENSE and NOTICE."
-      }
+      },
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "vibevoice-1.5b",
@@ -461,7 +509,8 @@
           {"path": "vocab.json", "size": 2776833},
           {"path": "LICENSE", "size": 11343}
         ]}
-      ]
+      ],
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "vibevoice-realtime-0.5b-8bit",
@@ -523,7 +572,8 @@
           {"path": "vocab.json", "size": 2776833},
           {"path": "LICENSE", "size": 11343}
         ]}
-      ]
+      ],
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "irodori-tts-v4.1-small-mf-8bit",
@@ -562,6 +612,18 @@
         "commercial": true,
         "verified": true,
         "note": "Aratako/Irodori-TTS-v4.1-Small-MF's model card (checked 2026-11-22): MIT, with ethical restrictions on top: no cloning or impersonating anyone (voice actors, celebrities, public figures) without their explicit consent; no deepfakes or speech meant to mislead; voices made without a reference may resemble real people by chance; users answer for their use. mlx-community's 8-bit conversion (revision 76e6b18) bundles the Semantic-DACVAE-Japanese-32dim codec and ModernBERT-ja-310m's tokenizer (both MIT); the training data is not published. AudioSmith runs upstream mlx-audio-swift's MIT port (engine patch 0013). Its takes are watermarked (AudioSeal) as every model's are; the About text states the author's terms, and clones go through AudioSmith's consent step."
+      },
+      "windows": {
+        "available": true,
+        "backend": "pytorch",
+        "optionalRuntime": "python",
+        "repo": "Aratako/Irodori-TTS-v4.1-Small-MF",
+        "size": 2100000000,
+        "minVRAMGB": 4,
+        "minRAMGB": 8,
+        "runsOnIGPU": false,
+        "runsOnCPU": true,
+        "notes": "Optional Python/PyTorch worker (CUDA recommended; runs slowly on CPU/iGPU)"
       }
     },
     {
@@ -613,7 +675,8 @@
       "size": 712781279,
       "minMemoryGB": 2,
       "quantization": "4bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-ASR-0.6B", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-ASR-0.6B", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "whisper-large-v3-turbo-4bit",
@@ -645,7 +708,21 @@
           {"path": "tokenizer_config.json", "size": 282843},
           {"path": "vocab.json", "size": 1036558}
         ]}
-      ]
+      ],
+      "windows": {
+        "available": true,
+        "backend": "llamacpp",
+        "repo": "ggerganov/whisper.cpp",
+        "revision": "5359861c739e955e79d9a303bcbc70fb988958b1",
+        "size": 574041195,
+        "files": [
+          {"path": "ggml-large-v3-turbo-q5_0.bin", "size": 574041195, "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2"}
+        ],
+        "minRAMGB": 2,
+        "runsOnIGPU": true,
+        "runsOnCPU": true,
+        "notes": "whisper.cpp Q5_0 (Vulkan on iGPU/GPU, runs on CPU)"
+      }
     },
     {
       "id": "moss-transcribe-diarize-8bit",
@@ -686,7 +763,8 @@
         "commercial": true,
         "verified": true,
         "note": "OpenMOSS-Team/MOSS-Transcribe-Diarize's model card (revision 704aa4a, checked 2026-10-15) and vanch007's 8-bit conversion both say apache-2.0. The conversion quantizes the Qwen3 decoder only (8-bit, group 64)."
-      }
+      },
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "qwen3-forcedaligner-0.6b-4bit",
@@ -704,7 +782,8 @@
       "size": 975857419,
       "minMemoryGB": 2,
       "quantization": "4bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "silero-vad",
@@ -720,7 +799,21 @@
       "rtf": 24,
       "size": 2182124,
       "minMemoryGB": 1,
-      "licence": {"id": "mit", "name": "MIT", "url": "https://github.com/snakers4/silero-vad", "commercial": true, "verified": true}
+      "licence": {"id": "mit", "name": "MIT", "url": "https://github.com/snakers4/silero-vad", "commercial": true, "verified": true},
+      "windows": {
+        "available": true,
+        "backend": "onnx_cpu",
+        "repo": "onnx-community/silero-vad",
+        "revision": "e71cae966052b992a7eca6b17738916ce0eca4ec",
+        "size": 2243022,
+        "files": [
+          {"path": "onnx/model.onnx", "size": 2243022, "sha256": "a4a068cd6cf1ea8355b84327595838ca748ec29a25bc91fc82e6c299ccdc5808"}
+        ],
+        "minRAMGB": 1,
+        "runsOnIGPU": true,
+        "runsOnCPU": true,
+        "notes": "ONNX Runtime CPU (~2 MB, instant on any PC)"
+      }
     },
     {
       "id": "htdemucs",
@@ -740,7 +833,8 @@
         {"path": "htdemucs_config.json", "size": 1892}
       ],
       "minMemoryGB": 3,
-      "licence": {"id": "mit", "name": "MIT", "url": "https://huggingface.co/iky1e/demucs-mlx", "commercial": true, "verified": true}
+      "licence": {"id": "mit", "name": "MIT", "url": "https://huggingface.co/iky1e/demucs-mlx", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "sortformer-4spk-v2.1",
@@ -755,7 +849,8 @@
       "rtf": 40,
       "size": 236114032,
       "minMemoryGB": 1,
-      "licence": {"id": "nvidia-open-model", "name": "NVIDIA Open Model License", "url": "https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/", "commercial": true, "verified": true}
+      "licence": {"id": "nvidia-open-model", "name": "NVIDIA Open Model License", "url": "https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/", "commercial": true, "verified": true},
+      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
     },
     {
       "id": "qwen3-4b-instruct-2507-4bit",
@@ -784,7 +879,22 @@
       ],
       "minMemoryGB": 8,
       "quantization": "4bit",
-      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507", "commercial": true, "verified": true}
+      "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507", "commercial": true, "verified": true},
+      "windows": {
+        "available": true,
+        "backend": "llamacpp",
+        "repo": "unsloth/Qwen3-4B-Instruct-2507-GGUF",
+        "revision": "a06e946bb6b655725eafa393f4a9745d460374c9",
+        "size": 2497281120,
+        "files": [
+          {"path": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf", "size": 2497281120, "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"}
+        ],
+        "minVRAMGB": 4,
+        "minRAMGB": 8,
+        "runsOnIGPU": true,
+        "runsOnCPU": true,
+        "notes": "llama.cpp GGUF Q4_K_M (Vulkan on iGPU, CUDA on NVIDIA, CPU fallback)"
+      }
     },
     {
       "id": "audioseal-16bits",
@@ -803,7 +913,22 @@
         {"path": "generator_base.pth", "size": 58805980}
       ],
       "minMemoryGB": 1,
-      "licence": {"id": "mit", "name": "MIT", "url": "https://huggingface.co/facebook/audioseal", "commercial": true, "verified": true}
+      "licence": {"id": "mit", "name": "MIT", "url": "https://huggingface.co/facebook/audioseal", "commercial": true, "verified": true},
+      "windows": {
+        "available": true,
+        "backend": "onnx_cpu",
+        "repo": "facebook/audioseal",
+        "revision": "3c19eba53390776cf2cc9ed5f6c9ac67ce72ecba",
+        "size": 93473621,
+        "files": [
+          {"path": "generator_base.pth", "size": 58805980, "sha256": "7a845b5fbe9364a63a3909d8ab3fe064d13a76ae4c2e983573e08c69b7b51748"},
+          {"path": "detector_base.pth", "size": 34667641, "sha256": "8a78e8a83584113523e161fc599fcab10fd0e94c04d2eb9d2fa1e9ec91ab69d9"}
+        ],
+        "minRAMGB": 1,
+        "runsOnIGPU": true,
+        "runsOnCPU": true,
+        "notes": "Runs on CPU in the media engine"
+      }
     },
     {
       "id": "deepfilternet-v3",
@@ -823,7 +948,24 @@
         {"path": "v3/model.safetensors", "size": 8682709}
       ],
       "minMemoryGB": 1,
-      "licence": {"id": "mit", "name": "MIT / Apache 2.0", "url": "https://github.com/Rikorose/DeepFilterNet", "commercial": true, "verified": true}
+      "licence": {"id": "mit", "name": "MIT / Apache 2.0", "url": "https://github.com/Rikorose/DeepFilterNet", "commercial": true, "verified": true},
+      "windows": {
+        "available": true,
+        "backend": "onnx_cpu",
+        "repo": "tuuhin/deepfilternet3-onnx",
+        "revision": "31f1dc1b94b6ed0779cab3fc7f74df789d9f6fd7",
+        "size": 8591514,
+        "files": [
+          {"path": "enc.onnx", "size": 1954583, "sha256": "403e5139ffe581d02ebbffd893d55d41dcda636a33f197dbe6d2435d53570e90"},
+          {"path": "erb_dec.onnx", "size": 3293339, "sha256": "911b07a1637fa3046f79d0398a44c03a48773405da75b935902e3730c30d5385"},
+          {"path": "df_dec.onnx", "size": 3341525, "sha256": "bc7de8974bb3ffe0cf8e86c6c43362a52454b14497469e17be5ed893b00fe9d2"},
+          {"path": "config.ini", "size": 2067}
+        ],
+        "minRAMGB": 1,
+        "runsOnIGPU": true,
+        "runsOnCPU": true,
+        "notes": "ONNX Runtime CPU (~9 MB, runs on any PC)"
+      }
     }
   ],
   "removed": [
@@ -857,6 +999,8 @@
       "about": "Connects to VOICEVOX ENGINE (127.0.0.1:50021) or AivisSpeech Engine (127.0.0.1:10101) running on this Mac; AudioSmith bundles none of their files. Japanese only, no cloning.",
       "languages": [{"code": "ja"}], "capabilities": ["speed"], "deterministic": true, "size": 0,
       "licence": {"id": "voicevox-terms", "name": "Per character (VOICEVOX / AivisSpeech terms)", "url": "https://voicevox.hiroshiba.jp/term/", "commercial": true, "verified": true,
-        "note": "Each VOICEVOX character's terms (credit \"VOICEVOX:<name>\"; some non-commercial) or each AivisSpeech model's licence (ACML, ACML-NC, CC0, own); shown per voice."}}
+        "note": "Each VOICEVOX character's terms (credit \"VOICEVOX:<name>\"; some non-commercial) or each AivisSpeech model's licence (ACML, ACML-NC, CC0, own); shown per voice."},
+      "windows": {"available": true, "backend": "external", "minRAMGB": 2, "runsOnIGPU": true, "runsOnCPU": true,
+        "notes": "Native local HTTP connector to VOICEVOX or AivisSpeech on Windows"}}
   ]
 }

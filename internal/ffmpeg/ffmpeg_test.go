@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -128,10 +129,14 @@ func TestInstall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if path != filepath.Join(dir, "ffmpeg") || last != total || total != b.Size() {
+	ext := ""
+	if runtime.GOOS == "windows" {
+		ext = ".exe"
+	}
+	if path != filepath.Join(dir, "ffmpeg"+ext) || last != total || total != b.Size() {
 		t.Errorf("path %s progress %d/%d", path, last, total)
 	}
-	if fi, err := os.Stat(filepath.Join(dir, "ffprobe")); err != nil || fi.Mode()&0o111 == 0 {
+	if fi, err := os.Stat(filepath.Join(dir, "ffprobe"+ext)); err != nil || (runtime.GOOS != "windows" && fi.Mode()&0o111 == 0) {
 		t.Errorf("ffprobe %v %v", fi, err)
 	}
 	if err := Verify(dir, b); err != nil {
@@ -140,13 +145,13 @@ func TestInstall(t *testing.T) {
 	// A wrong digest leaves what was there and no temporary files.
 	bad := b
 	bad.FFprobe.SHA256 = strings.Repeat("0", 64)
-	os.WriteFile(filepath.Join(dir, "ffmpeg"), []byte("old"), 0o755)
+	os.WriteFile(filepath.Join(dir, "ffmpeg"+ext), []byte("old"), 0o755)
 	_, err = Install(context.Background(), src, dir, bad, nil)
 	var ce *ChecksumError
 	if !errors.As(err, &ce) {
 		t.Fatalf("checksum: %v", err)
 	}
-	if data, _ := os.ReadFile(filepath.Join(dir, "ffmpeg")); string(data) != "old" {
+	if data, _ := os.ReadFile(filepath.Join(dir, "ffmpeg"+ext)); string(data) != "old" {
 		t.Errorf("a failed install replaced ffmpeg: %q", data)
 	}
 	if ents, _ := os.ReadDir(dir); len(ents) != 2 {

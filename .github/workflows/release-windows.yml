@@ -1,0 +1,318 @@
+# Windows Release: builds AudioSmith for Windows x64 (NSIS installer +
+# portable ZIP) and Windows ARM64 (cross-compiled portable ZIP), computes
+# SHA256SUMS-windows.txt, optionally signs with Azure Trusted Signing, and
+# attaches artifacts to an existing GitHub Release when a tag is present.
+#
+# Kept separate from .github/workflows/release.yml (macOS) so that a missing
+# Azure Trusted Signing secret or Windows runner hiccup never blocks macOS
+# releases. When Azure secrets are absent, the workflow falls back cleanly to
+# an unsigned build with a clear notice.
+#
+# Manual dry run: Actions → Release (Windows) → Run workflow (leave `tag`
+# empty to upload workflow artifacts only, or pass an existing tag such as
+# `v0.5.0-beta.6` to attach Windows artifacts to that draft release).
+# Full runbook: docs/release-windows.zh-CN.md.
+name: Release (Windows)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional GitHub release tag (e.g. v0.5.0-beta.6) to attach artifacts to if the release exists; leave empty for dry run"
+        type: string
+        default: ""
+      sign:
+        description: "Sign with Azure Trusted Signing if secrets are configured (falls back to unsigned if absent)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Windows (amd64 + arm64)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      CGO_ENABLED: 0
+      RELEASE: ${{ github.event_name == 'push' }}
+      SIGN_REQUESTED: ${{ github.event_name == 'push' || inputs.sign }}
+      INPUT_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check version, changelog, and tag
+        shell: bash
+        run: |
+          if [ "$RELEASE" = true ]; then
+            target_tag="$GITHUB_REF_NAME"
+          else
+            target_tag="$INPUT_TAG"
+          fi
+          if [ -n "$target_tag" ]; then
+            out="$(scripts/release-check.sh "$target_tag" 2>&1)" || { echo "::error::$out"; exit 1; }
+          else
+            out="$(scripts/release-check.sh 2>&1)" || { echo "::error::$out"; exit 1; }
+          fi
+          echo "$out"
+          {
+            echo "$out"
+            echo "TARGET_TAG=$target_tag"
+          } >> "$GITHUB_ENV"
+
+      - name: SQLite library cache key
+        id: sqlite
+        shell: pwsh
+        run: |
+          $dir = (go mod download -json github.com/egoist/mygo | ConvertFrom-Json).Dir
+          $plugin = Join-Path $dir "plugins\sqlite\internal\sqlitecore\mygo-plugin.json"
+          if (!(Test-Path $plugin)) {
+            Write-Error "no $plugin"
+            exit 1
+          }
+          $files = (Get-Content $plugin -Raw | ConvertFrom-Json).libraries[0].files
+          $sha = "$($files.'windows-amd64'.sha256)-$($files.'windows-arm64'.sha256)"
+          "sha=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/mygo/natives
+          key: mygo-natives-windows-${{ steps.sqlite.outputs.sha }}
+
+      - name: Check Azure Trusted Signing secrets
+        shell: pwsh
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+        run: |
+          $required = @(
+            "AZURE_TENANT_ID",
+            "AZURE_CLIENT_ID",
+            "AZURE_CLIENT_SECRET",
+            "AZURE_SIGNING_ENDPOINT",
+            "AZURE_SIGNING_ACCOUNT",
+            "AZURE_SIGNING_PROFILE"
+          )
+          $missing = @($required | Where-Object { [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_)) })
+          if ($env:SIGN_REQUESTED -eq "true" -and $missing.Count -eq 0) {
+            "SIGN_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            Write-Host "Azure Trusted Signing enabled."
+          } else {
+            "SIGN_ENABLED=false" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            if ($env:SIGN_REQUESTED -eq "true") {
+              Write-Host "::notice::Azure Trusted Signing secrets not configured (missing: $($missing -join ', ')); building unsigned Windows artifacts cleanly."
+            } else {
+              Write-Host "Unsigned Windows build requested (sign=false)."
+            }
+          }
+
+      - name: Install Azure Trusted Signing Client Tools
+        if: env.SIGN_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $toolsDir = Join-Path $env:RUNNER_TEMP "trusted-signing"
+          New-Item -ItemType Directory -Force -Path $toolsDir | Out-Null
+          nuget install Microsoft.Trusted.Signing.Client -OutputDirectory $toolsDir -NonInteractive
+          $dlib = Get-ChildItem -Path $toolsDir -Recurse -Filter "Azure.CodeSigning.Dlib.dll" |
+            Where-Object { $_.FullName -match "\\x64\\" } |
+            Select-Object -First 1
+          if (-not $dlib) {
+            Write-Error "Azure.CodeSigning.Dlib.dll (x64) not found in $toolsDir"
+            exit 1
+          }
+          "AZURE_SIGNING_DLIB=$($dlib.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Using Trusted Signing dlib: $($dlib.FullName)"
+
+      - name: Configure updater feed (when updater keys are set)
+        shell: bash
+        env:
+          MYGO_UPDATER_PUBLIC_KEY: ${{ vars.MYGO_UPDATER_PUBLIC_KEY }}
+          HAS_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY != '' }}
+        run: |
+          if [ -n "$MYGO_UPDATER_PUBLIC_KEY" ] && [ "$HAS_PRIVATE_KEY" = true ]; then
+            scripts/release-config.sh
+            echo "UPDATER_ENABLED=true" >> "$GITHUB_ENV"
+            jq '{version, updates: {url: .updates.url, prereleases: .updates.prereleases, publicKey: "set"}}' mygo.json
+          else
+            echo "UPDATER_ENABLED=false" >> "$GITHUB_ENV"
+            echo "::notice::MYGO_UPDATER_PUBLIC_KEY / MYGO_UPDATER_PRIVATE_KEY not set; skipping update-windows-amd64.json generation."
+          fi
+
+      - name: Build Windows amd64 (NSIS installer + portable ZIP)
+        shell: pwsh
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          MYGO_UPDATER_PRIVATE_KEY: ${{ env.UPDATER_ENABLED == 'true' && secrets.MYGO_UPDATER_PRIVATE_KEY || '' }}
+        run: |
+          $args = @("-Arch", "amd64", "-Installer", "-Portable", "-Version", $env:VERSION)
+          if ($env:SIGN_ENABLED -ne "true") {
+            $args += "-NoSign"
+          }
+          .\scripts\build-win.ps1 @args
+
+      - name: Build Windows arm64 (portable ZIP)
+        shell: pwsh
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          MYGO_UPDATER_PRIVATE_KEY: ""
+        run: |
+          $args = @("-Arch", "arm64", "-Portable", "-Version", $env:VERSION)
+          if ($env:SIGN_ENABLED -ne "true") {
+            $args += "-NoSign"
+          }
+          .\scripts\build-win.ps1 @args
+
+      - name: Verify Authenticode signatures
+        if: env.SIGN_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $kitsRoot = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+          $signtool = Get-ChildItem -Path $kitsRoot -Directory -Filter "10.*" |
+            Sort-Object Name -Descending |
+            ForEach-Object { Join-Path $_.FullName "x64\signtool.exe" } |
+            Where-Object { Test-Path $_ } |
+            Select-Object -First 1
+          if (-not $signtool) {
+            Write-Error "signtool.exe not found"
+            exit 1
+          }
+          $toVerify = @(
+            "build\windows-amd64\AudioSmith.exe",
+            "build\windows-amd64\engine\audiosmith-engine.exe",
+            "build\windows-amd64\AudioSmith-$($env:VERSION)-windows-amd64-setup.exe",
+            "build\windows-arm64\AudioSmith.exe",
+            "build\windows-arm64\engine\audiosmith-engine.exe"
+          )
+          foreach ($f in $toVerify) {
+            Write-Host "Verifying $f"
+            & $signtool verify /pa /v $f
+            if ($LASTEXITCODE -ne 0) {
+              throw "Signature verification failed for $f"
+            }
+          }
+
+      - name: Stage release artifacts and unified SHA256SUMS-windows.txt
+        shell: pwsh
+        run: |
+          $stage = "build\windows-release"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          $v = $env:VERSION
+          $primary = @(
+            "build\windows-amd64\AudioSmith-$v-windows-amd64-setup.exe",
+            "build\windows-amd64\AudioSmith-$v-windows-amd64-portable.zip",
+            "build\windows-arm64\AudioSmith-$v-windows-arm64-portable.zip"
+          )
+          foreach ($src in $primary) {
+            if (!(Test-Path $src)) {
+              Write-Error "Missing expected artifact: $src"
+              exit 1
+            }
+            Copy-Item $src $stage -Force
+          }
+
+          # Generate unified SHA256SUMS-windows.txt (LF, UTF-8 without BOM).
+          $lines = foreach ($src in $primary) {
+            $name = Split-Path -Leaf $src
+            $hash = (Get-FileHash -Algorithm SHA256 -Path (Join-Path $stage $name)).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          $sumsPath = Join-Path $stage "SHA256SUMS-windows.txt"
+          [System.IO.File]::WriteAllText($sumsPath, (($lines -join "`n") + "`n"), $utf8NoBom)
+
+          # Copy updater manifest and archives when produced by mygo build.
+          foreach ($pattern in @("update-windows-*.json", "audiosmith-$v-windows-*.tar.gz", "audiosmith-*-to-$v-windows-*.delta")) {
+            Get-ChildItem -Path "build\windows-amd64" -Filter $pattern -ErrorAction SilentlyContinue |
+              ForEach-Object { Copy-Item $_.FullName $stage -Force }
+          }
+
+          Write-Host "Staged release artifacts:"
+          Get-ChildItem $stage | Format-Table Name, Length -AutoSize
+          Write-Host "SHA256SUMS-windows.txt:"
+          Get-Content $sumsPath
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioSmith-${{ env.VERSION }}-windows-${{ env.SIGN_ENABLED == 'true' && 'signed' || 'unsigned' }}
+          path: build/windows-release/*
+          if-no-files-found: error
+          retention-days: ${{ env.RELEASE == 'true' && 30 || 7 }}
+
+      - name: Attach Windows artifacts to GitHub Release (when tag exists)
+        if: env.TARGET_TAG != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:TARGET_TAG
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            "RELEASE_ATTACHED=false" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            Write-Host "::notice::GitHub Release $tag does not exist yet (created by macOS release.yml). Windows artifacts were uploaded to this workflow run; re-run with tag=$tag or run 'gh release upload $tag --clobber ...' once the draft release exists."
+            exit 0
+          }
+
+          $v = $env:VERSION
+          $stage = "build\windows-release"
+          $files = @(
+            (Join-Path $stage "AudioSmith-$v-windows-amd64-setup.exe"),
+            (Join-Path $stage "AudioSmith-$v-windows-amd64-portable.zip"),
+            (Join-Path $stage "AudioSmith-$v-windows-arm64-portable.zip"),
+            (Join-Path $stage "SHA256SUMS-windows.txt")
+          )
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files
+          if ($LASTEXITCODE -ne 0) { throw "gh release upload failed" }
+
+          # Upload update manifest last so it never references missing files.
+          $manifest = Join-Path $stage "update-windows-amd64.json"
+          if (Test-Path $manifest) {
+            gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber $manifest
+            if ($LASTEXITCODE -ne 0) { throw "gh release upload (manifest) failed" }
+          }
+          "RELEASE_ATTACHED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Attached Windows artifacts to GitHub Release $tag."
+
+      - name: Summary
+        shell: pwsh
+        run: |
+          $signLabel = if ($env:SIGN_ENABLED -eq "true") { "Azure Trusted Signing (verified)" } else { "Unsigned" }
+          $sums = Get-Content "build\windows-release\SHA256SUMS-windows.txt" -Raw
+          $lines = @(
+            "### AudioSmith $($env:VERSION) — Windows",
+            "- **Signing:** $signLabel",
+            "- **Updater manifest:** $(if (Test-Path 'build\windows-release\update-windows-amd64.json') { '`update-windows-amd64.json` generated' } else { 'skipped (no updater keys)' })",
+            "- **GitHub Release:** $(if ($env:RELEASE_ATTACHED -eq 'true') { "attached to ``$($env:TARGET_TAG)``" } elseif ($env:TARGET_TAG) { "``$($env:TARGET_TAG)`` not created yet — artifacts saved on this run" } else { 'dry run (workflow artifacts only)' })",
+            "",
+            "``````text",
+            $sums.TrimEnd(),
+            "``````"
+          )
+          $lines -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

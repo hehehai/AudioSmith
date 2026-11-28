@@ -161,7 +161,7 @@ func ctxErr(ctx context.Context, provider string, err error, timeout time.Durati
 	x.Err = err
 	// Connection refused (a local server that isn't running) won't fix
 	// itself within a backoff window; resets and timeouts might.
-	x.Retryable = !strings.Contains(detail, "connection refused")
+	x.Retryable = !strings.Contains(detail, "connection refused") && !strings.Contains(detail, "actively refused")
 	if errors.As(err, &ne) && ne.Timeout() {
 		x.Retryable = true
 	}

@@ -154,7 +154,7 @@ func (b *apiBackend) defaultTTSRepo() string {
 
 // onDisk reports whether a model is downloaded (and whether that is known).
 func (b *apiBackend) onDisk(e catalog.Entry) (ready, known bool) {
-	loc, err := hub.StatusIn(modelCaches(b.lib.settings.Get()), e)
+	loc, err := hub.StatusInFor(modelCaches(b.lib.settings.Get()), currentOS(), e)
 	if err != nil {
 		return false, false
 	}

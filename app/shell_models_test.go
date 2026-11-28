@@ -17,6 +17,7 @@ import (
 )
 
 func TestModelsPage(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	f := useFakeHub(t, a)
 	var progress []hub.Progress
@@ -81,6 +82,7 @@ func TestModelsPage(t *testing.T) {
 }
 
 func TestLicenceGate(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	f := useFakeHub(t, a)
 	omni := entry(t, "omnivoice-bf16")
@@ -137,6 +139,7 @@ func TestLicenceGate(t *testing.T) {
 }
 
 func TestDownloadErrors(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	useFakeHub(t, a)
 	a.updateSettings(func(s *settings.Settings) { s.Models.Endpoints = []string{"http://127.0.0.1:1"} })

@@ -258,7 +258,11 @@ func (a *app) skipOnboarding() {
 // welcomeTake is the first sound: a line in the UI's language by the
 // Studio's model for it (the fast pack's), in its recommended voice.
 func welcomeTake() core.Take {
-	t := core.Take{Text: i18n.T("Welcome to AudioSmith. This voice was made on your Mac, and nothing left it."), Speed: 1}
+	text := i18n.T("Welcome to AudioSmith. This voice was made on your Mac, and nothing left it.")
+	if isWindows() {
+		text = i18n.T("Welcome to AudioSmith. This voice was made on your PC, and nothing left it.")
+	}
+	t := core.Take{Text: text, Speed: 1}
 	if e, ok := catalog.Builtin().ByID(packModelID(packStudioModel)); ok {
 		t.Model = e.Repo
 		if p, ok := catalog.PresetFor(e.ID); ok {
@@ -301,7 +305,11 @@ func (a *app) maybeFirstSound() {
 
 // onboardingRow is Settings → General's way back to the wizard.
 func (a *app) onboardingRow(c *ui.Context) {
-	settingRow(c, "setup-again", i18n.T("Setup"), i18n.T("Check this Mac, choose a model pack, privacy and dictation, as on the first day."), func() {
+	desc := i18n.T("Check this Mac, choose a model pack, privacy and dictation, as on the first day.")
+	if isWindows() {
+		desc = i18n.T("Check this PC, choose a model pack, privacy and dictation, as on the first day.")
+	}
+	settingRow(c, "setup-again", i18n.T("Setup"), desc, func() {
 		if ui.Button(c.Key("setup-again"), i18n.T("Run the setup again")).Clicked() {
 			a.openOnboarding()
 		}

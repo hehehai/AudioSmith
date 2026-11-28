@@ -112,11 +112,12 @@ func (b *apiBackend) Settings() settings.Settings { return b.lib.settings.Get() 
 
 func (b *apiBackend) Models(ctx context.Context) ([]api.Model, error) {
 	caches := modelCaches(b.lib.settings.Get())
+	goos := currentOS()
 	accepted, _ := b.lib.licences.List(ctx)
 	var out []api.Model
 	for _, e := range catalog.Builtin().Entries {
 		m := api.Model{Entry: e}
-		if loc, err := hub.StatusIn(caches, e); err == nil {
+		if loc, err := hub.StatusInFor(caches, goos, e); err == nil {
 			m.Downloaded = loc.State == hub.Downloaded
 		}
 		m.LicenceNeeded = licence.Required(e) != nil && !licence.Covers(accepted, e)
@@ -132,6 +133,9 @@ func (b *apiBackend) DownloadModel(ctx context.Context, id string) (string, erro
 	e, ok := catalog.Builtin().ByID(id)
 	if !ok {
 		return "", fmt.Errorf("model %s: %w", id, core.ErrNotFound)
+	}
+	if !e.AvailableOn(currentOS()) {
+		return "", fmt.Errorf("%s: %w", e.Repo, hub.ErrUnsupportedPlatform)
 	}
 	// One download per model: an unfinished one is the answer.
 	if js, err := b.lib.sched.List(ctx, jobs.Filter{Owner: "model:" + e.Repo}); err == nil && len(js) > 0 {

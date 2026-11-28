@@ -262,7 +262,7 @@ func TestStudioHomeTextAndSaveAsProject(t *testing.T) {
 	tt.Frame()
 	a.homeUI.text = "Read this aloud for me."
 	tt.Frame()
-	if err := tt.Click("Start (↩)"); err != nil {
+	if err := tt.Click(shortcutLabel("Start (↩)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

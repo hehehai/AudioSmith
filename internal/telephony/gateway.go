@@ -25,8 +25,9 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
+
+	"github.com/hehehai/AudioSmith/internal/core"
 )
 
 // Gateway paths.
@@ -167,7 +168,7 @@ func (g *Gateway) Start(addr string) error {
 	g.Stop(context.Background())
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		if errors.Is(err, syscall.EADDRINUSE) {
+		if core.IsAddrInUse(err) {
 			return ErrPortInUse
 		}
 		return err

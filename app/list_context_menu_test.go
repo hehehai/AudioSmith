@@ -212,7 +212,7 @@ func TestDubLineContextMenu(t *testing.T) {
 	if a.dubCur != second.ID {
 		t.Errorf("current line %q, want %q", a.dubCur, second.ID)
 	}
-	if err := tt.ChooseMenuItem("Merge with previous (⇧⌘M)"); err != nil {
+	if err := tt.ChooseMenuItem(shortcutLabel("Merge with previous (⇧⌘M)")); err != nil {
 		t.Fatalf("%v %q", err, tt.Menu())
 	}
 	settle(tt)

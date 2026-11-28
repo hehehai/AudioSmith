@@ -144,17 +144,17 @@ func TestRemoveKeepsShared(t *testing.T) {
 	if err := me.Claim(ctx, models.Claim{Repo: e.Repo, Revision: testRev, Model: e.ID}); err != nil {
 		t.Fatal(err)
 	}
-	r, err := Remove(ctx, fx.Hub, e, fam, models.ThisApp)
+	r, err := RemoveFor(ctx, fx.Hub, "darwin", e, fam, models.ThisApp)
 	if err != nil || r.Deleted || !slices.Equal(r.Kept, []string{"Dicta"}) || r.Freed != 0 || len(r.Decision.Users) != 1 {
 		t.Fatalf("remove %+v %v", r, err)
 	}
-	if l, _ := Status(fx.Hub, e); l.State != Downloaded {
+	if l, _ := StatusFor(fx.Hub, "darwin", e); l.State != Downloaded {
 		t.Errorf("after removing from AudioSmith: %+v", l)
 	}
 	if fx.Claimed(BundleID, ref) {
 		t.Error("AudioSmith still claims what it removed")
 	}
-	r, err = Remove(ctx, fx.Hub, e, fam, models.AllApps)
+	r, err = RemoveFor(ctx, fx.Hub, "darwin", e, fam, models.AllApps)
 	if err != nil || !r.Deleted || !r.Tombstoned || r.Freed != 100 {
 		t.Fatalf("delete for all apps %+v %v", r, err)
 	}
@@ -183,7 +183,7 @@ func TestRemoveAux(t *testing.T) {
 			me.Claim(ctx, models.Claim{Repo: x.Repo, Revision: testRev, Model: e.ID, Aux: true})
 		}
 	}
-	r, err := Remove(ctx, fx.Hub, a, fam, models.ThisApp)
+	r, err := RemoveFor(ctx, fx.Hub, "darwin", a, fam, models.ThisApp)
 	if err != nil || !r.Deleted || r.Freed != 200 {
 		t.Fatalf("remove a: %+v %v", r, err)
 	}
@@ -211,7 +211,7 @@ func TestDeleteRefusedWhileLocked(t *testing.T) {
 			fakeRepo(t, cache, parakeet, 100)
 			release := holdLock(t, cache, parakeet, "", dictaID)
 			ctx := context.Background()
-			_, err := Remove(ctx, cache, e, fam, models.ThisApp)
+			_, err := RemoveFor(ctx, cache, "darwin", e, fam, models.ThisApp)
 			if name, busy := Holder(err); !busy || name != "Dicta" {
 				t.Fatalf("remove while locked: %v (%q %v)", err, name, busy)
 			}
@@ -219,11 +219,11 @@ func TestDeleteRefusedWhileLocked(t *testing.T) {
 			if err != nil || freed != 0 || len(kept) != 1 || !kept[0].Busy || kept[0].BusyBy != "Dicta" {
 				t.Fatalf("clean up while locked: freed %d, kept %+v, %v", freed, kept, err)
 			}
-			if l, _ := Status(cache, e); l.State != Downloaded {
+			if l, _ := StatusFor(cache, "darwin", e); l.State != Downloaded {
 				t.Errorf("files went: %+v", l)
 			}
 			release()
-			if r, err := Remove(ctx, cache, e, fam, models.ThisApp); err != nil || r.Freed != 100 {
+			if r, err := RemoveFor(ctx, cache, "darwin", e, fam, models.ThisApp); err != nil || r.Freed != 100 {
 				t.Fatalf("after release %+v %v", r, err)
 			}
 		})

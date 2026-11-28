@@ -45,7 +45,9 @@ const testExe = "/Applications/AudioSmith.app/Contents/MacOS/AudioSmith"
 // port and the key settings; JSON blocks parse; the key shows only when
 // the user put it in the setups.
 func TestAgentPrompts(t *testing.T) {
-	t.Cleanup(func() { i18n.SetLocale("en") })
+	prev := integOS
+	integOS = "darwin"
+	t.Cleanup(func() { integOS = prev; i18n.SetLocale("en") })
 	envs := map[string]integEnv{
 		"none":     {Base: "http://127.0.0.1:4000", Exe: testExe},
 		"keychain": {Base: "http://127.0.0.1:4000", Exe: testExe, NeedKey: true},
@@ -149,6 +151,9 @@ func TestAgentPromptHandshake(t *testing.T) {
 	if _, err := exec.LookPath("curl"); err != nil {
 		t.Skip("no curl")
 	}
+	prev := integOS
+	integOS = "darwin"
+	t.Cleanup(func() { integOS = prev })
 	e := newAPIEnv(t)
 	s := agentPrompt("claude-code", promptEnv{integEnv: integEnv{Base: e.ts.URL, Exe: testExe}})
 	var health, handshake string

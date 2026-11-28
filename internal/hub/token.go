@@ -89,8 +89,30 @@ var security = func(stdin string, args ...string) ([]byte, error) {
 	return out, nil
 }
 
+// secretStore is an optional platform credential store (Windows uses
+// mygo.Secrets; macOS keeps /usr/bin/security for existing Keychain items).
+type secretStore interface {
+	Get(service, account string) (string, error)
+	Set(service, account, value string) error
+	Delete(service, account string) error
+}
+
 // Get returns the token saved, "" when there is none.
 func (k Keychain) Get() (string, error) {
+	if platformSecrets != nil && k.File == "" {
+		tok, err := platformSecrets.Get(k.Service, k.Account)
+		if err != nil {
+			if errors.Is(err, ErrNoKeychain) {
+				return "", nil
+			}
+			return "", err
+		}
+		tok = strings.TrimSpace(tok)
+		if tok != "" {
+			logs.AddSecret(tok) // never in a log line (#108)
+		}
+		return tok, nil
+	}
 	out, err := security("", k.with("find-generic-password", "-s", k.Service, "-a", k.Account, "-w")...)
 	if err != nil {
 		if errors.Is(err, ErrNoKeychain) || strings.Contains(err.Error(), "could not be found") || isExit(err, 44) {
@@ -115,6 +137,9 @@ func (k Keychain) Set(token string) error {
 		return errors.New("the token has characters a Hugging Face token never has")
 	}
 	logs.AddSecret(token)
+	if platformSecrets != nil && k.File == "" {
+		return platformSecrets.Set(k.Service, k.Account, token)
+	}
 	label := k.Label
 	if label == "" {
 		label = "AudioSmith " + k.Account
@@ -130,6 +155,13 @@ func (k Keychain) Set(token string) error {
 
 // Delete removes the saved token; none saved is not an error.
 func (k Keychain) Delete() error {
+	if platformSecrets != nil && k.File == "" {
+		err := platformSecrets.Delete(k.Service, k.Account)
+		if errors.Is(err, ErrNoKeychain) {
+			return nil
+		}
+		return err
+	}
 	_, err := security("", k.with("delete-generic-password", "-s", k.Service, "-a", k.Account)...)
 	if err != nil && (errors.Is(err, ErrNoKeychain) || strings.Contains(err.Error(), "could not be found") || isExit(err, 44)) {
 		return nil

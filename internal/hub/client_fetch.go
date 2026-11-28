@@ -77,12 +77,16 @@ type fileState struct {
 // Download fetches what Plan lists into the cache: the auxiliary repos
 // first, then e's.
 func (c *Client) Download(ctx context.Context, e catalog.Entry, progress func(Progress)) error {
-	defer c.lockRepo(e.Repo)()
-	plans, sum, err := c.planAll(ctx, e)
+	re, err := ResolveEntry(e, c.targetOS())
 	if err != nil {
 		return err
 	}
-	left, err := c.reserve(e.Repo, sum)
+	defer c.lockRepo(re.Repo)()
+	plans, sum, err := c.planAll(ctx, e, re)
+	if err != nil {
+		return err
+	}
+	left, err := c.reserve(re.Repo, sum)
 	if err != nil {
 		return err
 	}
@@ -90,7 +94,7 @@ func (c *Client) Download(ctx context.Context, e catalog.Entry, progress func(Pr
 	var base int64
 	for _, p := range plans {
 		unlock := func() {}
-		if p.repo != e.Repo {
+		if p.repo != re.Repo {
 			unlock = c.lockRepo(p.repo)
 		}
 		err := c.fetchPlan(ctx, p, func(pr Progress) {
