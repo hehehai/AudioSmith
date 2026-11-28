@@ -122,7 +122,18 @@
       "minMemoryGB": 4,
       "quantization": "8bit",
       "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "commercial": true, "verified": true},
-      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
+      "windows": {
+        "available": true,
+        "backend": "pytorch",
+        "optionalRuntime": "python",
+        "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+        "size": 1840000000,
+        "minVRAMGB": 4,
+        "minRAMGB": 8,
+        "runsOnIGPU": false,
+        "runsOnCPU": true,
+        "notes": "Optional Python/PyTorch worker (CUDA recommended; runs slowly on CPU/iGPU)"
+      }
     },
     {
       "id": "qwen3-tts-0.6b-base-8bit",
@@ -243,7 +254,18 @@
       "minMemoryGB": 6,
       "quantization": "8bit",
       "licence": {"id": "apache-2.0", "name": "Apache 2.0", "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base", "commercial": true, "verified": true},
-      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
+      "windows": {
+        "available": true,
+        "backend": "pytorch",
+        "optionalRuntime": "python",
+        "repo": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+        "size": 4300000000,
+        "minVRAMGB": 6,
+        "minRAMGB": 12,
+        "runsOnIGPU": false,
+        "runsOnCPU": true,
+        "notes": "Optional Python/PyTorch worker (CUDA recommended; runs slowly on CPU/iGPU)"
+      }
     },
     {
       "id": "chatterbox-turbo-8bit",
@@ -591,7 +613,18 @@
         "verified": true,
         "note": "Aratako/Irodori-TTS-v4.1-Small-MF's model card (checked 2026-11-22): MIT, with ethical restrictions on top: no cloning or impersonating anyone (voice actors, celebrities, public figures) without their explicit consent; no deepfakes or speech meant to mislead; voices made without a reference may resemble real people by chance; users answer for their use. mlx-community's 8-bit conversion (revision 76e6b18) bundles the Semantic-DACVAE-Japanese-32dim codec and ModernBERT-ja-310m's tokenizer (both MIT); the training data is not published. AudioSmith runs upstream mlx-audio-swift's MIT port (engine patch 0013). Its takes are watermarked (AudioSeal) as every model's are; the About text states the author's terms, and clones go through AudioSmith's consent step."
       },
-      "windows": {"available": false, "notes": "macOS (MLX) only for now; Windows support planned"}
+      "windows": {
+        "available": true,
+        "backend": "pytorch",
+        "optionalRuntime": "python",
+        "repo": "Aratako/Irodori-TTS-v4.1-Small-MF",
+        "size": 2100000000,
+        "minVRAMGB": 4,
+        "minRAMGB": 8,
+        "runsOnIGPU": false,
+        "runsOnCPU": true,
+        "notes": "Optional Python/PyTorch worker (CUDA recommended; runs slowly on CPU/iGPU)"
+      }
     },
     {
       "id": "qwen3-asr-0.6b-4bit",

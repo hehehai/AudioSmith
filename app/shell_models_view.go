@@ -63,6 +63,7 @@ func (a *app) modelsList(c *ui.Context) {
 		find := strings.TrimSpace(a.modelsFind)
 		if find == "" {
 			a.windowsHardwareBanner(c)
+			a.windowsRuntimesCard(c)
 			a.moveModelsBanner(c) // family_shared_view.go: the family's model folder
 		}
 		if find == "" && a.removedShows(a.modelsKind) {
@@ -169,14 +170,23 @@ func (a *app) modelCard(c *ui.Context, e catalog.Entry) {
 		}
 		if m.downloading {
 			frac := -1.0
-			if m.progress.TotalBytes > 0 {
-				frac = float64(m.progress.Bytes) / float64(m.progress.TotalBytes)
+			var info string
+			if m.winRuntime != "" {
+				p := a.winRT.progress[m.winRuntime]
+				if p.Stage == "downloading" && p.TotalBytes > 0 {
+					frac = float64(p.Bytes) / float64(p.TotalBytes)
+				}
+				info = i18n.T("Installing %s…", a.winRuntimeDisplayName(m.winRuntime))
+			} else {
+				if m.progress.TotalBytes > 0 {
+					frac = float64(m.progress.Bytes) / float64(m.progress.TotalBytes)
+				}
+				info = i18n.T("%s of %s", mb(m.progress.Bytes), mb(m.progress.TotalBytes))
+				if m.progress.Mirror != "" {
+					info += " · " + strings.TrimPrefix(m.progress.Mirror, "https://")
+				}
 			}
 			ui.Progress(c, frac).Label(i18n.T("Downloading %s", modelRef(e)))
-			info := i18n.T("%s of %s", mb(m.progress.Bytes), mb(m.progress.TotalBytes))
-			if m.progress.Mirror != "" {
-				info += " · " + strings.TrimPrefix(m.progress.Mirror, "https://")
-			}
 			truncText(c, info).FontSize(px(t, fsMicro)).TextColor(tok(t).Text2)
 		}
 		if m.err != "" && !m.downloading {
@@ -205,6 +215,8 @@ func (a *app) modelInfo(c *ui.Context, e catalog.Entry, m *modelState, loaded bo
 		}
 		if !a.modelAvailable(e) {
 			tagChip(c, i18n.T("Windows planned"))
+		} else if a.platformOS() == "windows" && e.EffectiveOptionalRuntime("windows") == "python" {
+			tagChip(c, i18n.T("Optional Python"))
 		}
 		if e.NeedsReference {
 			tagChip(c, i18n.T("Needs a reference clip"))
@@ -377,6 +389,8 @@ func (a *app) modelStateText(e catalog.Entry, m *modelState) string {
 		return i18n.T("Not yet available on Windows")
 	}
 	switch {
+	case m.downloading && m.winRuntime != "":
+		return i18n.T("Installing %s…", a.winRuntimeDisplayName(m.winRuntime))
 	case m.downloading && m.progress.Waiting:
 		return waitingText(m.progress) // models_family.go
 	case m.downloading:

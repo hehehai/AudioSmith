@@ -142,6 +142,25 @@ func DiscoverWhisperServer() string {
 	})
 }
 
+// DiscoverPython finds an explicitly configured or managed optional Python
+// worker executable (for opt-in PyTorch models such as Qwen3-TTS and
+// Irodori-TTS). It intentionally does not scan system PATH so an unrelated
+// system Python without PyTorch is never picked up by mistake.
+func DiscoverPython() string {
+	for _, env := range []string{"AUDIOSMITH_PY_WORKER", "AUDIOSMITH_PYTHON"} {
+		if p := strings.TrimSpace(os.Getenv(env)); p != "" && isRegularFile(p) {
+			return p
+		}
+	}
+	names := []string{"python.exe", "python3", "python"}
+	if runtime.GOOS != "windows" {
+		names = []string{"python3", "python", "python.exe"}
+	}
+	return Discover("python", names, DiscoverOptions{
+		Aliases: []string{"pyworker"},
+	})
+}
+
 func exeNames(base string) []string {
 	if runtime.GOOS == "windows" {
 		return []string{base + ".exe", base}

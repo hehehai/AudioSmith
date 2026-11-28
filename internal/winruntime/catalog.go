@@ -3,6 +3,8 @@
 // everyday/iGPU PC users never have to manually hunt for DLLs or EXEs.
 package winruntime
 
+import "slices"
+
 // Name identifies a managed native runtime.
 type Name string
 
@@ -14,6 +16,30 @@ const (
 	// RuntimeLlama is llama.cpp server/CLI for local GGUF LLMs.
 	RuntimeLlama Name = "llama"
 )
+
+// OrderedNames returns the lightweight native runtimes managed by winruntime
+// in deterministic display order. Optional PyTorch/Python runtimes are never
+// included here so everyday iGPU/CPU PCs are never forced to download them.
+func OrderedNames() []Name {
+	return []Name{RuntimeONNX, RuntimeWhisper, RuntimeLlama}
+}
+
+// RequiredForBackend returns the lightweight native runtime needed to run a
+// Windows model with the given catalog backend and task list, or "" when no
+// managed native runtime is required (e.g. external engines or opt-in PyTorch).
+func RequiredForBackend(backend string, tasks []string) Name {
+	switch backend {
+	case "onnx_directml", "onnx_cpu":
+		return RuntimeONNX
+	case "llamacpp":
+		if slices.Contains(tasks, "stt") {
+			return RuntimeWhisper
+		}
+		return RuntimeLlama
+	default:
+		return ""
+	}
+}
 
 // ExtractSpec maps an archive entry (slash-separated path, matched
 // case-insensitively or by exact suffix) to a flat filename in the

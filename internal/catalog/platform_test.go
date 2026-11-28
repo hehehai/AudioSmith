@@ -92,14 +92,56 @@ func TestWindowsCatalogSources(t *testing.T) {
 		}
 	}
 
+	// Optional Python/PyTorch neural TTS models (Chinese & Japanese):
+	// available on Windows with explicit optionalRuntime: "python",
+	// runsOnCPU: true, and honest VRAM/RAM requirements.
+	wantPyTorch := map[string]struct {
+		repo      string
+		minVRAMGB float64
+	}{
+		"qwen3-tts-0.6b-customvoice-8bit": {"Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", 4},
+		"qwen3-tts-1.7b-base-8bit":        {"Qwen/Qwen3-TTS-12Hz-1.7B-Base", 6},
+		"irodori-tts-v4.1-small-mf-8bit":  {"Aratako/Irodori-TTS-v4.1-Small-MF", 4},
+	}
+	for id, want := range wantPyTorch {
+		e, ok := c.ByID(id)
+		if !ok {
+			t.Fatalf("missing entry %s", id)
+		}
+		if !e.AvailableOn("windows") {
+			t.Errorf("%s: want AvailableOn(windows) == true", id)
+		}
+		if got := e.EffectiveBackend("windows"); got != BackendPyTorch {
+			t.Errorf("%s: backend = %q, want %q", id, got, BackendPyTorch)
+		}
+		if got := e.EffectiveOptionalRuntime("windows"); got != "python" {
+			t.Errorf("%s: optionalRuntime = %q, want python", id, got)
+		}
+		if got := e.EffectiveRepo("windows"); got != want.repo {
+			t.Errorf("%s: repo = %q, want %q", id, got, want.repo)
+		}
+		if e.EffectiveSize("windows") <= 0 {
+			t.Errorf("%s: size must be positive", id)
+		}
+		if !e.Windows.RunsOnCPU || e.Windows.RunsOnIGPU {
+			t.Errorf("%s: want RunsOnCPU=true, RunsOnIGPU=false, got %+v", id, e.Windows)
+		}
+		if e.Windows.MinVRAMGB != want.minVRAMGB {
+			t.Errorf("%s: minVRAMGB = %g, want %g", id, e.Windows.MinVRAMGB, want.minVRAMGB)
+		}
+		if found, ok := c.ByEffectiveRepo("windows", want.repo); !ok || found.ID != id {
+			t.Errorf("ByEffectiveRepo(windows, %q) = (%s, %v), want %s", want.repo, found.ID, ok, id)
+		}
+	}
+
 	// Heavier MLX-only entries must be marked unavailable on Windows and
 	// must never expose their MLX repo or size on Windows.
 	for _, id := range []string{
 		"moss-ttsd-v1.0-8bit",
 		"soulx-podcast-1.7b-8bit",
-		"qwen3-tts-0.6b-customvoice-8bit",
 		"voxcpm2-8bit",
-		"irodori-tts-v4.1-small-mf-8bit",
+		"chatterbox-turbo-8bit",
+		"omnivoice-bf16",
 	} {
 		e, ok := c.ByID(id)
 		if !ok {
@@ -116,10 +158,20 @@ func TestWindowsCatalogSources(t *testing.T) {
 		}
 	}
 
-	// ForTaskOn(TaskTTS, "windows") returns only Windows-available TTS models.
+	// ForTaskOn(TaskTTS, "windows") returns Kokoro + optional PyTorch zh/ja TTS models.
 	winTTS := c.ForTaskOn(TaskTTS, "windows")
-	if len(winTTS) != 1 || winTTS[0].ID != "kokoro-82m-bf16" {
-		t.Errorf("ForTaskOn(TTS, windows) = %v, want [kokoro-82m-bf16]", winTTS)
+	var winTTSIDs []string
+	for _, e := range winTTS {
+		winTTSIDs = append(winTTSIDs, e.ID)
+	}
+	wantTTS := []string{
+		"kokoro-82m-bf16",
+		"qwen3-tts-0.6b-customvoice-8bit",
+		"qwen3-tts-1.7b-base-8bit",
+		"irodori-tts-v4.1-small-mf-8bit",
+	}
+	if !slices.Equal(winTTSIDs, wantTTS) {
+		t.Errorf("ForTaskOn(TTS, windows) = %v, want %v", winTTSIDs, wantTTS)
 	}
 }
 
@@ -136,6 +188,9 @@ func TestHardwareFit(t *testing.T) {
 	audioseal, _ := c.ByID("audioseal-16bits")
 	voicevox, _ := c.ByID("voicevox")
 	moss, _ := c.ByID("moss-ttsd-v1.0-8bit")
+	qwenTTS06, _ := c.ByID("qwen3-tts-0.6b-customvoice-8bit")
+	qwenTTS17, _ := c.ByID("qwen3-tts-1.7b-base-8bit")
+	irodori, _ := c.ByID("irodori-tts-v4.1-small-mf-8bit")
 
 	// Synthetic PyTorch CUDA-only model (e.g. future Phase 2 heavy TTS).
 	heavyCUDA := Entry{
@@ -178,6 +233,9 @@ func TestHardwareFit(t *testing.T) {
 		{"win-igpu/voicevox", voicevox, "windows", hwWinIGPU, FitComfortable},
 		{"win-igpu/moss-mlx", moss, "windows", hwWinIGPU, FitUnavailable},
 		{"win-igpu/heavy-cuda", heavyCUDA, "windows", hwWinIGPU, FitNeedsDiscrete},
+		{"win-igpu/qwen3-tts-0.6b", qwenTTS06, "windows", hwWinIGPU, FitSlowOnCPU},
+		{"win-igpu/qwen3-tts-1.7b", qwenTTS17, "windows", hwWinIGPU, FitSlowOnCPU},
+		{"win-igpu/irodori", irodori, "windows", hwWinIGPU, FitSlowOnCPU},
 
 		// Windows CPU-only / VM (16 GB): light models comfortable, larger ones slow-on-CPU.
 		{"win-cpu/kokoro", kokoro, "windows", hwWinCPU, FitComfortable},
@@ -187,17 +245,25 @@ func TestHardwareFit(t *testing.T) {
 		{"win-cpu/voicevox", voicevox, "windows", hwWinCPU, FitComfortable},
 		{"win-cpu/whisper", whisper, "windows", hwWinCPU, FitSlowOnCPU},
 		{"win-cpu/qwen4b", qwen4b, "windows", hwWinCPU, FitSlowOnCPU},
+		{"win-cpu/qwen3-tts-0.6b", qwenTTS06, "windows", hwWinCPU, FitSlowOnCPU},
+		{"win-cpu/irodori", irodori, "windows", hwWinCPU, FitSlowOnCPU},
 		{"win-cpu/moss-mlx", moss, "windows", hwWinCPU, FitUnavailable},
 		{"win-cpu/heavy-cuda", heavyCUDA, "windows", hwWinCPU, FitNeedsDiscrete},
 
 		// Windows NVIDIA 8 GB: core models + 8 GB CUDA model comfortable, MLX-only still unavailable.
 		{"win-rtx8g/kokoro", kokoro, "windows", hwWinNVIDIA8GB, FitComfortable},
 		{"win-rtx8g/qwen4b", qwen4b, "windows", hwWinNVIDIA8GB, FitComfortable},
+		{"win-rtx8g/qwen3-tts-0.6b", qwenTTS06, "windows", hwWinNVIDIA8GB, FitComfortable},
+		{"win-rtx8g/qwen3-tts-1.7b", qwenTTS17, "windows", hwWinNVIDIA8GB, FitComfortable},
+		{"win-rtx8g/irodori", irodori, "windows", hwWinNVIDIA8GB, FitComfortable},
 		{"win-rtx8g/heavy-cuda", heavyCUDA, "windows", hwWinNVIDIA8GB, FitComfortable},
 		{"win-rtx8g/moss-mlx", moss, "windows", hwWinNVIDIA8GB, FitUnavailable},
 
-		// Windows 4 GB discrete GPU: 4 GB Qwen3 fits, 8 GB CUDA model needs more VRAM.
+		// Windows 4 GB discrete GPU: 4 GB models fit, 6/8 GB models need more VRAM.
 		{"win-4g/qwen4b", qwen4b, "windows", hwWinDiscrete4GB, FitComfortable},
+		{"win-4g/qwen3-tts-0.6b", qwenTTS06, "windows", hwWinDiscrete4GB, FitComfortable},
+		{"win-4g/qwen3-tts-1.7b", qwenTTS17, "windows", hwWinDiscrete4GB, FitNeedsDiscrete},
+		{"win-4g/irodori", irodori, "windows", hwWinDiscrete4GB, FitComfortable},
 		{"win-4g/heavy-cuda", heavyCUDA, "windows", hwWinDiscrete4GB, FitNeedsDiscrete},
 
 		// Windows 4 GB RAM: Qwen3 4B (needs 8 GB RAM) reports low memory; Kokoro (2 GB) fits.

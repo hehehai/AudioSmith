@@ -55,9 +55,9 @@ func TestResolveEntryPlatform(t *testing.T) {
 	}
 
 	// MLX-only entry fails cleanly on Windows.
-	mlxOnly, ok := cat.ByID("qwen3-tts-0.6b-customvoice-8bit")
+	mlxOnly, ok := cat.ByID("moss-ttsd-v1.0-8bit")
 	if !ok {
-		t.Fatal("qwen3-tts-0.6b-customvoice-8bit missing from builtin catalog")
+		t.Fatal("moss-ttsd-v1.0-8bit missing from builtin catalog")
 	}
 	if _, err := ResolveEntry(mlxOnly, "windows"); !errors.Is(err, ErrUnsupportedPlatform) {
 		t.Fatalf("expected ErrUnsupportedPlatform for MLX-only entry on windows, got %v", err)

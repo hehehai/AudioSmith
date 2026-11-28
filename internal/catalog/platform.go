@@ -50,10 +50,11 @@ type PlatformSource struct {
 	MinVRAMGB float64 `json:"minVRAMGB,omitempty"`
 	// MinRAMGB is the system RAM needed on this platform (defaults to
 	// Entry.MinMemoryGB when 0).
-	MinRAMGB   float64 `json:"minRAMGB,omitempty"`
-	RunsOnIGPU bool    `json:"runsOnIGPU,omitempty"`
-	RunsOnCPU  bool    `json:"runsOnCPU,omitempty"`
-	Notes      string  `json:"notes,omitempty"`
+	MinRAMGB        float64 `json:"minRAMGB,omitempty"`
+	RunsOnIGPU      bool    `json:"runsOnIGPU,omitempty"`
+	RunsOnCPU       bool    `json:"runsOnCPU,omitempty"`
+	OptionalRuntime string  `json:"optionalRuntime,omitempty"`
+	Notes           string  `json:"notes,omitempty"`
 }
 
 // Hardware summarises the local machine's memory and GPU tier for
@@ -186,6 +187,15 @@ func (e Entry) EffectiveBackend(goos string) Backend {
 	}
 	if e.IsExternal() {
 		return BackendExternal
+	}
+	return ""
+}
+
+// EffectiveOptionalRuntime returns the optional runtime name required on goos
+// (such as "python" for opt-in PyTorch models on Windows), or "" when none.
+func (e Entry) EffectiveOptionalRuntime(goos string) string {
+	if goos == "windows" && e.AvailableOn(goos) {
+		return e.Windows.OptionalRuntime
 	}
 	return ""
 }

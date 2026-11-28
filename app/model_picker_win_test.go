@@ -55,7 +55,7 @@ func TestModelPickerWindowsIGPU(t *testing.T) {
 	}
 	// Clicking an MLX-only model must not switch away from the current model.
 	before := a.preset().ID
-	_ = tt.Click("High-fidelity clone")
+	_ = tt.Click("English clone")
 	tt.Frame()
 	if a.preset().ID != before {
 		t.Errorf("MLX-only model was picked on Windows: %s -> %s", before, a.preset().ID)
@@ -155,8 +155,17 @@ func TestModelsPageWindowsIGPUBanner(t *testing.T) {
 	if !strings.Contains(texts, wantBanner) {
 		t.Errorf("expected iGPU banner %q in %s", wantBanner, texts)
 	}
-	if strings.Contains(texts, "Runs on CPU (slower without GPU acceleration)") {
-		t.Error("unexpected CPU slowdown warning on an iGPU PC where core models run on iGPU")
+	// Core everyday models (Kokoro, Whisper, Qwen3 4B) have no CPU slowdown warning on iGPU,
+	// whereas optional PyTorch zh/ja TTS models (Qwen3-TTS, Irodori-TTS) carry the gentle hint.
+	for _, id := range []string{"kokoro-82m-bf16", "whisper-large-v3-turbo-4bit", "qwen3-4b-instruct-2507-4bit"} {
+		if note := a.modelFitNote(entry(t, id)); note != "" {
+			t.Errorf("%s: unexpected fit note on iGPU: %q", id, note)
+		}
+	}
+	for _, id := range []string{"qwen3-tts-0.6b-customvoice-8bit", "irodori-tts-v4.1-small-mf-8bit"} {
+		if note := a.modelFitNote(entry(t, id)); note != "Runs on CPU (slower without GPU acceleration)" {
+			t.Errorf("%s: iGPU fit note = %q, want gentle CPU warning", id, note)
+		}
 	}
 }
 

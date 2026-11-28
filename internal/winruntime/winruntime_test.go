@@ -234,3 +234,49 @@ func TestManagerEnsureDownloadVerifyExtract(t *testing.T) {
 		t.Fatalf("expected not installed after Remove")
 	}
 }
+
+func TestRequiredForBackendAndDiscoverPython(t *testing.T) {
+	cases := []struct {
+		backend string
+		tasks   []string
+		want    Name
+	}{
+		{"onnx_directml", []string{"tts"}, RuntimeONNX},
+		{"onnx_cpu", []string{"vad"}, RuntimeONNX},
+		{"llamacpp", []string{"stt"}, RuntimeWhisper},
+		{"llamacpp", []string{"llm"}, RuntimeLlama},
+		{"pytorch", []string{"tts"}, ""},
+		{"external", []string{"tts"}, ""},
+		{"", []string{"tts"}, ""},
+	}
+	for _, tc := range cases {
+		if got := RequiredForBackend(tc.backend, tc.tasks); got != tc.want {
+			t.Errorf("RequiredForBackend(%q, %v) = %q, want %q", tc.backend, tc.tasks, got, tc.want)
+		}
+	}
+
+	// OrderedNames only exposes the 3 lightweight native runtimes (never Python).
+	names := OrderedNames()
+	if len(names) != 3 || names[0] != RuntimeONNX || names[1] != RuntimeWhisper || names[2] != RuntimeLlama {
+		t.Fatalf("OrderedNames = %v", names)
+	}
+
+	// DiscoverPython uses explicit env override or managed runtimes/python dir.
+	root := t.TempDir()
+	t.Setenv("AUDIOSMITH_RUNTIMES_DIR", root)
+	t.Setenv("AUDIOSMITH_PY_WORKER", "")
+	t.Setenv("AUDIOSMITH_PYTHON", "")
+	if got := DiscoverPython(); got != "" {
+		t.Fatalf("expected empty DiscoverPython when uninstalled, got %q", got)
+	}
+	managedPy := filepath.Join(root, "python", "python.exe")
+	if err := os.MkdirAll(filepath.Dir(managedPy), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(managedPy, []byte("py"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := DiscoverPython(); got != managedPy {
+		t.Fatalf("DiscoverPython managed = %q, want %q", got, managedPy)
+	}
+}

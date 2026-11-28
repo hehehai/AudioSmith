@@ -49,7 +49,7 @@ func New(hwInfo hw.Info, backends ...Backend) *Service {
 func (g *Service) Hooks() server.RoleHooks {
 	return server.RoleHooks{
 		Concurrency: 1,
-		Families:    []string{"onnx", "gguf", "qwen3", "kokoro", "whisper", "vad", "deepfilternet", "demucs"},
+		Families:    []string{"onnx", "gguf", "qwen3", "qwen3_tts", "irodori_tts", "kokoro", "whisper", "vad", "deepfilternet", "demucs"},
 		Stats:       g.stats,
 		Flush:       g.flush,
 		Configure:   g.configure,
@@ -153,11 +153,15 @@ func (g *Service) route(task, model, modelPath string) (Backend, error) {
 		}
 	}
 	if firstMatch != nil {
+		detail := "runtime is not installed yet (download on demand or place beside audiosmith-engine.exe)"
+		if firstMatch.Name() == "python" {
+			detail = pythonNotInstalledDetail
+		}
 		return nil, unsupportedBackendError(
 			firstMatch.Name(),
 			firstMatch.Provider(),
 			task,
-			"runtime is not installed yet (download on demand or place beside audiosmith-engine.exe)",
+			detail,
 		)
 	}
 	return nil, unsupportedBackendError("router", string(g.hw.GPUTier), task, "no backend supports model "+model)

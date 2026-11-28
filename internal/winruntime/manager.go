@@ -99,6 +99,36 @@ func New(opts Options) *Manager {
 // BaseDir returns the root directory where runtimes are stored.
 func (m *Manager) BaseDir() string { return m.baseDir }
 
+// Arch returns the target GOARCH this Manager resolves assets for.
+func (m *Manager) Arch() string { return m.goarch }
+
+// Spec returns the catalog specification for name.
+func (m *Manager) Spec(name Name) (Spec, bool) {
+	s, ok := m.catalog[name]
+	return s, ok
+}
+
+// Asset returns the downloadable archive for name on this Manager's GOARCH.
+func (m *Manager) Asset(name Name) (Asset, bool) {
+	s, ok := m.catalog[name]
+	if !ok {
+		return Asset{}, false
+	}
+	a, ok := s.Assets[m.goarch]
+	return a, ok && a.URL != ""
+}
+
+// AllStatuses returns the install status of every managed native runtime
+// in OrderedNames order.
+func (m *Manager) AllStatuses() []Status {
+	names := OrderedNames()
+	out := make([]Status, 0, len(names))
+	for _, n := range names {
+		out = append(out, m.Status(n))
+	}
+	return out
+}
+
 // Status checks whether name is installed under BaseDir.
 func (m *Manager) Status(name Name) Status {
 	dir := RuntimeDir(m.baseDir, name)

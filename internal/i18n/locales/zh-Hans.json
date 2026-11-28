@@ -4168,5 +4168,22 @@
   "Not yet available on Windows": "暂未支持 Windows",
   "Running on CPU — lightweight models like Kokoro, Silero VAD, DeepFilterNet, and VOICEVOX work out of the box.": "当前以 CPU 运行 — Kokoro、Silero VAD、DeepFilterNet 和 VOICEVOX 等轻量模型开箱即用。",
   "Runs on CPU (slower without GPU acceleration)": "可在 CPU 上运行（无 GPU 加速时速度较慢）",
-  "Windows planned": "计划支持 Windows"
+  "Windows planned": "计划支持 Windows",
+  "%s also needs the optional Python worker on Windows.": "%s 在 Windows 上还需要可选的 Python 引擎。",
+  "Could not remove %s: %v": "无法移除 %s：%v",
+  "Extracting…": "正在解压…",
+  "Installed": "已安装",
+  "Installed %s": "已安装 %s",
+  "Installed · used by Qwen3-TTS and Irodori-TTS": "已安装 · 供 Qwen3-TTS 与 Irodori-TTS 使用",
+  "Installed · v%s": "已安装 · v%s",
+  "Installing %s…": "正在安装 %s…",
+  "Lightweight native engines (~12–55 MB each), downloaded automatically when needed.": "轻量级原生引擎（每个约 12–55 MB），需要时会自动下载。",
+  "Not available for %s": "暂不支持 %s 架构",
+  "Not installed": "未安装",
+  "Not installed · ≈ %s": "未安装 · 约 %s",
+  "Optional Python": "可选 Python",
+  "Optional · only needed for Qwen3-TTS and Irodori-TTS": "可选 · 仅 Qwen3-TTS 与 Irodori-TTS 需要",
+  "Python worker (optional)": "Python 引擎（可选）",
+  "Verifying…": "正在校验…",
+  "Windows runtimes": "Windows 运行时"
 }

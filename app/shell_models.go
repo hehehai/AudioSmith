@@ -26,6 +26,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/jobs"
 	"github.com/hehehai/AudioSmith/internal/licence"
 	"github.com/hehehai/AudioSmith/internal/oplog"
+	"github.com/hehehai/AudioSmith/internal/winruntime"
 	"github.com/hehehai/actnowkit/models"
 )
 
@@ -46,6 +47,7 @@ type modelsState struct {
 	// modelsDetail the cards whose details are open, by id.
 	modelsFind   string
 	modelsDetail map[string]bool
+	winRT        winRuntimeState
 }
 
 // modelState is what the page knows of one entry.
@@ -55,6 +57,7 @@ type modelState struct {
 	known       bool // local was read
 	downloading bool // its download job is queued or running
 	jobID       string
+	winRuntime  winruntime.Name // non-empty while auto-installing a Windows native runtime
 	verifying   bool
 	progress    hub.Progress
 	cancelling  bool
@@ -74,7 +77,10 @@ func (a *app) hubClient() *hub.Client { return a.lib.hub() }
 
 // resetHub makes the next download use the settings as they are now;
 // downloads running keep their client.
-func (a *app) resetHub() { a.lib.resetHub() }
+func (a *app) resetHub() {
+	a.lib.resetHub()
+	a.winRT.mgr = nil
+}
 
 // modelKey identifies an entry on the page: its catalogue id, or its repo
 // for one outside the catalogue (the Studio's custom repo).
@@ -107,6 +113,7 @@ func (a *app) refreshModels() {
 		}
 	})
 	a.refreshRemoved()
+	a.refreshWinRuntimes()
 }
 
 // refreshModel reads what of e is on disk, in the background.
@@ -145,26 +152,33 @@ func (a *app) download(e catalog.Entry) {
 		a.askLicence(e, func() { a.download(e) })
 		return
 	}
-	m.downloading, m.cancelling, m.err, m.progress, m.jobID = true, false, "", hub.Progress{Repo: e.Repo}, ""
-	sched := a.lib.sched
-	spec := hub.DownloadSpec(e, i18n.T("Download %s", modelRef(e)))
-	a.logs.Append(core.LogEntry{Source: "hub", Message: "downloading " + e.Repo})
-	a.async(func() {
-		id, err := sched.Submit(context.Background(), spec)
-		a.post(func() {
-			m := a.model(e)
-			if err != nil {
-				m.downloading, m.err = false, err.Error()
-				return
-			}
-			if m.jobID == "" {
-				m.jobID = id
-			}
-			if m.cancelling {
-				a.cancelDownload(e)
-			}
+	start := func() {
+		m := a.model(e)
+		m.downloading, m.cancelling, m.err, m.progress, m.jobID = true, false, "", hub.Progress{Repo: e.Repo}, ""
+		sched := a.lib.sched
+		spec := hub.DownloadSpec(e, i18n.T("Download %s", modelRef(e)))
+		a.logs.Append(core.LogEntry{Source: "hub", Message: "downloading " + e.Repo})
+		a.async(func() {
+			id, err := sched.Submit(context.Background(), spec)
+			a.post(func() {
+				m := a.model(e)
+				if err != nil {
+					m.downloading, m.err = false, err.Error()
+					return
+				}
+				if m.jobID == "" {
+					m.jobID = id
+				}
+				if m.cancelling {
+					a.cancelDownload(e)
+				}
+			})
 		})
-	})
+	}
+	if a.ensureModelWinRuntime(e, start) {
+		return
+	}
+	start()
 }
 
 // downloadUpdated follows a download job; it runs on the main thread.
@@ -240,6 +254,10 @@ func (a *app) cancelDownload(e catalog.Entry) {
 		return
 	}
 	m.cancelling = true
+	if m.winRuntime != "" {
+		a.cancelWinRuntime(m.winRuntime)
+		return
+	}
 	if m.jobID == "" {
 		return // cancelled when Submit returns the id
 	}

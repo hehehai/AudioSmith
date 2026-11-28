@@ -136,6 +136,9 @@ func validatePlatformSource(e Entry, platform string, ps *PlatformSource) error 
 	if !slices.Contains(knownBackends, ps.Backend) {
 		return fmt.Errorf("%s (%s): unknown backend %q", e.ID, platform, ps.Backend)
 	}
+	if ps.OptionalRuntime != "" && ps.OptionalRuntime != "python" {
+		return fmt.Errorf("%s (%s): unknown optionalRuntime %q", e.ID, platform, ps.OptionalRuntime)
+	}
 	if !e.IsExternal() && ps.Backend != BackendExternal {
 		if ps.Repo == "" {
 			return fmt.Errorf("%s (%s): available source needs a repo", e.ID, platform)
