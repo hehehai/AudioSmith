@@ -1,9 +1,10 @@
+//go:build unix
+
 package services
 
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -20,9 +21,6 @@ import (
 // writing a partial file) and writes its pid to pidFile.
 func slowYtDlp(t *testing.T) (path, pidFile string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("shell script")
-	}
 	dir := t.TempDir()
 	pidFile = filepath.Join(dir, "child.pid")
 	path = filepath.Join(dir, "yt-dlp")
