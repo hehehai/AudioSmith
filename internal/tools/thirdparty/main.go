@@ -73,6 +73,7 @@ func run(check, fetch bool) error {
 	path := filepath.Join(root, output)
 	if check {
 		old, _ := os.ReadFile(path)
+		old = bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n"))
 		if !bytes.Equal(old, data) {
 			return fmt.Errorf("%s is out of date: run %s", output, regenerate)
 		}

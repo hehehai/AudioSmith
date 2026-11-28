@@ -84,6 +84,7 @@ type table struct {
 var load = sync.OnceValue(func() *table {
 	t := &table{byCode: map[string]int{}, aliases: map[string]string{}}
 	for _, line := range strings.Split(languagesTSV, "\n") {
+		line = strings.TrimRight(line, "\r")
 		if line == "" || line[0] == '#' {
 			continue
 		}
@@ -102,12 +103,14 @@ var load = sync.OnceValue(func() *table {
 		t.byCode[l.Code] = i
 	}
 	for _, line := range strings.Split(namesJaTSV, "\n") {
+		line = strings.TrimRight(line, "\r")
 		code, name, ok := strings.Cut(line, "\t")
 		if i, known := t.byCode[code]; ok && known && line[0] != '#' {
 			t.all[i].ja = name
 		}
 	}
 	for _, line := range strings.Split(aliasesTSV, "\n") {
+		line = strings.TrimRight(line, "\r")
 		if line == "" || line[0] == '#' {
 			continue
 		}
