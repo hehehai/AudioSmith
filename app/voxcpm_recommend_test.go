@@ -44,6 +44,7 @@ func TestTextLangScripts(t *testing.T) {
 // in the Studio's picker and its ✦ Recommend offers it in place of a
 // clone model that can't speak it; the Studio's model stays.
 func TestVoxCPM2RecommendedStudio(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	tt.SetSize(1100, 1400)
 	base, vox := entry(t, "qwen3-tts-1.7b-base-8bit"), entry(t, "voxcpm2-8bit")
@@ -114,6 +115,7 @@ func TestVoxCPM2RecommendedDub(t *testing.T) {
 // recommends VoxCPM2 (picker and a note whose link picks it); without
 // one the page recommends Voice design as before.
 func TestVoxCPM2RecommendedDialect(t *testing.T) {
+	simulateDarwin(t)
 	withDesignCatalog(t)
 	a, _ := newVoiceTestApp(t)
 	tt := ui.NewTester(a.view, 1200, 1800)
@@ -159,6 +161,7 @@ func TestVoxCPM2RecommendedDialect(t *testing.T) {
 // undirected one doesn't, unless its script is in a language the usual
 // models don't speak. The story's model stays.
 func TestVoxCPM2RecommendedStories(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	tt.SetSize(1100, 1600)
 	a.navigate("/stories")

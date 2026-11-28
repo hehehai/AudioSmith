@@ -125,6 +125,7 @@ func TestOnboarding(t *testing.T) {
 }
 
 func TestOnboardingDownloadsAndMirror(t *testing.T) {
+	simulateDarwin(t)
 	stubMachine(t, 8, false)
 	a, eng, _ := newTestApp(t)
 	delete(eng.executors, hub.KindDownload) // record downloads, do not run them

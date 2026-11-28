@@ -19,6 +19,7 @@ import (
 // model that designs). The Performance section lists the characters'
 // references.
 func TestStoryDialogueReferences(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -120,6 +121,7 @@ func TestRefWindow(t *testing.T) {
 // TestVoiceMenuMakeReference: a designed voice's menu offers Make
 // reference while it has none.
 func TestVoiceMenuMakeReference(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()

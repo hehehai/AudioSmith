@@ -265,7 +265,7 @@ func TestProjectsHeader(t *testing.T) {
 	if a.projects.cards != 1 {
 		t.Errorf("cards %d", a.projects.cards)
 	}
-	if err := tt.Click("List (⌥1)"); err != nil {
+	if err := tt.Click(shortcutLabel("List (⌥1)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

@@ -37,6 +37,7 @@ func withDesignCatalog(t *testing.T) catalog.Entry {
 }
 
 func TestDesignPage(t *testing.T) {
+	simulateDarwin(t)
 	a, eng := newVoiceTestApp(t)
 	tt := ui.NewTester(a.view, 1200, 1800)
 	d := &a.design
@@ -237,6 +238,7 @@ func TestDesignModels(t *testing.T) {
 }
 
 func TestDesignSampleOnDemand(t *testing.T) {
+	simulateDarwin(t)
 	a, eng := newVoiceTestApp(t)
 	acceptLicences(t, a)
 	tt := ui.NewTester(a.view, 1200, 1800)

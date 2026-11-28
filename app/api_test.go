@@ -109,6 +109,7 @@ type apiEnv struct {
 
 func newAPIEnv(t *testing.T) *apiEnv {
 	t.Helper()
+	simulateDarwin(t)
 	dir := t.TempDir()
 	lib := openTestLibraryWith(t, dir, libraryOptions{})
 	useAllModelFiles(t, useLocalModels(t, lib))

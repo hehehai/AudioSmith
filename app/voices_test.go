@@ -139,6 +139,7 @@ func TestVoicesEmptyAndReload(t *testing.T) {
 }
 
 func TestVoiceTryAndLock(t *testing.T) {
+	simulateDarwin(t)
 	a, eng := newVoiceTestApp(t)
 	tt := ui.NewTester(a.view, 1200, 1800)
 	v := addVoice(t, a, core.Voice{Name: "Me", Kind: core.VoiceCloned, RefText: "Reference words.", Style: "whisper", Language: "en"}, 5)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"runtime"
 	"testing"
 	"time"
 
@@ -279,7 +278,7 @@ func TestDictationShortcutSettings(t *testing.T) {
 	tt.Key(0, ui.KeyD)
 	tt.Frame()
 	wantNoMod := "Add a modifier: ⌘, ⌃ or ⌥ with another key."
-	if runtime.GOOS == "windows" {
+	if isWindowsShortcuts() {
 		wantNoMod = "Add a modifier: Ctrl or Alt with another key."
 	}
 	if a.dictSet.pending != "" || !tt.HasText(wantNoMod) {

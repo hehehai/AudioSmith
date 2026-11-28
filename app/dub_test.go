@@ -47,6 +47,7 @@ type dubTest struct {
 
 func newDubTest(t *testing.T, lines int) *dubTest {
 	t.Helper()
+	simulateDarwin(t)
 	saved := llmSecrets
 	llmSecrets = llm.StaticSecrets{}
 	t.Cleanup(func() { llmSecrets = saved })

@@ -157,6 +157,7 @@ func TestSharedOtherValue(t *testing.T) {
 // Without another family app's release build the settings pages are
 // exactly as before (pixel for pixel), though the data layer works.
 func TestSharedNoFamilyWording(t *testing.T) {
+	simulateDarwin(t)
 	i18n.SetLocale("en")
 	pages := []string{"/general", "/models", "/network"}
 	shots := func(a *app, tt interface {
@@ -294,6 +295,7 @@ func TestMoveModelsToFamilyFolder(t *testing.T) {
 // model skipped, the app quit), what it moved is still found: in the old
 // folder or in the move's target.
 func TestModelFoundDuringUnfinishedMove(t *testing.T) {
+	simulateDarwin(t)
 	a, _, _ := newTestApp(t)
 	ctx := context.Background()
 	from := modelCache(a.prefs)

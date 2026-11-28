@@ -203,6 +203,7 @@ func isoTest(t *testing.T) (*app, *fakeEngine, *ui.Tester, *[]string) {
 // Voice isolator: submit → a job → the stems listed; play, save, the
 // hand-offs; delete.
 func TestIsolateFlow(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt, calls := isoTest(t)
 	a.navigate("/isolate")
 	tt.Frame()
@@ -308,6 +309,7 @@ func containsKey(items []homeItem, key string) bool {
 // Without the separation model the composer says what to download, and
 // submit is off; the download starts from there.
 func TestIsolateMissingModel(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt, _ := isoTest(t)
 	sep := removeModel(t, a, isoSeparator().ID)
 	a.navigate("/isolate")

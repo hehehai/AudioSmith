@@ -18,6 +18,7 @@ import (
 // main revision from huggingface.co into its own folder (thread #77, on
 // the Mac). Transcripts, dub and workflow steps pass the same options.
 func TestRendersSendAuxPaths(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, _ := newTestApp(t)
 	kokoro, _ := catalog.Builtin().ByID("kokoro-82m-bf16")
 	params, _ := json.Marshal(proto.SynthesizeParams{Model: kokoro.Repo, ModelPath: "/snap", Text: "hi"})

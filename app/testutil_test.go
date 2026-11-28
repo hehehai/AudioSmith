@@ -115,11 +115,11 @@ func useLocalModels(t *testing.T, lib *library) string {
 		}
 	}
 	for _, e := range catalog.Builtin().Entries {
-		put(e.Repo, e.Revision, e.Files)
+		put(e.Repo, e.Revision, nil)
 		for _, x := range e.Aux {
 			put(x.Repo, x.Revision, nil)
 		}
-		if e.Windows != nil && e.Windows.Repo != "" {
+		if e.Windows != nil && e.Windows.Repo != "" && len(e.Files) == 0 {
 			put(e.Windows.Repo, e.Windows.Revision, e.Windows.Files)
 		}
 	}

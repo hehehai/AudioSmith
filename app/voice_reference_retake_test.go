@@ -62,6 +62,7 @@ func half(s string) string {
 // are made again once with the next seed, and the one that says it is
 // kept, its text checked.
 func TestReferenceRetake(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -105,6 +106,7 @@ func TestReferenceRetake(t *testing.T) {
 // text; when what it heard can't be the text of that much speech, none
 // is kept and the failure says why.
 func TestReferenceHeardText(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -141,6 +143,7 @@ func TestReferenceHeardText(t *testing.T) {
 // as the length limit was cut off: it is not kept, and with every take
 // cut off they are made again.
 func TestReferenceTruncatedNoASR(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -183,6 +186,7 @@ func TestReferenceTruncatedNoASR(t *testing.T) {
 // its text is made again (a note says so), then the take follows with
 // the new reference. One that says it is only marked checked.
 func TestReferenceRepair(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -223,6 +227,7 @@ func TestReferenceRepair(t *testing.T) {
 // TestReferenceRepairChecked (#93): an old reference that says its text
 // is only marked checked; the take follows.
 func TestReferenceRepairChecked(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
@@ -250,6 +255,7 @@ func TestReferenceRepairChecked(t *testing.T) {
 // doesn't say its text gets what it says; without a recognizer a
 // reference is used as it is, and not heard again this session.
 func TestReferenceRepairHeard(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
 	text := vd.ReferenceTexts("zh", vd.RegisterAdult)[0]
@@ -276,6 +282,7 @@ func TestReferenceRepairHeard(t *testing.T) {
 // TestReferenceRepairNoASR (#93): without a recognizer a reference is
 // used as it is, and not heard again this session.
 func TestReferenceRepairNoASR(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	eng.ready()
 	text := vd.ReferenceTexts("zh", vd.RegisterAdult)[0]
@@ -316,6 +323,7 @@ func addVoiceFiles(t *testing.T, a *app, v core.Voice, seconds float64) core.Voi
 // German texts (it said English ones), heard as German; the description
 // keeps the English style.
 func TestReferenceLanguages(t *testing.T) {
+	simulateDarwin(t)
 	vdm := withDesignCatalog(t)
 	a, eng, _ := newTestApp(t)
 	eng.ready()

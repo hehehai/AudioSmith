@@ -128,6 +128,7 @@ func TestCallsReadinessAndForm(t *testing.T) {
 }
 
 func TestCallsPlaceFromForm(t *testing.T) {
+	simulateDarwin(t)
 	d := newCallTest(t, true)
 	a := d.a
 	a.navigate("/calls")

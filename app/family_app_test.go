@@ -45,6 +45,8 @@ func useFamily(t *testing.T, a *app, register ...string) *sharedFamily {
 // setup was never done: nothing migrated).
 func startFamily(t *testing.T, a *app, register ...string) *sharedFamily {
 	t.Helper()
+	simulateDarwin(t)
+	a.lib.resetHub()
 	fx := conformance.New(t)
 	for _, bid := range register {
 		fx.Register(bid)

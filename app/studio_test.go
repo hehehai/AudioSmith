@@ -114,6 +114,7 @@ func TestCannotGenerateWithoutEngineOrText(t *testing.T) {
 }
 
 func TestModelSwitchShowsItsControls(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	a.setAdvancedOpen("studio", true)
 	tt.Frame()
@@ -181,6 +182,7 @@ func TestDraftAndLibrarySurviveRestart(t *testing.T) {
 // Generate refuses a model that is not downloaded, and offers to download
 // it there; once the download job is done, Generate works.
 func TestGenerateNeedsDownload(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	f := useFakeHub(t, a) // an empty model folder
 	tt.Frame()
@@ -212,6 +214,7 @@ func TestGenerateNeedsDownload(t *testing.T) {
 
 // A model whose licence needs accepting asks first, then generates.
 func TestGenerateAsksForTheLicence(t *testing.T) {
+	simulateDarwin(t)
 	a, eng, tt := newTestApp(t)
 	omni := entry(t, "omnivoice-bf16")
 	a.selectModel(omni)

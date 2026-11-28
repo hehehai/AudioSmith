@@ -72,6 +72,7 @@ func newStudioEnv(t *testing.T) *studioEnv {
 // newStudioEnvWith: newStudioEnv over a library opened with o.
 func newStudioEnvWith(t *testing.T, o libraryOptions) *studioEnv {
 	t.Helper()
+	simulateDarwin(t)
 	saved := llmSecrets
 	llmSecrets = llm.StaticSecrets{}
 	t.Cleanup(func() { llmSecrets = saved })

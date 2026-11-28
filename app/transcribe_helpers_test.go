@@ -120,6 +120,7 @@ type m2Test struct {
 
 func newM2Test(t *testing.T) *m2Test {
 	t.Helper()
+	simulateDarwin(t)
 	saved := llmSecrets
 	llmSecrets = llm.StaticSecrets{}
 	t.Cleanup(func() { llmSecrets = saved })

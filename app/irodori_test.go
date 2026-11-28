@@ -91,6 +91,7 @@ func containsKana(s string) bool {
 // Irodori-TTS 推荐 / Recommended in the Studio's picker, first, without
 // switching the model.
 func TestIrodoriRecommendedInStudio(t *testing.T) {
+	simulateDarwin(t)
 	a, _, tt := newTestApp(t)
 	before := a.preset().ID
 	a.text = "今日は一日中、雨が降っていました。"
