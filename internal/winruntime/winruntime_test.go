@@ -280,3 +280,96 @@ func TestRequiredForBackendAndDiscoverPython(t *testing.T) {
 		t.Fatalf("DiscoverPython managed = %q, want %q", got, managedPy)
 	}
 }
+
+func TestLlamaARM64ResolutionAndGlobExtraction(t *testing.T) {
+	cat := DefaultCatalog()
+	spec, ok := cat[RuntimeLlama]
+	if !ok {
+		t.Fatal("RuntimeLlama missing from DefaultCatalog")
+	}
+	amd64Asset, ok := spec.Assets["amd64"]
+	if !ok || amd64Asset.URL == "" {
+		t.Fatalf("missing amd64 llama asset: %+v", amd64Asset)
+	}
+	arm64Asset, ok := spec.Assets["arm64"]
+	if !ok || arm64Asset.URL == "" {
+		t.Fatalf("missing arm64 llama asset: %+v", arm64Asset)
+	}
+	if arm64Asset.URL != amd64Asset.URL {
+		t.Fatalf("arm64 llama URL = %q, want vulkan-x64 fallback %q", arm64Asset.URL, amd64Asset.URL)
+	}
+
+	zipData, zipSHA := buildTestZip(t, map[string][]byte{
+		"llama-server.exe":      []byte("llama-server-bin"),
+		"llama.dll":             []byte("llama-dll"),
+		"ggml.dll":              []byte("ggml-dll"),
+		"ggml-base.dll":         []byte("ggml-base-dll"),
+		"ggml-vulkan.dll":       []byte("ggml-vulkan-dll"),
+		"ggml-cpu-haswell.dll":  []byte("ggml-cpu-haswell-dll"),
+		"ggml-cpu-x64.dll":      []byte("ggml-cpu-x64-dll"),
+		"ggml-cpu-sse42.dll":    []byte("ggml-cpu-sse42-dll"),
+		"libcurl-x64.dll":       []byte("libcurl-x64-dll"),
+		"README.txt":            []byte("ignored"),
+		"../ggml-evil.dll":      []byte("zip-slip-1"),
+		"sub/../../libcurl.dll": []byte("zip-slip-2"),
+	})
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(zipData)
+	}))
+	defer srv.Close()
+
+	for _, arch := range []string{"amd64", "arm64"} {
+		t.Run(arch, func(t *testing.T) {
+			testCat := DefaultCatalog()
+			s := testCat[RuntimeLlama]
+			a := s.Assets[arch]
+			a.URL = srv.URL + "/llama.zip"
+			a.SHA256 = zipSHA
+			s.Assets[arch] = a
+			testCat[RuntimeLlama] = s
+
+			base := t.TempDir()
+			mgr := New(Options{BaseDir: base, Catalog: testCat, GOARCH: arch})
+			dir, err := mgr.Ensure(context.Background(), RuntimeLlama, nil)
+			if err != nil {
+				t.Fatalf("Ensure(%s): %v", arch, err)
+			}
+
+			wantFiles := map[string]string{
+				"llama-server.exe":     "llama-server-bin",
+				"llama.dll":            "llama-dll",
+				"ggml.dll":             "ggml-dll",
+				"ggml-base.dll":        "ggml-base-dll",
+				"ggml-vulkan.dll":      "ggml-vulkan-dll",
+				"ggml-cpu-haswell.dll": "ggml-cpu-haswell-dll",
+				"ggml-cpu-x64.dll":     "ggml-cpu-x64-dll",
+				"ggml-cpu-sse42.dll":   "ggml-cpu-sse42-dll",
+				"libcurl-x64.dll":      "libcurl-x64-dll",
+			}
+			for name, want := range wantFiles {
+				got, err := os.ReadFile(filepath.Join(dir, name))
+				if err != nil {
+					t.Errorf("%s missing: %v", name, err)
+					continue
+				}
+				if string(got) != want {
+					t.Errorf("%s = %q, want %q", name, string(got), want)
+				}
+			}
+
+			// Unmatched and zip-slip entries must never be extracted.
+			for _, bad := range []string{
+				filepath.Join(dir, "README.txt"),
+				filepath.Join(dir, "ggml-evil.dll"),
+				filepath.Join(base, "ggml-evil.dll"),
+				filepath.Join(dir, "libcurl.dll"),
+				filepath.Join(base, "libcurl.dll"),
+			} {
+				if _, err := os.Stat(bad); err == nil {
+					t.Errorf("unexpected extracted file %q", bad)
+				}
+			}
+		})
+	}
+}

@@ -54,6 +54,11 @@ func (b *LlamaCppBackend) Unload(_ context.Context, _ string) error {
 	return b.mgr.Unload()
 }
 
+// Close terminates any managed llama-server subprocess immediately.
+func (b *LlamaCppBackend) Close() error {
+	return b.mgr.Close()
+}
+
 func (b *LlamaCppBackend) Generate(ctx context.Context, jobID string, p proto.LLMGenerateParams, n server.Notifier) (proto.LLMGenerateResult, error) {
 	if !b.Available() {
 		return proto.LLMGenerateResult{}, unsupportedBackendError(b.Name(), b.Provider(), "llm", "llama.cpp runtime is not configured")

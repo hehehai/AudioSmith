@@ -20,6 +20,8 @@ import (
 // simulate Windows environments on macOS or Linux.
 var currentOS = func() string { return runtime.GOOS }
 
+func isWindows() bool { return currentOS() == "windows" }
+
 func (a *app) platformOS() string { return currentOS() }
 
 func (a *app) hardwareInfo() sysinfo.Info {

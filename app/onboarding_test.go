@@ -13,6 +13,7 @@ import (
 	"github.com/hehehai/AudioSmith/internal/i18n"
 	"github.com/hehehai/AudioSmith/internal/services"
 	"github.com/hehehai/AudioSmith/internal/settings"
+	"github.com/hehehai/AudioSmith/internal/sysinfo"
 )
 
 // stubMachine makes the system check see a 16 GB M4 on macOS 15 with
@@ -242,5 +243,138 @@ func TestOnboardingLaterStays(t *testing.T) {
 	tt.Frame()
 	if a.obPack != "quality" {
 		t.Fatalf("choosing a pack after none: %q", a.obPack)
+	}
+}
+
+func TestOnboardingAndTrayWindowsWording(t *testing.T) {
+	prevOS := currentOS
+	currentOS = func() string { return "windows" }
+	t.Cleanup(func() {
+		currentOS = prevOS
+		i18n.SetLocale("en")
+	})
+
+	savedSys, savedReach := readSysInfo, reach
+	t.Cleanup(func() { readSysInfo, reach = savedSys, savedReach })
+	readSysInfo = func() sysInfo {
+		return sysInfo{
+			OS:     "Windows 11 (26100)",
+			Chip:   "Intel(R) Core(TM) i7-1360P",
+			Memory: 16 << 30,
+			Cores:  12,
+			Arch:   "amd64",
+			GPUs: []sysinfo.GPU{{
+				Name:       "Intel(R) Iris(R) Xe Graphics",
+				Vendor:     sysinfo.VendorIntel,
+				Integrated: true,
+			}},
+			GPUClass: sysinfo.GPUClassIntegrated,
+		}
+	}
+	reach = func(_ *http.Client, host string) netCheck {
+		return netCheck{host: host, ok: true, latency: 20 * time.Millisecond}
+	}
+
+	a, eng, _ := newTestApp(t)
+	delete(eng.executors, hub.KindDownload)
+	tt := ui.NewTester(a.view, 1100, 800)
+
+	// Step 1: This PC, Windows 10/11, CPU + iGPU, ONNX/llama.cpp — no Mac/MLX copy.
+	a.openOnboarding()
+	tt.Frame()
+	tt.Frame()
+	for _, want := range []string{
+		"This PC",
+		"made on this PC",
+		"ONNX Runtime (DirectML / CPU) and llama.cpp",
+		"Windows 11 (26100)",
+		"AudioSmith runs on Windows 10 or 11.",
+		"Intel(R) Core(TM) i7-1360P",
+		"Integrated GPU: Intel(R) Iris(R) Xe Graphics (DirectML / CPU).",
+		"suits this PC.",
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("Windows step 1 missing %q: %q", want, tt.Texts())
+		}
+	}
+	for _, forbid := range []string{"This Mac", "macOS", "Apple silicon", "MLX"} {
+		if tt.HasText(forbid) {
+			t.Errorf("Windows step 1 must not mention %q: %q", forbid, tt.Texts())
+		}
+	}
+
+	// Step 2: Recommended for this PC.
+	if err := tt.Click("Continue"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Recommended for this PC") || tt.HasText("Recommended for this Mac") {
+		t.Errorf("Windows step 2 wording: %q", tt.Texts())
+	}
+
+	// Step 3: Privacy stays on this PC.
+	if err := tt.Click("Continue"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("stays on this PC") || tt.HasText("stays on this Mac") {
+		t.Errorf("Windows step 3 wording: %q", tt.Texts())
+	}
+
+	// Step 4: Dictation stays on this PC.
+	if err := tt.Click("Continue"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Speech stays on this PC.") || tt.HasText("Speech stays on this Mac.") {
+		t.Errorf("Windows step 4 wording: %q", tt.Texts())
+	}
+
+	// welcomeTake uses PC wording on Windows.
+	if tk := welcomeTake(); !strings.Contains(tk.Text, "your PC") || strings.Contains(tk.Text, "Mac") {
+		t.Errorf("Windows welcomeTake = %q", tk.Text)
+	}
+
+	// Settings → General uses system tray and PC setup wording.
+	a.skipOnboarding()
+	a.navigate("/settings/general")
+	tt.Frame()
+	if !tt.HasText("Keep running in the system tray") || tt.HasText("Keep running in the menu bar") {
+		t.Errorf("Windows Settings → General tray wording: %q", tt.Texts())
+	}
+	if !tt.HasText("Check this PC") || tt.HasText("Check this Mac") {
+		t.Errorf("Windows Settings → General setup wording: %q", tt.Texts())
+	}
+
+	// Verify zh-Hans and ja Windows tray + onboarding copy.
+	for _, tc := range []struct {
+		locale, tray, pc string
+	}{
+		{"zh-Hans", "在系统托盘中保持运行", "这台电脑"},
+		{"ja", "システムトレイで実行し続ける", "このPC"},
+	} {
+		i18n.SetLocale(tc.locale)
+		tt.Frame()
+		if !tt.HasText(tc.tray) {
+			t.Errorf("%s Windows tray missing %q: %q", tc.locale, tc.tray, tt.Texts())
+		}
+		if steps := obSteps(); steps[0] != tc.pc {
+			t.Errorf("%s Windows obSteps[0] = %q, want %q", tc.locale, steps[0], tc.pc)
+		}
+	}
+}
+
+func TestSettingsGeneralMenuBarUnchangedOnDarwin(t *testing.T) {
+	simulateDarwin(t)
+	stubMachine(t, 16, true)
+	a, _, _ := newTestApp(t)
+	tt := ui.NewTester(a.view, 1100, 800)
+	a.navigate("/settings/general")
+	tt.Frame()
+	if !tt.HasText("Keep running in the menu bar") || tt.HasText("Keep running in the system tray") {
+		t.Errorf("macOS Settings → General tray wording changed: %q", tt.Texts())
+	}
+	if !tt.HasText("Check this Mac") {
+		t.Errorf("macOS Settings → General setup wording changed: %q", tt.Texts())
 	}
 }

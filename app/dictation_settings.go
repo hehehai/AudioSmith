@@ -554,8 +554,14 @@ func (a *app) shortcutRow(c *ui.Context) {
 // m2GeneralSettings adds M2's rows to Settings → General.
 func (a *app) m2GeneralSettings(c *ui.Context) {
 	f := &a.dictSet
-	settingRow(c, "close-tray", i18n.T("Keep running in the menu bar"), i18n.T("Closing the window keeps AudioSmith in the menu bar, so dictation keeps working."), func() {
-		if ui.Switch(c.Key("close-tray-switch"), &f.closeTray).Label(i18n.T("Keep running in the menu bar")).Changed() {
+	title := i18n.T("Keep running in the menu bar")
+	desc := i18n.T("Closing the window keeps AudioSmith in the menu bar, so dictation keeps working.")
+	if isWindows() {
+		title = i18n.T("Keep running in the system tray")
+		desc = i18n.T("Closing the window keeps AudioSmith in the system tray, so dictation keeps working.")
+	}
+	settingRow(c, "close-tray", title, desc, func() {
+		if ui.Switch(c.Key("close-tray-switch"), &f.closeTray).Label(title).Changed() {
 			on := f.closeTray
 			a.updateSettings(func(s *settings.Settings) { s.General.CloseToTray = on })
 		}

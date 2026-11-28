@@ -282,6 +282,22 @@ func (b *ONNXBackend) Unload(_ context.Context, model string) error {
 	return nil
 }
 
+// Close releases all loaded ONNX sessions and the runtime library if owned.
+func (b *ONNXBackend) Close() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for id, e := range b.models {
+		closeEntry(e)
+		delete(b.models, id)
+	}
+	if b.rt != nil && !b.injected {
+		err := b.rt.Close()
+		b.rt = nil
+		return err
+	}
+	return nil
+}
+
 func (b *ONNXBackend) VAD(ctx context.Context, _ string, p proto.VADParams, _ server.Notifier) (proto.VADResult, error) {
 	entry, _, err := b.getOrLoad(p.Model, "vad", p.ModelPath)
 	if err != nil {

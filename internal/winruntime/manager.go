@@ -289,17 +289,69 @@ func extractZipAssets(zipPath, destDir string, specs []ExtractSpec) error {
 	}
 	defer zr.Close()
 
+	type zipEntry struct {
+		norm string
+		base string
+		file *zip.File
+	}
+	entries := make([]zipEntry, 0, len(zr.File))
 	byPath := make(map[string]*zip.File, len(zr.File))
 	for _, f := range zr.File {
-		norm := strings.ToLower(strings.TrimPrefix(path.Clean("/"+strings.ReplaceAll(f.Name, `\`, "/")), "/"))
+		if f.FileInfo().IsDir() || strings.HasSuffix(f.Name, "/") || strings.HasSuffix(f.Name, `\`) {
+			continue
+		}
+		norm, base, ok := normalizeArchiveEntry(f.Name)
+		if !ok {
+			continue
+		}
+		entries = append(entries, zipEntry{norm: norm, base: base, file: f})
 		byPath[norm] = f
 	}
 
+	cleanDestDir := filepath.Clean(destDir)
 	for _, spec := range specs {
+		if isGlobPattern(spec.ArchivePath) {
+			pat, _, ok := normalizeArchiveEntry(spec.ArchivePath)
+			if !ok {
+				return fmt.Errorf("winruntime: unsafe extract pattern %q", spec.ArchivePath)
+			}
+			if _, err := path.Match(pat, ""); err != nil {
+				return fmt.Errorf("winruntime: invalid extract pattern %q: %w", spec.ArchivePath, err)
+			}
+			matched := 0
+			for _, e := range entries {
+				ok, err := path.Match(pat, e.norm)
+				if err != nil {
+					return fmt.Errorf("winruntime: invalid extract pattern %q: %w", spec.ArchivePath, err)
+				}
+				if !ok {
+					continue
+				}
+				if !isSafeFilename(e.base) {
+					return fmt.Errorf("winruntime: unsafe archive filename %q", e.file.Name)
+				}
+				dst := filepath.Join(cleanDestDir, e.base)
+				if filepath.Dir(dst) != cleanDestDir {
+					return fmt.Errorf("winruntime: unsafe destination path %q", dst)
+				}
+				if err := extractSingleZipFile(e.file, dst); err != nil {
+					return err
+				}
+				matched++
+			}
+			if matched == 0 && !spec.Optional {
+				return fmt.Errorf("winruntime: archive missing %s", spec.ArchivePath)
+			}
+			continue
+		}
+
 		if !isSafeFilename(spec.DestName) {
 			return fmt.Errorf("winruntime: unsafe destination filename %q", spec.DestName)
 		}
-		want := strings.ToLower(strings.TrimPrefix(path.Clean("/"+strings.ReplaceAll(spec.ArchivePath, `\`, "/")), "/"))
+		want, _, ok := normalizeArchiveEntry(spec.ArchivePath)
+		if !ok {
+			return fmt.Errorf("winruntime: unsafe archive path %q", spec.ArchivePath)
+		}
 		zf, ok := byPath[want]
 		if !ok {
 			if spec.Optional {
@@ -307,11 +359,43 @@ func extractZipAssets(zipPath, destDir string, specs []ExtractSpec) error {
 			}
 			return fmt.Errorf("winruntime: archive missing %s", spec.ArchivePath)
 		}
-		if err := extractSingleZipFile(zf, filepath.Join(destDir, spec.DestName)); err != nil {
+		dst := filepath.Join(cleanDestDir, spec.DestName)
+		if filepath.Dir(dst) != cleanDestDir {
+			return fmt.Errorf("winruntime: unsafe destination path %q", dst)
+		}
+		if err := extractSingleZipFile(zf, dst); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func isGlobPattern(p string) bool {
+	return strings.ContainsAny(p, "*?[")
+}
+
+// normalizeArchiveEntry validates a ZIP entry or pattern against zip-slip
+// (rejecting absolute paths, drive letters, and ".." segments) and returns its
+// lowercased normalized slash path plus its original-case base filename.
+func normalizeArchiveEntry(raw string) (norm, base string, ok bool) {
+	s := strings.ReplaceAll(raw, `\`, "/")
+	if s == "" || strings.HasPrefix(s, "/") || strings.Contains(s, ":") {
+		return "", "", false
+	}
+	for _, seg := range strings.Split(s, "/") {
+		if seg == ".." {
+			return "", "", false
+		}
+	}
+	cleaned := strings.TrimPrefix(path.Clean("/"+s), "/")
+	if cleaned == "" || cleaned == "." {
+		return "", "", false
+	}
+	b := path.Base(cleaned)
+	if !isSafeFilename(b) {
+		return "", "", false
+	}
+	return strings.ToLower(cleaned), b, true
 }
 
 func extractSingleZipFile(zf *zip.File, destPath string) error {

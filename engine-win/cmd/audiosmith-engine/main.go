@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -61,6 +62,13 @@ func main() {
 	}
 	logger := log.New(os.Stderr, fmt.Sprintf("[audiosmith-engine:%s] ", role), log.LstdFlags)
 
+	if err := runRole(role, hwInfo, *ffmpegPath, os.Stdin, protoOut, logger); err != nil {
+		logger.Printf("serve error: %v", err)
+		os.Exit(1)
+	}
+}
+
+func runRole(role proto.Role, hwInfo hw.Info, ffmpegPath string, in io.Reader, out io.Writer, logger *log.Logger, gpuBackends ...gpu.Backend) error {
 	cfg := server.Config{
 		Role:     role,
 		Version:  Version,
@@ -71,7 +79,8 @@ func main() {
 	var srv *server.Server
 	switch role {
 	case proto.RoleGPU:
-		g := gpu.New(hwInfo)
+		g := gpu.New(hwInfo, gpuBackends...)
+		defer g.Close()
 		cfg.Hooks = g.Hooks()
 		srv = server.New(cfg)
 		g.Register(srv)
@@ -80,15 +89,14 @@ func main() {
 		srv = server.New(cfg)
 		wm := onnx.NewAudioSealBackend(nil, hwInfo)
 		defer wm.Close()
-		media.New(hwInfo, *ffmpegPath, wm).Register(srv)
+		media.New(hwInfo, ffmpegPath, wm).Register(srv)
 	case proto.RoleListen:
 		cfg.Hooks = server.RoleHooks{Concurrency: 1}
 		srv = server.New(cfg)
 		listen.New(nil, nil).Register(srv)
+	default:
+		return fmt.Errorf("unknown role %q", role)
 	}
 
-	if err := srv.Serve(os.Stdin, protoOut); err != nil {
-		logger.Printf("serve error: %v", err)
-		os.Exit(1)
-	}
+	return srv.Serve(in, out)
 }

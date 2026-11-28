@@ -3,6 +3,7 @@ package gpu
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"slices"
 	"sync"
 	"time"
@@ -111,6 +112,35 @@ func (g *Service) stats() (proto.Memory, []proto.LoadedModel) {
 
 func (g *Service) flush() {
 	// Native runtimes release scratch caches when idle; placeholder for Phase 1.5 hooks.
+}
+
+// Close unloads all tracked models and closes every backend (terminating any
+// managed child processes such as llama-server.exe or the optional Python worker).
+func (g *Service) Close() error {
+	g.mu.Lock()
+	victims := make([]*loadedEntry, 0, len(g.models))
+	for id, e := range g.models {
+		victims = append(victims, e)
+		delete(g.models, id)
+	}
+	g.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var firstErr error
+	for _, v := range victims {
+		if err := v.backend.Unload(ctx, v.info.Model); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	for _, b := range g.backends {
+		if c, ok := b.(io.Closer); ok {
+			if err := c.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	return firstErr
 }
 
 func (g *Service) configure(p proto.EngineConfigParams) (proto.EngineConfigResult, error) {

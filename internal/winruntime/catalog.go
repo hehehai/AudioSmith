@@ -42,11 +42,13 @@ func RequiredForBackend(backend string, tasks []string) Name {
 }
 
 // ExtractSpec maps an archive entry (slash-separated path, matched
-// case-insensitively or by exact suffix) to a flat filename in the
-// runtime's install directory.
+// case-insensitively) to a flat filename in the runtime's install directory.
+// When ArchivePath contains a glob metacharacter ('*', '?', '['), every
+// matching non-directory entry is extracted flat under its base filename
+// (DestName is unused for globs) after zip-slip validation.
 type ExtractSpec struct {
-	ArchivePath string // exact slash path inside ZIP (case-insensitive match)
-	DestName    string // destination filename inside <runtimes>/<name>/
+	ArchivePath string // exact slash path or path.Match glob inside ZIP (case-insensitive)
+	DestName    string // destination filename inside <runtimes>/<name>/ (unused for globs)
 	Optional    bool   // when true, absence in the archive is not an error
 }
 
@@ -74,6 +76,18 @@ func DefaultCatalog() map[Name]Spec {
 	const onnxVer = "1.24.4"
 	const onnxURL = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/" + onnxVer
 	const onnxSHA256 = "57e9f11b73437bef7a309496135d4c1f96b1a8e9ddba60013fa27bfc1d788681"
+
+	llamaVulkanX64 := Asset{
+		URL:  "https://github.com/ggml-org/llama.cpp/releases/download/b5400/llama-b5400-bin-win-vulkan-x64.zip",
+		Size: 40 << 20,
+		Extract: []ExtractSpec{
+			{ArchivePath: "llama-server.exe", DestName: "llama-server.exe"},
+			{ArchivePath: "llama-cli.exe", DestName: "llama-cli.exe", Optional: true},
+			{ArchivePath: "llama.dll", DestName: "llama.dll", Optional: true},
+			{ArchivePath: "ggml*.dll", Optional: true},
+			{ArchivePath: "libcurl*.dll", Optional: true},
+		},
+	}
 
 	return map[Name]Spec{
 		RuntimeONNX: {
@@ -130,31 +144,14 @@ func DefaultCatalog() map[Name]Spec {
 			RequiredFiles: []string{"llama-server.exe"},
 			Aliases:       []string{"llama.cpp"},
 			Assets: map[string]Asset{
-				"amd64": {
-					URL:  "https://github.com/ggml-org/llama.cpp/releases/download/b5400/llama-b5400-bin-win-vulkan-x64.zip",
-					Size: 40 << 20,
-					Extract: []ExtractSpec{
-						{ArchivePath: "llama-server.exe", DestName: "llama-server.exe"},
-						{ArchivePath: "llama-cli.exe", DestName: "llama-cli.exe", Optional: true},
-						{ArchivePath: "llama.dll", DestName: "llama.dll", Optional: true},
-						{ArchivePath: "ggml.dll", DestName: "ggml.dll", Optional: true},
-						{ArchivePath: "ggml-base.dll", DestName: "ggml-base.dll", Optional: true},
-						{ArchivePath: "ggml-cpu.dll", DestName: "ggml-cpu.dll", Optional: true},
-						{ArchivePath: "ggml-vulkan.dll", DestName: "ggml-vulkan.dll", Optional: true},
-					},
-				},
-				"arm64": {
-					URL:  "https://github.com/ggml-org/llama.cpp/releases/download/b5400/llama-b5400-bin-win-cpu-arm64.zip",
-					Size: 25 << 20,
-					Extract: []ExtractSpec{
-						{ArchivePath: "llama-server.exe", DestName: "llama-server.exe"},
-						{ArchivePath: "llama-cli.exe", DestName: "llama-cli.exe", Optional: true},
-						{ArchivePath: "llama.dll", DestName: "llama.dll", Optional: true},
-						{ArchivePath: "ggml.dll", DestName: "ggml.dll", Optional: true},
-						{ArchivePath: "ggml-base.dll", DestName: "ggml-base.dll", Optional: true},
-						{ArchivePath: "ggml-cpu.dll", DestName: "ggml-cpu.dll", Optional: true},
-					},
-				},
+				"amd64": llamaVulkanX64,
+				// Upstream llama-b5400-bin-win-cpu-arm64.zip mistakenly bundles an
+				// x86-64 libcurl-x64.dll alongside an ARM64 llama-server.exe, which
+				// fails to launch on Windows 11 ARM64 with 0xC000007B
+				// (STATUS_INVALID_IMAGE_FORMAT). Use the vulkan-x64 archive on
+				// Windows ARM64 instead; it runs cleanly under Windows 11 Prism
+				// emulation with all required x64 DLLs.
+				"arm64": llamaVulkanX64,
 			},
 		},
 	}
