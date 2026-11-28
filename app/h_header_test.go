@@ -258,7 +258,7 @@ func TestProjectsHeader(t *testing.T) {
 	if _, ok := tt.Find("Search projects"); !ok {
 		t.Error("no search in the header")
 	}
-	if err := tt.Click("Cards (⌥2)"); err != nil {
+	if err := tt.Click(shortcutLabel("Cards (⌥2)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

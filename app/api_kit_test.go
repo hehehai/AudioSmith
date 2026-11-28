@@ -74,7 +74,7 @@ func TestAPIKitVoices(t *testing.T) {
 	if rc.Grade == "" || rc.Seconds < 5 {
 		t.Fatalf("check %+v", rc)
 	}
-	e.fails(t, "check_reference", map[string]any{"path": "/no/such.wav"}, api.CodeNotFound)
+	e.fails(t, "check_reference", map[string]any{"path": filepath.Join(t.TempDir(), "no-such.wav")}, api.CodeNotFound)
 
 	var cl struct {
 		Voice map[string]any `json:"voice"`

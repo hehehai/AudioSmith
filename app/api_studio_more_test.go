@@ -239,7 +239,7 @@ func TestStudioWorkflows(t *testing.T) {
 		t.Fatalf("saved inputs changed: %v %+v", err, after.InputNode().P.Scripts)
 	}
 	e.fails(t, "run_workflow", map[string]any{"workflow_id": saved.ID, "scripts": []string{"x"}, "files": []string{"/a.wav"}}, api.CodeInvalid)
-	e.fails(t, "run_workflow", map[string]any{"workflow_id": saved.ID, "files": []string{"/no/such.wav"}}, api.CodeNotFound)
+	e.fails(t, "run_workflow", map[string]any{"workflow_id": saved.ID, "files": []string{filepath.Join(t.TempDir(), "no-such.wav")}}, api.CodeNotFound)
 	e.fails(t, "run_workflow", map[string]any{"workflow_id": "missing"}, api.CodeNotFound)
 	if status, body := e.rest(t, "POST", "/api/workflows/"+saved.ID+"/run", map[string]any{"again": true}); status != 202 {
 		t.Fatalf("POST run %d %s", status, body)

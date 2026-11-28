@@ -177,9 +177,13 @@ func putTranscript(t *testing.T, a *app, tr core.Transcript) core.Transcript {
 func removeModel(t *testing.T, a *app, id string) catalog.Entry {
 	t.Helper()
 	e, _ := catalog.Builtin().ByID(id)
-	dir := hub.RepoDir(modelCache(a.prefs), e.Repo)
-	if err := os.RemoveAll(dir); err != nil {
-		t.Fatal(err)
+	for _, repo := range []string{e.Repo, e.EffectiveRepo(currentOS())} {
+		if repo == "" {
+			continue
+		}
+		if err := os.RemoveAll(hub.RepoDir(modelCache(a.prefs), repo)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	a.refreshModel(e)
 	return e

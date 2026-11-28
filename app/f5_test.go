@@ -119,7 +119,7 @@ func TestProjectsListFlow(t *testing.T) {
 	}
 	a.projects.filter = 0
 	// Cards.
-	if err := tt.Click("Cards (⌥2)"); err != nil {
+	if err := tt.Click(shortcutLabel("Cards (⌥2)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

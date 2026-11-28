@@ -384,7 +384,7 @@ func TestSharedEnvPrecedence(t *testing.T) {
 	// default is the family's library.
 	t.Setenv("ACTNOW_FAMILY_DIR", "/fam")
 	t.Setenv("HF_HUB_CACHE", "/env/hub")
-	if got := modelCache(s); got != "/fam/models/hub" {
+	if got := modelCache(s); got != filepath.Join("/fam", "models", "hub") {
 		t.Errorf("default folder %q", got)
 	}
 	s.Models.CacheDir = "/family/models"

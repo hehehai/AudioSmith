@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -14,7 +15,7 @@ import (
 // the library uses (code review 1102 M3: the clone flow's working clips,
 // replaced covers).
 func (s *Store) Mentioned(ctx context.Context, dir string) (map[string]bool, error) {
-	dir = strings.TrimRight(dir, "/")
+	dir = strings.TrimRight(dir, "/\\")
 	if dir == "" {
 		return nil, fmt.Errorf("sqlitestore: Mentioned needs a folder")
 	}
@@ -23,9 +24,25 @@ func (s *Store) Mentioned(ctx context.Context, dir string) (map[string]bool, err
 	if err != nil {
 		return nil, wrap("mentioned", err)
 	}
-	prefixes := []string{dir + "/"}
-	if b, _ := json.Marshal(dir); string(b[1:len(b)-1]) != dir {
-		prefixes = append(prefixes, string(b[1:len(b)-1])+"/")
+	jsonForm := func(v string) string {
+		b, _ := json.Marshal(v)
+		return string(b[1 : len(b)-1])
+	}
+	var prefixes []string
+	addPrefix := func(p string) {
+		for _, existing := range prefixes {
+			if existing == p {
+				return
+			}
+		}
+		prefixes = append(prefixes, p)
+	}
+	sep := string(os.PathSeparator)
+	addPrefix(dir + sep)
+	addPrefix(jsonForm(dir + sep))
+	if sep != "/" {
+		addPrefix(dir + "/")
+		addPrefix(jsonForm(dir + "/"))
 	}
 	out := map[string]bool{}
 	for _, t := range tables.Values {

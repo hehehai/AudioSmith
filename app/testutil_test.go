@@ -75,14 +75,36 @@ func newTestAppIn(t *testing.T, dir string) (*app, *fakeEngine, *ui.Tester) {
 	return a, eng, tt
 }
 
+// simulateDarwin temporarily pins currentOS to "darwin" for tests that
+// exercise macOS MLX-only catalogue entries (e.g. Irodori, VoxCPM2,
+// Qwen3-ASR, SoulX-Podcast, Demucs, MLX auxiliary repos).
+func simulateDarwin(t *testing.T) {
+	t.Helper()
+	prev := currentOS
+	currentOS = func() string { return "darwin" }
+	t.Cleanup(func() { currentOS = prev })
+}
+
 // useLocalModels points the library's model folder at a temporary one in
-// which every catalogue entry (and its auxiliary repos) is "downloaded":
-// a snapshot at its pinned commit with a config and a weights file.
+// which every catalogue entry (and its auxiliary repos, plus any Windows
+// ONNX checkpoint) is "downloaded": a snapshot at its pinned commit.
 func useLocalModels(t *testing.T, lib *library) string {
 	t.Helper()
 	dir := testDir(t)
-	put := func(repo, rev string) {
+	put := func(repo, rev string, files []catalog.File) {
 		snap := filepath.Join(hub.RepoDir(dir, repo), "snapshots", rev)
+		if len(files) > 0 {
+			for _, f := range files {
+				p := filepath.Join(snap, filepath.FromSlash(f.Path))
+				if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(p, []byte("weights"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			return
+		}
 		for name, data := range map[string]string{"config.json": "{}", "model.safetensors": "weights"} {
 			if err := os.MkdirAll(snap, 0o755); err != nil {
 				t.Fatal(err)
@@ -93,9 +115,12 @@ func useLocalModels(t *testing.T, lib *library) string {
 		}
 	}
 	for _, e := range catalog.Builtin().Entries {
-		put(e.Repo, e.Revision)
+		put(e.Repo, e.Revision, e.Files)
 		for _, x := range e.Aux {
-			put(x.Repo, x.Revision)
+			put(x.Repo, x.Revision, nil)
+		}
+		if e.Windows != nil && e.Windows.Repo != "" {
+			put(e.Windows.Repo, e.Windows.Revision, e.Windows.Files)
 		}
 	}
 	if err := lib.settings.Update(context.Background(), func(s *settings.Settings) { s.Models.CacheDir = dir }); err != nil {

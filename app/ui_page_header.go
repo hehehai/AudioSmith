@@ -160,7 +160,7 @@ func headerRightInset(c *ui.Context) float32 {
 	if bar.Right > 0 {
 		return bar.Right
 	}
-	if runtime.GOOS == "windows" && bar.Height > 0 {
+	if runtime.GOOS == "windows" && bar.Height > 0 && bar.Left == 0 {
 		return winCaptionInset
 	}
 	return 0

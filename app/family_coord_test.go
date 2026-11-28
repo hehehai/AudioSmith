@@ -59,7 +59,7 @@ func TestShortcutConflictPromptOncePerPair(t *testing.T) {
 		t.Errorf("the card is not remembered: %+v", a.settings.Get().Family)
 	}
 	tt.Frame()
-	sentence := "⇧⌘Space is also the Transcribe shortcut in Auralink. Pressing it will trigger both apps."
+	sentence := shortcutLabel("⇧⌘Space") + " is also the Transcribe shortcut in Auralink. Pressing it will trigger both apps."
 	if !tt.HasText(sentence) || !tt.HasText("Open Auralink settings") || !tt.HasText("Change shortcut") {
 		t.Errorf("card texts: %q", tt.Texts())
 	}
@@ -104,7 +104,7 @@ func TestShortcutConflictEarlierAppOnlyWarns(t *testing.T) {
 	}
 	a.navigate("/settings/dictation")
 	tt.Frame()
-	if !tt.HasText("⇧⌘Space is also the Transcribe shortcut in Auralink. Pressing it will trigger both apps.") {
+	if !tt.HasText(shortcutLabel("⇧⌘Space") + " is also the Transcribe shortcut in Auralink. Pressing it will trigger both apps.") {
 		t.Errorf("no warning: %q", tt.Texts())
 	}
 	// A new shortcut: the stale conflict is not shown while the check runs.

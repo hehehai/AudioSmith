@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 
@@ -244,7 +245,7 @@ func TestDictationShortcutSettings(t *testing.T) {
 	a, tt, keys := m.a, m.tt, m.keys
 	a.navigate("/settings/dictation")
 	tt.Frame()
-	if !tt.HasText("⇧⌘Space") || !tt.HasText("Verified: it works on this Mac.") && !tt.HasText("Press it anywhere to check it works.") {
+	if !tt.HasText(dictation.GlyphsOf(defaultAcc)) || !tt.HasText("Verified: it works on this Mac.") && !tt.HasText("Press it anywhere to check it works.") {
 		t.Fatalf("page: %q", tt.Texts())
 	}
 	// Record ⌥D: the old shortcut is released while recording.
@@ -263,7 +264,7 @@ func TestDictationShortcutSettings(t *testing.T) {
 	}
 	tt.Key(ui.Alt, ui.KeyD)
 	tt.Frame()
-	if a.dictSet.pending != "Alt+D" || !tt.HasText("⌥D") {
+	if a.dictSet.pending != "Alt+D" || !tt.HasText(dictation.GlyphsOf("Alt+D")) {
 		t.Fatalf("pending %q %q", a.dictSet.pending, tt.Texts())
 	}
 	tt.Click("Save")
@@ -277,7 +278,11 @@ func TestDictationShortcutSettings(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyD)
 	tt.Frame()
-	if a.dictSet.pending != "" || !tt.HasText("Add a modifier: ⌘, ⌃ or ⌥ with another key.") {
+	wantNoMod := "Add a modifier: ⌘, ⌃ or ⌥ with another key."
+	if runtime.GOOS == "windows" {
+		wantNoMod = "Add a modifier: Ctrl or Alt with another key."
+	}
+	if a.dictSet.pending != "" || !tt.HasText(wantNoMod) {
 		t.Errorf("no modifier: %q", tt.Texts())
 	}
 	tt.Key(ui.Super, ui.KeySpace)

@@ -380,7 +380,11 @@ func TestDevelopersConnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if got := copied(); !strings.HasPrefix(got, "curl "+a.apiBaseURL()+"/v1/audio/speech") {
+	wantPrefix := "curl " + a.apiBaseURL() + "/v1/audio/speech"
+	if isWindowsInteg() {
+		wantPrefix = `Invoke-RestMethod -Method Post -Uri "` + a.apiBaseURL() + `/v1/audio/speech"`
+	}
+	if got := copied(); !strings.HasPrefix(got, wantPrefix) {
 		t.Fatalf("curl: %q", got)
 	}
 	r, err := http.Get(a.apiBaseURL() + "/v1/voices")

@@ -50,7 +50,7 @@ func TestSidebarGroups(t *testing.T) {
 			t.Errorf("%s: %d palette entries", p.path, n)
 		}
 	}
-	if pageKeys("/assets") != "" || pageKeys("/transcripts") != "⌘6" {
+	if pageKeys("/assets") != "" || pageKeys("/transcripts") != shortcutLabel("⌘6") {
 		t.Errorf("keys: assets %q transcripts %q", pageKeys("/assets"), pageKeys("/transcripts"))
 	}
 	// The sheet lists the new numbers.

@@ -60,7 +60,7 @@ func TestHomeRouting(t *testing.T) {
 	tt.Frame()
 	a.homeUI.text = "Welcome to the spring sale."
 	tt.Frame()
-	if err := tt.Click("Start (↩)"); err != nil {
+	if err := tt.Click(shortcutLabel("Start (↩)")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -24,6 +25,33 @@ import (
 func fakeFFmpeg(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		script := "@echo off\r\n" +
+			"if \"%2\"==\"-version\" (\r\n" +
+			"  echo ffmpeg version n8.1.2-fake Copyright\r\n" +
+			"  echo configuration: --enable-gpl --enable-libmp3lame\r\n" +
+			"  exit /b 0\r\n" +
+			")\r\n" +
+			"if \"%2\"==\"-encoders\" (\r\n" +
+			"  echo  A....D = Audio\r\n" +
+			"  echo  ------\r\n" +
+			"  echo  A....D libmp3lame  MP3\r\n" +
+			"  echo  A....D libopus  Opus\r\n" +
+			"  echo  A....D flac  FLAC\r\n" +
+			"  echo  A....D aac  AAC\r\n" +
+			"  exit /b 0\r\n" +
+			")\r\n" +
+			"if \"%2\"==\"-filters\" (\r\n" +
+			"  echo  TSC overlay VV-^>V Overlay\r\n" +
+			"  exit /b 0\r\n" +
+			")\r\n"
+		for _, n := range []string{"ffmpeg.cmd", "ffprobe.cmd"} {
+			if err := os.WriteFile(filepath.Join(dir, n), []byte(script), 0o755); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return filepath.Join(dir, "ffmpeg.cmd")
+	}
 	script := `#!/bin/sh
 case "$*" in
 *-version*) echo "ffmpeg version n8.1.2-fake Copyright"; echo "configuration: --enable-gpl --enable-libmp3lame";;
@@ -102,10 +130,14 @@ func TestFFmpegDownload(t *testing.T) {
 		progress(b.Size()/2, b.Size())
 		os.MkdirAll(dir, 0o755)
 		data, _ := os.ReadFile(fake)
-		for _, n := range []string{"ffmpeg", "ffprobe"} {
+		ext := ""
+		if runtime.GOOS == "windows" {
+			ext = ".cmd"
+		}
+		for _, n := range []string{"ffmpeg" + ext, "ffprobe" + ext} {
 			os.WriteFile(filepath.Join(dir, n), data, 0o755)
 		}
-		return filepath.Join(dir, "ffmpeg"), nil
+		return filepath.Join(dir, "ffmpeg"+ext), nil
 	}
 	ffmpegFind = func() []string { return nil }
 	ffmpegDownloadOffered = true
