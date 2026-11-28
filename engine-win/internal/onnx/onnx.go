@@ -7,6 +7,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+
+	"github.com/hehehai/AudioSmith/internal/winruntime"
 )
 
 // ErrUnsupportedPlatform is returned when native DLL loading is invoked on a
@@ -85,36 +87,13 @@ func Open(dllPath string) (Runtime, error) {
 	return openRuntime(dllPath)
 }
 
-// DiscoverDLL searches standard locations for onnxruntime.dll:
+// DiscoverDLL searches standard locations for onnxruntime.dll via winruntime:
 //  1. AUDIOSMITH_ONNXRUNTIME environment variable
-//  2. Beside the running audiosmith-engine executable
-//  3. %LOCALAPPDATA%\ActNow\runtimes\onnx\onnxruntime.dll
+//  2. Beside the running audiosmith-engine executable (and runtimes/onnx/)
+//  3. Managed runtime directory ($AUDIOSMITH_RUNTIMES_DIR, $ACTNOW_MODELS_DIR/../runtimes,
+//     $ACTNOW_FAMILY_DIR/runtimes, or %LOCALAPPDATA%\ActNow\runtimes\onnx\)
 func DiscoverDLL() string {
-	if p := os.Getenv("AUDIOSMITH_ONNXRUNTIME"); p != "" {
-		if info, err := os.Stat(p); err == nil && !info.IsDir() {
-			return p
-		}
-	}
-	if exe, err := os.Executable(); err == nil {
-		for _, name := range []string{"onnxruntime.dll", "libonnxruntime.so", "libonnxruntime.dylib"} {
-			cand := filepath.Join(filepath.Dir(exe), name)
-			if info, err := os.Stat(cand); err == nil && !info.IsDir() {
-				return cand
-			}
-		}
-	}
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
-		for _, rel := range []string{
-			filepath.Join("ActNow", "runtimes", "onnx", "onnxruntime.dll"),
-			filepath.Join("ActNow", "runtimes", "onnxruntime", "onnxruntime.dll"),
-		} {
-			cand := filepath.Join(local, rel)
-			if info, err := os.Stat(cand); err == nil && !info.IsDir() {
-				return cand
-			}
-		}
-	}
-	return ""
+	return winruntime.DiscoverONNXDLL()
 }
 
 // ResolveModelFile resolves a model path (file or directory) to an .onnx file.

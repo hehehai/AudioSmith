@@ -5,12 +5,12 @@ package llamacpp
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/hehehai/AudioSmith/engine-win/hw"
+	"github.com/hehehai/AudioSmith/internal/winruntime"
 )
 
 // SelectProvider chooses the llama.cpp / whisper.cpp compute provider from hwInfo.
@@ -56,66 +56,22 @@ func RecommendedThreads(hwInfo hw.Info) int {
 
 // DiscoverLlamaServer finds llama-server(.exe).
 func DiscoverLlamaServer() string {
-	return discoverBinary("AUDIOSMITH_LLAMA_SERVER", "llama", "llama-server")
+	return winruntime.DiscoverLlamaServer()
 }
 
 // DiscoverLlamaCLI finds llama-cli(.exe).
 func DiscoverLlamaCLI() string {
-	return discoverBinary("AUDIOSMITH_LLAMA_CLI", "llama", "llama-cli")
+	return winruntime.DiscoverLlamaCLI()
 }
 
-// DiscoverWhisperCLI finds whisper-cli(.exe) (or legacy main(.exe) in whisper runtime dir).
+// DiscoverWhisperCLI finds whisper-cli(.exe).
 func DiscoverWhisperCLI() string {
-	return discoverBinary("AUDIOSMITH_WHISPER_CLI", "whisper", "whisper-cli")
+	return winruntime.DiscoverWhisperCLI()
 }
 
 // DiscoverWhisperServer finds whisper-server(.exe).
 func DiscoverWhisperServer() string {
-	return discoverBinary("AUDIOSMITH_WHISPER_SERVER", "whisper", "whisper-server")
-}
-
-func discoverBinary(envKey, runtimeSubdir, baseName string) string {
-	if p := strings.TrimSpace(os.Getenv(envKey)); p != "" {
-		if info, err := os.Stat(p); err == nil && !info.IsDir() {
-			return p
-		}
-	}
-
-	names := []string{baseName}
-	if runtime.GOOS == "windows" {
-		names = []string{baseName + ".exe", baseName}
-	}
-
-	// 1. Beside the running audiosmith-engine binary.
-	if exe, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exe)
-		for _, n := range names {
-			cand := filepath.Join(exeDir, n)
-			if info, err := os.Stat(cand); err == nil && !info.IsDir() {
-				return cand
-			}
-		}
-	}
-
-	// 2. Managed runtime directory: %LOCALAPPDATA%\ActNow\runtimes\<subdir>\
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
-		for _, sub := range []string{runtimeSubdir, runtimeSubdir + ".cpp"} {
-			for _, n := range names {
-				cand := filepath.Join(local, "ActNow", "runtimes", sub, n)
-				if info, err := os.Stat(cand); err == nil && !info.IsDir() {
-					return cand
-				}
-			}
-		}
-	}
-
-	// 3. System PATH.
-	for _, n := range names {
-		if p, err := exec.LookPath(n); err == nil {
-			return p
-		}
-	}
-	return ""
+	return winruntime.DiscoverWhisperServer()
 }
 
 // ResolveModelFile resolves a model path (file or directory) to a model file
