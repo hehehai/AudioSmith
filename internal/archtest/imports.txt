@@ -213,4 +213,7 @@ voicevox                 jobs
 
 watermark                torchpt
 
+winruntime               core
+winruntime               hub
+
 workflow                 i18n
