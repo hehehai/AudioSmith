@@ -22,7 +22,7 @@ Components (51)
    [4] github.com/go-text/typesetting v0.3.5 — Unlicense OR BSD-3-Clause
    [5] github.com/google/jsonschema-go v0.4.3 — MIT
    [6] github.com/hehehai/actnowkit v0.22.2 — Apache-2.0
-   [7] github.com/hehehai/actnowkit/feedbackui v0.22.0 — Apache-2.0
+   [7] github.com/hehehai/actnowkit/feedbackui v0.22.1 — Apache-2.0
    [8] github.com/jfreymuth/oggvorbis v1.0.5 — MIT
    [9] github.com/jfreymuth/vorbis v1.0.2 — MIT
   [10] github.com/modelcontextprotocol/go-sdk v1.8.0 — Apache-2.0 AND MIT
@@ -725,7 +725,7 @@ transforms (as macOS ships them):
   Copyright © 2016 and later Unicode, Inc. Licensed under the Unicode License v3.
 
 ================================================================================
-[7] github.com/hehehai/actnowkit/feedbackui v0.22.0
+[7] github.com/hehehai/actnowkit/feedbackui v0.22.1
     Source:  https://github.com/hehehai/actnowkit
     Licence: Apache-2.0
 --------------------------------------------------------------------------------
