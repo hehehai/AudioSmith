@@ -1,9 +1,12 @@
-# Linux CI: the Go side (views in ui.Tester, services, store, jobs, the
-# supervisor against a scripted engine, the hub against a fake HF, the
-# protocol fixtures, i18n key parity, mygo.json and CHANGELOG.md for
-# releases), MyGo's vet, gofmt and the workflows. The
-# Swift engine and the end-to-end tests need a Mac with Apple silicon; they
-# are not run here (README: Tests). Releases: release.yml.
+# CI: Linux runs the full Go suite (views in ui.Tester, services, store,
+# jobs, the supervisor against a scripted engine, the hub against a fake HF,
+# the protocol fixtures, i18n key parity, mygo.json and CHANGELOG.md for
+# releases), -race, MyGo's vet, gofmt, snapshots and actionlint. Windows runs
+# native CGO_ENABLED=0 vet, amd64+arm64 builds of AudioSmith.exe and
+# audiosmith-engine.exe, MyGo's vet and Go unit tests (using MyGo's
+# published Sqlitecore.dll). The Swift engine and macOS end-to-end tests
+# need Apple silicon; they are not run here (README: Tests). Releases:
+# release.yml.
 name: CI
 
 on:
@@ -82,3 +85,64 @@ jobs:
           name: snapshots
           path: ${{ runner.temp }}/shots
           retention-days: 7
+
+  windows:
+    runs-on: windows-latest
+    env:
+      CGO_ENABLED: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: SQLite library for MyGo's SQLite plugin
+        # MyGo publishes a prebuilt Sqlitecore.dll for windows-amd64 and
+        # windows-arm64 (mygo-plugin.json), downloaded on first use into
+        # %LOCALAPPDATA%\mygo\natives\<sha256>\ and verified by sha256,
+        # so Zig is not required on CI unless rebuilding sqlitecore from source.
+        id: sqlite
+        shell: pwsh
+        run: |
+          $dir = (go mod download -json github.com/egoist/mygo | ConvertFrom-Json).Dir
+          $plugin = Join-Path $dir "plugins\sqlite\internal\sqlitecore\mygo-plugin.json"
+          if (!(Test-Path $plugin)) {
+            Write-Error "no $plugin"
+            exit 1
+          }
+          $sha = (Get-Content $plugin -Raw | ConvertFrom-Json).libraries[0].files.'windows-amd64'.sha256
+          "sha=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/mygo/natives
+          key: mygo-natives-windows-amd64-${{ steps.sqlite.outputs.sha }}
+
+      - name: Vet (amd64 & arm64)
+        shell: pwsh
+        run: |
+          go vet ./...
+          $env:GOARCH = "arm64"
+          go vet ./app ./internal/... ./engine-win/...
+
+      - name: Build AudioSmith.exe & audiosmith-engine.exe (amd64 & arm64)
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "win-build"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          go build -o (Join-Path $out "AudioSmith.exe") ./app
+          go build -o (Join-Path $out "audiosmith-engine.exe") ./engine-win/cmd/audiosmith-engine
+          $env:GOARCH = "arm64"
+          go build -o (Join-Path $out "AudioSmith-arm64.exe") ./app
+          go build -o (Join-Path $out "audiosmith-engine-arm64.exe") ./engine-win/cmd/audiosmith-engine
+          Get-ChildItem $out
+
+      - name: MyGo vet
+        shell: pwsh
+        run: go tool mygo vet .
+
+      - name: Test
+        shell: pwsh
+        run: go test -count=1 ./app ./internal/... ./engine-win/...
