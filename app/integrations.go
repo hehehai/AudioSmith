@@ -165,7 +165,11 @@ func claudeCodeBlocks(e integEnv) []integBlock {
 		{"headers", e.headersObj("claude-code", "${"+integKeyEnv+"}")}}}}}}
 	cmd := fmt.Sprintf("claude mcp add --transport http audiosmith %s --header \"%s: claude-code\"", e.mcpURL(), api.HeaderClient)
 	if e.auth() {
-		cmd += fmt.Sprintf(" --header \"Authorization: Bearer %s\"", e.keyRef("$"+integKeyEnv))
+		envRef := "$" + integKeyEnv
+		if isWindowsInteg() {
+			envRef = "$env:" + integKeyEnv
+		}
+		cmd += fmt.Sprintf(" --header \"Authorization: Bearer %s\"", e.keyRef(envRef))
 	}
 	return []integBlock{
 		{Title: i18n.T("Add it from the terminal"), Lang: "shell", Code: cmd},
@@ -176,7 +180,11 @@ func claudeCodeBlocks(e integEnv) []integBlock {
 func cursorBlocks(e integEnv) []integBlock {
 	conf := obj{{"mcpServers", obj{{"audiosmith", obj{{"url", e.mcpURL()},
 		{"headers", e.headersObj("cursor", "${env:"+integKeyEnv+"}")}}}}}}
-	return []integBlock{{Title: i18n.T("Client configuration"), Hint: i18n.T("Merge this into .cursor/mcp.json in your project, or ~/.cursor/mcp.json for every project."),
+	hint := i18n.T("Merge this into .cursor/mcp.json in your project, or ~/.cursor/mcp.json for every project.")
+	if isWindowsInteg() {
+		hint = i18n.T("Merge this into .cursor/mcp.json in your project, or %s for every project.", mcpClientConfigPath("cursor"))
+	}
+	return []integBlock{{Title: i18n.T("Client configuration"), Hint: hint,
 		Lang: "json", Code: jsonText(conf), File: "mcp.json"}}
 }
 
@@ -197,8 +205,12 @@ func codexBlocks(e integEnv) []integBlock {
 	if e.Key != "" {
 		stdio += fmt.Sprintf("env = { %q = %q }\n", integKeyEnv, e.Key)
 	}
+	codexHint := i18n.T("Merge this into ~/.codex/config.toml.")
+	if isWindowsInteg() {
+		codexHint = i18n.T("Merge this into %s.", mcpClientConfigPath("codex"))
+	}
 	return []integBlock{
-		{Title: i18n.T("Client configuration"), Hint: i18n.T("Merge this into ~/.codex/config.toml."), Lang: "toml", Code: b.String(), File: "config.toml"},
+		{Title: i18n.T("Client configuration"), Hint: codexHint, Lang: "toml", Code: b.String(), File: "config.toml"},
 		{Title: i18n.T("Through the stdio shim"), Hint: i18n.T("For Codex versions without HTTP servers: AudioSmith relays to the running app."), Lang: "toml", Code: stdio},
 	}
 }
@@ -230,12 +242,21 @@ func mcpBlocks(e integEnv) []integBlock {
 }
 
 func openAISDKBlocks(e integEnv) []integBlock {
-	auth := ""
-	if e.auth() {
-		auth = fmt.Sprintf(" \\\n  -H \"Authorization: Bearer %s\"", e.keyRef("$"+integKeyEnv))
+	var curlSpeech, curlSTT string
+	if isWindowsInteg() {
+		curlSpeech = devCurlTextWin(e)
+		curlSTT = fmt.Sprintf("curl.exe %s/v1/audio/transcriptions -F file=@hello.wav -F model=whisper-1", e.Base)
+		if e.auth() {
+			curlSTT = fmt.Sprintf("curl.exe %s/v1/audio/transcriptions -H \"Authorization: Bearer %s\" -F file=@hello.wav -F model=whisper-1", e.Base, e.keyRef("$env:"+integKeyEnv))
+		}
+	} else {
+		auth := ""
+		if e.auth() {
+			auth = fmt.Sprintf(" \\\n  -H \"Authorization: Bearer %s\"", e.keyRef("$"+integKeyEnv))
+		}
+		curlSpeech = fmt.Sprintf("curl %s/v1/audio/speech%s \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"tts-1\", \"voice\": \"alloy\", \"input\": \"Hello from AudioSmith.\", \"response_format\": \"wav\"}' \\\n  --output speech.wav", e.Base, auth)
+		curlSTT = fmt.Sprintf("curl %s/v1/audio/transcriptions%s \\\n  -F file=@speech.wav -F model=whisper-1", e.Base, auth)
 	}
-	curlSpeech := fmt.Sprintf("curl %s/v1/audio/speech%s \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"tts-1\", \"voice\": \"alloy\", \"input\": \"Hello from AudioSmith.\", \"response_format\": \"wav\"}' \\\n  --output speech.wav", e.Base, auth)
-	curlSTT := fmt.Sprintf("curl %s/v1/audio/transcriptions%s \\\n  -F file=@speech.wav -F model=whisper-1", e.Base, auth)
 	pyKey, jsKey := `"not-needed"`, `"not-needed"`
 	if e.auth() {
 		pyKey, jsKey = fmt.Sprintf("os.environ[%q]", integKeyEnv), "process.env."+integKeyEnv
