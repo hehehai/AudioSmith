@@ -3,6 +3,9 @@
   "identifier": "dev.hehehai.audiosmith",
   "version": "0.5.0-beta.5",
   "copyright": "Copyright © 2026 hehehai and the AudioSmith contributors. Licensed under the GNU AGPL-3.0.",
+  "publisher": "ActNow",
+  "license": "AGPL-3.0-only",
+  "icon": "assets/AudioSmith.png",
   "main": "./app",
   "out": "build",
   "resources": [
@@ -30,6 +33,10 @@
     "helperEntitlements": {
       "engine/audiosmith-engine": "engine/Support/engine.entitlements"
     }
+  },
+  "windows": {
+    "displayName": "AudioSmith",
+    "installDirName": "AudioSmith"
   },
   "fileAssociations": [
     {

@@ -440,7 +440,10 @@ func (a *app) dictTextSettings(c *ui.Context) {
 				}
 			}
 		})
-		outDesc := i18n.T("Typing uses the clipboard and ⌘V, then puts back what you had copied. It needs Accessibility.")
+		outDesc := shortcutLabel(i18n.T("Typing uses the clipboard and ⌘V, then puts back what you had copied. It needs Accessibility."))
+		if isWindowsShortcuts() {
+			outDesc = i18n.T("Typing uses the clipboard and Ctrl+V, then puts back what you had copied. Elevated (Administrator) windows fall back to the clipboard.")
+		}
 		if !a.dictSys.AccessibilityTrusted() {
 			outDesc = i18n.T("Typing needs Accessibility (Settings → Dictation): until then the text is copied.")
 		}
@@ -529,7 +532,7 @@ func (a *app) shortcutRow(c *ui.Context) {
 		}
 	})
 	if f.recording {
-		hint := i18n.T("Press the keys together, e.g. ⌥Space or ⌃⇧D. Esc cancels.")
+		hint := shortcutLabel(i18n.T("Press the keys together, e.g. ⌥Space or ⌃⇧D. Esc cancels."))
 		col := t.TextMuted
 		if f.recErr != "" {
 			hint, col = f.recErr, t.Danger

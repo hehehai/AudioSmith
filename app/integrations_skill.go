@@ -178,7 +178,7 @@ func skillModules() map[string]skillModule {
 	}
 	out["dictation"] = out["/dictation"]
 	out["settings"] = skillModule{Name: set, What: i18n.T("everything the user chose: default models, translation, dubbing, privacy, the pronunciation dictionary, the Local API."),
-		Tools: []string{"get_settings"}, App: i18n.T("Changing it only in the app (⌘,): tell the user what to change. The pronunciation dictionary applies to every take by itself.")}
+		Tools: []string{"get_settings"}, App: shortcutLabel(i18n.T("Changing it only in the app (⌘,): tell the user what to change. The pronunciation dictionary applies to every take by itself."))}
 	out["models"] = skillModule{Name: set + " → " + i18n.T("Models & network"), What: i18n.T("the speech models: downloads, licences, sizes."),
 		Tools: []string{"list_models", "list_languages", "download_model", "preview_voice"}, App: i18n.T("Accepting licences only in the app; download a model only after the user agreed.")}
 	out["engine"] = skillModule{Name: set + " → " + i18n.T("Engine"), What: i18n.T("the speech engine: its state, memory, restart."),

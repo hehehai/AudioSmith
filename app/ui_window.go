@@ -32,7 +32,7 @@ func tip(text, keys string) string {
 	if keys == "" {
 		return text
 	}
-	return text + " (" + keys + ")"
+	return text + " (" + shortcutLabel(keys) + ")"
 }
 
 // tooltipBelow is Element.Tooltip shown under e: for the controls in the

@@ -128,9 +128,9 @@ func (a *app) dubLineMenu(m *ui.Menu, i int, after *func()) {
 	s := p.Segments[i]
 	id := s.ID
 	locked := a.dubLocked()
-	menuDo(m, i18n.T("Split (⌘D)"), locked, func() { *after = func() { a.dubSplit(id, -1) } })
-	menuDo(m, i18n.T("Merge with previous (⇧⌘M)"), locked || i == 0, func() { *after = func() { a.dubMerge(id, false) } })
-	menuDo(m, i18n.T("Merge with next (⌘M)"), locked || i+1 >= len(p.Segments), func() { *after = func() { a.dubMerge(id, true) } })
+	menuDo(m, shortcutLabel(i18n.T("Split (⌘D)")), locked, func() { *after = func() { a.dubSplit(id, -1) } })
+	menuDo(m, shortcutLabel(i18n.T("Merge with previous (⇧⌘M)")), locked || i == 0, func() { *after = func() { a.dubMerge(id, false) } })
+	menuDo(m, shortcutLabel(i18n.T("Merge with next (⌘M)")), locked || i+1 >= len(p.Segments), func() { *after = func() { a.dubMerge(id, true) } })
 	menuDo(m, i18n.T("Insert a line below"), locked, func() { *after = func() { a.dubInsert(id) } })
 	a.dubDialogueMenu(m, s, locked, after)
 	m.Separator()

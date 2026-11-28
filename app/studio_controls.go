@@ -91,7 +91,7 @@ func (a *app) insertMenu(c *ui.Context) {
 	} else {
 		btn = dropButton(c.Key("insert"), icons.AddCircle, i18n.T("Insert"))
 	}
-	btn.Tooltip(i18n.T("Insert a pause, a delivery change or an expression (⌥/)"))
+	btn.Tooltip(shortcutLabel(i18n.T("Insert a pause, a delivery change or an expression (⌥/)")))
 	if btn.Clicked() {
 		a.composer.insertOpen = !a.composer.insertOpen
 	}

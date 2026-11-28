@@ -164,3 +164,38 @@ func TestInsertTellsPasting(t *testing.T) {
 		t.Errorf("copy only: %v", seen)
 	}
 }
+
+func TestWindowsGlyphsAndElevatedFallback(t *testing.T) {
+	orig := glyphsOS
+	t.Cleanup(func() { glyphsOS = orig })
+
+	glyphsOS = "darwin"
+	if got := GlyphsOf("Alt+Space"); got != "⌥Space" {
+		t.Errorf("darwin GlyphsOf(Alt+Space) = %q, want ⌥Space", got)
+	}
+	if got := GlyphsOf("Ctrl+Shift+D"); got != "⌃⇧D" {
+		t.Errorf("darwin GlyphsOf(Ctrl+Shift+D) = %q, want ⌃⇧D", got)
+	}
+
+	glyphsOS = "windows"
+	if got := GlyphsOf("Alt+Space"); got != "Alt+Space" {
+		t.Errorf("windows GlyphsOf(Alt+Space) = %q, want Alt+Space", got)
+	}
+	if got := GlyphsOf("Ctrl+Shift+D"); got != "Ctrl+Shift+D" {
+		t.Errorf("windows GlyphsOf(Ctrl+Shift+D) = %q, want Ctrl+Shift+D", got)
+	}
+	if got := GlyphsOf("CmdOrCtrl+Shift+Space"); got != "Ctrl+Shift+Space" {
+		t.Errorf("windows GlyphsOf(CmdOrCtrl+Shift+Space) = %q, want Ctrl+Shift+Space", got)
+	}
+
+	// Elevated target (UIPI): falls back to clipboard with ErrElevatedTarget.
+	f := NewFake()
+	f.PasteErr = ErrElevatedTarget
+	res := inserter(f).Insert(context.Background(), Target{PID: 7}, "elevated text")
+	if res.Outcome != Copied || res.Reason != ReasonPasteFailed || !errors.Is(res.Err, ErrElevatedTarget) {
+		t.Fatalf("unexpected elevated result: %+v", res)
+	}
+	if f.ClipText() != "elevated text" {
+		t.Errorf("clipboard = %q, want dictated text preserved", f.ClipText())
+	}
+}

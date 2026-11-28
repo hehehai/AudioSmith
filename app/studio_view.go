@@ -303,7 +303,7 @@ func (a *app) generateBar(c *ui.Context, st scriptStats, panelShown bool) {
 		if a.job != nil && a.job.kind == "synthesize" {
 			label = i18n.T("Generating…")
 		}
-		tip := i18n.T("Generate speech (⌘↩)")
+		tip := shortcutLabel(i18n.T("Generate speech (⌘↩)"))
 		if a.studioMissingReference() {
 			tip = studioNeedsReferenceText(a.preset())
 		}

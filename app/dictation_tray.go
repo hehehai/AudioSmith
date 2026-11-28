@@ -8,6 +8,8 @@ package main
 // shortcut keeps working; the Dock icon or the menu brings it back.
 
 import (
+	"errors"
+
 	"github.com/hehehai/AudioSmith/assets"
 
 	"github.com/egoist/mygo"
@@ -23,6 +25,7 @@ type trayState struct {
 	tray      *mygo.Tray
 	recording bool    // dictation listens
 	dot       trayDot // the dot the icon shows
+	noDot     bool    // platform tray does not support SetDot (ErrTrayOverlay)
 	tip       string  // its tooltip
 	locale    string  // the menu's language
 	shortcut  string
@@ -145,13 +148,18 @@ func (a *app) updateTray() {
 	case dot == trayDotAgent:
 		tip += " · " + i18n.T("Agent connected (MCP)")
 	}
-	if tr.tray != nil && dot != tr.dot {
+	if tr.tray != nil && dot != tr.dot && !tr.noDot {
 		if dot == trayDotNone {
-			tr.tray.SetDot("")
+			if err := tr.tray.SetDot(""); errors.Is(err, mygo.ErrTrayOverlay) {
+				tr.noDot = true
+			}
 			tr.tray.SetIcon(trayIcon, true)
 		} else {
 			tr.tray.SetIcon(trayActiveIcon, true)
-			tr.tray.SetDot(dot.color())
+			if err := tr.tray.SetDot(dot.color()); errors.Is(err, mygo.ErrTrayOverlay) {
+				tr.noDot = true
+				tr.tray.SetIcon(trayIcon, true)
+			}
 		}
 	}
 	if tr.tray != nil && tip != tr.tip {

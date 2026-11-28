@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"unicode"
@@ -40,6 +41,49 @@ var MacFonts = []string{
 	"/System/Library/Fonts/STHeiti Medium.ttc",
 	"/System/Library/Fonts/AppleSDGothicNeo.ttc",
 	"/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+}
+
+// WinFonts are the fonts captions use on Windows, in order: a bold
+// Latin face (Segoe UI), then faces covering Simplified Chinese
+// (Microsoft YaHei), Japanese (Yu Gothic / Meiryo), Korean (Malgun
+// Gothic), and Arial Bold fallback.
+var WinFonts = []string{
+	`C:\Windows\Fonts\segoeuib.ttf`,
+	`C:\Windows\Fonts\segoeui.ttf`,
+	`C:\Windows\Fonts\msyhbd.ttc`,
+	`C:\Windows\Fonts\msyh.ttc`,
+	`C:\Windows\Fonts\YuGothB.ttc`,
+	`C:\Windows\Fonts\meiryob.ttc`,
+	`C:\Windows\Fonts\malgunbd.ttf`,
+	`C:\Windows\Fonts\arialbd.ttf`,
+}
+
+// fontOS controls DefaultFonts (tests may override).
+var fontOS = runtime.GOOS
+
+// DefaultFonts returns the platform's default caption font fallback
+// chain: WinFonts on Windows (resolving %WINDIR% when set), MacFonts
+// elsewhere.
+func DefaultFonts() []string {
+	if fontOS == "windows" {
+		return winFontPaths(os.Getenv("WINDIR"))
+	}
+	return MacFonts
+}
+
+func winFontPaths(windir string) []string {
+	if windir == "" || strings.EqualFold(windir, `C:\Windows`) {
+		return slices.Clone(WinFonts)
+	}
+	out := make([]string, len(WinFonts))
+	for i, p := range WinFonts {
+		if rest, ok := strings.CutPrefix(p, `C:\Windows`); ok {
+			out[i] = windir + rest
+		} else {
+			out[i] = p
+		}
+	}
+	return out
 }
 
 // fontSet draws text with the first face that has each character.

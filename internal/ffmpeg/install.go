@@ -80,14 +80,22 @@ func (e *ChecksumError) Error() string {
 	return fmt.Sprintf("%s: checksum mismatch (got %s)", e.URL, e.Got)
 }
 
-// Install downloads b into dir as "ffmpeg" and "ffprobe" from the
-// fastest of src's sources (nil: github.com and the ActNow mirror),
-// checks both against their digests (a source that serves anything else
-// is left for the next one), makes them executable and returns ffmpeg's
-// path. progress gets the bytes done of the total. Files are written
-// under temporary names and renamed only once checked; a failure leaves
-// what was there before. When only wrong files came, the error is a
-// *ChecksumError.
+// exeName appends ".exe" on Windows.
+func exeName(base string) string {
+	if runtime.GOOS == "windows" {
+		return base + ".exe"
+	}
+	return base
+}
+
+// Install downloads b into dir as "ffmpeg" and "ffprobe" (with ".exe" on
+// Windows) from the fastest of src's sources (nil: github.com and the
+// ActNow mirror), checks both against their digests (a source that
+// serves anything else is left for the next one), makes them executable
+// and returns ffmpeg's path. progress gets the bytes done of the total.
+// Files are written under temporary names and renamed only once checked;
+// a failure leaves what was there before. When only wrong files came,
+// the error is a *ChecksumError.
 func Install(ctx context.Context, src *mirror.Client, dir string, b Build, progress func(done, total int64)) (string, error) {
 	if src == nil {
 		src = &mirror.Client{}
@@ -125,7 +133,7 @@ func Install(ctx context.Context, src *mirror.Client, dir string, b Build, progr
 		tmps = append(tmps, tmp)
 		base += a.Size
 	}
-	names := []string{"ffmpeg", "ffprobe"}
+	names := []string{exeName("ffmpeg"), exeName("ffprobe")}
 	for i, tmp := range tmps {
 		if err := os.Chmod(tmp, 0o755); err != nil {
 			return "", err
@@ -136,7 +144,7 @@ func Install(ctx context.Context, src *mirror.Client, dir string, b Build, progr
 		}
 	}
 	tmps = nil
-	return filepath.Join(dir, "ffmpeg"), nil
+	return filepath.Join(dir, names[0]), nil
 }
 
 // prepare lets macOS run a downloaded binary: no quarantine flag (Go's
@@ -154,7 +162,7 @@ var prepare = func(path string) {
 
 // Verify checks installed files against b's digests.
 func Verify(dir string, b Build) error {
-	for name, a := range map[string]Asset{"ffmpeg": b.FFmpeg, "ffprobe": b.FFprobe} {
+	for name, a := range map[string]Asset{exeName("ffmpeg"): b.FFmpeg, exeName("ffprobe"): b.FFprobe} {
 		f, err := os.Open(filepath.Join(dir, name))
 		if err != nil {
 			return err
@@ -174,7 +182,7 @@ func Verify(dir string, b Build) error {
 
 // Remove deletes a build Install put in dir.
 func Remove(dir string) error {
-	for _, n := range []string{"ffmpeg", "ffprobe"} {
+	for _, n := range []string{exeName("ffmpeg"), exeName("ffprobe")} {
 		if err := os.Remove(filepath.Join(dir, n)); err != nil && !os.IsNotExist(err) {
 			return err
 		}
