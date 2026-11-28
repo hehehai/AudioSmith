@@ -6,12 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hehehai/AudioSmith/engine-win/hw"
+	"github.com/hehehai/AudioSmith/engine-win/internal/llamacpp"
+	"github.com/hehehai/AudioSmith/engine-win/internal/onnx"
 	"github.com/hehehai/AudioSmith/engine-win/server"
 	"github.com/hehehai/AudioSmith/internal/dsp/wav"
 	"github.com/hehehai/AudioSmith/internal/engine/proto"
@@ -236,4 +241,183 @@ func mustReq(t *testing.T, id, method string, params any) proto.Message {
 		t.Fatal(err)
 	}
 	return m
+}
+
+type mockONNXRuntime struct{}
+
+func (m *mockONNXRuntime) Version() string              { return "1.24.4-mock" }
+func (m *mockONNXRuntime) AvailableProviders() []string { return []string{"CPUExecutionProvider"} }
+func (m *mockONNXRuntime) Close() error                 { return nil }
+func (m *mockONNXRuntime) NewSession(modelPath string, _ onnx.SessionOptions) (onnx.Session, error) {
+	if strings.Contains(strings.ToLower(filepath.Base(modelPath)), "vad") {
+		return &mockONNXSession{
+			inputs:  []string{"input", "state", "sr"},
+			outputs: []string{"output", "stateN"},
+			runFn: func(inputs []onnx.Tensor, _ []string) ([]onnx.Tensor, error) {
+				chunk := inputs[0].Float32[64:]
+				var sum float64
+				for _, s := range chunk {
+					sum += float64(s * s)
+				}
+				prob := float32(0.05)
+				if math.Sqrt(sum/float64(len(chunk))) > 0.1 {
+					prob = 0.93
+				}
+				return []onnx.Tensor{
+					onnx.Float32Tensor("output", []int64{1, 1}, []float32{prob}),
+					onnx.Float32Tensor("stateN", []int64{2, 1, 128}, make([]float32, 256)),
+				}, nil
+			},
+		}, nil
+	}
+	return &mockONNXSession{
+		inputs:  []string{"input_ids", "style", "speed"},
+		outName: []string{"waveform"},
+		runFn: func(_ []onnx.Tensor, _ []string) ([]onnx.Tensor, error) {
+			pcm := make([]float32, 4800)
+			for i := range pcm {
+				pcm[i] = 0.3 * float32(math.Sin(2*math.Pi*330*float64(i)/24000))
+			}
+			return []onnx.Tensor{onnx.Float32Tensor("waveform", []int64{1, 4800}, pcm)}, nil
+		},
+	}, nil
+}
+
+type mockONNXSession struct {
+	inputs  []string
+	outputs []string
+	outName []string
+	runFn   func(inputs []onnx.Tensor, outputNames []string) ([]onnx.Tensor, error)
+}
+
+func (s *mockONNXSession) InputNames() []string { return s.inputs }
+func (s *mockONNXSession) OutputNames() []string {
+	if len(s.outName) > 0 {
+		return s.outName
+	}
+	return s.outputs
+}
+func (s *mockONNXSession) Provider() string { return "cpu" }
+func (s *mockONNXSession) Close() error     { return nil }
+func (s *mockONNXSession) Run(inputs []onnx.Tensor, outputNames []string) ([]onnx.Tensor, error) {
+	return s.runFn(inputs, outputNames)
+}
+
+func TestONNXBackend_ProtocolV2_SileroVADAndKokoroTTS(t *testing.T) {
+	dir := t.TempDir()
+	vadModel := filepath.Join(dir, "silero_vad.onnx")
+	kokoroModel := filepath.Join(dir, "kokoro-v1.0.onnx")
+	_ = os.WriteFile(vadModel, []byte("onnx-vad"), 0o644)
+	_ = os.WriteFile(kokoroModel, []byte("onnx-kokoro"), 0o644)
+
+	// Create 1.2s 16 kHz WAV with speech-like tone in 0.2..0.9s.
+	inWAV := filepath.Join(dir, "speech.wav")
+	w, err := wav.Create(inWAV, wav.Format{Rate: 16000, Channels: 1, Encoding: wav.PCM16}, wav.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pcm := make([]float32, int(1.2*16000))
+	for i := int(0.2 * 16000); i < int(0.9*16000); i++ {
+		pcm[i] = 0.45 * float32(math.Sin(2*math.Pi*440*float64(i)/16000))
+	}
+	_ = w.Write(pcm)
+	_ = w.Close()
+
+	outWAV := filepath.Join(dir, "kokoro_out.wav")
+
+	onnxBackend := NewONNXBackendWithRuntime(hw.Probe(), &mockONNXRuntime{})
+	whisperSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"text":"hello from whisper","language":"en","duration":1.2,"segments":[{"start":0.2,"end":0.9,"text":"hello from whisper"}]}`))
+	}))
+	defer whisperSrv.Close()
+	whisperBackend := NewWhisperBackendWithRunner(llamacpp.NewWhisperRunnerWithConfig(hw.Probe(), whisperSrv.URL, ""))
+
+	g := New(hw.Probe(), onnxBackend, whisperBackend)
+	srv := server.New(server.Config{
+		Role:     proto.RoleGPU,
+		Version:  "test",
+		Hardware: hw.Probe(),
+		Hooks:    g.Hooks(),
+	})
+	g.Register(srv)
+
+	inR, inW := io.Pipe()
+	outR, outW := io.Pipe()
+	done := make(chan error, 1)
+	go func() {
+		err := srv.Serve(inR, outW)
+		_ = outW.Close()
+		done <- err
+	}()
+
+	sc := bufio.NewScanner(outR)
+	sc.Buffer(make([]byte, 64*1024), proto.MaxLine)
+	notifs := map[string]int{}
+	call := func(id, method string, params any) proto.Message {
+		t.Helper()
+		b, err := proto.Encode(mustReq(t, id, method, params))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := inW.Write(b); err != nil {
+			t.Fatal(err)
+		}
+		for sc.Scan() {
+			m, err := proto.Decode(sc.Bytes())
+			if err != nil {
+				t.Fatalf("decode: %v", err)
+			}
+			if m.Kind() == proto.KindNotification {
+				notifs[m.Method]++
+				continue
+			}
+			if m.Kind() == proto.KindResponse && m.ID == id {
+				if m.Error != nil {
+					t.Fatalf("error on %s (%s): %v", id, method, m.Error)
+				}
+				return m
+			}
+		}
+		t.Fatalf("EOF waiting for %s (%s)", id, method)
+		return proto.Message{}
+	}
+
+	call("c1", proto.MethodHello, proto.HelloParams{Protocol: proto.Version, Role: proto.RoleGPU})
+	call("j1", proto.MethodModelsLoad, proto.LoadParams{Model: "silero-vad", Task: "vad", Path: vadModel})
+	vadResp := call("j2", proto.MethodVADDetect, proto.VADParams{Model: "silero-vad", ModelPath: vadModel, Audio: inWAV})
+	ttsResp := call("j3", proto.MethodTTSSynthesize, proto.SynthesizeParams{
+		Model:     "kokoro-82m",
+		ModelPath: kokoroModel,
+		Text:      "Hello Windows everyday PC.",
+		Voice:     "af_heart",
+		Stream:    true,
+		Output:    proto.Output{Path: outWAV, Format: "wav", Bits: 16},
+	})
+	sttResp := call("j4", proto.MethodSTTTranscribe, proto.TranscribeParams{
+		Model: "whisper-turbo",
+		Audio: inWAV,
+	})
+	call("c2", proto.MethodModelsUnload, proto.UnloadParams{})
+	call("c3", proto.MethodShutdown, nil)
+	_ = inW.Close()
+	if err := <-done; err != nil {
+		t.Fatalf("Serve failed: %v", err)
+	}
+
+	var vadRes proto.VADResult
+	_ = vadResp.DecodeResult(&vadRes)
+	if len(vadRes.Regions) != 1 || vadRes.Regions[0].End < 0.85 {
+		t.Fatalf("unexpected VAD result: %+v", vadRes)
+	}
+	var ttsRes proto.SynthesizeResult
+	_ = ttsResp.DecodeResult(&ttsRes)
+	if ttsRes.SampleRate != 24000 || ttsRes.Frames != 4800 || notifs[proto.MethodTTSChunk] == 0 {
+		t.Fatalf("unexpected Kokoro TTS result: %+v notifs=%+v", ttsRes, notifs)
+	}
+	var sttRes proto.TranscribeResult
+	_ = sttResp.DecodeResult(&sttRes)
+	if sttRes.Text != "hello from whisper" || len(sttRes.Segments) != 1 {
+		t.Fatalf("unexpected Whisper STT result: %+v", sttRes)
+	}
 }

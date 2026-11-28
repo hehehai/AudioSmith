@@ -41,11 +41,12 @@ type Backend interface {
 }
 
 // DefaultBackends constructs the iGPU-first backend chain for hwInfo:
-// ONNX (DirectML/CPU) -> llama.cpp (Vulkan/CUDA/CPU) -> Python worker (on-demand).
+// ONNX (DirectML/CPU) -> llama.cpp (Vulkan/CUDA/CPU) -> whisper.cpp -> Python worker.
 func DefaultBackends(hwInfo hw.Info) []Backend {
 	return []Backend{
 		NewONNXBackend(hwInfo),
 		NewLlamaCppBackend(hwInfo),
+		NewWhisperBackend(hwInfo),
 		NewPythonBackend(hwInfo),
 	}
 }
